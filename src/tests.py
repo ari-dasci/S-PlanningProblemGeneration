@@ -1,4 +1,5 @@
 # Script used to test the functionality provided by the different modules
+# It should be executed from the same folder it is stored in
 
 # Test relational_state.py module, used to work with PDDL states and problems
 def test_relational_state():
@@ -171,9 +172,56 @@ def test_acr_gnn():
 	for pred, data_elem in zip(test_predictions, list(dataloader_test1)):
 		print(f"Correct: {data_elem[0][1]:.2f} - Predicted: {pred.item():.2f}")
 
+# Test pddl_parser.py module, used to 
+def test_pddl_parser():
+	from problem_generation.pddl.pddl_parser import PDDL_Parser
+	from problem_generation.pddl.relational_state import RelationalState
+
+	print("\n -- Testing pddl_parser.py -- \n")
+
+	domain_file_path = '../data/domains/blocks-domain.pddl'
+
+	pddl_parser = PDDL_Parser(domain_file_path)
+
+	print("> Domain types:", pddl_parser.domain_types)
+
+	print("> Domain predicates:", pddl_parser.domain_predicates)
+
+	print("> Parameters of the domain actions:", pddl_parser.domain_actions_and_parameters)
+
+	# Create relational state to test applicability and action transition
+	s0 = RelationalState(["block"], \
+                         [["on", ["block", "block"]], ['ontable', ['block']], ['clear', ['block']], ['handempty', []], ['holding', ['block']]], \
+                         ["block", "block", "block", "block"], \
+                         [['clear', [0]], ['clear', [1]], ['clear', [2]], ['clear', [3]], \
+                          ['ontable', [0]], ['ontable', [1]], ['ontable', [2]], ['ontable', [3]], \
+                          ['handempty', []]])
+
+	print("> State s0:", s0)
+
+	"""
+	action_names = [ action_info[0] for action_info in pddl_parser.domain_actions_and_parameters]
+
+	for a in action_names:
+		print(f"> Action {a} is applicable?: {pddl_parser.is_lifted_action_applicable(a, s0)}")"""
+
+	print("> Lifted action applicability:", pddl_parser.applicable_lifted_actions(s0))
+
+
+	print("> Ground action applicability")
+
+	print("> pick-up(0):", pddl_parser.is_ground_action_applicable('pick-up', [0], s0))
+	print("> stack(0, 1):", pddl_parser.is_ground_action_applicable('stack', [0, 1], s0))
+	print("> unstack(2,1):", pddl_parser.is_ground_action_applicable('unstack', [2, 1], s0))
+	print("> put-down(3):", pddl_parser.is_ground_action_applicable('put-down', [3], s0))
+
+
+	
 # ---------------------------------------------------
 
 # Do tests
 if __name__ == "__main__":
-	test_relational_state()
-	test_acr_gnn()
+	#test_relational_state()
+	#test_acr_gnn()
+	
+	test_pddl_parser()

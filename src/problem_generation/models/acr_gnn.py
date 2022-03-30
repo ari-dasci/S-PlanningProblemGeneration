@@ -1,6 +1,9 @@
 # --- ACR-GNN Implementation ---
 
-# > A forward pass (using 5 iterations, i.e., inner GNN layers) takes 2.4 ms (milliseconds) on average
+# Code extracted from the implementation of the work "Learning General Optimal Policies with Graph Neural Networks: Expressive Power, Transparency, and Limits"
+# link: zenodo.org/record/6353141 
+
+# A forward pass (using 5 iterations, i.e., inner GNN layers) takes 2.4 ms (milliseconds) on average
 
 # <<TODO>>: Adapt to predicates of arity-0 (right now, it does not work for them)
 #           Return a vector (instead of a single value) for the graph AND the final node statestor
