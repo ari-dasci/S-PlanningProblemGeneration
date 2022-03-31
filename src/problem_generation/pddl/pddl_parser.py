@@ -4,8 +4,10 @@
 
 # Classes 'Action', 'Planner' and '_DomainAndProblemParser (PDDL_Parser in source)' extracted from: https://github.com/pucrs-automated-planning/pddl-parser
 
+from _typeshed import Self
 import itertools
 import re
+import random
 
 from .relational_state import RelationalState
 
@@ -393,14 +395,21 @@ class _Planner:
 
 
 """
-This class is used to obtain information about the domain, test if a grounded action is applicable at a given state and
-apply it (i.e., obtain the next state).
+This class implements the environment. It allows to obtain information about the environment (PDDL domain and states) and implements
+the environment transitions (obtain next state by applying an action to the current state) and rewards.
 
 > TODO: support type hierarchy
 """
-class PDDL_Parser:
+class Environment:
 
-	def __init__(self, domain_file_path):
+    """
+    Constructor of the environment.
+
+    @domain_file_path Path of the PDDL planning domain.
+    @predicates_to_consider_for_goal List of predicate <names> (e.g., ['on', 'ontable']) to consider for the goals of the generated problems.
+                                     If None, every predicate can appear in the goal.
+    """
+	def __init__(self, domain_file_path, predicates_to_consider_for_goal=None):
 		self._parser = _DomainAndProblemParser()
 
 		# Parse domain
@@ -409,7 +418,52 @@ class PDDL_Parser:
 		# Create planner instance to obtain next state after applying action at the current state
 		self._planner = _Planner()
 
+        # Rewards
+        self._penalization_inconsistent_state = -1  # Penalization if the initial state generation policy selects an action that produces a non-consistent state (according to the consistency validator)
+        self._penalization_non_applicable_action = -1 # Penalization if the goal generation policy selects a ground domain action not applicable at the current state (i.e., the preconditions are not met)
 
+        # Goal predicates (list of predicates names -> ['on', 'ontable'])
+        if predicates_to_consider_for_goal is None: # Consider every predicate for the goal
+            self._predicates_to_consider_for_goal = [pred[0] for pred in self.domain_predicates()]
+        else:
+            self._predicates_to_consider_for_goal = predicates_to_consider_for_goal
+
+        # Get initial state of the generation process
+        self._current_state = self.get_s0()
+
+        # TODO: ADD MAXIMUM NUMBER OF ATOMS AND OBJECTS IN STATE!!
+
+    @property
+    def current_state(self):
+        return self._current_state
+
+    @property
+    def predicates_to_consider_for_goal(self):
+        return self._predicates_to_consider_for_goal
+
+    @property
+    def penalization_inconsistent_state(self):
+        return self._penalization_inconsistent_state
+
+    @penalization_inconsistent_state.setter
+    def penalization_inconsistent_state(self, value):
+        if value >= 0:
+            raise ValueError("The penalization must be a negative reward")
+
+        self._penalization_inconsistent_state = value
+
+    @property
+    def penalization_non_applicable_action(self):
+        return self._penalization_non_applicable_action
+
+    @penalization_non_applicable_action.setter
+    def penalization_non_applicable_action(self, value):
+        if value >= 0:
+            raise ValueError("The penalization must be a negative reward")
+
+        self._penalization_non_applicable_action = value
+
+    # Does not work with type hierarchies!
 	@property
 	def domain_types(self):
 		types = self._parser.types
@@ -466,7 +520,23 @@ class PDDL_Parser:
 
 		return state_objs_dict, state_atoms_for_parser
 
+    """
+    Returns the initial state (s0) corresponding to the generation process. If @initial_obj_type is None, returns a state (instance of RelationalState)
+    with a single object whose type is chosen at random. Otherwise, the type of this initial objects is equal to @initial_obj_type.
+    """
+    def get_s0(self, initial_obj_type=None):
 
+        # Select object type
+        if initial_obj_type is None: # Select a type at random
+            types = self.domain_types()
+            chosen_type = random.choice(types)
+        else:
+            chosen_type = initial_obj_type
+
+        # Create RelationalState instance with the chosen object type
+        s0 = RelationalState(self.domain_types(), self.domain_predicates(), [chosen_type], [])
+
+        return s0
 	"""
 	Return if a lifted action is applicable, i.e., if any of its possible instantiations on the state objects is applicable at the state.
 
@@ -599,7 +669,7 @@ class PDDL_Parser:
 
 	"""
 	Checks if the grounded action passed as parameter is applicable at the current state and, if it is, applies it to obtain the next state.
-	Returns next_state : RelationalState, action_applicable : bool  -  if the action is not applicable, next_state is equal to the current state @state.
+	Returns next_state : RelationalState, action_applicable : bool  -  if the action is not applicable, next_state is a copy of the current state @state.
 
 	@action_name Name of the action (e.g., "pick-up")
 	@action_objs The instantiated parameters of the action, as a list of indices corresponding to objects in @state (e.g., [0,1])
@@ -619,3 +689,23 @@ class PDDL_Parser:
 			next_state = state.copy() # The next state is the current state if the action is not applicable
 
 		return next_state, is_applicable
+
+    """
+	Obtains the next state corresponding to the application of a domain action to the current state (@state). It also returns a reward,
+    equal to 0 if the action is applicable and equal to self._penalization_non_applicable_action if the preconditions are not met.
+    Returns (next_state, action_reward) as a tuple. - If the action is not applicable, next_state is a copy of @state.
+
+	@action_name Name of the action (e.g., "pick-up")
+	@action_objs The instantiated parameters of the action, as a list of indices corresponding to objects in @state (e.g., [0,1])
+	@state The state to apply the action to, an instance of RelationalState
+	"""
+    def get_next_state_and_reward_for_domain_action(self, action_name, action_objs, state):
+        # Obtain next state and check if the action is applicable
+        next_state, is_applicable = self.check_action_applicability_and_get_next_state(action_name, action_objs, state)
+
+        if is_applicable:
+            action_reward = 0
+        else:
+            action_reward = self._penalization_non_applicable_action
+
+        return next_state, action_reward

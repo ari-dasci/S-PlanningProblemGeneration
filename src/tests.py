@@ -12,7 +12,6 @@ def test_relational_state():
 							["block", "block", "block", "circle", "circle"], \
 							[['on_b', [1,0]], ['on_b', [2,1]], ['on_c', [4,3]]])
 
-	
 	print("Relational state:", rel_state)
 	print("Predicates encoded for the ACR-GNN:", rel_state.predicates_gnn_encoding)
 	print("Atoms encoded for the ACR-GNN:", rel_state.atoms_gnn_encoding)
@@ -175,14 +174,14 @@ def test_acr_gnn():
 
 # Test pddl_parser.py module, used to 
 def test_pddl_parser():
-	from problem_generation.pddl.pddl_parser import PDDL_Parser
+	from problem_generation.pddl.pddl_parser import Environment
 	from problem_generation.pddl.relational_state import RelationalState
 
 	print("\n -- Testing pddl_parser.py -- \n")
 
 	domain_file_path = '../data/domains/blocks-domain.pddl'
 
-	pddl_parser = PDDL_Parser(domain_file_path)
+	pddl_parser = Environment(domain_file_path)
 
 	print("> Domain types:", pddl_parser.domain_types)
 
