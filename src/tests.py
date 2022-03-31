@@ -172,6 +172,7 @@ def test_acr_gnn():
 	for pred, data_elem in zip(test_predictions, list(dataloader_test1)):
 		print(f"Correct: {data_elem[0][1]:.2f} - Predicted: {pred.item():.2f}")
 
+
 # Test pddl_parser.py module, used to 
 def test_pddl_parser():
 	from problem_generation.pddl.pddl_parser import PDDL_Parser
@@ -194,8 +195,8 @@ def test_pddl_parser():
                          [["on", ["block", "block"]], ['ontable', ['block']], ['clear', ['block']], ['handempty', []], ['holding', ['block']]], \
                          ["block", "block", "block", "block"], \
                          [['clear', [0]], ['clear', [1]], ['clear', [2]], ['clear', [3]], \
-                          ['ontable', [0]], ['ontable', [1]], ['ontable', [2]], ['ontable', [3]], \
-                          ['handempty', []]])
+                         ['ontable', [0]], ['ontable', [1]], ['ontable', [2]], ['ontable', [3]], \
+                         ['handempty', []]])
 
 	print("> State s0:", s0)
 
@@ -210,14 +211,31 @@ def test_pddl_parser():
 
 	print("> Ground action applicability")
 
-	print("> pick-up(0):", pddl_parser.is_ground_action_applicable('pick-up', [0], s0))
-	print("> stack(0, 1):", pddl_parser.is_ground_action_applicable('stack', [0, 1], s0))
-	print("> unstack(2,1):", pddl_parser.is_ground_action_applicable('unstack', [2, 1], s0))
-	print("> put-down(3):", pddl_parser.is_ground_action_applicable('put-down', [3], s0))
+	print("> pick-up(0):", pddl_parser.check_action_applicability_and_get_next_state('pick-up', [0], s0)[1])
+	print("> stack(0, 1):", pddl_parser.check_action_applicability_and_get_next_state('stack', [0, 1], s0)[1])
+	print("> unstack(2,1):", pddl_parser.check_action_applicability_and_get_next_state('unstack', [2, 1], s0)[1])
+	print("> put-down(3):", pddl_parser.check_action_applicability_and_get_next_state('put-down', [3], s0)[1])
+
+	print("> Executing actions")
+
+	s1 = pddl_parser.check_action_applicability_and_get_next_state('pick-up', [0], s0)[0]
+	print("\n> State resulting from applying action pick-up(0) to current state:\n", s1)
+
+	s2 = pddl_parser.check_action_applicability_and_get_next_state('stack', [0, 1], s1)[0]
+	print("\n> State resulting from applying action stack(0, 1) to current state:\n", s2)
+
+	print("\n> Lifted action applicability at state s1 (with object '0' in hand):", pddl_parser.applicable_lifted_actions(s1))
+	print("> Ground action applicability")
+	print("> pick-up(0):", pddl_parser.check_action_applicability_and_get_next_state('pick-up', [0], s1)[1])
+	print("> stack(0, 1):", pddl_parser.check_action_applicability_and_get_next_state('stack', [0, 1], s1)[1])
+	print("> stack(1, 0):", pddl_parser.check_action_applicability_and_get_next_state('stack', [1, 0], s1)[1])
+	print("> unstack(2,1):", pddl_parser.check_action_applicability_and_get_next_state('unstack', [2, 1], s1)[1])
+	print("> put-down(0):", pddl_parser.check_action_applicability_and_get_next_state('put-down', [0], s1)[1])
+	print("> put-down(3):", pddl_parser.check_action_applicability_and_get_next_state('put-down', [3], s1)[1])
 
 
-	
 # ---------------------------------------------------
+
 
 # Do tests
 if __name__ == "__main__":

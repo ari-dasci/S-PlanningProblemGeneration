@@ -44,6 +44,15 @@ class RelationalState():
         for atom in atoms:
             self.add_atom(atom)
    
+
+    def __copy__(self):
+        new_copy = RelationalState(self._types.copy(), self._predicates.copy(), self._objects.copy(), self._atoms.copy())
+
+        return new_copy
+
+    def copy(self):
+        return self.__copy__()
+
     # Getters  
     
     @property
@@ -110,6 +119,25 @@ class RelationalState():
                 
         return (atom_dict, num_objs)
     
+    # Setters
+
+    @types.setter
+    def types(self, value):
+        self._types = value
+
+    @predicates.setter
+    def predicates(self, value):
+        self._predicates = value
+
+    @objects.setter
+    def objects(self, value):
+        self._objects = value
+
+    @atoms.setter
+    def atoms(self, value):
+        self._atoms = value
+
+
     # Modifiers
     
     # new_obj is the object type

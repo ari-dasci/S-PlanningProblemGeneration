@@ -1,4 +1,6 @@
 # -- Module for parsing PDDL domain and problems, and also to obtain --
+# It works with predicates of arity-0 and actions with negative preconditions
+# It does not support the PDDL extensions :exists, :forall, :when
 
 # Classes 'Action', 'Planner' and '_DomainAndProblemParser (PDDL_Parser in source)' extracted from: https://github.com/pucrs-automated-planning/pddl-parser
 
@@ -451,19 +453,18 @@ class PDDL_Parser:
 		for obj_name, obj_type in state_objs_with_names: # {'block': ['0', '1'], 'circle':['2']}
 			state_objs_dict[obj_type].append(obj_name)
 
-		#self._parser.objects = state_objs_dict
 
 		# <Get state atoms in in the encoding self._parser uses>
 		# From [['on', [1, 0]], ['on', [2,1]]] to frozenset({('on', 'b', 'a'), ('on', 'c', 'b')})
 		state_atoms = state.atoms # [['on', [1, 0]], ['on', [2,1]]]
-		state_atoms_nested = [[[atom[0]], atom[1]]  for atom in state_atoms] # [[['on'], [1, 0]], [['on'], [2,1]]]
-		state_atoms_unnested = [list(itertools.chain(*atom)) for atom in state_atoms_nested] # [['on', 1, 0], ['on', 2, 1]]
-		state_atoms_strings = [tuple([str(elem) for elem in atom])   for atom in state_atoms_unnested] # [('on', '1', '0'), ('on', '2', '1')]
-		state_atoms_strings = frozenset(state_atoms_strings)
+		state_atoms_for_parser = frozenset([ tuple([atom[0]] + list(map(str, atom[1]))) for atom in state_atoms]) # [('on', '1', '0'), ('on', '2', '1')]
 
-		#self._parser.state = frozenset(state_atoms_strings)
+		#state_atoms_nested = [[[atom[0]], atom[1]]  for atom in state_atoms] # [[['on'], [1, 0]], [['on'], [2,1]]]
+		#state_atoms_unnested = [list(itertools.chain(*atom)) for atom in state_atoms_nested] # [['on', 1, 0], ['on', 2, 1]]
+		#state_atoms_strings = [tuple([str(elem) for elem in atom]) for atom in state_atoms_unnested] # [('on', '1', '0'), ('on', '2', '1')]
+		#state_atoms_strings = frozenset(state_atoms_strings)
 
-		return state_objs_dict, state_atoms_strings
+		return state_objs_dict, state_atoms_for_parser
 
 
 	"""
@@ -537,19 +538,10 @@ class PDDL_Parser:
 		return lifted_actions_applicability
 
 
-	"""
-	Checks if a ground action is applicable at the current state or not.
-	@action_name Name of the action (e.g., "pick-up")
-	@action_objs The instantiated parameters of the action, as a list of indices corresponding to objects in @state (e.g., [0,1])
-	@state The state to check the applicability in, as an instance of RelationalState
-	"""
-	def is_ground_action_applicable(self, action_name, action_objs, state):
-		
-		# <Get state objects and atoms in the encoding self._parser uses>
-		state_objs, state_atoms = self._encode_relational_state_for_parser(state)
-
-		# <Get the ground action in an encoding suitable for self._planner>
-
+	# Function used to obtain the grounded action, as an instance of _Action class, corresponding to an action name and objects
+	# (represented as a list of indexes of a RelationalState instance) 
+	# @state_objs Objects in the state, obtained by calling the method self._encode_relational_state_for_parser()
+	def _obtain_ground_action_from_name_and_params(self, action_name, action_objs, state_objs):
 		# Transform action_objs from List[int] to List[str]
 		action_objs = [str(o) for o in action_objs]
 
@@ -564,4 +556,66 @@ class PDDL_Parser:
 		# Among all the ground actions, select the one corresponding to @action_name and @action_objs
 		ground_action = list(filter(lambda a: a.name == action_name and tuple(a.parameters) == tuple(action_objs), ground_actions))[0]
 
+		return ground_action
+
+	"""
+	Checks if a ground action is applicable at the current state or not.
+	@action_name Name of the action (e.g., "pick-up")
+	@action_objs The instantiated parameters of the action, as a list of indices corresponding to objects in @state (e.g., [0,1])
+	@state_objs Objects in the state, obtained by calling the method self._encode_relational_state_for_parser()
+	@state_atoms Atoms in the state, obtained by calling the method self._encode_relational_state_for_parser()
+	"""
+	def _is_ground_action_applicable(self, action_name, action_objs, state_objs, state_atoms):
+		# Obtain ground actions
+		ground_action = self._obtain_ground_action_from_name_and_params(action_name, action_objs, state_objs)
+
 		return self._planner.applicable(state_atoms, ground_action.positive_preconditions, ground_action.negative_preconditions)
+
+
+	"""
+	Obtains the next state resulting from applying a ground action at the current state.
+	@action_name Name of the action (e.g., "pick-up")
+	@action_objs The instantiated parameters of the action, as a list of indices corresponding to objects in @state (e.g., [0,1])
+	@state_objs Objects in the state, obtained by calling the method self._encode_relational_state_for_parser()
+	@state_atoms Atoms in the state, obtained by calling the method self._encode_relational_state_for_parser()
+	@state The state as an instance of RelationalState
+	Note: this method assumes the action applicability has been previously checked using self._is_ground_state_applicable()
+	"""
+	def _get_next_state(self, action_name, action_objs, state_objs, state_atoms, state):
+		# Obtain ground actions
+		ground_action = self._obtain_ground_action_from_name_and_params(action_name, action_objs, state_objs)
+
+		# Obtain next state, in the frozenset format used by self._parser and self._planner
+		next_state = self._planner.apply(state_atoms, ground_action.add_effects, ground_action.del_effects)
+
+		# Transform next_state to the format used by RelationalState
+		new_state_atoms = [[atom[0], list(map(int, atom[1:]))] for atom in next_state]
+
+		# Create a new RelationalState instance
+		new_rel_state = state.copy()
+		new_rel_state.atoms = new_state_atoms
+
+		return new_rel_state
+
+	"""
+	Checks if the grounded action passed as parameter is applicable at the current state and, if it is, applies it to obtain the next state.
+	Returns next_state : RelationalState, action_applicable : bool  -  if the action is not applicable, next_state is equal to the current state @state.
+
+	@action_name Name of the action (e.g., "pick-up")
+	@action_objs The instantiated parameters of the action, as a list of indices corresponding to objects in @state (e.g., [0,1])
+	@state The state to apply the action to, an instance of RelationalState
+	"""
+	def check_action_applicability_and_get_next_state(self, action_name, action_objs, state):
+		# <Get state objects and atoms in the encoding self._parser uses>
+		state_objs, state_atoms = self._encode_relational_state_for_parser(state)
+
+		# <Check action applicability>
+		is_applicable = self._is_ground_action_applicable(action_name, action_objs, state_objs, state_atoms)
+
+		# <Get next state>
+		if is_applicable: 
+			next_state = self._get_next_state(action_name, action_objs, state_objs, state_atoms, state)
+		else:
+			next_state = state.copy() # The next state is the current state if the action is not applicable
+
+		return next_state, is_applicable
