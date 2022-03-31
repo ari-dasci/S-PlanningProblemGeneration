@@ -147,7 +147,11 @@ class RelationalState():
             raise ValueError("Invalid object type")
         
         self._objects.append(new_obj)
-        
+       
+    def add_objects(self, obj_array): # obj_array -> ['block', 'block', 'circle']
+        for obj in obj_array:
+            self.add_object(obj)
+
     def add_atom(self, new_atom): # predicate: ['on', ['block', 'block']]
                                   # atom: ['on', [1, 2]]
             
@@ -176,6 +180,11 @@ class RelationalState():
             
         self._atoms.append(new_atom)
     
+    def add_atoms(self, atom_array): # atom_array -> list where each element is an atom
+        for atom in atom_array:
+            self.add_atom(atom)
+
+
     # Delete object by index. If it appears in an atom, raise a ValueError exception
     def del_object(self, ind_obj):
         # Check the object is valid

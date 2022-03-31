@@ -3,7 +3,7 @@
 
 # Test relational_state.py module, used to work with PDDL states and problems
 def test_relational_state():
-	from problem_generation.pddl.relational_state import RelationalState, RelationalStatesDataset
+	from problem_generation.environment.relational_state import RelationalState, RelationalStatesDataset
 
 	print("\n -- Testing relational_state.py -- \n")
 
@@ -34,7 +34,7 @@ def test_acr_gnn():
 	import torch
 	import pytorch_lightning as pl
 	from problem_generation.models.acr_gnn import ACR_GNN
-	from problem_generation.pddl.relational_state import RelationalState, RelationalStatesDataset, TransformRelationalStateForGNN
+	from problem_generation.environment.relational_state import RelationalState, RelationalStatesDataset, TransformRelationalStateForGNN
 
 	print("\n -- Testing acr_gnn.py -- \n")
 
@@ -155,7 +155,7 @@ def test_acr_gnn():
 					  learning_rate=0.0002, l1_factor=0.0, weight_decay=0.0)
 
 	# > Training
-	trainer = pl.Trainer(gpus=1, max_epochs=1000)
+	trainer = pl.Trainer(max_epochs=1000)
 	trainer.fit(acr_gnn, dataloader_1)
 
 	# > Prediction
@@ -172,22 +172,14 @@ def test_acr_gnn():
 		print(f"Correct: {data_elem[0][1]:.2f} - Predicted: {pred.item():.2f}")
 
 
-# Test pddl_parser.py module, used to 
-def test_pddl_parser():
-	from problem_generation.pddl.pddl_parser import Environment
-	from problem_generation.pddl.relational_state import RelationalState
+# Test problem_state.py module, which stores the information necessary to generate a planning problem
+def test_problem_state():
+	from problem_generation.environment.problem_state import ProblemState
+	from problem_generation.environment.relational_state import RelationalState
 
-	print("\n -- Testing pddl_parser.py -- \n")
+	print("\n -- Testing problem_state.py -- \n")
 
 	domain_file_path = '../data/domains/blocks-domain.pddl'
-
-	pddl_parser = Environment(domain_file_path)
-
-	print("> Domain types:", pddl_parser.domain_types)
-
-	print("> Domain predicates:", pddl_parser.domain_predicates)
-
-	print("> Parameters of the domain actions:", pddl_parser.domain_actions_and_parameters)
 
 	# Create relational state to test applicability and action transition
 	s0 = RelationalState(["block"], \
@@ -197,40 +189,49 @@ def test_pddl_parser():
                          ['ontable', [0]], ['ontable', [1]], ['ontable', [2]], ['ontable', [3]], \
                          ['handempty', []]])
 
-	print("> State s0:", s0)
+	problem_state = ProblemState(domain_file_path, initial_state_info=s0)
+
+	print("> Domain types:", problem_state.domain_types)
+
+	print("> Domain predicates:", problem_state.domain_predicates)
+
+	print("> Parameters of the domain actions:", problem_state.domain_actions_and_parameters)
+
+	print("> problem_state initial state:", problem_state.initial_state)
+
+	# <End initial state generation phase>
+	problem_state.end_initial_state_generation_phase()
 
 	"""
-	action_names = [ action_info[0] for action_info in pddl_parser.domain_actions_and_parameters]
+	action_names = [ action_info[0] for action_info in problem_state.domain_actions_and_parameters]
 
 	for a in action_names:
-		print(f"> Action {a} is applicable?: {pddl_parser.is_lifted_action_applicable(a, s0)}")"""
+		print(f"> Action {a} is applicable?: {problem_state.is_lifted_action_applicable(a, s0)}")"""
 
-	print("> Lifted action applicability:", pddl_parser.applicable_lifted_actions(s0))
-
+	print("> Lifted action applicability:", problem_state.applicable_lifted_actions())
 
 	print("> Ground action applicability")
 
-	print("> pick-up(0):", pddl_parser.check_action_applicability_and_get_next_state('pick-up', [0], s0)[1])
-	print("> stack(0, 1):", pddl_parser.check_action_applicability_and_get_next_state('stack', [0, 1], s0)[1])
-	print("> unstack(2,1):", pddl_parser.check_action_applicability_and_get_next_state('unstack', [2, 1], s0)[1])
-	print("> put-down(3):", pddl_parser.check_action_applicability_and_get_next_state('put-down', [3], s0)[1])
+	print("> pick-up(0):", problem_state.is_ground_action_applicable('pick-up', [0]))
+	print("> stack(0, 1):", problem_state.is_ground_action_applicable('stack', [0, 1]))
+	print("> unstack(2,1):", problem_state.is_ground_action_applicable('unstack', [2, 1]))
+	print("> put-down(3):", problem_state.is_ground_action_applicable('put-down', [3]))
 
-	print("> Executing actions")
-
-	s1 = pddl_parser.check_action_applicability_and_get_next_state('pick-up', [0], s0)[0]
+	s1, r1 = problem_state.apply_action_to_goal_state('pick-up', [0])
 	print("\n> State resulting from applying action pick-up(0) to current state:\n", s1)
+	print("Reward:", r1)
 
-	s2 = pddl_parser.check_action_applicability_and_get_next_state('stack', [0, 1], s1)[0]
+	print("> Ground action applicability at state s1 (with object '0' in hand)")
+	print("> pick-up(0):", problem_state.is_ground_action_applicable('pick-up', [0]))
+	print("> stack(0, 1):", problem_state.is_ground_action_applicable('stack', [0, 1]))
+	print("> stack(1, 0):", problem_state.is_ground_action_applicable('stack', [1, 0]))
+	print("> unstack(2,1):", problem_state.is_ground_action_applicable('unstack', [2, 1]))
+	print("> put-down(0):", problem_state.is_ground_action_applicable('put-down', [0]))
+	print("> put-down(3):", problem_state.is_ground_action_applicable('put-down', [3]))
+
+	s2, r2 = problem_state.apply_action_to_goal_state('stack', [0, 1])
 	print("\n> State resulting from applying action stack(0, 1) to current state:\n", s2)
-
-	print("\n> Lifted action applicability at state s1 (with object '0' in hand):", pddl_parser.applicable_lifted_actions(s1))
-	print("> Ground action applicability")
-	print("> pick-up(0):", pddl_parser.check_action_applicability_and_get_next_state('pick-up', [0], s1)[1])
-	print("> stack(0, 1):", pddl_parser.check_action_applicability_and_get_next_state('stack', [0, 1], s1)[1])
-	print("> stack(1, 0):", pddl_parser.check_action_applicability_and_get_next_state('stack', [1, 0], s1)[1])
-	print("> unstack(2,1):", pddl_parser.check_action_applicability_and_get_next_state('unstack', [2, 1], s1)[1])
-	print("> put-down(0):", pddl_parser.check_action_applicability_and_get_next_state('put-down', [0], s1)[1])
-	print("> put-down(3):", pddl_parser.check_action_applicability_and_get_next_state('put-down', [3], s1)[1])
+	print("Reward:", r2)
 
 
 # ---------------------------------------------------
@@ -240,5 +241,4 @@ def test_pddl_parser():
 if __name__ == "__main__":
 	#test_relational_state()
 	#test_acr_gnn()
-	
-	test_pddl_parser()
+	test_problem_state()
