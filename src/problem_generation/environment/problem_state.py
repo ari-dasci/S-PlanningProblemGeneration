@@ -487,6 +487,12 @@ class ProblemState:
 
 		self._penalization_non_applicable_action = value
 
+	@property
+	def domain_name(self):
+		name = self._parser.domain_name
+
+		return name
+
 	# Does not work with type hierarchies!
 	@property
 	def domain_types(self):
@@ -804,9 +810,93 @@ class ProblemState:
 
 		# <<Todo>>: Use the state consistency validator to check if next_state is consistent or not.
 		#           If it is not, output a copy of the current state (instead of next_state) and self._penalization_inconsistent_state
+		# THE VALIDATOR CAN CHECK THE CONSISTENCY OF THE NEXT_STATE OR OF ADDING THE NEW_ATOM AND OBJECTS TO THE CURRENT STATE
+		# (two different ways of checking the consistency)
 
 		# Assign the next_state
 		self._initial_state = next_state # Warning: the next_state returned and the one stored in self._initial_state share the reference
 
 		# Ouput the next initial state and the reward
 		return next_state, 0
+
+	"""
+	Obtains a list with the (positive) atoms of the goal. This list corresponds to the atoms in self._goal_state whose predicate
+	is in self._predicates_to_consider_for_goal.
+	Before calling this method, the goal state should have already been generated.
+	"""
+	def _get_atoms_in_problem_goal(self):
+		goal_atoms = self._goal_state.atoms
+
+		goal_atoms_filtered = list(filter(lambda atom: atom[0] in self._predicates_to_consider_for_goal, goal_atoms))
+		
+		return goal_atoms_filtered
+
+	"""
+	This method must be called once the goal state has been generated, before obtaining the PDDL problem associated with this instance
+	of ProblemState.
+	"""
+	def end_goal_state_generation_phase(self):
+		if not self._is_initial_state_generated:
+			raise Exception("The initial state generation phase has not concluded yet")
+
+		if self._is_goal_state_generated:
+			raise Exception("The goal state generation phase has already concluded")
+		
+		self._is_goal_state_generated = True
+
+
+	# <<TODO>>
+	def obtain_pddl_problem(self, problem_name=None):
+		if not self._is_initial_state_generated:
+			raise Exception("The initial state generation phase has not concluded yet")
+
+		if not self._is_goal_state_generated
+			raise Exception("The goal state generation phase has not concluded yet")
+	
+		# <<Obtain planning problem information>>
+
+		# Domain name
+		domain_name = self.domain_name
+
+		# Problem name (also used in case the problem file is saved to disk (although the .pddl file extension is added to the name))
+		# If not given by the user, use a default name.
+		if problem_name is None:
+			problem_name = 'problem_' + domain_name + '_1'
+
+		# Objects
+		# Make sure the objects in the initial and goal states are the same
+		if self._initial_state.objects != self._goal_state.objects:
+			raise Exception("The objects in the initial and goal states are not the same")
+
+		problem_objects = self._goal_state.objects
+
+		# Init atoms
+		init_atoms = self._initial_state.atoms
+
+		# Goal atoms (according to the predicates given by the user)
+		goal_atoms = self._get_atoms_in_problem_goal()
+
+		# <<Encode this information in PDDL format>>
+		# <<TODO>>
+
+		# <Definition (and problem name)>
+		pddl_problem = f"(define (problem {problem_name})\n\n"
+
+		# <Domain name>
+		pddl_problem += f'(:domain {domain_name})\n\n'
+
+		# <Objects>
+
+		# Begin :objects
+		pddl_problem += '(:objects\n'
+
+		# Group objects by type 
+		# <TODO>
+
+
+		# End :objects
+		pddl_problem += ')\n\n'
+
+
+		# <End>
+		pddl_problem += "\n)"
