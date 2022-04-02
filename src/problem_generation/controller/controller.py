@@ -1,0 +1,252 @@
+# This module implements the controller. It controls the other modules and serves as the frontend of the problem generation method.
+
+import random
+
+from problem_generation.environment.problem_state import ProblemState
+from problem_generation.environment.pddl_parser import Parser
+
+# This class controls the generation of planning problems.
+# It trains the generative policies to generate problems that are valid, diverse and of good quality (according to the user-given
+# requirements) and then uses them to generate as many planning problems as needed.
+# Each controller is associated with a single domain and generation options.
+class Controller():
+	
+	"""
+	Constructor of the Controller class.
+
+	@domain_file_path Path of the PDDL planning domain.
+	@predicates_to_consider_for_goal List of predicate <names> (e.g., ['on', 'ontable']) to consider for the goals of the generated problems.
+									 If None, every predicate can appear in the goal.
+	@initial_state_info Information used to create the initial state of the generation process. If None, the initial state contains a single object
+	                    of a random type. If str (e.g., 'block'), the initial state contains a single object of such type. If an instance of
+						RelationalState, the initial state will be the state passed as parameter.
+	@max_objects_init_state Max number of objects that the initial state of the problems generated can contain.
+	@max_atoms_init_state   Max number of atoms that the initial state of the problems generated can contain.
+	@penalization_inconsistent_state Penalization if the initial state generation policy selects an action that produces a non-consistent state 
+	                                 (according to the consistency validator).
+	@penalization_non_applicable_action Penalization if the goal generation policy selects a ground domain action not applicable at the current 
+	                                    state (i.e., the preconditions are not met).
+	"""
+	def __init__(self, domain_file_path, predicates_to_consider_for_goal=None, initial_state_info=None, max_objects_init_state=1000,
+			     max_atoms_init_state=1000, penalization_inconsistent_state=-1, penalization_non_applicable_action=-1):
+		
+		self._domain_file_path = domain_file_path
+		self._initial_state_info = initial_state_info
+		self._max_objects_init_state = max_objects_init_state
+		self._max_atoms_init_state = max_atoms_init_state
+		self._penalization_inconsistent_state = penalization_inconsistent_state  
+		self._penalization_non_applicable_action = penalization_non_applicable_action
+
+		# Parse the PDDL domain
+		self._parser = Parser()
+		self._parser.parse_domain(domain_file_path)
+
+		# Goal predicates (list of predicates names -> ['on', 'ontable'])
+		if predicates_to_consider_for_goal is None: # Consider every predicate for the goal
+			self._predicates_to_consider_for_goal = [pred[0] for pred in self.domain_predicates]
+		else:
+			self._predicates_to_consider_for_goal = predicates_to_consider_for_goal
+
+
+	# ------- Getters and Setters --------
+
+	@property
+	def predicates_to_consider_for_goal(self):
+		return self._predicates_to_consider_for_goal
+
+	@property
+	def penalization_inconsistent_state(self):
+		return self._penalization_inconsistent_state
+
+	@property
+	def penalization_non_applicable_action(self):
+		return self._penalization_non_applicable_action
+
+	@property
+	def domain_name(self):
+		name = self._parser.domain_name
+
+		return name
+
+	# Does not work with type hierarchies!
+	@property
+	def domain_types(self):
+		types = self._parser.types
+
+		type_list = list(types.values())[0] # Convert to a list of strings representing types (['block', 'circle'])
+
+		return type_list
+	
+	@property
+	def domain_predicates(self):
+		predicates = self._parser.predicates
+		predicates = list(predicates.items())
+
+		predicate_list = [[pred[0], list(pred[1].values())] for pred in predicates] # Convert to a list where each element is a predicate in the form
+																					# ['on', ['block', 'block']]
+		return predicate_list
+
+	"""
+	Only returns information about the name of each action and the types of its parameters.
+	"""
+	@property
+	def domain_actions_and_parameters(self):
+		actions = self._parser.actions
+	
+		action_list = [[a.name, [p[1] for p in a.parameters]] for a in actions] # Convert to a list where each element is an action in the form
+																				# ['stack', ['block', 'block']]
+
+		return action_list
+
+	# ------------------------------
+
+
+	"""
+	This method generates a single random problem by randomly picking the actions in the initial state and goal generation phases, instead of using
+	the generative policies.
+
+	@num_actions_for_init_state How many (random) actions to execute to generate the initial state.
+	@num_actions_for_goal_state How many (random) actions to execute to generate the goal state.
+	@prob_adding_new_obj When selecting an action to apply (i.e., an atom to add) to the initial state, how likely each instantiated object
+	                     of the atom is to be chosen from the objects in the initial state or as a new object to add to the initial state.
+	@problem_name If not None, name of the generated problem.
+	@verbose If True, prints information about the process (e.g., the actions applied to generate the problem).
+	
+	<TODO>: make sure the selected actions are valid (for both the initial state and goal generation phases)
+	"""
+	def generate_random_problem(self, num_actions_for_init_state, num_actions_for_goal_state, prob_adding_new_obj=0.5,
+							    problem_name = None, verbose=False):
+
+		# <Initialize ProblemState instance>
+		problem = ProblemState(self._parser, self._predicates_to_consider_for_goal, self._initial_state_info, self._penalization_inconsistent_state,
+						       self._penalization_non_applicable_action)
+
+		# <Generate initial state>
+
+		if verbose:
+			print("> Starting initial state generation phase")
+
+		domain_predicates = self.domain_predicates
+
+		for _ in range(num_actions_for_init_state):
+			# Select a random predicate
+			pred = random.choice(domain_predicates)
+
+			# Get predicate type ('on')
+			pred_type = pred[0]
+
+			# Obtain objects in the initial state
+			state_objs = problem.initial_state.objects
+
+			# Instantiate the predicate and add new objects
+			objs_to_add = [] # ['block']
+			pred_objs_indices = [] # [1, 3]
+			ind_next_new_obj = len(state_objs) # In case a new object is added, the index that corresponds to it
+			
+			for obj_type in pred[1]:
+				if random.uniform(0.0, 1.0) < prob_adding_new_obj: # Instantiate on a new object
+					objs_to_add.append(obj_type) # Add an object to the state with the correct type
+					pred_objs_indices.append(ind_next_new_obj) # Instantiate the predicate on such object
+					ind_next_new_obj += 1
+
+				else: # Instantiate on an existing object
+					
+					# Select objects (represented as indices) in the state with the correct type
+					# Example: ['block', 'circle', 'block', 'block'] -> [0, 2, 3] (if obj_type is 'block')
+					obj_inds_correct_type = [ind for ind, t in list(filter(lambda x: x[1] == obj_type, enumerate(state_objs)))]
+					
+					# Remove objects already instantiated in the predicate (an object can only appear once per predicate)
+					obj_inds_correct_type_and_not_instantiated = list(filter(lambda x: x not in pred_objs_indices, obj_inds_correct_type))
+					
+					# If no object fulfills the requisites, instantiate the predicate on a new object
+					if len(obj_inds_correct_type_and_not_instantiated) == 0:
+						objs_to_add.append(obj_type) # Add an object to the state with the correct type
+						pred_objs_indices.append(ind_next_new_obj) # Instantiate the predicate on such object
+						ind_next_new_obj += 1
+					
+					else: # Instantiate the predicate on a random object that fulfills the requisites
+						random_obj_ind = random.choice(obj_inds_correct_type_and_not_instantiated)
+						pred_objs_indices.append(random_obj_ind)
+
+			# Add the instantiated predicate (i.e., the atom) to the initial state
+			new_atom = [pred_type, pred_objs_indices]
+
+			# Make sure the atom was not already in the initial state
+			if new_atom in problem.initial_state.atoms:
+				if verbose:
+					print(f"<The atom already existed in the initial state>")
+			
+			else:
+				_, r = problem.apply_action_to_initial_state(objs_to_add, new_atom)
+
+				if verbose:
+					if r >= 0: # Valid action
+						print(f"<Valid> - Atom {new_atom} and objs {objs_to_add}")
+					else:
+						print(f"<Invalid> - Atom {new_atom} and objs {objs_to_add}")
+
+		
+		# <Generate goal state>
+
+		if verbose:
+			print("> Starting goal state generation phase")
+
+		problem.end_initial_state_generation_phase()
+
+		domain_actions = self.domain_actions_and_parameters
+
+		for _ in range(num_actions_for_goal_state):
+			# Select a random action
+			action = random.choice(domain_actions)
+
+			# Get action type ('pick-up')
+			action_type = action[0]
+
+			# Obtain objects in the initial state
+			state_objs = problem.initial_state.objects
+
+			# Instantiate the action on objects
+			action_objs_indices = [] # [1, 3]
+			action_can_be_instantiated = True # If False, the selected action cannot be instantiated on the current state (and thus it's not applicable)
+			
+			for obj_type in action[1]:
+				# Select objects (represented as indices) in the state with the correct type
+				# Example: ['block', 'circle', 'block', 'block'] -> [0, 2, 3] (if obj_type is 'block')
+				obj_inds_correct_type = [ind for ind, t in list(filter(lambda x: x[1] == obj_type, enumerate(state_objs)))]
+					
+				# Remove objects already instantiated in the action (an object can only appear once per action)
+				obj_inds_correct_type_and_not_instantiated = list(filter(lambda x: x not in action_objs_indices, obj_inds_correct_type))
+					
+				# If no object fulfills the requisites, simply choose another action (in the next iteration of the loop)
+				if len(obj_inds_correct_type_and_not_instantiated) == 0:
+					action_can_be_instantiated = False
+					
+				else: # Instantiate the action on a random object that fulfills the requisites
+					random_obj_ind = random.choice(obj_inds_correct_type_and_not_instantiated)
+					action_objs_indices.append(random_obj_ind)
+
+
+			# Apply the action to the goal state
+			if action_can_be_instantiated:
+				_, r = problem.apply_action_to_goal_state(action_type, action_objs_indices)
+			
+				if verbose:
+					if r >= 0: # Valid action
+						print(f"<Valid> - Action {[action_type, action_objs_indices]}")
+					else:
+						print(f"<Invalid> - Action {[action_type, action_objs_indices]}")
+
+			else:
+				if verbose:
+					print(f"<Invalid> - The action {action_type} can't be instantiated")
+
+		# <Obtain PDDL problem>
+
+		problem.end_goal_state_generation_phase()
+
+		if verbose:
+			print("> Goal state generated.\n>Obtaining PDDL encoding of the problem")
+
+		pddl_problem = problem.obtain_pddl_problem(problem_name)
+
+		return pddl_problem

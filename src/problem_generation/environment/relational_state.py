@@ -10,7 +10,6 @@ class RelationalState():
     def __init__(self, types, predicates, objects=[], atoms=[]):
         # Domain data
         
-        # Check the types
         if type(types) != list or type(types[0]) != str:
             raise ValueError("Types must be a list of strings")
         

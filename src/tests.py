@@ -172,10 +172,11 @@ def test_acr_gnn():
 		print(f"Correct: {data_elem[0][1]:.2f} - Predicted: {pred.item():.2f}")
 
 
-# Test problem_state.py module, which stores the information necessary to generate a planning problem
-def test_problem_state():
+# Test action applicability and transition of problem_state.py module
+def test_problem_state_action_applicability_and_transition():
 	from problem_generation.environment.problem_state import ProblemState
 	from problem_generation.environment.relational_state import RelationalState
+	from problem_generation.environment.pddl_parser import Parser
 
 	print("\n -- Testing problem_state.py -- \n")
 
@@ -189,7 +190,11 @@ def test_problem_state():
                          ['ontable', [0]], ['ontable', [1]], ['ontable', [2]], ['ontable', [3]], \
                          ['handempty', []]])
 
-	problem_state = ProblemState(domain_file_path, initial_state_info=s0)
+	# Manually initialize parser
+	parser = Parser()
+	parser.parse_domain(domain_file_path)
+
+	problem_state = ProblemState(parser, predicates_to_consider_for_goal=['on'], initial_state_info=s0)
 
 	print("> Domain types:", problem_state.domain_types)
 
@@ -234,6 +239,47 @@ def test_problem_state():
 	print("Reward:", r2)
 
 
+	# <TODO>
+	# Test initial state generation phase
+	# Test _get_atoms_in_problem_goal 
+	# Test PDDL encoding of the problem
+
+
+# Test the generate_random_problem() method of the controller.py module
+# It generates a random problem for the blocksworld domain
+# <TODO>: 1. Check for action validity and applicability in the generate_random_problem() method
+#         2. Implement the consistency validator functionality
+def test_random_problem_generation():
+	from problem_generation.controller.controller import Controller
+	from problem_generation.environment.relational_state import RelationalState
+
+	domain_file_path = '../data/domains/blocks-domain.pddl'
+
+	# Only use predicates 'on', 'clear' for the goal
+	controller = Controller(domain_file_path, predicates_to_consider_for_goal=['on', 'clear'])
+
+	print("--- Generate random problem for blocksworld domain with goal predicates ['on', 'clear'] ---")
+
+	pddl_problem = controller.generate_random_problem(num_actions_for_init_state = 5, num_actions_for_goal_state=10, verbose=True)
+
+	print("\n\n <PDDL Problem>\n", pddl_problem)
+
+	# Generate problem starting from a given initial state
+
+	s0 = RelationalState(["block"], \
+                         [["on", ["block", "block"]], ['ontable', ['block']], ['clear', ['block']], ['handempty', []], ['holding', ['block']]], \
+                         ["block", "block", "block"], \
+                         [['on', [1, 0]], ['on', [2, 1]], ['clear', [2]], ['ontable', [0]], ['handempty', []]])
+
+	print("--- Generate random problem starting from the following initial state:\n", s0)
+
+	controller2 = Controller(domain_file_path, initial_state_info=s0) # Consider all predicates for goal
+
+	# Don't execute actions for the initial state (it's already given)
+	pddl_problem2 = controller2.generate_random_problem(num_actions_for_init_state = 0, num_actions_for_goal_state=10, verbose=True)
+
+	print("\n\n <PDDL Problem>\n", pddl_problem2)
+
 # ---------------------------------------------------
 
 
@@ -241,4 +287,6 @@ def test_problem_state():
 if __name__ == "__main__":
 	#test_relational_state()
 	#test_acr_gnn()
-	test_problem_state()
+	#test_problem_state_action_applicability_and_transition()
+
+	test_random_problem_generation()
