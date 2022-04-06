@@ -11,10 +11,10 @@ an action) and rewards.
 
 > TODO: support type hierarchy
 
- <<TODO>>: 
-           2. Create consistency validator and check consistency in self.apply_action_to_initial_state()
-
+Create consistency validator and check consistency in self.apply_action_to_initial_state()
+Nota: pensar que sucede si en un estado inicial concreto no quedan acciones validas (quizas haya que hacer backtracking)
 """
+
 class ProblemState:
 
 	"""
@@ -118,9 +118,11 @@ class ProblemState:
 	# -------------------------
 
 	# Receives a state as an instance of RelationalState and returns the state objects and atoms in an encoding suitable for the parser
+	# Objects -> from ['block', 'block', 'circle'] to {'block': ['0', '1'], 'circle':['2']}
+	# Atoms -> from [['on', [1, 0]], ['on', [2, 1]]] to [('on', '1', '0'), ('on', '2', '1')]
 	def _encode_relational_state_for_parser(self, state):
 		# <Get state objects in the encoding self._parser uses>
-		# From ['block', 'block', 'circle'] to {'block': ['a', 'b'], 'circle':['c']}
+		# From ['block', 'block', 'circle'] to {'block': ['0', '1'], 'circle':['2']}
 		state_objs = state.objects # Ex: ['block', 'block', 'circle']
 		state_objs_with_names = [(str(ind), _type) for ind, _type in enumerate(state_objs)] # [('0', 'block'), ('1', 'block'), ('2', 'circle')]
 		obj_types_in_state = set(state_objs) # {'block', 'circle'}
@@ -224,7 +226,7 @@ class ProblemState:
 		# Delete actions with repeated arguments (e.g.: stack('a', 'a') is invalid)
 		ground_actions_no_rep_args = list(filter(lambda a: len(a.parameters) == len(set(a.parameters)), ground_actions))
 
-		# If there are not actions, then the lifted action is not applicable
+		# If there are no actions, then the lifted action is not applicable
 		if len(ground_actions_no_rep_args) == 0:
 			return False
 
@@ -235,7 +237,7 @@ class ProblemState:
 		return len(applicable_ground_actions) > 0
 
 
-	# Returns all the lifted actions that are applicable at the current state.
+	# Returns all the lifted (domain) actions that are applicable at the current state.
 	# They are returned as a vector where each element is a tuple containing the action name and if True/False if applicable/not applicable
 	# A lifted action is applicable if any instantiation (grounding) is applicable, i.e., the preconditions are met AND there are no repeated
 	# objects (for example, stack(A, A) is not applicable)
@@ -255,6 +257,32 @@ class ProblemState:
 		lifted_actions_applicability = [(action.name, self._is_lifted_action_applicable(action, state_objs, state_atoms)) for action in lifted_actions]
 
 		return lifted_actions_applicability
+
+	"""
+	Returns all the ground (domain) actions that are applicable at the current goal state.
+	They are returned as a vector where each element represents a ground action, e.g., ['stack', [1, 2]]
+	"""
+	def applicable_ground_actions(self):
+		# Represent the state in an encoding suitable for the parser
+		state_objs, state_atoms = self._encode_relational_state_for_parser(self._goal_state)
+		
+		# Obtain the lifted actions in the domain
+		lifted_actions = self._parser.actions
+
+		# Obtain the ground actions in the domain (ground each lifted action)
+		ground_actions = [g_a for l_a in lifted_actions for g_a in l_a.groundify(state_objs, self._parser.types)]
+
+		# Delete actions with repeated arguments (e.g.: stack('a', 'a') is invalid)
+		ground_actions_no_rep_args = list(filter(lambda a: len(a.parameters) == len(set(a.parameters)), ground_actions))
+
+		# Test applicability of ground actions
+		applicable_ground_actions = list(filter(lambda a: self._planner.applicable(state_atoms, a.positive_preconditions, \
+		 a.negative_preconditions), ground_actions_no_rep_args))
+
+		# Encode ground actions in the RelationalState form, e.g., ['stack', [1, 2]]
+		applicable_ground_actions_rel_state_enc = [ [a.name, [int(p[0]) for p in a.parameters]] for a in applicable_ground_actions]
+
+		return applicable_ground_actions_rel_state_enc
 
 
 	# Function used to obtain the grounded action, as an instance of Action class, corresponding to an action name and objects

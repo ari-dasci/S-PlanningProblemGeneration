@@ -193,6 +193,35 @@ class Controller():
 
 		problem.end_initial_state_generation_phase()
 
+
+		for _ in range(num_actions_for_goal_state):
+
+			# Get applicable ground actions
+			applicable_ground_actions = problem.applicable_ground_actions()
+
+			# Quitar
+			print("> Applicable ground actions:", applicable_ground_actions)
+
+			if len(applicable_ground_actions) == 0: # No more actions can be executed -> end generation of goal state
+				if verbose:
+					print("<No valid ground actions>")
+				break
+
+			else: # Select a random ground action
+				chosen_ground_action = random.choice(applicable_ground_actions)
+
+				# Apply action to goal state
+				_, r = problem.apply_action_to_goal_state(chosen_ground_action[0], chosen_ground_action[1])
+			
+				if verbose:
+					if r >= 0: # Valid action
+						print(f"<Valid> - Action {[chosen_ground_action[0], chosen_ground_action[1]]}")
+					else: # This should never happen! (we have already checked the action is valid)
+						print(f"<Invalid> - Action {[chosen_ground_action[0], chosen_ground_action[1]]}") 
+
+
+		# OLD GOAL STATE GENERATION
+		"""
 		domain_actions = self.domain_actions_and_parameters
 
 		for _ in range(num_actions_for_goal_state):
@@ -239,6 +268,9 @@ class Controller():
 			else:
 				if verbose:
 					print(f"<Invalid> - The action {action_type} can't be instantiated")
+
+		"""
+
 
 		# <Obtain PDDL problem>
 

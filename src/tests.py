@@ -239,12 +239,6 @@ def test_problem_state_action_applicability_and_transition():
 	print("Reward:", r2)
 
 
-	# <TODO>
-	# Test initial state generation phase
-	# Test _get_atoms_in_problem_goal 
-	# Test PDDL encoding of the problem
-
-
 # Test the generate_random_problem() method of the controller.py module
 # It generates a random problem for the blocksworld domain
 # <TODO>: 1. Check for action validity and applicability in the generate_random_problem() method
