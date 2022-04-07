@@ -4,7 +4,7 @@ import random
 
 from problem_generation.environment.problem_state import ProblemState
 from problem_generation.environment.pddl_parser import Parser
-from problem_generation.solver.planner import Planner
+from problem_generation.environment.planner import Planner
 
 
 # This class controls the generation of planning problems.

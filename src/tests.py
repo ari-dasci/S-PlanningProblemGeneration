@@ -278,7 +278,7 @@ def test_random_problem_generation():
 Test planner.py and ff.
 """
 def test_planner():
-	from problem_generation.solver.planner import Planner
+	from problem_generation.environment.planner import Planner
 
 	print("-- Testing the planner --")
 
