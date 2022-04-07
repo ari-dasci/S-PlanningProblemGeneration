@@ -297,6 +297,22 @@ def test_planner():
 	print("> Difficulty of solvable problem:", planner.get_problem_difficulty(problem_path1))
 	print("> Difficulty of unsolvable problem:", planner.get_problem_difficulty(problem_path2))
 
+
+"""
+Test generate_random_problems() in Controller class.
+"""
+def test_generate_random_problems():
+	from problem_generation.controller.controller import Controller
+
+	num_problems_to_generate = 10
+
+	domain_file_path = '../data/domains/blocks-domain.pddl'
+	controller = Controller(domain_file_path)
+
+	print(">> Calling generate_random_problems()")
+
+	controller.generate_random_problems(num_problems_to_generate, verbose=True)
+
 # ---------------------------------------------------
 
 
@@ -306,5 +322,6 @@ if __name__ == "__main__":
 	#test_acr_gnn()
 	#test_problem_state_action_applicability_and_transition()
 	#test_random_problem_generation()
+	#test_planner()
 
-	test_planner()
+	test_generate_random_problems()

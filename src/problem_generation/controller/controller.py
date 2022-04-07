@@ -4,6 +4,8 @@ import random
 
 from problem_generation.environment.problem_state import ProblemState
 from problem_generation.environment.pddl_parser import Parser
+from problem_generation.solver.planner import Planner
+
 
 # This class controls the generation of planning problems.
 # It trains the generative policies to generate problems that are valid, diverse and of good quality (according to the user-given
@@ -105,8 +107,8 @@ class Controller():
 	This method generates a single random problem by randomly picking the actions in the initial state and goal generation phases, instead of using
 	the generative policies.
 
-	@num_actions_for_init_state How many (random) actions to execute to generate the initial state.
-	@num_actions_for_goal_state How many (random) actions to execute to generate the goal state.
+	@num_actions_for_init_state How many (random) actions to execute to generate the initial state. It can be given as an interval [min_num_actions, max_num_actions].
+	@num_actions_for_goal_state How many (random) actions to execute to generate the goal state. It can be given as an interval [min_num_actions, max_num_actions].
 	@prob_adding_new_obj When selecting an action to apply (i.e., an atom to add) to the initial state, how likely each instantiated object
 	                     of the atom is to be chosen from the objects in the initial state or as a new object to add to the initial state.
 	@problem_name If not None, name of the generated problem.
@@ -127,6 +129,10 @@ class Controller():
 			print("> Starting initial state generation phase")
 
 		domain_predicates = self.domain_predicates
+
+		# Decide how many actions will be used to generate the initial state
+		if type(num_actions_for_init_state) == list or type(num_actions_for_init_state) == tuple:
+			num_actions_for_init_state = random.randint(num_actions_for_init_state[0], num_actions_for_init_state[1])
 
 		for _ in range(num_actions_for_init_state):
 			# Select a random predicate
@@ -193,14 +199,14 @@ class Controller():
 
 		problem.end_initial_state_generation_phase()
 
+		# Decide how many actions will be used to generate the goal state
+		if type(num_actions_for_goal_state) == list or type(num_actions_for_goal_state) == tuple:
+			num_actions_for_goal_state = random.randint(num_actions_for_goal_state[0], num_actions_for_goal_state[1])
 
 		for _ in range(num_actions_for_goal_state):
 
 			# Get applicable ground actions
 			applicable_ground_actions = problem.applicable_ground_actions()
-
-			# Quitar
-			print("> Applicable ground actions:", applicable_ground_actions)
 
 			if len(applicable_ground_actions) == 0: # No more actions can be executed -> end generation of goal state
 				if verbose:
@@ -282,3 +288,69 @@ class Controller():
 		pddl_problem = problem.obtain_pddl_problem(problem_name)
 
 		return pddl_problem
+
+	"""
+	This method repeatedly calls self.generate_random_problem() to create a set of random problems, saving them to 
+	the path indicated by @problems_path and with the name given by @problems_name (appending an index to the end of
+    each problem name).
+	It also stores the metrics (for now, only the difficulty) of the problems generated to the file given by
+	@metrics_file_path.
+	Note: @problems_path must end with "/"
+
+	@verbose If True, print information about each problem generated (although not as much as verbose=True for
+	         self.generate_random_problem())
+	"""
+	def generate_random_problems(self, num_problems_to_generate,
+							    num_actions_for_init_state=(3, 15), num_actions_for_goal_state=(3, 20), prob_adding_new_obj=0.5,
+							    problems_path = '../data/problems/',
+								problems_name = 'bw_random_problem',
+							    metrics_file_path = '../data/problems/random_problems_metrics.txt',
+								planner_python_call = 'py',
+								planner_path='./fast-downward/fast-downward.py',
+								planner_search_options='astar(blind())',
+								max_planning_time=60,
+								verbose=False):
+
+		if verbose:
+			print("--- Random problem generation started ---")
+			print("Domain name:", self.domain_name)
+			print("Problems path and name:", problems_path)
+			print("Metrics file path:", metrics_file_path)
+			print("\n")
+
+		# Create planner
+		planner = Planner(self._domain_file_path, planner_python_call, planner_path, planner_search_options)
+
+		# Create a file to store the metrics of the problems generated
+		f_metrics = open(metrics_file_path, 'a+')
+
+		for ind in range(num_problems_to_generate):
+			# Append index to problem name
+			curr_problem_name = problems_name + '_' + str(ind)
+
+			# Generate problem
+			new_problem = self.generate_random_problem(num_actions_for_init_state, num_actions_for_goal_state, prob_adding_new_obj,
+											  curr_problem_name, verbose=False)
+
+			# Save it to disk
+			curr_prob_path = problems_path + curr_problem_name + '.pddl'
+
+			with open(curr_prob_path, 'w+') as f:
+				f.write(new_problem)
+
+			if verbose:
+				print(f"> Problem {ind} created and saved - ", end="")
+
+			# Solve it with the planner and obtain difficulty
+			curr_prob_difficulty = planner.get_problem_difficulty(curr_prob_path, max_planning_time)
+
+			# Save the difficulty
+			f_metrics.write(f'Problem: {curr_problem_name} - difficulty (expanded nodes): {curr_prob_difficulty}\n')
+
+			if verbose:
+				print(f" difficulty: {curr_prob_difficulty}")
+
+		f_metrics.close()
+
+		if verbose:
+			print("\n--- Random problem generation finished ---")
