@@ -274,6 +274,29 @@ def test_random_problem_generation():
 
 	print("\n\n <PDDL Problem>\n", pddl_problem2)
 
+"""
+Test planner.py and ff.
+"""
+def test_planner():
+	from problem_generation.solver.planner import Planner
+
+	print("-- Testing the planner --")
+
+	domain_path = '../data/domains/blocks-domain.pddl'
+	problem_path1 = '../data/problems/example-problem.pddl'
+	problem_path2 = '../data/problems/unsolvable-problem.pddl'
+
+	# Solve the problem
+	planner = Planner('../data/domains/blocks-domain.pddl')
+
+	planner_output = planner.solve_problem(problem_path1)
+
+	print("> Planner output\n", planner_output)
+
+	# Get problem difficulty
+	print("> Difficulty of solvable problem:", planner.get_problem_difficulty(problem_path1))
+	print("> Difficulty of unsolvable problem:", planner.get_problem_difficulty(problem_path2))
+
 # ---------------------------------------------------
 
 
@@ -282,5 +305,6 @@ if __name__ == "__main__":
 	#test_relational_state()
 	#test_acr_gnn()
 	#test_problem_state_action_applicability_and_transition()
+	#test_random_problem_generation()
 
-	test_random_problem_generation()
+	test_planner()

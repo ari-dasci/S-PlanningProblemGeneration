@@ -20,7 +20,7 @@ class ProblemState:
 	"""
 	Constructor of the ProblemState class.
 
-	@domain_file_path Instance of Parser class, containing the parsed information about the PDDL domain.
+	@parser Instance of Parser class, containing the parsed information about the PDDL domain.
 	@predicates_to_consider_for_goal List of predicate <names> (e.g., ['on', 'ontable']) to consider for the goals of the generated problems.
 	@initial_state_info Information used to create the initial state of the generation process. If None, the initial state contains a single object
 	                    of a random type. If str (e.g., 'block'), the initial state contains a single object of such type. If an instance of
