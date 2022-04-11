@@ -434,12 +434,26 @@ class ProblemState:
 		#           If it is not, output a copy of the current state (instead of next_state) and self._penalization_inconsistent_state
 		# THE VALIDATOR CAN CHECK THE CONSISTENCY OF THE NEXT_STATE OR OF ADDING THE NEW_ATOM AND OBJECTS TO THE CURRENT STATE
 		# (two different ways of checking the consistency)
+		# SEE is_initial_state_action_consistent method!!
 
 		# Assign the next_state
 		self._initial_state = next_state # Warning: the next_state returned and the one stored in self._initial_state share the reference
 
 		# Ouput the next initial state and the reward
 		return next_state, 0
+
+	# <TODO>
+	def is_initial_state_action_consistent(self, state, action):
+
+		# <TODO>
+		# COMPROBAR QUE EL ÁTOMO DADO POR @action NO SE ENCUENTRA YA EN EL ESTADO ACTUAL @state
+		# POR EJEMPLO, QUE SI VOY A AÑADIR on(A, B), @state no contiene on(A, B)
+
+		# COMPROBAR TAMBIÉN QUE EL ÁTOMO NO CONTIENE ARGUMENTOS REPETIDOS (ej.: on(A, A))
+
+		# VER SI TENGO QUE COMPROBAR QUE EL TIPO DE LOS OBJETOS DEL ÁTOMO ES CORRECTO!!
+
+		pass
 
 	"""
 	Obtains a list with the (positive) atoms of the goal. This list corresponds to the atoms in self._goal_state whose predicate
