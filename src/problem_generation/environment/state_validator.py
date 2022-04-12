@@ -1,35 +1,11 @@
 # This module implements the state validator used to assess the consistency of the initial states generated
 
-from abc import ABC, abstractmethod
 import numpy as np
 import random
 import itertools
+from abc import ABC, abstractmethod
 
 from problem_generation.environment.relational_state import RelationalState
-
-"""
-Abstract class from which the specific state validator classes must inherit from.
-It is used to validate the consistency of the initial states of the problems generated.
-"""
-class StateValidator(ABC):
-
-    validation_type = "" # Either 'state' or 'action'
-                         # State -> the validator checks the consistency of a given state
-                         # Action -> the validator checks the consistency of an action (when applied to a state)
-                         # If validation_type == state, the child class must implement the is_state_valid method and
-                         # if validation_type == action, the child class must implement the is_action_valid method
-
-    """
-    @is_final If True, the state @new_state corresponds to a totally-generated initial state.
-    """                        
-    @abstractmethod
-    def is_state_consistent(self, new_state, is_final):
-        raise NotImplementedError
-
-    @abstractmethod
-    def is_action_consistent(self, curr_state, action):
-        raise NotImplementedError
-
 
 """
 OLD
@@ -40,7 +16,7 @@ modify it so that it becomes a valid state.
 Types: 'block'
 Predicates: 'on', 'ontable', 'clear', 'handempty', 'holding'
 """
-class StateValidatorRandomBlocksworld(StateValidator):
+class StateValidatorRandomBlocksworld():
 
     validation_type = 'state'
 
@@ -91,20 +67,32 @@ class StateValidatorRandomBlocksworld(StateValidator):
 
         # VER SI EN VEZ DE HACER ESTO ESTABLEZCO UN ORDEN ENTRE LOS PREDICADOS Y VALIDO A NIVEL DE ACCIÓN EN VEZ DE ESTADO
 
+"""
+Abstract class from which the validators with predicate order must inherit.
+"""
+class ValidatorPredOrder(ABC):
+
+    @abstractmethod
+    def predicates_in_current_phase(self, curr_state):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def check_continuous_consistency_state_and_action(self, curr_state, action):
+        raise NotImplementedError()
+
+    abstractmethod
+    def check_eventual_consistency_state(self, curr_state):
+        raise NotImplementedError()
 
 """
 Consistency validator for the blocksworld domain. It guides the initial state generation process by establishing
 an order in which atoms must be added to the state.
 """
-class ValidatorBWGuided():
+class ValidatorPredOrderBW(ValidatorPredOrder):
 
     #It establishes the order in which the atoms must be added to the state. In this example,
     #                 atoms of type "ontable" must be added before those of type "on"
-    self._predicate_order = ['ontable', 'on', 'clear', 'holding', 'handempty']
-
-    @property
-    def predicate_order(self):
-        return self._predicate_order
+    predicate_order = ['ontable', 'on', 'clear', 'holding', 'handempty']
 
     """
     Returns a list with the predicates (atom types) in the current generation phase, i.e., those that can be added
@@ -117,11 +105,11 @@ class ValidatorBWGuided():
     def predicates_in_current_phase(self, curr_state):
         pred_types_in_state = set([a[0] for a in curr_state.atoms]) # Get the predicate types which appear in the current state
 
-        # See the predicate type of highest order (self._predicate_order) in the current state
-        ind_highest_order_pred_in_state = 0 # If the state contains no atoms, then the predicate of highest order is self._predicate_order[0]
+        # See the predicate type of highest order (predicate_order) in the current state
+        ind_highest_order_pred_in_state = 0 # If the state contains no atoms, then the predicate of highest order is predicate_order[0]
        
 
-        for ind, pred_order in list(enumerate(self._predicate_order))[::-1]: # Iterate over the predicate order from highest to lowest
+        for ind, pred_order in list(enumerate(ValidatorPredOrderBW.predicate_order))[::-1]: # Iterate over the predicate order from highest to lowest
 
             if pred_order in pred_types_in_state:
                 ind_highest_order_pred_in_state = ind
@@ -129,11 +117,14 @@ class ValidatorBWGuided():
 
         # In the next action, we can add a predicate of the current highest order in the state or higher
         # Example: in state the highest order predicate is 'clear'. Then we can add 'clear', 'holding', 'handempty'
-        return self._predicate_order[ind_highest_order_pred_in_state:]
+        return ValidatorPredOrderBW.predicate_order[ind_highest_order_pred_in_state:]
 
     """
     Checks if the continuous consistency rules are met at the next_state, obtained by applying @action to @curr_state.
-    <Note>: this method assumes that curr_state meets all the continuous consistency rules.
+    <Note1>: this method does NOT check that the atom (@action) to add has no repeated parameters and is not already present in the state.
+    <Note2>: this method assumes that curr_state meets all the continuous consistency rules.
+    <Note3>: this method assumes that new objects (those present in @action but not in @curr_state) will be added AFTER this method
+             to the state @curr_state -> Don't call this method after having already added the new objects to the state!!!
 
     @curr_state An instance of RelationalState
     @action The next atom to add (e.g,. ['on' [1, 0]])
@@ -143,7 +134,7 @@ class ValidatorBWGuided():
         state_atoms = curr_state.atoms
         state_objs = list(range(curr_state.num_objects)) # Represent the objects as a list of indexes, instead of ['block', 'block'...]
 
-        if action_pred not in self._predicate_order:
+        if action_pred not in ValidatorPredOrderBW.predicate_order:
             raise ValueError("The predicate type is not in the list of predicates of the validator")
         
         # <Check if the action corresponds to a predicate of the current phase>
@@ -162,17 +153,24 @@ class ValidatorBWGuided():
             return False
 
         # <Check continuous consistency rules for predicate (ontable X)>
-        # The block X must be on the table -> it cannot appear in predicates 'on', 'holding' or 'handempty'
+        # The block X must be on the table -> it cannot appear in predicates 'on' or 'holding'
         # HOWEVER, as those predicates are of higher order, they will be added later, so they can't appear at the current state
         if action_pred == 'ontable':
             return True
 
         # <Check continuous consistency rules for predicate (on A B)>
+        # The block A must NOT exist in the state -> A not in curr_state.objects - Explanation: if A exists in the state, due to the predicate order,
+        # it exists as (ontable A) (so it cannot be put on a block), as (on A _) (so it cannot be put on another block) or as (on _ A) (if it has
+        # a block on top it cannot be put on another block to avoid cycles -> e.g.: (on 1 0) (on 2 1) (on 0 2))
         # The block B must already exist in the state -> B in curr_state.objects
         # The block A cannot be on top of another block C -> (on A C) cannot exist in the state
         # The block B cannot have another block C on top  -> (on C B) cannot exist in the state
         if action_pred == 'on':
             o1, o2 = action[1]
+
+            # See if A exists in the state objects -> if does, the action is inconsistent
+            if o1 in state_objs:
+                return False
 
             # See if B exists in the state objects -> if not, the action is inconsistent
             if o2 not in state_objs:
@@ -263,3 +261,16 @@ class ValidatorBWGuided():
         handempty_in_state = len(list(filter(lambda a: a[0] == 'handempty', state_atoms))) > 0
 
         return holding_in_state or handempty_in_state
+
+    """
+    Receives a totally-generated initial state (@curr_state) and, if it does not meet the eventual consistency rules, it is modified so it does.
+    To do so, it simply adds the (handempty) atom to the state.
+    """
+    def repair_state_for_eventual_consistency(self, curr_state):
+        # Check if the state already meets the eventual consistency rules
+        if self.check_eventual_consistency_state(curr_state):
+            return curr_state
+        else:
+            curr_state.add_atom(['handempty', []])
+            return curr_state
+

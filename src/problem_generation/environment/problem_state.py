@@ -3,6 +3,7 @@ import random
 
 from .relational_state import RelationalState
 from .pddl_parser import Parser, Planner, Action
+from .state_validator import ValidatorPredOrder
 
 """
 This class stores a planning problem partially generated and also implements the associated functionality.
@@ -11,7 +12,6 @@ an action) and rewards.
 
 > TODO: support type hierarchy
 
-Create consistency validator and check consistency in self.apply_action_to_initial_state()
 Nota: pensar que sucede si en un estado inicial concreto no quedan acciones validas (quizas haya que hacer backtracking)
 """
 
@@ -29,9 +29,11 @@ class ProblemState:
 	                                 (according to the consistency validator)
 	@penalization_non_applicable_action Penalization if the goal generation policy selects a ground domain action not applicable at the current 
 	                                    state (i.e., the preconditions are not met)
+	@consistency_validator Intance of ValidatorPredOrder class that checks if a given initial state is consistent or not.
+	                       If None, we assume all the initial states are consistent (we do not check for consistency).
 	"""
 	def __init__(self, parser, predicates_to_consider_for_goal, initial_state_info=None, penalization_inconsistent_state=-1, 
-			     penalization_non_applicable_action=-1):
+			     penalization_non_applicable_action=-1, consistency_validator=None):
 		self._parser = parser
 
 		# Create planner instance to obtain next state after applying action at the current state
@@ -50,6 +52,8 @@ class ProblemState:
 
 		self._is_initial_state_generated = False
 		self._is_goal_state_generated = False
+
+		self._consistency_validator = consistency_validator
 
 	@property
 	def initial_state(self):
@@ -114,6 +118,13 @@ class ProblemState:
 																				# ['stack', ['block', 'block']]
 
 		return action_list
+
+	"""
+	Checks if the ProblemState instance checks the consistency of the initial state or not.
+	"""
+	@property
+	def has_consistency_validator(self):
+		return self._consistency_validator is not None
 
 	# -------------------------
 
@@ -322,10 +333,6 @@ class ProblemState:
 	Like the method above, but receives no state as parameter (it checks applicability on self._goal_state).
 	"""
 	def is_ground_action_applicable(self, action_name, action_objs):
-		# Make sure we are in the goal generation phase
-		if not self._is_initial_state_generated:
-			raise Exception("The initial state generation phase has not finished yet")
-		
 		# Get state objects and atoms in the encoding self._parser uses
 		state_objs, state_atoms = self._encode_relational_state_for_parser(self._goal_state) 
 		
@@ -409,6 +416,94 @@ class ProblemState:
 
 		return next_state, action_reward
 
+
+	"""
+	Checks if the initial state resulting from applying @action to self._initial_state is consistent or not.
+	This method only checks the continuous consistency rules (as eventual consistency is only checked for the totally generated initial state).
+	<Note>: this method has to be called BEFORE adding the new objects (present in @action but not in the current_state) to the current_state.
+
+	@action A new atom to add to the initial state, represented as ['on', [1, 0]]
+	"""
+	def is_init_state_action_consistent(self, action):
+		state_atoms = self._initial_state.atoms
+
+		# Check that the atom to add (@action) is not already present in the current state
+		if action in state_atoms:
+			return False
+
+		# Check that the atom to add (@action) has no repeated parameters (e.g.: ['on', [0, 0]])
+		if len(action[1]) != len(set(action[1])):
+			return False
+
+		# Check the continuous consistency rules by calling the consistency validator
+		if self._consistency_validator is None: # If there is no consistency validator, we assume the action is consistent
+			return True
+		else:
+			return self._consistency_validator.check_continuous_consistency_state_and_action(self._initial_state, action)
+
+	"""
+	Checks if the totally generated initial state (self._initial_state) is consistent or not.
+	This method only checks the eventual consistency rules, as the continuous consistency rules have been checked before adding each atom
+	to the state.
+	"""
+	def is_totally_generated_init_state_consistent(self):
+		if self._consistency_validator is None:
+			return True
+		else:
+			return self._consistency_validator.check_eventual_consistency_state(self._initial_state)
+
+	"""
+	Uses the consistency validator to repair the totally-generated initial state so that it meets the eventual consistency requirements.
+	"""
+	def repair_totally_generated_init_state(self):
+		if self._consistency_validator is not None:
+			self._initial_state = self._consistency_validator.repair_state_for_eventual_consistency(self._initial_state)
+
+	"""
+	Obtains a list with all the actions that can be applied to the initial state.
+	Example: [['on', [1, 0]], ['on', [1, -1]], ['handempty', []]]
+	         An index of -1 corresponds to a new object/non-existing object in the current state
+	This method does NOT check the consistency (as it is very expensive to do for every existing init_state action).
+	>> However, it filters out those atoms whose predicate does not correspond to the current validation phase 
+	   (according to the predicate order of the consistency validator).
+	"""
+	def get_possible_init_state_actions(self):
+		state_objs = self._initial_state.objects
+
+		preds_in_curr_phase = self._consistency_validator.predicates_in_current_phase(self._initial_state)
+		domain_preds = self.domain_predicates
+		available_predicates = list(filter(lambda pred: pred[0] in preds_in_curr_phase, domain_preds))
+
+		possible_actions = []
+
+		# Obtain all the possible atoms for each predicate
+		for pred in available_predicates:
+			pred_name, pred_types = pred
+			
+			if pred_types == []: # Predicate of arity-0 -> cannot be instantiated on any objects
+				possible_actions.append(pred)
+			else:
+				# Create a list of lists, where at each position it stores the possible objects to instantiate the predicate on
+				# It also contains new objects not present in the state
+				# Example: curr_state with objs=['block', 'block'], pred = ['on', ['block', 'block']]
+				# possible_instantiations = [[0, 1, -1], [0, 1, -1]]
+				# The -1 index represents that the predicate has been instantiated on a non-existing object in the state, which will
+				# need to be added
+
+				# [[0, 1, 2, -1], [0, 1, 2, -1]]
+				possible_instantiations = [list(map(lambda y: y[0], (filter(lambda x: x[1] == t, enumerate(state_objs))))) + [-1] for t in pred_types]
+
+				# [(0, 0), (0, 1), (0, 2), (0, -1), (1, 0), (1, 1), (1, 2), (1, -1), (2, 0), (2, 1), (2, 2), (2, -1), (-1, 0), (-1, 1), (-1, 2), (-1, -1)]
+				possible_instantiations = list(itertools.product(*possible_instantiations)) # Do the cartesian product of the list of lists
+
+				# [['on', [0,0]], ['on', [0, 1]], ...]
+				atoms = [[pred_name, i] for i in possible_instantiations]
+
+				# Append the atoms to possible_actions
+				possible_actions.extend(atoms)
+
+		return possible_actions
+
 	"""
 	Applies an action, consisting of (possibly) adding objects and an atom, to the initial state.
 	It returns (next_state, reward). It also assigns the next state to self._initial_state.
@@ -418,8 +513,6 @@ class ProblemState:
 	@new_atom The atom to add to the state (e.g., ['on', [1,2]])
 	Note: The atom indices ([1,2]) can refer to new objects not present in the current state but which are added as part of the next
 	      state. Example: current state has only one block, new_objs=['block'] and new_atom=['on', [0, 1]].
-
-	<<TODO>>: Check next state consistency using the consistency validator class. 
 	"""
 	def apply_action_to_initial_state(self, new_objs, new_atom):
 		# Make sure we are in the initial state generation phase
@@ -427,33 +520,21 @@ class ProblemState:
 			raise Exception("The initial state generation phase has already finished")
 
 		next_state = self._initial_state.copy()
-		next_state.add_objects(new_objs)
-		next_state.add_atom(new_atom)
-
-		# <<Todo>>: Use the state consistency validator to check if next_state is consistent or not.
-		#           If it is not, output a copy of the current state (instead of next_state) and self._penalization_inconsistent_state
-		# THE VALIDATOR CAN CHECK THE CONSISTENCY OF THE NEXT_STATE OR OF ADDING THE NEW_ATOM AND OBJECTS TO THE CURRENT STATE
-		# (two different ways of checking the consistency)
-		# SEE is_initial_state_action_consistent method!!
+		
+		# Check action consistency
+		# If the action is not consistent, the next state is a copy of the current state (it doesn't change)
+		if self.is_init_state_action_consistent(new_atom):
+			next_state.add_objects(new_objs)
+			next_state.add_atom(new_atom)
+			r = 0
+		else:
+			r = self._penalization_inconsistent_state
 
 		# Assign the next_state
 		self._initial_state = next_state # Warning: the next_state returned and the one stored in self._initial_state share the reference
 
 		# Ouput the next initial state and the reward
-		return next_state, 0
-
-	# <TODO>
-	def is_initial_state_action_consistent(self, state, action):
-
-		# <TODO>
-		# COMPROBAR QUE EL ÁTOMO DADO POR @action NO SE ENCUENTRA YA EN EL ESTADO ACTUAL @state
-		# POR EJEMPLO, QUE SI VOY A AÑADIR on(A, B), @state no contiene on(A, B)
-
-		# COMPROBAR TAMBIÉN QUE EL ÁTOMO NO CONTIENE ARGUMENTOS REPETIDOS (ej.: on(A, A))
-
-		# VER SI TENGO QUE COMPROBAR QUE EL TIPO DE LOS OBJETOS DEL ÁTOMO ES CORRECTO!!
-
-		pass
+		return next_state, r
 
 	"""
 	Obtains a list with the (positive) atoms of the goal. This list corresponds to the atoms in self._goal_state whose predicate
