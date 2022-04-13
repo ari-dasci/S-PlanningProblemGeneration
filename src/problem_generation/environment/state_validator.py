@@ -263,10 +263,12 @@ class ValidatorPredOrderBW(ValidatorPredOrder):
 			if len(list(filter(lambda a: a[0] == 'holding', state_atoms))) > 0:
 				return False
 
-			# Get blocks with no other blocks on top
+			# Get blocks with no other blocks on top and which are either on top of another block or ontable
 			clear_blocks = list(filter(lambda obj: \
-											  len(list(filter(lambda a: a[0] == 'on' and a[1][1] == obj, state_atoms))) == 0, 
-									   state_objs))
+												(len(list(filter(lambda a: a[0] == 'on' and a[1][0] == obj, state_atoms))) +
+												len(list(filter(lambda a: a[0] == 'ontable' and a[1][0] == obj, state_atoms)))) > 0 and
+												len(list(filter(lambda a: a[0] == 'on' and a[1][1] == obj, state_atoms))) == 0, 
+										state_objs))
 
 			# Calculate number of blocks with no other blocks on top that have no 'clear' atom associated
 			num_invalid_objs = len(list(filter(lambda b: ['clear', [b]] not in state_atoms, clear_blocks)))
@@ -282,10 +284,12 @@ class ValidatorPredOrderBW(ValidatorPredOrder):
 			if len(list(filter(lambda a: a[0] == 'holding', state_atoms))) > 0:
 				return False
 
-			# Get blocks with no other blocks on top
+			# Get blocks with no other blocks on top and which are either on top of another block or ontable
 			clear_blocks = list(filter(lambda obj: \
-											  len(list(filter(lambda a: a[0] == 'on' and a[1][1] == obj, state_atoms))) == 0, 
-									   state_objs))
+											(len(list(filter(lambda a: a[0] == 'on' and a[1][0] == obj, state_atoms))) +
+											len(list(filter(lambda a: a[0] == 'ontable' and a[1][0] == obj, state_atoms)))) > 0 and
+											len(list(filter(lambda a: a[0] == 'on' and a[1][1] == obj, state_atoms))) == 0, 
+									state_objs))
 
 			# Calculate number of blocks with no other blocks on top that have no 'clear' atom associated
 			num_invalid_objs = len(list(filter(lambda b: ['clear', [b]] not in state_atoms, clear_blocks)))
@@ -295,14 +299,33 @@ class ValidatorPredOrderBW(ValidatorPredOrder):
 
 	"""
 	Checks if the eventual consistency rules are met at the current state, corresponding to a totally generated initial state.
+	<Note>: we also need to check for the continuous consistency rules which may have been skipped due to not adding a given predicate type
+	        to the state. For example, if we haven't added an atom of type (handempty) or (holding _) to the state, then we have never
+			checked the continuous consistency rule that says "every block X on top needs an atom of type (clear X)" -> This is why
+			we check them here.
 
 	@curr_state An instance of RelationalState
 	"""
 	@classmethod
 	def check_eventual_consistency_state(cls, curr_state):
+		state_objs = list(range(curr_state.num_objects)) # Represent the objects as a list of indexes, instead of ['block', 'block'...]
 		state_atoms = curr_state.atoms
 
-		# Check if, in case there are no atoms of type 'holding' in the state, there is an atom of type 'handempty'
+		# <Make sure every block on top of a tower has the (clear) predicate>
+		# Get blocks with no other blocks on top and which are either on top of another block or ontable
+		clear_blocks = list(filter(lambda obj: \
+											(len(list(filter(lambda a: a[0] == 'on' and a[1][0] == obj, state_atoms))) +
+											len(list(filter(lambda a: a[0] == 'ontable' and a[1][0] == obj, state_atoms)))) > 0 and
+											len(list(filter(lambda a: a[0] == 'on' and a[1][1] == obj, state_atoms))) == 0, 
+									state_objs))
+
+		# Calculate number of blocks with no other blocks on top that have no 'clear' atom associated
+		num_invalid_objs = len(list(filter(lambda b: ['clear', [b]] not in state_atoms, clear_blocks)))
+
+		if num_invalid_objs > 0:
+			return False
+
+		# <Check if, in case there are no atoms of type 'holding' in the state, there is an atom of type 'handempty'>
 		holding_in_state = len(list(filter(lambda a: a[0] == 'holding', state_atoms))) > 0
 
 		handempty_in_state = len(list(filter(lambda a: a[0] == 'handempty', state_atoms))) > 0
@@ -314,6 +337,8 @@ class ValidatorPredOrderBW(ValidatorPredOrder):
 	To do so, it simply adds the (handempty) atom to the state.
 	<Note>: if the state lacks atoms with type in required_pred_names (e.g.: 'ontable', 'clear'), this method does NOT add them.
 	"""
+	"""
+	# NOT NEEDED
 	@classmethod
 	def repair_state_for_eventual_consistency(cls, curr_state):
 		# Check if the state already meets the eventual consistency rules
@@ -322,4 +347,5 @@ class ValidatorPredOrderBW(ValidatorPredOrder):
 		else:
 			curr_state.add_atom(['handempty', []])
 			return curr_state
+	"""
 

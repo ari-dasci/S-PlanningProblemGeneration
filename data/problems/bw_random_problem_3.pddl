@@ -1,4 +1,4 @@
-(define (problem bw_random_problem_0)
+(define (problem bw_random_problem_3)
 
 (:domain blocks)
 

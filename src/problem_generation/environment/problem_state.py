@@ -474,9 +474,12 @@ class ProblemState:
 	"""
 	Uses the consistency validator to repair the totally-generated initial state so that it meets the eventual consistency requirements.
 	"""
+	# NOT NEEDED
+	"""
 	def repair_totally_generated_init_state(self):
 		if self._consistency_validator is not None:
 			self._initial_state = self._consistency_validator.repair_state_for_eventual_consistency(self._initial_state)
+	"""
 
 	"""
 	Obtains a list with all the actions that can be applied to the initial state.

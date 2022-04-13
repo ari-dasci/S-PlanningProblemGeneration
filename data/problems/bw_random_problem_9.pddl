@@ -1,20 +1,20 @@
-(define (problem bw_random_problem_0)
+(define (problem bw_random_problem_9)
 
 (:domain blocks)
 
 (:objects
-	obj0 - block
+	obj0 obj1 - block
 )
 
 (:init
 	(ontable obj0)
 	(clear obj0)
-	(handempty)
+	(holding obj1)
 )
 
 (:goal (and
-	(handempty)
-	(clear obj0)
 	(ontable obj0)
+	(clear obj0)
+	(holding obj1)
 ))
 )
