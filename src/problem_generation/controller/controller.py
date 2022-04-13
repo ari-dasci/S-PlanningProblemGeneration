@@ -5,6 +5,7 @@ import random
 from problem_generation.environment.problem_state import ProblemState
 from problem_generation.environment.pddl_parser import Parser
 from problem_generation.environment.planner import Planner
+from problem_generation.environment.state_validator import ValidatorPredOrderBW
 
 
 # This class controls the generation of planning problems.
@@ -20,17 +21,17 @@ class Controller():
 	@predicates_to_consider_for_goal List of predicate <names> (e.g., ['on', 'ontable']) to consider for the goals of the generated problems.
 									 If None, every predicate can appear in the goal.
 	@initial_state_info Information used to create the initial state of the generation process. If None, the initial state contains a single object
-	                    of a random type. If str (e.g., 'block'), the initial state contains a single object of such type. If an instance of
+						of a random type. If str (e.g., 'block'), the initial state contains a single object of such type. If an instance of
 						RelationalState, the initial state will be the state passed as parameter.
 	@max_objects_init_state Max number of objects that the initial state of the problems generated can contain.
 	@max_atoms_init_state   Max number of atoms that the initial state of the problems generated can contain.
 	@penalization_inconsistent_state Penalization if the initial state generation policy selects an action that produces a non-consistent state 
-	                                 (according to the consistency validator).
+									 (according to the consistency validator).
 	@penalization_non_applicable_action Penalization if the goal generation policy selects a ground domain action not applicable at the current 
-	                                    state (i.e., the preconditions are not met).
+										state (i.e., the preconditions are not met).
 	"""
 	def __init__(self, domain_file_path, predicates_to_consider_for_goal=None, initial_state_info=None, max_objects_init_state=1000,
-			     max_atoms_init_state=1000, penalization_inconsistent_state=-1, penalization_non_applicable_action=-1):
+				 max_atoms_init_state=1000, penalization_inconsistent_state=-1, penalization_non_applicable_action=-1):
 		
 		self._domain_file_path = domain_file_path
 		self._initial_state_info = initial_state_info
@@ -110,23 +111,21 @@ class Controller():
 	@num_actions_for_init_state How many (random) actions to execute to generate the initial state. It can be given as an interval [min_num_actions, max_num_actions].
 	@num_actions_for_goal_state How many (random) actions to execute to generate the goal state. It can be given as an interval [min_num_actions, max_num_actions].
 	@prob_adding_new_obj When selecting an action to apply (i.e., an atom to add) to the initial state, how likely each instantiated object
-	                     of the atom is to be chosen from the objects in the initial state or as a new object to add to the initial state.
+						 of the atom is to be chosen from the objects in the initial state or as a new object to add to the initial state.
 	@problem_name If not None, name of the generated problem.
 	@verbose If True, prints information about the process (e.g., the actions applied to generate the problem).
-	
-	<TODO>: make sure the selected actions are valid (for both the initial state and goal generation phases)
 	"""
 	def generate_random_problem(self, num_actions_for_init_state, num_actions_for_goal_state,
-							    problem_name = None, verbose=False):
+								problem_name = None, verbose=False):
 
 		# <Initialize ProblemState instance>
+
+		consistency_validator = ValidatorPredOrderBW
+
 		problem = ProblemState(self._parser, self._predicates_to_consider_for_goal, self._initial_state_info, self._penalization_inconsistent_state,
-						       self._penalization_non_applicable_action)
+							   self._penalization_non_applicable_action, consistency_validator=consistency_validator)
 
 		# <Generate initial state>
-
-		if verbose:
-			print("> Starting initial state generation phase")
 
 		domain_predicates = self.domain_predicates
 
@@ -134,9 +133,19 @@ class Controller():
 		if type(num_actions_for_init_state) == list or type(num_actions_for_init_state) == tuple:
 			num_actions_for_init_state = random.randint(num_actions_for_init_state[0], num_actions_for_init_state[1])
 
-		for _ in range(num_actions_for_init_state):
+		if verbose:
+			print(f"> Starting initial state generation phase - num_actions={num_actions_for_init_state}")
+
+		# Add actions until we complete num_actions_for_init_state and the problem contains all the required predicates
+		# (e.g.: 'ontable' and 'clear' in blocksworld)
+		ind_action = 0
+		while ind_action < num_actions_for_init_state or not problem.init_state_contains_all_required_predicates():
 			# Obtain the possible actions (atoms) that can be applied to the current state
 			possible_atoms = problem.get_possible_init_state_actions()
+
+			#Quitar
+			print("\n> Possible atoms:", possible_atoms)
+
 			# Obtain the index of the last object in the state
 			ind_last_state_obj = problem.initial_state.num_objects - 1
 
@@ -147,12 +156,15 @@ class Controller():
 				possible_predicates = set([a[0] for a in possible_atoms]) # Get the existing predicate types in possible_atoms (e.g.: ['on', 'ontable'])
 			
 				# Select a random predicate
-				selected_pred_type = random.choice(possible_predicates)
+				selected_pred_type = random.choice(tuple(possible_predicates))
 				selected_pred = list(filter(lambda x: x[0] == selected_pred_type, domain_predicates))[0]
 
 				# Select a random atom of such type and remove it from possible_atoms
 				chosen_atom = random.choice(list(filter(lambda a: a[0] == selected_pred_type, possible_atoms)))
 				possible_atoms.remove(chosen_atom)
+
+				#Quitar
+				print("\n---------------\n> Chosen atom:", chosen_atom)
 
 				# Transform -1 indexes for indexes of new objects and see objects to add
 				# E.g.: ['on', [-1, 0]] -> ['on', [3, 0]] (if there are three blocks in the state)
@@ -166,8 +178,14 @@ class Controller():
 
 						objs_to_add.append(selected_pred[1][i]) # Append a new object to add of the type given by the corresponding predicate
 
+				#Quitar
+				print("\n> Chosen atom without -1:", chosen_atom)
+
 				# Check the consistency of the selected action
 				selected_consistent_action = problem.is_init_state_action_consistent(chosen_atom)
+
+				#Quitar
+				print("\n> Consistency:", selected_consistent_action)
 				
 			# Apply the action to the state
 			_, r = problem.apply_action_to_initial_state(objs_to_add, chosen_atom)
@@ -178,10 +196,14 @@ class Controller():
 				else:
 					print(f"<<Invalid>> - Atom {chosen_atom} and objs {objs_to_add}")
 
+			ind_action += 1
 
 		# Repair the totally-generated initial state just in case it does not meet the eventual consistency requirements
 		if not problem.is_totally_generated_init_state_consistent():
 			problem.repair_totally_generated_init_state()
+
+		# Quitar
+		print("\n> Init state after repair:", problem.initial_state)
 
 
 		# OLD INITIAL STATE GENERATION
@@ -247,14 +269,14 @@ class Controller():
 
 		# <Generate goal state>
 
-		if verbose:
-			print("> Starting goal state generation phase")
-
 		problem.end_initial_state_generation_phase()
 
 		# Decide how many actions will be used to generate the goal state
 		if type(num_actions_for_goal_state) == list or type(num_actions_for_goal_state) == tuple:
 			num_actions_for_goal_state = random.randint(num_actions_for_goal_state[0], num_actions_for_goal_state[1])
+
+		if verbose:
+			print(f"> Starting goal state generation phase - num_actions={num_actions_for_goal_state}")
 
 		for _ in range(num_actions_for_goal_state):
 
@@ -345,19 +367,19 @@ class Controller():
 	"""
 	This method repeatedly calls self.generate_random_problem() to create a set of random problems, saving them to 
 	the path indicated by @problems_path and with the name given by @problems_name (appending an index to the end of
-    each problem name).
+	each problem name).
 	It also stores the metrics (for now, only the difficulty) of the problems generated to the file given by
 	@metrics_file_path.
 	Note: @problems_path must end with "/"
 
 	@verbose If True, print information about each problem generated (although not as much as verbose=True for
-	         self.generate_random_problem())
+			 self.generate_random_problem())
 	"""
 	def generate_random_problems(self, num_problems_to_generate,
-							    num_actions_for_init_state=(3, 15), num_actions_for_goal_state=(3, 20), prob_adding_new_obj=0.5,
-							    problems_path = '../data/problems/',
+								num_actions_for_init_state=(3, 15), num_actions_for_goal_state=(3, 20), prob_adding_new_obj=0.5,
+								problems_path = '../data/problems/',
 								problems_name = 'bw_random_problem',
-							    metrics_file_path = '../data/problems/random_problems_metrics.txt',
+								metrics_file_path = '../data/problems/random_problems_metrics.txt',
 								planner_python_call = 'py',
 								planner_path='./fast-downward/fast-downward.py',
 								planner_search_options='astar(blind())',
@@ -376,14 +398,15 @@ class Controller():
 
 		# Create a file to store the metrics of the problems generated
 		f_metrics = open(metrics_file_path, 'a+')
+		f_metrics.write("\n-------------------\n")
 
 		for ind in range(num_problems_to_generate):
 			# Append index to problem name
 			curr_problem_name = problems_name + '_' + str(ind)
 
 			# Generate problem
-			new_problem = self.generate_random_problem(num_actions_for_init_state, num_actions_for_goal_state, prob_adding_new_obj,
-											  curr_problem_name, verbose=False)
+			new_problem = self.generate_random_problem(num_actions_for_init_state, num_actions_for_goal_state,
+											  curr_problem_name, verbose=True) # CAMBIAR
 
 			# Save it to disk
 			curr_prob_path = problems_path + curr_problem_name + '.pddl'

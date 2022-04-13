@@ -29,7 +29,7 @@ class ProblemState:
 	                                 (according to the consistency validator)
 	@penalization_non_applicable_action Penalization if the goal generation policy selects a ground domain action not applicable at the current 
 	                                    state (i.e., the preconditions are not met)
-	@consistency_validator Intance of ValidatorPredOrder class that checks if a given initial state is consistent or not.
+	@consistency_validator ValidatorPredOrder class that checks if a given initial state is consistent or not.
 	                       If None, we assume all the initial states are consistent (we do not check for consistency).
 	"""
 	def __init__(self, parser, predicates_to_consider_for_goal, initial_state_info=None, penalization_inconsistent_state=-1, 
@@ -442,6 +442,25 @@ class ProblemState:
 			return self._consistency_validator.check_continuous_consistency_state_and_action(self._initial_state, action)
 
 	"""
+	Returns if the current initial_state (self._initial_state) contains at least one atom of each predicate type required in the state.
+	For example, in blocksworld, it needs to contain at least one atom (ontable _) and one (clear _).
+	If there is no consistency validator, it returns True.
+	"""
+	def init_state_contains_all_required_predicates(self):
+		if self._consistency_validator is None:
+			return True
+		else:
+			state_atoms = self._initial_state.atoms
+			preds_in_state = set([a[0] for a in state_atoms])
+			required_preds = self._consistency_validator.required_pred_names()
+
+			for pred in required_preds:
+				if pred not in preds_in_state:
+					return False
+
+			return True
+
+	"""
 	Checks if the totally generated initial state (self._initial_state) is consistent or not.
 	This method only checks the eventual consistency rules, as the continuous consistency rules have been checked before adding each atom
 	to the state.
@@ -450,7 +469,7 @@ class ProblemState:
 		if self._consistency_validator is None:
 			return True
 		else:
-			return self._consistency_validator.check_eventual_consistency_state(self._initial_state)
+			return self.init_state_contains_all_required_predicates() and self._consistency_validator.check_eventual_consistency_state(self._initial_state)
 
 	"""
 	Uses the consistency validator to repair the totally-generated initial state so that it meets the eventual consistency requirements.
@@ -470,7 +489,12 @@ class ProblemState:
 	def get_possible_init_state_actions(self):
 		state_objs = self._initial_state.objects
 
-		preds_in_curr_phase = self._consistency_validator.predicates_in_current_phase(self._initial_state)
+		# If there is a consistency validator, only return atoms with the predicates of the current phase
+		if self._consistency_validator is None:
+			preds_in_curr_phase = [pred[0] for pred in self.domain_predicates]
+		else:
+			preds_in_curr_phase = self._consistency_validator.predicates_in_current_phase(self._initial_state)
+
 		domain_preds = self.domain_predicates
 		available_predicates = list(filter(lambda pred: pred[0] in preds_in_curr_phase, domain_preds))
 
@@ -497,7 +521,7 @@ class ProblemState:
 				possible_instantiations = list(itertools.product(*possible_instantiations)) # Do the cartesian product of the list of lists
 
 				# [['on', [0,0]], ['on', [0, 1]], ...]
-				atoms = [[pred_name, i] for i in possible_instantiations]
+				atoms = [[pred_name, list(i)] for i in possible_instantiations]
 
 				# Append the atoms to possible_actions
 				possible_actions.extend(atoms)
