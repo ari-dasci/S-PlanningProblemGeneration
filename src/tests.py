@@ -304,14 +304,19 @@ Test generate_random_problems() in Controller class.
 def test_generate_random_problems():
 	from problem_generation.controller.controller import Controller
 
-	num_problems_to_generate = 10 # 10
+	num_problems_to_generate = 10
 
 	domain_file_path = '../data/domains/blocks-domain.pddl'
 	controller = Controller(domain_file_path)
 
+	# Assign a higher probability to the 'on' predicate, so that there are more atoms (on _ _) in the problems generated
+	pred_probs = dict([('ontable', 100), ('on', 40), ('clear', 1), ('holding', 1), ('handempty', 3)])
+
 	print(">> Calling generate_random_problems()")
 
-	controller.generate_random_problems(num_problems_to_generate, verbose=True)
+	controller.generate_random_problems(num_problems_to_generate, num_actions_for_init_state=(20, 30),
+									num_actions_for_goal_state=(5, 8), pred_probabilities=pred_probs,
+									verbose=True)
 
 
 # ---------------------------------------------------

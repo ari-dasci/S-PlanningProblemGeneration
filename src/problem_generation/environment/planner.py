@@ -56,6 +56,7 @@ class Planner():
     """
     Calls the planner, solves the problem and returns the number of expanded nodes. If the planner did not find a solution,
     it returns -1.
+    <Note>: I don't know if the timeout actually works. If the problem is too complex I think the planner can get stuck.
 
     @max_planning_time In seconds, maximum time the planner can take. If it surpasses the threshold, a timeout is produced and we
                        assume the problem was not solvable (even though maybe it is).
