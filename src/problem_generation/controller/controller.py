@@ -390,7 +390,7 @@ class Controller():
 								problems_path = '../data/problems/',
 								problems_name = 'bw_random_problem',
 								metrics_file_path = '../data/problems/random_problems_metrics.txt',
-								planner_python_call = 'py',
+								planner_python_call = 'python',
 								planner_path='./fast-downward/fast-downward.py',
 								planner_search_options='astar(blind())',
 								max_planning_time=60,

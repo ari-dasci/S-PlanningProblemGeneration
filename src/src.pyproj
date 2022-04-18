@@ -5,13 +5,13 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{09ab0fc4-112e-498d-a432-10355c94ecd3}</ProjectGuid>
     <ProjectHome />
-    <StartupFile>main.py</StartupFile>
+    <StartupFile>tests.py</StartupFile>
     <SearchPath />
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <InterpreterId />
+    <InterpreterId>CondaEnv|CondaEnv|problem-generation</InterpreterId>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
   <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
@@ -1233,7 +1233,9 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="fast-downward" />
+    <Folder Include="fast-downward\builds\" />
     <Folder Include="fast-downward\builds\release" />
+    <Folder Include="fast-downward\builds\release\bin\" />
     <Folder Include="fast-downward\builds\release\bin\translate" />
     <Folder Include="fast-downward\builds\release\bin\translate\pddl" />
     <Folder Include="fast-downward\builds\release\bin\translate\pddl_parser" />
@@ -1241,6 +1243,7 @@
     <Folder Include="fast-downward\builds\release\CMakeFiles" />
     <Folder Include="fast-downward\driver" />
     <Folder Include="fast-downward\driver\portfolios" />
+    <Folder Include="fast-downward\experiments\" />
     <Folder Include="fast-downward\experiments\issue1000" />
     <Folder Include="fast-downward\experiments\issue1004" />
     <Folder Include="fast-downward\experiments\issue1007" />
@@ -1445,6 +1448,9 @@
     <Folder Include="problem_generation\controller" />
     <Folder Include="problem_generation\environment" />
     <Folder Include="problem_generation\models" />
+  </ItemGroup>
+  <ItemGroup>
+    <InterpreterReference Include="CondaEnv|CondaEnv|problem-generation" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
 </Project>
