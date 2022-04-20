@@ -126,10 +126,14 @@ class Controller():
 	@num_actions_for_goal_state How many (random) actions to execute to generate the goal state. It can be given as an interval [min_num_actions, max_num_actions].
 	@pred_probabilities A dictionary containing, for each predicate name, the probability of it being added to the state (in case it can be added according to the predicate_order).
 	@problem_name If not None, name of the generated problem.
+	@seed Seed used to initialize the rng (with random.seed()). If None, the system time is used as the seed.
 	@verbose If True, prints information about the process (e.g., the actions applied to generate the problem).
 	"""
 	def generate_random_problem(self, num_actions_for_init_state, num_actions_for_goal_state, pred_probabilities=None,
-								problem_name = None, verbose=False):
+								problem_name = None, seed=None, verbose=False):
+
+		# Choose a random seed based on system time
+		random.seed(seed)
 
 		domain_predicates = self.domain_predicates
 
@@ -167,14 +171,24 @@ class Controller():
 				if verbose:
 					print("There are no more actions to add. Finishing initial state generation phase...")
 
-				available_actions = False
+				break # Finish while loop
 
 			# Obtain the index of the last object in the state
 			ind_last_state_obj = problem.initial_state.num_objects - 1
 
 			selected_consistent_action = False
 
-			#Select a consistent action
+			# -- Select a consistent action
+
+			# Select a predicate type according to the pred probabilities given by the user
+			possible_predicates = list(set([a[0] for a in possible_atoms])) # Get the existing predicate types in possible_atoms (e.g.: ['on', 'ontable'])
+			possible_predicates_probs = [pred_probabilities[p] for p in possible_predicates]
+			selected_pred_type = random.choices(possible_predicates, weights=possible_predicates_probs)[0] # weights do not need to sum 1
+			selected_pred = list(filter(lambda x: x[0] == selected_pred_type, domain_predicates))[0]
+			atoms_of_selected_pred_type = list(filter(lambda a: a[0] == selected_pred_type, possible_atoms)) # List with the atoms of the selected predicate type
+			random.shuffle(atoms_of_selected_pred_type) # Shuffle the list
+
+
 			while not selected_consistent_action and available_actions:
 				
 				# If there are no available actions, do not choose any action
@@ -183,17 +197,21 @@ class Controller():
 						print("There are no more actions to add. Finishing initial state generation phase...")
 
 					available_actions = False
+
 				else:
-					possible_predicates = list(set([a[0] for a in possible_atoms])) # Get the existing predicate types in possible_atoms (e.g.: ['on', 'ontable'])
-			
-					# Select a possible predicate according to pred_probabilities
-					possible_predicates_probs = [pred_probabilities[p] for p in possible_predicates]
-					selected_pred_type = random.choices(possible_predicates, weights=possible_predicates_probs)[0] # weights do not need to sum 1	
+					# If there is at least an atom whose type is selected_pred_type, then select a random atom of that type
+					# Else, choose a new existing selected_pred_type
 
-					selected_pred = list(filter(lambda x: x[0] == selected_pred_type, domain_predicates))[0]
+					if len(atoms_of_selected_pred_type) == 0: # Choose a new existing selected_pred_type
+						possible_predicates = list(set([a[0] for a in possible_atoms])) # Get the existing predicate types in possible_atoms (e.g.: ['on', 'ontable'])
+						possible_predicates_probs = [pred_probabilities[p] for p in possible_predicates]
+						selected_pred_type = random.choices(possible_predicates, weights=possible_predicates_probs)[0] # weights do not need to sum 1
+						selected_pred = list(filter(lambda x: x[0] == selected_pred_type, domain_predicates))[0]
+						atoms_of_selected_pred_type = list(filter(lambda a: a[0] == selected_pred_type, possible_atoms)) # List with the atoms of the selected predicate type
+						random.shuffle(atoms_of_selected_pred_type) # Shuffle the list
 
-					# Select a random atom of such type and remove it from possible_atoms
-					chosen_atom = random.choice(list(filter(lambda a: a[0] == selected_pred_type, possible_atoms)))
+					# Select a random atom with the selected pred type and remove it from both lists
+					chosen_atom = atoms_of_selected_pred_type.pop() # When we use pop(), the popped element is removed from the list
 					possible_atoms.remove(chosen_atom)
 
 					# Transform -1 indexes for indexes of new objects and see objects to add
