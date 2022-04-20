@@ -3,7 +3,7 @@
 (:domain blocks)
 
 (:objects
-	obj0 obj1 obj2 obj3 obj4 obj5 - block
+	obj0 obj1 obj2 obj3 - block
 )
 
 (:init
@@ -11,27 +11,19 @@
 	(ontable obj1)
 	(ontable obj2)
 	(ontable obj3)
-	(on obj4 obj0)
-	(on obj5 obj1)
-	(clear obj3)
+	(clear obj1)
 	(clear obj2)
-	(clear obj5)
-	(clear obj4)
+	(clear obj3)
+	(clear obj0)
 	(handempty)
 )
 
 (:goal (and
-	(clear obj5)
-	(handempty)
-	(ontable obj5)
-	(clear obj3)
-	(on obj4 obj0)
-	(ontable obj0)
-	(ontable obj1)
+	(on obj1 obj2)
 	(clear obj1)
-	(ontable obj3)
-	(ontable obj2)
-	(clear obj2)
-	(clear obj4)
+	(on obj2 obj3)
+	(ontable obj0)
+	(on obj3 obj0)
+	(handempty)
 ))
 )

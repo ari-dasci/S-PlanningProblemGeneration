@@ -92,6 +92,17 @@ class Controller():
 																					# ['on', ['block', 'block']]
 		return predicate_list
 
+	# <TODO>
+	# Add support for domain constants -> the functionality has not been implemented yet
+	# Return the domain constants, as a list of objects (e.g.: ['block', 'block])
+	# If there are no constants, it returns an empty list -> []
+	@property
+	def domain_constants(self):
+		constants = self._parser.objects # {'block': ['obj1', 'obj2', 'obj3']}
+		constants_encoded = [x for c in constants.items() for x in [c[0]]*len(c[1])] # ['block', 'block', 'block']
+
+		return constants_encoded
+		
 	"""
 	Only returns information about the name of each action and the types of its parameters.
 	"""

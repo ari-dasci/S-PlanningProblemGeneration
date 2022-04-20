@@ -119,6 +119,17 @@ class ProblemState:
 
 		return action_list
 
+	# <TODO>
+	# Add support for domain constants -> the functionality has not been implemented yet
+	# Return the domain constants, as a list of objects (e.g.: ['block', 'block])
+	# If there are no constants, it returns an empty list -> []
+	@property
+	def domain_constants(self):
+		constants = self._parser.objects # {'block': ['obj1', 'obj2', 'obj3']}
+		constants_encoded = [x for c in constants.items() for x in [c[0]]*len(c[1])] # ['block', 'block', 'block']
+
+		return constants_encoded
+
 	"""
 	Checks if the ProblemState instance checks the consistency of the initial state or not.
 	"""
@@ -177,6 +188,18 @@ class ProblemState:
 
 		elif isinstance(initial_state_info, RelationalState):
 			s0 = initial_state_info.copy()
+
+		# If there are constants in the domain, add them as objects to s0
+		# <TODO>
+		# Add support for domain constants
+		"""
+		constants = self.domain_constants
+
+		print(">> Constants:", constants)
+
+		if len(constants) > 0: # There are constants in the domain
+			s0.add_objects(constants)
+		"""
 
 		return s0
 
