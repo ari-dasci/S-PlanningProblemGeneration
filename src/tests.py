@@ -307,6 +307,7 @@ def test_generate_random_problems():
 	num_problems_to_generate = 10
 
 	domain_file_path = '../data/domains/blocks-domain.pddl'
+
 	controller = Controller(domain_file_path)
 
 	# Assign a higher probability to the 'on' predicate, so that there are more atoms (on _ _) in the problems generated

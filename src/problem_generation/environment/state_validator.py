@@ -100,7 +100,7 @@ class ValidatorPredOrderBW(ValidatorPredOrder):
 															# that predicate MUST appear in the totally-generated initial_state
 															# Otherwise, it may not appear in the state.
 
-	"""predicate_order|predicates_required
+	"""
 	Returns a list with the predicate names which are required in a totally-generated initial state.
 	In blocksworld, ['ontable', 'clear']
 	"""

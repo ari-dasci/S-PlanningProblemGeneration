@@ -1,9 +1,12 @@
-;; ONLY USED FOR TESTING THE PDDL PARSER
+;; <Used only for testing>
+;; PDDL domain with two object types (block and circle)
+;; We asume circles must be placed on top of blocks -> on(circle, block)
+;; The actions preconditions are never met
 
 (define (domain BLOCKS)
   (:requirements :strips :typing)
   (:types block circle)
-  (:predicates (on ?x - block ?y - block)
+  (:predicates (on ?x - circle ?y - block)
 	       (ontable ?x - block)
 	       (clear ?x - block)
 	       (handempty)
@@ -28,24 +31,5 @@
 		   (clear ?x)
 		   (handempty)
 		   (ontable ?x)))
- 
- (:action stack
-    :parameters (?x - block ?y - circle)
-	:precondition (and (holding ?x) (clear ?y))
-	:effect
-	(and (not (holding ?x))
-	(not (clear ?y))
-	(clear ?x)
-	(handempty)
-	(on ?x ?y)))
 
-  (:action unstack
-	     :parameters (?x - block ?y - block)
-	     :precondition (and (on ?x ?y) (clear ?x) 
-							(handempty))
-	     :effect
-	     (and (holding ?x)
-		   (clear ?y)
-		   (not (clear ?x))
-		   (not (handempty))
-		   (not (on ?x ?y)))))
+)
