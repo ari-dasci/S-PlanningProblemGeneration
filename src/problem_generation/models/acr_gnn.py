@@ -8,6 +8,8 @@
 # <<TODO>>: Adapt to predicates of arity-0 (right now, it does not work for them)
 #           Return a vector (instead of a single value) for the graph AND the final node statestor
 
+# Note: right now, we do not use ACR-GNN for the generative policies. Instead, we are using Neural Logic Machines (see module nlm.py).
+
 # ------------------------------
 
 import torch

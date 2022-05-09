@@ -12,6 +12,7 @@
     <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
     <InterpreterId>CondaEnv|CondaEnv|problem-generation</InterpreterId>
+    <SuppressConfigureTestFrameworkPrompt>true</SuppressConfigureTestFrameworkPrompt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
   <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
@@ -1206,6 +1207,9 @@
     <Compile Include="problem_generation\environment\state_validator.py" />
     <Compile Include="problem_generation\environment\__init__.py" />
     <Compile Include="problem_generation\models\acr_gnn.py" />
+    <Compile Include="problem_generation\models\nlm.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="problem_generation\models\__init__.py" />
     <Compile Include="problem_generation\__init__.py" />
     <Compile Include="tests.py" />
