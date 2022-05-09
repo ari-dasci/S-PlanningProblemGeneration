@@ -254,6 +254,7 @@ def test_random_problem_generation():
 
 	print("--- Generate random problem for blocksworld domain with goal predicates ['on', 'clear'] ---")
 
+	# This does not work now!
 	pddl_problem = controller.generate_random_problem(num_actions_for_init_state = 5, num_actions_for_goal_state=10, verbose=True)
 
 	print("\n\n <PDDL Problem>\n", pddl_problem)
@@ -270,6 +271,7 @@ def test_random_problem_generation():
 	controller2 = Controller(domain_file_path, initial_state_info=s0) # Consider all predicates for goal
 
 	# Don't execute actions for the initial state (it's already given)
+	# This does not work now!
 	pddl_problem2 = controller2.generate_random_problem(num_actions_for_init_state = 0, num_actions_for_goal_state=10, verbose=True)
 
 	print("\n\n <PDDL Problem>\n", pddl_problem2)
