@@ -62,13 +62,19 @@ class RelationalState():
                                                              # Note: unlike self._pred_names_to_indices_dict, we can assign the same index to predicates of different arity)
         ind_list = [0]*(self.max_predicate_arity+1)
         
+        # Create a dictionary that returns the predicate associated with a given arity and index
+        # E.g.: (2, 0) (pred number 0 of arity 2) -> ['on', ['block, block']]
+        self._arity_and_ind_to_predicate_dict = dict()
+        
         for p in self._predicates:
             p_arity = len(p[1])
-            
             p_ind = ind_list[p_arity]
-            ind_list[p_arity] += 1 # Add 1 to the index, so that next predicate of the same arity gets a different associated index
-
+            
             self._pred_names_to_indices_dict_each_arity[p[0]] = p_ind
+            self._arity_and_ind_to_predicate_dict[(p_arity, p_ind)] = p
+            
+            ind_list[p_arity] += 1 # Add 1 to the index, so that next predicate of the same arity gets a different associated index
+        
 
     def __copy__(self):
         new_copy = RelationalState(self._types.copy(), self._predicates.copy(), self._objects.copy(), self._atoms.copy())
@@ -92,6 +98,10 @@ class RelationalState():
     def types(self):
         return self._types
 
+    @property
+    def num_types(self):
+        return len(self._types)
+    
     @property
     def predicates(self):
         return self._predicates
@@ -123,6 +133,10 @@ class RelationalState():
         return self._pred_names_to_indices_dict_each_arity
     
     @property
+    def arity_and_ind_to_predicate_dict(self):
+        return self._arity_and_ind_to_predicate_dict
+    
+    @property
     def objects(self):
         return self._objects
 
@@ -144,6 +158,13 @@ class RelationalState():
         
         return max(existing_arities)
     
+    """
+    Given a predicate arity and its index, this function returns the predicate ['pred_name', [obj_types_list]]
+    """
+    def get_predicate_by_arity_and_ind(self, arity, index):
+        return self._arity_and_ind_to_predicate_dict[(arity, index)]
+
+
     """
     Returns the state atoms in the encoding the AC-GNN class uses.
     Example: [('on', (1, 0)), ('on', (2, 1)) ('clear', (2))] -> 
@@ -170,6 +191,8 @@ class RelationalState():
     
     """
     Returns the state atoms in the encoding the NLM uses, as a list of tensors corresponding to predicates of different arities.
+    We add n virtual objects where n is equal to the maximum arity of the NLM.
+    Note: the NLM does not differentiate between objects of different type!
     
     @max_arity If not -1, we assume that is the max arity of the predicates. This parameter is used to encode the relational
                state for a NLM which uses a higher max arity (for the inner layers) than the max arity of the relational
@@ -181,6 +204,9 @@ class RelationalState():
         
         max_predicate_arity = max_arity if max_arity != -1 else self.max_predicate_arity
         
+        # Add virtual objects
+        num_objs += max_predicate_arity
+        
         with torch.no_grad():
             # Initialize tensors full of zeros
             for r in range(max_predicate_arity+1):
@@ -189,7 +215,7 @@ class RelationalState():
                 else:
                     curr_tensor_shape = [num_objs]*r + [self._num_preds_each_arity[r]]
 
-                    atoms_list.append(torch.zeros(curr_tensor_shape, dtype=torch.float16)) # <TODO> Use float16 to save space
+                    atoms_list.append(torch.zeros(curr_tensor_shape, dtype=torch.float32)) # Change to float16 to increase efficiency
                     
             # Change tensor values associated with state atoms
             for atom in self._atoms:
@@ -307,7 +333,7 @@ class RelationalStatesDataset(torch.utils.data.Dataset):
 
     """
     @states_list A list of states, where each element is a relational state.
-    @targets_list A list of the expected target for each state. It can be None, int, an element of RelationalState, etc.
+    @targets_list A list of the expected target for each state.
     """
     def __init__(self, states_list, targets_list):
 
