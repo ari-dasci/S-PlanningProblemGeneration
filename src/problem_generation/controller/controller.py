@@ -68,7 +68,7 @@ class Controller():
 										         self._consistency_validator, self._max_objects_init_state, self._max_atoms_init_state)
 
 		# Directed Generator
-		# <TODO>
+		# <TODO> -> Calculate number of preds to see layers sizes
 
 	# ------- Getters and Setters --------
 

@@ -16,7 +16,9 @@ It receives as input a set of predicates of arity r and outputs a (possible diff
 """
 class _InferenceMLP(nn.Module):
     # Multilayer Perceptron.
-    def __init__(self, input_size, hidden_size, output_size):
+    # If apply_sigmoid is False, we do not apply softmax as activate function for the last layer
+    # (we do not use an activation function after the last layer).
+    def __init__(self, input_size, hidden_size, output_size, apply_sigmoid=True):
         super().__init__()
         
         self._input_size = input_size
@@ -30,15 +32,26 @@ class _InferenceMLP(nn.Module):
         # p1(x, y), p2(x, y) for that pair (x, y) of objects.
         
         if hidden_size < 1: # Do not use hidden layer
-            self.layers = nn.Sequential(
-                nn.Linear(input_size, output_size),
-                nn.Sigmoid())
+            if apply_sigmoid:
+                self.layers = nn.Sequential(
+                    nn.Linear(input_size, output_size),
+                    nn.Sigmoid())
+            else:
+                self.layers = nn.Sequential(
+                    nn.Linear(input_size, output_size))
         else: # Use hidden layer
-            self.layers = nn.Sequential(
-                nn.Linear(input_size, hidden_size),
-                nn.Sigmoid(),
-                nn.Linear(hidden_size, output_size),
-                nn.Sigmoid())
+            if apply_sigmoid:
+                self.layers = nn.Sequential(
+                    nn.Linear(input_size, hidden_size),
+                    nn.Sigmoid(),
+                    nn.Linear(hidden_size, output_size),
+                    nn.Sigmoid())
+            else:
+                self.layers = nn.Sequential(
+                    nn.Linear(input_size, hidden_size),
+                    nn.Sigmoid(),
+                    nn.Linear(hidden_size, output_size))
+                
               
     # Getters for MLP dimensions
     @property
@@ -71,12 +84,14 @@ class _NLM_Layer(nn.Module):
                                 num_out_preds_each_arity for the previous layer.
                                 Example: [8, 8, 4, 0] -> The previous NLM layer's output consisted of 8 nullary predicates,
                                                           8 unary predicates and 4 binary predicates.
-    @num_out_preds_each_arity List with the number of ouput predicates of each arity, in ascending order.
+    @num_out_preds_each_arity List with the number of output predicates of each arity, in ascending order.
     @mlp_hidden_size Units in the hidden layer of all the inference MLPs. If 0, the inference MLPs have no hidden layer.
     @residual_connections If True, we add residual connections. This means we append, for each different arity, the input
                           predicates to the output predicates.
+    @apply_sigmoid Whether the MLPs should apply sigmoid to the output of the last layer.
     """
-    def __init__(self, num_in_preds_each_arity, num_out_preds_each_arity, mlp_hidden_size=0, residual_connections=False):
+    def __init__(self, num_in_preds_each_arity, num_out_preds_each_arity, mlp_hidden_size=0, residual_connections=False,
+                 apply_sigmoid = True):
         super().__init__()
         
         assert len(num_in_preds_each_arity) == len(num_out_preds_each_arity), \
@@ -120,7 +135,8 @@ class _NLM_Layer(nn.Module):
                 self._real_num_in_preds_each_arity.append(0) # This number does not matter, as we do not care about arity r and we will not add a MLP for this arity to the module list
         
         # Create MLP for intra-layer computations for each predicate arity we need to compute 
-        self._mlps = nn.ModuleList([_InferenceMLP(self._real_num_in_preds_each_arity[i], mlp_hidden_size, num_out_preds_each_arity[i]) \
+        self._mlps = nn.ModuleList([_InferenceMLP(self._real_num_in_preds_each_arity[i], mlp_hidden_size, 
+                                                  num_out_preds_each_arity[i], apply_sigmoid) \
                                    if num_out_preds_each_arity[i] > 0 else None \
                                    for i in range(len(num_out_preds_each_arity))])
     
@@ -329,8 +345,12 @@ class NLM(pl.LightningModule):
         self._mlp_hidden_size_layers = mlp_hidden_size_layers
         self._lr = lr
         
+        # Add one nullary predicate to the last layer, representing the termination condition
+        num_preds_layers[-1][0] += 1
+        
         # Create each NLM layer and add it to a module list
-        self.layers = nn.ModuleList([_NLM_Layer(num_preds_layers[i], num_preds_layers[i+1], mlp_hidden_size_layers[i]) \
+        self.layers = nn.ModuleList([_NLM_Layer(num_preds_layers[i], num_preds_layers[i+1], mlp_hidden_size_layers[i],
+                                                apply_sigmoid = (i != num_preds_layers.shape[0]-2)) \
                                      for i in range(num_preds_layers.shape[0]-1)])      
     
     # Getters
@@ -342,6 +362,7 @@ class NLM(pl.LightningModule):
     def max_arity(self): # We assume that if num_preds_layers.shape[1] == n, then n is the max arity
         return self._num_preds_layers.shape[1]
     
+    # This function takes into account the extra nullary predicate added to represent the termination condition
     @property
     def num_preds_layers(self):
         return self._num_preds_layers
@@ -353,6 +374,64 @@ class NLM(pl.LightningModule):
     @property
     def lr(self):
         return self._lr
+    
+    """
+    Applies log_softmax to the tensors @pred_tensors. Applied to the output of the NLM in order to obtain
+    a list of tensors corresponding to probabilities.
+    We ignore the tensor value corresponding to the termination condition.
+    
+    Note: we use the log-sum-exp trick (https://blog.feedly.com/tricks-of-the-trade-logsumexp/)
+          to calculate this function quickly and in a stable manner.
+    """
+    def _log_softmax(self, pred_tensors):
+        minus_inf = -1000 # Constant that represents minus infinity
+
+        # Calculate the max value
+        c = max([preds.amax() if preds is not None else minus_inf for preds in pred_tensors])
+
+        # Calculate log(sum(e^(x_i-c)))
+        log_sum_exp = 0
+        for r in range(len(pred_tensors)):
+            if pred_tensors[r] is not None:
+                
+                # Arity 0 -> ignore nullary predicate corresponding to termination condition
+                curr_sum =  torch.sum(torch.exp(pred_tensors[r][:-1] - c))   if r == 0 else \
+                            torch.sum(torch.exp(pred_tensors[r] - c))
+                log_sum_exp += curr_sum
+                
+        log_sum_exp = torch.log(log_sum_exp)
+            
+        # Calculate log_softmax (apply log_softmax to the original tensor) (except to the termination condition)
+        for r in range(len(pred_tensors)):
+            if pred_tensors[r] is not None:
+                # Arity 0 -> ignore nullary predicate corresponding to termination condition
+                if r == 0:
+                    pred_tensors[r][:-1] -= log_sum_exp + c 
+                else:    
+                    pred_tensors[r] -= log_sum_exp + c
+    
+    
+        return pred_tensors
+        
+        """
+        # OLD
+        # Calculate the max value
+        c = max([preds.amax() if preds is not None else minus_inf for preds in pred_tensors])
+
+        # Calculate log(sum(e^(x_i-c)))
+        log_sum_exp = torch.log(sum([torch.sum(torch.exp(pred_tensors[r] - c)) \
+                       if pred_tensors[r] is not None else 0 for r in range(len(pred_tensors))]))
+
+        # Calculate log_softmax (apply log_softmax to the original tensor)
+        log_softmax_tensors = [pred_tensors[r]-log_sum_exp-c if pred_tensors[r] is not None else None \
+                               for r in range(len(pred_tensors))]
+        
+        
+        # Restore value of the nullary predicate corresponding to the termination condition
+        
+        
+        return log_softmax_tensors
+        """
     
     """
     Computes a forward pass.
@@ -369,8 +448,15 @@ class NLM(pl.LightningModule):
         # Iteratively apply forward pass with each NLM layer
         for i in range(self.num_layers):
             curr_tensors_list = self.layers[i](curr_tensors_list, num_objs)
-            
-        return curr_tensors_list
+           
+        # Apply log_softmax to the output of the last layer 
+        # (except for the nullary predicate corresponding to the termination condition)
+        new_tensors = self._log_softmax(curr_tensors_list)
+        
+        # Apply softmax to the nullary predicate of the termination condition
+        new_tensors[0][-1].sigmoid_() # Apply sigmoid in-place
+        
+        return new_tensors
     
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self._lr)
@@ -382,6 +468,8 @@ class NLM(pl.LightningModule):
     Each train sample is a tuple where the first element is a list with the tensors to be given as inputs
     to the NLM, the second element are the number of objects
     and the third element is the expected (ground truth) tensors that the model should output
+    
+    # <TODO>: change training step in order to use REINFORCE algorithm.
     """
     def training_step(self, train_batch, batch_idx=0):
         # Iterate over each sample and calculate the total loss for the entire batch
