@@ -323,6 +323,28 @@ def test_generate_random_problems():
 									verbose=True)
 
 
+"""
+Uses the NLM (without training) to obtain a trajectory, i.e., select actions according to the initial state and goal generation policies.
+
+# <TODO> Test the goal generation policy (right now we only test the initial state generation policy)
+"""
+def test_trajectory_nlm():
+	from problem_generation.controller.directed_generator import DirectedGenerator
+	from problem_generation.environment.pddl_parser import Parser
+	from problem_generation.environment.planner import Planner
+	
+	# Note: in the final version, we will not call directed_generator directly, but will use the methods of the Controller class
+
+	domain_file_path = '../data/domains/blocks-domain.pddl'
+
+	parser = Parser()
+	parser.parse_domain(domain_file_path)
+	planner = Planner(domain_file_path)
+
+	directed_generator = DirectedGenerator(parser, planner)
+
+	trajectory = directed_generator._obtain_trajectory()
+
 # ---------------------------------------------------
 
 
@@ -333,5 +355,6 @@ if __name__ == "__main__":
 	#test_problem_state_action_applicability_and_transition()
 	#test_random_problem_generation()
 	#test_planner()
+	#test_generate_random_problems()
 
-	test_generate_random_problems()
+	test_trajectory_nlm() 

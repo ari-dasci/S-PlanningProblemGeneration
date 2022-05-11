@@ -166,6 +166,21 @@ class RelationalState():
 
 
     """
+    Returns a list with the number of predicates of each arity, from r=0 to r=max_arity.
+    Example: max_arity=3 -> [1,3,1,0] for blocksworld
+
+    @max_arity If not -1, we assume that is the max arity of the predicates. This parameter is used when the max_pred
+               (breadth) of the NLM is higher than the max_predicate_arity of the state.
+    """
+    def num_preds_each_arity_for_nlm(self, max_arity = -1):
+        max_predicate_arity = max_arity if max_arity != -1 else self.max_predicate_arity
+
+        num_preds_each_arity_for_nlm = [self._num_preds_each_arity[r] if r in self._num_preds_each_arity else 0 for r in range(max_predicate_arity+1)]
+
+        return num_preds_each_arity_for_nlm
+
+
+    """
     Returns the state atoms in the encoding the AC-GNN class uses.
     Example: [('on', (1, 0)), ('on', (2, 1)) ('clear', (2))] -> 
              ({0 : torch.tensor([1,0,2,1], dtype=torch.int64), 1 : torch.tensor([2], dtype=torch.int64)}, [3])
@@ -205,7 +220,10 @@ class RelationalState():
         max_predicate_arity = max_arity if max_arity != -1 else self.max_predicate_arity
         
         # Add virtual objects
-        num_objs += max_predicate_arity
+        # The number of virtual objects to add is equal to the maximum arity of the state, not of the NLM!!!
+        # Example: if the NLM has a breadth of 3 but the max_pred_arity of the state is 2 (for the predicate 'on', for example)
+        # we add 2 virtual objects and not 3!!!
+        num_objs += self.max_predicate_arity
         
         with torch.no_grad():
             # Initialize tensors full of zeros

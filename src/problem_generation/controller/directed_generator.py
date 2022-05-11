@@ -11,22 +11,23 @@ from problem_generation.environment.pddl_parser import Parser
 from problem_generation.environment.planner import Planner
 from problem_generation.environment.state_validator import ValidatorPredOrderBW
 from problem_generation.models.nlm import NLM
+from problem_generation.environment.relational_state import RelationalState
 
 class DirectedGenerator():
 
 	"""
 	Constructor for the directed generator.
 
-	Note: the first and last layers of the NLM for the initial state generation policy must be the same, since they represent the same predicates.
+	@num_preds_inner_layers_initial_state_nlm This corresponds to the number of predicates of the NLM layers EXCEPT FOR THE INPUT AND OUTPUT LAYERS,
+					                          since the shapes of these two layers are calculated from the information about the predicates/actions in the domain.
+											  If the NLM has no hidden layers, @num_preds_inner_layers_initial_state_nlm must be an empty list [].
+											  Otherwise, the inner layers shapes must be passed as a list of lists, e.g., [[1,1,1,1]] (for only one hidden layer)
 	"""
-	def __init__(self, parser, planner, num_preds_layers_initial_state_nlm, mlp_hidden_layers_initial_state_nlm,
+	def __init__(self, parser, planner, 
 				 predicates_to_consider_for_goal=None, initial_state_info=None, consistency_validator=ValidatorPredOrderBW,
 				 max_objects_init_state=1000, max_atoms_init_state=1000, penalization_inconsistent_state=-1, penalization_non_applicable_action=-1,
-				 lr_initial_state_nlm=5e-2):
+				 num_preds_inner_layers_initial_state_nlm=[[4,4,4,4]], mlp_hidden_layers_initial_state_nlm=[0,0], lr_initial_state_nlm=5e-2):
 				 # <TODO> Add parameters for goal_nlm
-
-		assert np.all(num_preds_layers_initial_state_nlm[0]==num_preds_layers_initial_state_nlm[-1]), \
-			   "The first and last layers of the NLM for the initial state generation policy must be the same"
 
 		self._parser = parser
 		self._planner = planner
@@ -44,14 +45,17 @@ class DirectedGenerator():
 			self._predicates_to_consider_for_goal = predicates_to_consider_for_goal
 
 		# Initialize models (NLMs) for the generative policies
-		self._initial_state_nlm = NLM(num_preds_layers_initial_state_nlm, mlp_hidden_layers_initial_state_nlm, lr_initial_state_nlm)
+
+		# Initial state generation policy
+		num_preds_all_layers_initial_state_nlm = self._num_preds_all_layers_initial_state_nlm(num_preds_inner_layers_initial_state_nlm)
+		self._initial_state_nlm = NLM(num_preds_all_layers_initial_state_nlm, mlp_hidden_layers_initial_state_nlm, lr_initial_state_nlm)
 
 		# <TODO>
 		# self._goal_nlm = NLM(num_preds_layers_goal_nlm, mlp_hidden_layers_goal_nlm, lr_goal_nlm)
 
 
 	# ------- Getters and Setters --------
-
+		
 	@property
 	def predicates_to_consider_for_goal(self):
 		return self._predicates_to_consider_for_goal
@@ -119,8 +123,34 @@ class DirectedGenerator():
 	# ------------------------------ 
 
 	"""
-	Receives a list of tensors (corresponding to the output of a NLM) and sets to 0 those corresponding to invalid instantiations of the predicates
-	in @rel_state, i.e., sets to 0 tensor values corresponding to predicats instantiated on objects of the incorrect type.
+	Receives @num_preds_inner_layers_initial_state_nlm and returns the number of predicates of ALL the layers in the NLM 
+	(it adds the shapes corresponding to the input and output layers).
+	"""
+	def _num_preds_all_layers_initial_state_nlm(self, num_preds_inner_layers_initial_state_nlm):
+		num_preds_inner_layers_initial_state_nlm = np.array(num_preds_inner_layers_initial_state_nlm, dtype=np.int) # Convert to np array in case it was a list
+		
+		# Get domain predicates
+		domain_types = self.domain_types
+		domain_preds = self.domain_predicates
+		
+		dummy_rel_state = RelationalState(domain_types, domain_preds)
+
+		if len(num_preds_inner_layers_initial_state_nlm) == 0: # Don't use inner layers
+			input_and_output_nlm_layer_shape = np.array(dummy_rel_state.num_preds_each_arity_for_nlm(-1)).reshape(1,-1)
+			num_preds_all_layers_initial_state_nlm = np.concatenate((input_and_output_nlm_layer_shape, input_and_output_nlm_layer_shape)) # Both the input and output layers have the same shape, as they correspond with state predicates
+
+		else: # Use inner layers, as given by @num_preds_inner_layers_initial_state_nlm
+			max_nlm_arity = len(num_preds_inner_layers_initial_state_nlm[0])-1
+			input_and_output_nlm_layer_shape = np.array(dummy_rel_state.num_preds_each_arity_for_nlm(max_nlm_arity)).reshape(1,-1)
+			num_preds_all_layers_initial_state_nlm = np.concatenate((input_and_output_nlm_layer_shape, num_preds_inner_layers_initial_state_nlm,
+														             input_and_output_nlm_layer_shape))
+
+		return num_preds_all_layers_initial_state_nlm
+
+
+	"""
+	Receives a list of tensors (corresponding to the output of a NLM) and sets to -inf those corresponding to invalid instantiations of the predicates
+	in @rel_state, i.e., sets to -inf tensor values corresponding to predicats instantiated on objects of the incorrect type.
 	This function is in-place and does not return anything.
 	
 
@@ -129,7 +159,7 @@ class DirectedGenerator():
 			   Note: when using the function for the output of the NLM of the goal generation policy, the actions can be simply encoded
 					 as predicates of a RelationalState instance (actions and predicates are the same).
 	"""
-	def _mask_values_incorrect_type(tensors, rel_state):
+	def _mask_values_incorrect_type(self, tensors, rel_state):
 		# Get the types of the objects at the state, without virtual objects!
 		num_objs_with_virtuals = rel_state.num_objects + rel_state.max_predicate_arity # Number of objects in the state, also considering virtual objects
 		obj_types = np.array(rel_state.objects) # Use np.array instead of list to use np.where()
@@ -156,20 +186,21 @@ class DirectedGenerator():
 					obj_inds_except_param_ind = list(range(pred_arity))
 					obj_inds_except_param_ind.remove(param_ind)
 					permute_inds = (param_ind, pred_arity) + tuple(obj_inds_except_param_ind)
-			
-					print(incorrect_obj_inds)
-					print(permute_inds)
-			 
+
 					curr_tensor = torch.permute(tensors[pred_arity], permute_inds)
 			
-					# Now we can easily set to 0 the corresponding elements
-					curr_tensor[incorrect_obj_inds, pred_ind] = 0
+					# Now we can easily set to -inf the corresponding elements
+					# curr_tensor[incorrect_obj_inds, pred_ind] = 0
+					curr_tensor[incorrect_obj_inds, pred_ind] = -float("inf") # -inf
 
 
 	"""
 	Applies log_softmax to the tensors @pred_tensors. Applied to the output of the NLM in order to obtain
 	a list of tensors corresponding to probabilities.
 	We ignore the tensor value corresponding to the termination condition.
+
+	The log_softmax of the nlm output is used to obtain a log_probability (since softmax corresponds to probabilities, log_softmax is for log_probabilities)
+	for every atom/action. This value is used for REINFORCE (which calculates the gradient of the log_probability of the action selected).
 
 	Note: we use the log-sum-exp trick (https://blog.feedly.com/tricks-of-the-trade-logsumexp/)
 		  to calculate this function quickly and in a stable manner.
@@ -207,12 +238,16 @@ class DirectedGenerator():
 	"""
 	def _sample_action_from_nlm_output(self, pred_tensors):
 		# <Convert from torch to numpy>
-		pred_tensors_np = [x.detach().numpy() if x is not None else None for x in pred_tensors]
+		# Use torch.exp to transform from log_softmax to softmax (i.e., from log_probs to probs)
+		pred_tensors_np = [np.exp(x.detach().numpy()) if x is not None else None for x in pred_tensors]
 	
 		# Set nullary predicate corresponding to termination condition to 0, so that it is never sampled
 		# (it does not correspond to an action)
 		pred_tensors_np[0][-1] = 0
-	
+		
+		# QUITAR
+		# print("Tensor probs before sampling:", pred_tensors_np)
+
 		# <Decide which arity to sample>
 	
 		# Get prob to sample each arity
@@ -247,9 +282,13 @@ class DirectedGenerator():
 	Returns a list with the objects to add to @rel_state. These objects correspond to those virtual objects @atom_to_add is instantiated on,
 	i.e., those objects that are not present in @rel_state.
 
-	Returns a list of objects like ['block', 'block']
+	Returns the atom to add with the changed indexes (so that they index objs in the state after adding the list objs_to_add) and the objects 
+	to add to the state as a list like ['block', 'block'].
+	After adding the objs_to_add to the state, the obj indexes in atom_to_add corresponding to virtual objects now index objects in the state.
+	Example: if the state contains two objects and we are going to add a new virtual object, we need to change @atom_to_add from
+	         ['on', [3, 0]] to ['on', [2,0]]
 	"""
-	def _get_objs_to_add_to_init_state(self, rel_state, atom_to_add):
+	def _get_objs_to_add_and_atom_with_correct_indexes(self, rel_state, atom_to_add):
 		state_preds = rel_state.predicates
 		num_objs = rel_state.num_objects
 
@@ -257,13 +296,32 @@ class DirectedGenerator():
 		atom_pred = [p for p in state_preds if p[0] == atom_to_add[0]][0]
 		
 		objs_to_add = []
+		ind_next_state_obj = num_objs # Index associated with the next object to add to the state (Example: if there are 2 objs in the state, ind_next_state_obj = 2)
+		dict_old_inds_to_new_inds = dict() # This dictionary is used to transform the obj inds of atom_to_add
+										   # Example: (on 3 1) -> (on 2 1), (on 3 3) -> (on 2 2)
+		virtual_obj_indexes_used = set() # Contains the indexes corresponding to virtual objects that we have already processed (so that we don't process them again)
+										 # For example, for the atom (on 1 1) (on a state with a single object) we only need to add an object of type "block", and not two
 
 		for param_position, obj_ind in enumerate(atom_to_add[1]):
-			if obj_ind >= num_objs: # the obj given by obj_ind is a virtual object (i.e., it is not in the state, so it must be added)
+			if obj_ind >= num_objs and obj_ind not in virtual_obj_indexes_used: # the obj given by obj_ind is a virtual object (i.e., it is not in the state, so it must be added)
 				# Add an object of type given by the corresponding parameter
 				objs_to_add.append(atom_pred[1][param_position])
+
+				# Change atom index corresponding to virtual object
+				dict_old_inds_to_new_inds[obj_ind] = ind_next_state_obj
+				ind_next_state_obj += 1
+
+				virtual_obj_indexes_used.add(obj_ind)
+
+				#atom_to_add[1][param_position] = ind_next_state_obj
+				#ind_next_state_obj += 1
+
+		# Change virtual obj indexes according to the values stored in the dict
+		for param_position, obj_ind in enumerate(atom_to_add[1]):
+			if obj_ind in dict_old_inds_to_new_inds: # The index does not need to be changed
+				atom_to_add[1][param_position] = dict_old_inds_to_new_inds[obj_ind]
 		
-		return objs_to_add
+		return atom_to_add, objs_to_add
 
 
 	"""
@@ -296,12 +354,25 @@ class DirectedGenerator():
 			# Use NLM to predict action probs for current state
 			curr_state = problem.initial_state
 			curr_state_tensors = curr_state.atoms_nlm_encoding(max_arity=nlm_max_pred_arity)
-			num_objs_with_virtuals = curr_state.num_objects + curr_state.max_predicate_arity # We need to also consider virtual objects not present in the state
+			# We need to also consider virtual objects not present in the state
+			# The number of virtual objects is equal to the maximum predicate arity of the <state>, not the max_pred_arity (breadth) of the <nlm>!!
+			num_objs_with_virtuals = curr_state.num_objects + curr_state.max_predicate_arity 
+
+			# Quitar
+			#print("NLM shape:", self._initial_state_nlm.num_preds_layers)
+			#print("curr_state_tensors:", curr_state_tensors)
+			#print("num_objs_with_virtuals:", num_objs_with_virtuals)
 
 			nlm_output = self._initial_state_nlm(curr_state_tensors, num_objs_with_virtuals)
 
+			#Quitar
+			# print("nlm_output:", nlm_output)
+
 			# Mask NLM output corresponding to invalid atoms (those which are instantiated on objects of an incorrect type)
 			self._mask_values_incorrect_type(nlm_output, curr_state)
+
+			#Quitar
+			#print("nlm_output_after_mask:", nlm_output)
 
 			# Apply log_softmax to the output of the NLM
 			nlm_output = self._log_softmax(nlm_output)
@@ -313,8 +384,17 @@ class DirectedGenerator():
 			chosen_action_name = curr_state.get_predicate_by_arity_and_ind(chosen_action_index[0], chosen_action_index[-1])[0] # [0] to get the name
 			chosen_action = [chosen_action_name, chosen_action_index[1:-1]] # To form the chosen action, we add the action name and obj indexes like ['on', [1, 0]]
 
+			# Quitar
+			#print("chosen_action_index:", chosen_action_index)
+			#print("chosen_action_name:", chosen_action_name)
+			#print("chosen_action_before_index_change:", chosen_action)
+
 			# See if we add new objects as part of the chosen action
-			objs_to_add = self._get_objs_to_add_to_init_state(curr_state, chosen_action)
+			chosen_action, objs_to_add = self._get_objs_to_add_and_atom_with_correct_indexes(curr_state, chosen_action)
+
+			# Quitar
+			#print("chosen_action_after_index_change:", chosen_action)
+			#print("objs_to_add:", objs_to_add)
 
 			# Execute the action to obtain the reward and next state
 			_, r = problem.apply_action_to_initial_state(objs_to_add, chosen_action)
@@ -325,6 +405,7 @@ class DirectedGenerator():
 			# <Quitar>
 			print("\n--------------------")
 			print("> Current state:", curr_state)
+			# print("> New state:", problem.initial_state)
 			print("> Chosen action:", chosen_action)
 			print("> Reward:", r)
 
