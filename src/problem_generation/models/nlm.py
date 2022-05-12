@@ -2,7 +2,6 @@
 
 import torch
 from torch import nn
-import pytorch_lightning as pl
 import itertools
 import math
 
@@ -316,11 +315,12 @@ class _NLM_Layer(nn.Module):
                 output_tensors_list.append(out_tensor)
                 
         return output_tensors_list
-   
+  
+    
 """
 Implements a Neural Logic Machine (NLM)
 """
-class NLM(pl.LightningModule):
+class NLM(nn.Module):
     
     """
     Constructor.
@@ -353,6 +353,7 @@ class NLM(pl.LightningModule):
                                                 apply_sigmoid = (i != num_preds_layers.shape[0]-2)) \
                                      for i in range(num_preds_layers.shape[0]-1)])      
     
+
     # Getters
     @property
     def num_layers(self):
@@ -375,41 +376,7 @@ class NLM(pl.LightningModule):
     def lr(self):
         return self._lr
     
-    """
-    Applies log_softmax to the tensors @pred_tensors. Applied to the output of the NLM in order to obtain
-    a list of tensors corresponding to probabilities.
-    We ignore the tensor value corresponding to the termination condition.
-    
-    Note: we use the log-sum-exp trick (https://blog.feedly.com/tricks-of-the-trade-logsumexp/)
-          to calculate this function quickly and in a stable manner.
-    Acknowledgement: https://discuss.pytorch.org/t/how-to-calculate-log-softmax-for-list-of-tensors-without-breaking-autograd/151247
-    """
-    # This is now applied outside the NLM
-    """
-    def _log_softmax(self, pred_tensors):
-        # Remove the nullary predicate associated with the termination condition, so that it does not
-        # affect the log_softmax computation
-        term_cond_value = pred_tensors[0][-1]
-        pred_tensors[0] = pred_tensors[0][:-1]
-        
-        # Calculate log_sum_exp of all the values in the tensors of the list
-        # 1) flatten each tensor in the list
-        # 2) concatenate them as a unique tensor
-        # 3) calculate log_sum_exp
-        log_sum_exp = torch.logsumexp(torch.cat([preds.flatten() if preds is not None else torch.empty(0, dtype=torch.float32) \
-                                               for preds in pred_tensors]), dim=-1)
-    
-        # Use log_sum_exp to calculate the log_softmax of the tensors in the list
-        for r in range(len(pred_tensors)):
-            if pred_tensors[r] is not None:
-                pred_tensors[r] -= log_sum_exp
-    
-        # Append the nullary predicate corresponding to the termination condition
-        pred_tensors[0] = torch.cat([pred_tensors[0], term_cond_value.reshape(1)]) # We need reshape() to transform from tensor of dimension 0 to dimension 1
-        
-        return pred_tensors
-    """
-
+   
     """
     Computes a forward pass.
     
@@ -425,83 +392,8 @@ class NLM(pl.LightningModule):
         # Iteratively apply forward pass with each NLM layer
         for i in range(self.num_layers):
             curr_tensors_list = self.layers[i](curr_tensors_list, num_objs)
-           
-        # Apply log_softmax to the output of the last layer 
-        # (except for the nullary predicate corresponding to the termination condition)
-        # new_tensors = self._log_softmax(curr_tensors_list) -> This is now applied outside the NLM
-        
+
         # Apply softmax to the nullary predicate of the termination condition
         curr_tensors_list[0][-1].sigmoid_() # Apply sigmoid in-place
         
         return curr_tensors_list
-    
-    def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self._lr)
-        return optimizer
-    
-    """
-    Override backward hook in order to set retain_graph=True.
-    """
-    def backward(self, loss, optimizer, optimizer_idx):
-        loss.backward(retain_graph=False) # Set to retain_graph=True if needed
-
-
-    """
-    train_batch is a list with the different training samples.
-    Each train sample is a tuple where the first element is the log_probability of the action selected at that state,
-    and the second element is the discounted cumulative reward obtained from that point until the end of the episode.
-    
-    <Note>: the log_probability must be a torch tensor through which gradients can flow.
-    <Note2>: @train_batch can contain samples associated with different trajectories.
-    """
-    def training_step(self, train_batch, batch_idx=0):
-        loss = 0
-
-        # Iterate over the batch and calculate the loss for each element
-        for chosen_action_log_prob, disc_reward_sum in train_batch:
-
-            # Quitar
-            print("\n\n ---- Call to training_step")
-            print("\nchosen_action_log_prob:", chosen_action_log_prob)
-            print("disc_reward_sum:", disc_reward_sum)
-
-            loss += -chosen_action_log_prob*disc_reward_sum
-        
-        print("Len train batch:", len(train_batch))
-        loss /= len(train_batch) # Scale loss by number of elements in the batch
-
-        return loss
-        
-
-        """
-        # Iterate over each sample and calculate the total loss for the entire batch
-        loss = 0 
-        
-        for train_sample in train_batch:
-            x, num_objs, y = train_sample
-
-            pred = self.forward(x, num_objs)
-
-            # Separately calculate loss for each predicate arity
-            loss_func = nn.MSELoss()
-
-            for r in range(len(x)):   
-                if pred[r] is not None and y[r] is not None: # Ignore arities r for which there are no predicates
-                    loss += loss_func(pred[r], y[r]) # Change MSE loss for cross-entropy loss
-        
-        return loss
-        """
-
-    """
-    Called when we do trainer.predict()
-    
-    @batch A one-element batch where batch[0] is a tuple (input_tensors, num_objs, output_tensors).
-           Note that the output_tensors element is not used (it is only used for training), so it can be None.
-    """
-    # OLD
-    """
-    def predict_step(self, batch, batch_idx=0, dataloader_idx=0):
-        x, num_objs, _ = batch[0]
-        
-        return self.forward(x, num_objs)
-    """

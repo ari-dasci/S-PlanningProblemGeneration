@@ -328,7 +328,7 @@ Uses the NLM (without training) to obtain a trajectory, i.e., select actions acc
 
 # <TODO> Test the goal generation policy (right now we only test the initial state generation policy)
 """
-def test_trajectory_nlm():
+def test_trajectory_directed_generator():
 	from problem_generation.controller.directed_generator import DirectedGenerator
 	from problem_generation.environment.pddl_parser import Parser
 	from problem_generation.environment.planner import Planner
@@ -345,11 +345,13 @@ def test_trajectory_nlm():
 
 	trajectory = directed_generator._obtain_trajectory()
 
-	print(">> Trajectory:", trajectory)
+	print(">> First element of the trajectory:", trajectory[0])
+
+	print(">> Trajectory immediate rewards:", [x[-1] for x in trajectory])
 
 	directed_generator._sum_rewards_trajectory(trajectory, disc_factor=0.9)
 
-	print(">> Trajectory after disc sum rewards:", trajectory)
+	print(">> Trajectory discounted sum of rewards:", [x[-1] for x in trajectory])
 
 """
 Tests the functionality of directed_generator.py used to train the generative policies.
@@ -381,5 +383,5 @@ if __name__ == "__main__":
 	#test_planner()
 	#test_generate_random_problems()
 
-	#test_trajectory_nlm() 
+	#test_trajectory_directed_generator() 
 	test_train_generative_policies()
