@@ -11,7 +11,10 @@ from problem_generation.environment.pddl_parser import Parser
 from problem_generation.environment.planner import Planner
 from problem_generation.environment.state_validator import ValidatorPredOrderBW
 from problem_generation.models.nlm import NLM
+from problem_generation.models.reinforce import ReinforceDataset
 from problem_generation.environment.relational_state import RelationalState
+
+from problem_generation.models.reinforce import TransformReinforceDatasetSample
 
 class DirectedGenerator():
 
@@ -19,7 +22,7 @@ class DirectedGenerator():
 	Constructor for the directed generator.
 
 	@num_preds_inner_layers_initial_state_nlm This corresponds to the number of predicates of the NLM layers EXCEPT FOR THE INPUT AND OUTPUT LAYERS,
-					                          since the shapes of these two layers are calculated from the information about the predicates/actions in the domain.
+											  since the shapes of these two layers are calculated from the information about the predicates/actions in the domain.
 											  If the NLM has no hidden layers, @num_preds_inner_layers_initial_state_nlm must be an empty list [].
 											  Otherwise, the inner layers shapes must be passed as a list of lists, e.g., [[1,1,1,1]] (for only one hidden layer)
 	"""
@@ -143,7 +146,7 @@ class DirectedGenerator():
 			max_nlm_arity = len(num_preds_inner_layers_initial_state_nlm[0])-1
 			input_and_output_nlm_layer_shape = np.array(dummy_rel_state.num_preds_each_arity_for_nlm(max_nlm_arity)).reshape(1,-1)
 			num_preds_all_layers_initial_state_nlm = np.concatenate((input_and_output_nlm_layer_shape, num_preds_inner_layers_initial_state_nlm,
-														             input_and_output_nlm_layer_shape))
+																	 input_and_output_nlm_layer_shape))
 
 		return num_preds_all_layers_initial_state_nlm
 
@@ -221,7 +224,8 @@ class DirectedGenerator():
 		# Use log_sum_exp to calculate the log_softmax of the tensors in the list
 		for r in range(len(pred_tensors)):
 			if pred_tensors[r] is not None:
-				pred_tensors[r] -= log_sum_exp
+				# pred_tensors[r] -= log_sum_exp <-- This operation modifies the tensor inplaces and breaks autograd!
+				pred_tensors[r] = pred_tensors[r] - log_sum_exp
 
 		# Append the nullary predicate corresponding to the termination condition
 		pred_tensors[0] = torch.cat([pred_tensors[0], term_cond_value.reshape(1)]) # We need reshape() to transform from tensor of dimension 0 to dimension 1
@@ -286,7 +290,7 @@ class DirectedGenerator():
 	to add to the state as a list like ['block', 'block'].
 	After adding the objs_to_add to the state, the obj indexes in atom_to_add corresponding to virtual objects now index objects in the state.
 	Example: if the state contains two objects and we are going to add a new virtual object, we need to change @atom_to_add from
-	         ['on', [3, 0]] to ['on', [2,0]]
+			 ['on', [3, 0]] to ['on', [2,0]]
 	"""
 	def _get_objs_to_add_and_atom_with_correct_indexes(self, rel_state, atom_to_add):
 		state_preds = rel_state.predicates
@@ -323,11 +327,35 @@ class DirectedGenerator():
 		
 		return atom_to_add, objs_to_add
 
+	"""
+	This method receives a trajectory as input and transforms each element (chosen_action_log_prob, r) of the trajectory
+	into (chosen_action_log_prob, R), where R is the discounted sum of rewards obtained from that point until the end
+	of the trajectory (we assume the first element of the trajectory corresponds to the state at t=0 and the last element
+	to the state t=T).
+
+	<Note>: this method is inplace (does not return the trajectory but transforms it inplace)
+	"""
+	def _sum_rewards_trajectory(self, trajectory, disc_factor=1):
+		
+		if disc_factor != 0: # If the disc_factor is 0, the sum of rewards is equal to just the immediate reward
+			r_sum = 0
+
+			# Iterate over the trajectory in reverse (from the end to the beginning)
+			for i in range(len(trajectory)-1,-1,-1):
+				curr_reward = trajectory[i][1]
+				
+				trajectory[i][1] += r_sum
+
+				r_sum += curr_reward # Sum the current reward to the sum of disc rewards R
+				r_sum *= disc_factor # Apply disc factor to all the rewards in the sum
+
 
 	"""
 	Uses the current initial state and goal generation policies to obtain a full trajectory. It starts from an empty state s0 = (_, _)
-	and finishes at a state sn = (s_i, s_g). This trajectory is returned as a list of tuples with states, actions and rewards.
-	E.g.: list = [ (s0, a0, r0), (s1, a1, r1), ..., (sn, an, rn) ].
+	and finishes at a state sn = (s_i, s_g). This trajectory is returned as a list of tuples for training the NLM with REINFORCE.
+	Each tuple is (chosen_action_log_prob, r), where r is the immediate reward.
+	We need to sum r to obtain the discounted sum of rewards that REINFORCE needs to train the NLM!
+	> To do so, we can call self._sum_rewards_trajectory after obtaining the trajectory with this method
 
 	<TODO>: implement termination of initial state and goal generation phases.
 			Initial state termination: when the termination condition is sampled as True or the current state surpasses self._max_objects_init_state
@@ -377,12 +405,20 @@ class DirectedGenerator():
 			# Apply log_softmax to the output of the NLM
 			nlm_output = self._log_softmax(nlm_output)
 
+			#Quitar
+			#print("nlm_output_log_softmax:", nlm_output)
+
 			# Sample an action from the NLM output
 			chosen_action_index = self._sample_action_from_nlm_output(nlm_output)
 			# chosen_action_index[0] is the predicate arity and chosen_action_index[-1] is the predicate index
 			# The indexes in between correspond to the object indeces the action/pred is instantiated on (if arity >= 1)
 			chosen_action_name = curr_state.get_predicate_by_arity_and_ind(chosen_action_index[0], chosen_action_index[-1])[0] # [0] to get the name
 			chosen_action = [chosen_action_name, chosen_action_index[1:-1]] # To form the chosen action, we add the action name and obj indexes like ['on', [1, 0]]
+
+			# Obtain the log probability of the action -> the tensor value of the nlm output indexed by chosen_action_index
+			chosen_action_log_prob = nlm_output[chosen_action_index[0]][tuple(chosen_action_index[1:])]
+
+			#print("chosen_action_log_prob:", chosen_action_log_prob)
 
 			# Quitar
 			#print("chosen_action_index:", chosen_action_index)
@@ -399,15 +435,15 @@ class DirectedGenerator():
 			# Execute the action to obtain the reward and next state
 			_, r = problem.apply_action_to_initial_state(objs_to_add, chosen_action)
 
-			# Append tuple (curr_state, action, reward) to the trajectory
-			trajectory.append( (curr_state, chosen_action, r) )
+			# Append sample to the trajectory
+			trajectory.append( [chosen_action_log_prob, r] )
 
 			# <Quitar>
-			print("\n--------------------")
-			print("> Current state:", curr_state)
+			# print("\n--------------------")
+			# print("> Current state:", curr_state)
 			# print("> New state:", problem.initial_state)
-			print("> Chosen action:", chosen_action)
-			print("> Reward:", r)
+			# print("> Chosen action:", chosen_action)
+			# print("> Reward:", r)
 
 
 		# <<TODO>>
@@ -415,6 +451,44 @@ class DirectedGenerator():
 
 		return trajectory
 		
+	# <TODO>
+	# This method trains the initial state generation policy.
+	def _train_initial_state_generation_policy(self):
+		# >> Por ahora, solo intento que prediga una accion
+
+		# Get NLM output before training
+
+		nlm_max_pred_arity = self._initial_state_nlm.max_arity
+		problem = ProblemState(self._parser, self._predicates_to_consider_for_goal, self._initial_state_info,
+				self._penalization_inconsistent_state, self._penalization_non_applicable_action, 
+				consistency_validator=self._consistency_validator)
+		curr_state = problem.initial_state
+		curr_state_tensors = curr_state.atoms_nlm_encoding(max_arity=nlm_max_pred_arity)
+		num_objs_with_virtuals = curr_state.num_objects + curr_state.max_predicate_arity 
+
+		nlm_output = self._initial_state_nlm(curr_state_tensors, num_objs_with_virtuals)
+		self._mask_values_incorrect_type(nlm_output, curr_state)
+		nlm_output_log_softmax = self._log_softmax(nlm_output) # <--- Inplace modification error here!!!
+
+		print("NLM output before training:", nlm_output_log_softmax)
+
+		print("chosen_action - [0,0] - (holding)")
+
+		# Train NLM to predict holding -> index [0,0]
+
+		chosen_action_log_prob = nlm_output_log_softmax[0][0]
+		r = 1
+
+		# Quitar
+		print("\nchosen_action_log_prob:", chosen_action_log_prob)
+		print("disc_reward_sum:", r)
+
+		dataset = ReinforceDataset([(chosen_action_log_prob, r)])
+		dataloader = torch.utils.data.DataLoader(dataset=dataset, batch_size=1, collate_fn=TransformReinforceDatasetSample(),
+												 shuffle=True)
+
+		trainer = pl.Trainer(max_epochs=50)
+		trainer.fit(self._initial_state_nlm, dataloader)
 
 
 	# <TODO>
@@ -423,20 +497,8 @@ class DirectedGenerator():
 	# This also applies for the eventual consistency rules (associated with the termination condition)
 	# <Note 2>: if the gradient doesn't flow correctly, try to not use the log_softmax function for the last NLM layer.
 
-	"""
-	REINFORCE algorithm (https://pytorch.org/docs/stable/distributions.html#score-function)
-
-	probs = policy_network(state)
-	# Note that this is equivalent to what used to be called multinomial
-	m = Categorical(probs)
-	action = m.sample()
-	next_state, reward = env.step(action)
-	loss = -m.log_prob(action) * reward
-	loss.backward()
-	"""
-
 	def train_generative_policies(self): # Add more parameters
-		pass
+		self._train_initial_state_generation_policy()
 
 	"""
 	This method generates a single problem by using the generative policies. We assume the policies have already been trained by calling the method

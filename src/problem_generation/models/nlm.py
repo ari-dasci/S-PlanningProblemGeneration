@@ -439,15 +439,29 @@ class NLM(pl.LightningModule):
     
     """
     train_batch is a list with the different training samples.
-    Each train sample is a tuple where the first element is a list with the tensors to be given as inputs
-    to the NLM, the second element are the number of objects
-    and the third element is the expected (ground truth) tensors that the model should output
+    Each train sample is a tuple where the first element is the log_probability of the action selected at that state,
+    and the second element is the discounted cumulative reward obtained from that point until the end of the episode.
     
-    # <TODO>: change training step in order to use REINFORCE algorithm.
+    <Note>: the log_probability must be a torch tensor through which gradients can flow.
+    <Note2>: @train_batch can contain samples associated with different trajectories.
     """
     def training_step(self, train_batch, batch_idx=0):
-        # Iterate over each sample and calculate the total loss for the entire batch
+        loss = 0
+
+        # Iterate over the batch and calculate the loss for each element
+        for chosen_action_log_prob, disc_reward_sum in train_batch:
+
+            # Quitar
+            print("\nchosen_action_log_prob:", chosen_action_log_prob)
+            print("disc_reward_sum:", disc_reward_sum)
+
+            loss += -chosen_action_log_prob*disc_reward_sum
         
+        return loss
+        
+
+        """
+        # Iterate over each sample and calculate the total loss for the entire batch
         loss = 0 
         
         for train_sample in train_batch:
@@ -463,14 +477,18 @@ class NLM(pl.LightningModule):
                     loss += loss_func(pred[r], y[r]) # Change MSE loss for cross-entropy loss
         
         return loss
-    
+        """
+
     """
     Called when we do trainer.predict()
     
     @batch A one-element batch where batch[0] is a tuple (input_tensors, num_objs, output_tensors).
            Note that the output_tensors element is not used (it is only used for training), so it can be None.
     """
+    # OLD
+    """
     def predict_step(self, batch, batch_idx=0, dataloader_idx=0):
         x, num_objs, _ = batch[0]
         
         return self.forward(x, num_objs)
+    """

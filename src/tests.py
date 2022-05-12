@@ -345,6 +345,30 @@ def test_trajectory_nlm():
 
 	trajectory = directed_generator._obtain_trajectory()
 
+	print(">> Trajectory:", trajectory)
+
+	directed_generator._sum_rewards_trajectory(trajectory, disc_factor=0.9)
+
+	print(">> Trajectory after disc sum rewards:", trajectory)
+
+"""
+Tests the functionality of directed_generator.py used to train the generative policies.
+"""
+def test_train_generative_policies():
+	from problem_generation.controller.directed_generator import DirectedGenerator
+	from problem_generation.environment.pddl_parser import Parser
+	from problem_generation.environment.planner import Planner
+
+	domain_file_path = '../data/domains/blocks-domain.pddl'
+
+	parser = Parser()
+	parser.parse_domain(domain_file_path)
+	planner = Planner(domain_file_path)
+
+	directed_generator = DirectedGenerator(parser, planner)
+	
+	directed_generator.train_generative_policies()
+
 # ---------------------------------------------------
 
 
@@ -357,4 +381,5 @@ if __name__ == "__main__":
 	#test_planner()
 	#test_generate_random_problems()
 
-	test_trajectory_nlm() 
+	#test_trajectory_nlm() 
+	test_train_generative_policies()
