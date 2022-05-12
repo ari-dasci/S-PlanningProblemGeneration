@@ -468,7 +468,7 @@ class DirectedGenerator():
 
 		nlm_output = self._initial_state_nlm(curr_state_tensors, num_objs_with_virtuals)
 		self._mask_values_incorrect_type(nlm_output, curr_state)
-		nlm_output_log_softmax = self._log_softmax(nlm_output) # <--- Inplace modification error here!!!
+		nlm_output_log_softmax = self._log_softmax(nlm_output)
 
 		print("NLM output before training:", nlm_output_log_softmax)
 
@@ -487,8 +487,16 @@ class DirectedGenerator():
 		dataloader = torch.utils.data.DataLoader(dataset=dataset, batch_size=1, collate_fn=TransformReinforceDatasetSample(),
 												 shuffle=True)
 
-		trainer = pl.Trainer(max_epochs=50)
+		trainer = pl.Trainer(max_epochs=1)
 		trainer.fit(self._initial_state_nlm, dataloader)
+
+		# Get NLM output after training
+
+		nlm_output = self._initial_state_nlm(curr_state_tensors, num_objs_with_virtuals)
+		self._mask_values_incorrect_type(nlm_output, curr_state)
+		nlm_output_log_softmax = self._log_softmax(nlm_output)
+
+		print("\nNLM output after training:", nlm_output_log_softmax)
 
 
 	# <TODO>

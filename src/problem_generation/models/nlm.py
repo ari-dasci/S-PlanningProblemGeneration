@@ -384,6 +384,8 @@ class NLM(pl.LightningModule):
           to calculate this function quickly and in a stable manner.
     Acknowledgement: https://discuss.pytorch.org/t/how-to-calculate-log-softmax-for-list-of-tensors-without-breaking-autograd/151247
     """
+    # This is now applied outside the NLM
+    """
     def _log_softmax(self, pred_tensors):
         # Remove the nullary predicate associated with the termination condition, so that it does not
         # affect the log_softmax computation
@@ -406,7 +408,8 @@ class NLM(pl.LightningModule):
         pred_tensors[0] = torch.cat([pred_tensors[0], term_cond_value.reshape(1)]) # We need reshape() to transform from tensor of dimension 0 to dimension 1
         
         return pred_tensors
-    
+    """
+
     """
     Computes a forward pass.
     
@@ -436,7 +439,13 @@ class NLM(pl.LightningModule):
         optimizer = torch.optim.Adam(self.parameters(), lr=self._lr)
         return optimizer
     
-    
+    """
+    Override backward hook in order to set retain_graph=True.
+    """
+    def backward(self, loss, optimizer, optimizer_idx):
+        loss.backward(retain_graph=False) # Set to retain_graph=True if needed
+
+
     """
     train_batch is a list with the different training samples.
     Each train sample is a tuple where the first element is the log_probability of the action selected at that state,
@@ -452,11 +461,15 @@ class NLM(pl.LightningModule):
         for chosen_action_log_prob, disc_reward_sum in train_batch:
 
             # Quitar
+            print("\n\n ---- Call to training_step")
             print("\nchosen_action_log_prob:", chosen_action_log_prob)
             print("disc_reward_sum:", disc_reward_sum)
 
             loss += -chosen_action_log_prob*disc_reward_sum
         
+        print("Len train batch:", len(train_batch))
+        loss /= len(train_batch) # Scale loss by number of elements in the batch
+
         return loss
         
 
