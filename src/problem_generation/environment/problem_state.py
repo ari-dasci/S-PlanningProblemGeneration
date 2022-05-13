@@ -22,8 +22,8 @@ class ProblemState:
 
 	@parser Instance of Parser class, containing the parsed information about the PDDL domain.
 	@predicates_to_consider_for_goal List of predicate <names> (e.g., ['on', 'ontable']) to consider for the goals of the generated problems.
-	@initial_state_info Information used to create the initial state of the generation process. If None, the initial state contains a single object
-	                    of a random type. If str (e.g., 'block'), the initial state contains a single object of such type. If an instance of
+	@initial_state_info Information used to create the initial state of the generation process. If None, the initial state is empty (contains no objects or atoms).
+                        If str (e.g., 'block'), the initial state contains a single object of such type. If an instance of
 						RelationalState, the initial state will be the state passed as parameter.
 	@penalization_inconsistent_state Penalization if the initial state generation policy selects an action that produces a non-consistent state 
 	                                 (according to the consistency validator)
@@ -169,16 +169,14 @@ class ProblemState:
 
 	"""
 	Returns the initial state (s0) corresponding to the generation process.
-	If @initial_state_info is None, the initial state corresponds to a single object with random type.
+	If @initial_state_info is None, the initial state is empty (contains no objects or atoms).
 	If @initial_state_info is a str (e.g., 'block'), the initial state will be a single object of such type.
 	If @initial_state_info is an instance of RelationalState, that will be the initial state.
 	"""
 	def _get_s0(self, initial_state_info=None):
 
-		if initial_state_info is None: # Type at random
-			types = self.domain_types
-			chosen_type = random.choice(types)
-			s0 = RelationalState(self.domain_types, self.domain_predicates, [chosen_type], [])
+		if initial_state_info is None: # Empty state
+			s0 = RelationalState(self.domain_types, self.domain_predicates, [], [])
 
 		elif type(initial_state_info) == str: # Type given by the user
 			if initial_state_info not in self.domain_types:

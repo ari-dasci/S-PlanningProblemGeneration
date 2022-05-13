@@ -189,6 +189,9 @@ class ValidatorPredOrderBW(ValidatorPredOrder):
 
 		# <Every object in the state must appear in an atom>
 		# If not, instantiate it on an atom of type 'ontable'
+
+		# This is not necessary now, as we start the generation at an empty initial state s0 = _ (no atoms and no objects)
+		"""
 		free_objects = len(list(filter(lambda o: len(list(filter(lambda a: o in a[1], state_atoms))) == 0, state_objs))) > 0
 		
 		if free_objects:
@@ -197,6 +200,7 @@ class ValidatorPredOrderBW(ValidatorPredOrder):
 					return True
 
 			return False
+		"""
 
 		# <Check continuous consistency rules for predicate (ontable X)>
 		# The block X must be on the table -> it cannot appear in predicates 'on' or 'holding'

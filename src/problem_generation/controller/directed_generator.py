@@ -315,9 +315,6 @@ class DirectedGenerator():
 			# Mask tensors
 			mask_tensors = self._get_mask_tensors(init_nlm_output_layer_shape, curr_state)
 
-			# Quitar
-			print("Mask tensors:", mask_tensors)
-
 			# Obtain an action (index) with the policy
 			chosen_action_index = self._initial_state_policy.select_action(curr_state_tensors, num_objs_with_virtuals,
 											                               mask_tensors)
