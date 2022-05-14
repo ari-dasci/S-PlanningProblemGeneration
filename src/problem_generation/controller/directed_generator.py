@@ -349,10 +349,30 @@ class DirectedGenerator():
 
 		return trajectory
 		
-
-	# <TODO>
 	# This method trains the initial state generation policy.
 	def _train_initial_state_generation_policy(self):
+
+		# Hyperparameters
+		epochs = 500
+		train_its_per_epoch = 1
+
+		# Initialize trainer
+		trainer = pl.Trainer(max_epochs=train_its_per_epoch)
+
+		for i in range(epochs):
+			# Obtain a trajectory and create a dataset containing it
+			trajectory = self._obtain_trajectory()
+			self._sum_rewards_trajectory(trajectory, disc_factor=0)
+			trajectory_dataset = ReinforceDataset(trajectory)
+			trajectory_dataloader = torch.utils.data.DataLoader(dataset=trajectory_dataset, batch_size=10, collate_fn=TransformReinforceDatasetSample(),
+													 shuffle=True)
+
+			# Use the trajectory to train the policy
+			trainer.fit(self._initial_state_policy, trajectory_dataloader)
+
+	
+
+	def _train_initial_state_generation_policy_OLD(self):
 		# >> Por ahora, solo intento que prediga una accion
 
 		# Get NLM output before training
@@ -402,11 +422,20 @@ class DirectedGenerator():
 	"""
 	This method generates a single problem by using the generative policies. We assume the policies have already been trained by calling the method
 	self.train_generative_policies().
+
+	<TODO>: implement termination of initial state and goal generation phases.
+		Initial state termination: when the termination condition is sampled as True or the current state surpasses self._max_objects_init_state
+		or self._max_atoms_init_state.
+		Goal state termination: when the termination condition is sampled or N actions have been executed <--- <TODO>: we need to 
+		establish that limit as an additional parameter (max_possible_length_plan)
 	"""
 	def generate_problem(self, problem_name = None, verbose=False):
-		raise NotImplementedError()
-
+		# <Delete> -> Instead of using this value, use the termination condition of the NLM, self._max_objects_init_state and 
+		#             self._max_atoms_init_state to decide when to finish the initial state generation phase
+		num_actions_init_state = 30
+		
 		# <Initialize ProblemState instance>
+
 		# Note: as the policies have already been trained, we do not care about the rewards
 		problem = ProblemState(self._parser, self._predicates_to_consider_for_goal, self._initial_state_info,
 							   self._penalization_inconsistent_state, self._penalization_non_applicable_action, 
@@ -417,10 +446,48 @@ class DirectedGenerator():
 		if verbose:
 			print("> Starting initial state generation phase")
 
+		# Information about the NLM of the initial state policy
+		init_nlm_max_pred_arity = self._initial_state_policy.nlm.max_arity # This value corresponds to the breadth of the NLM
+		init_nlm_output_layer_shape = self._initial_state_policy.nlm.num_preds_layers[-1]
 
+		# < Add atoms to the initial state >
+		for _ in range(num_actions_init_state):
+			# < Use the policy to select an action >
+
+			# Information about the current state
+			curr_state = problem.initial_state
+			curr_state_tensors = curr_state.atoms_nlm_encoding(max_arity=init_nlm_max_pred_arity)
+			# The number of virtual objects is equal to the maximum predicate arity of the <state>, not the max_pred_arity (breadth) of the <nlm>!!
+			num_objs_with_virtuals = curr_state.num_objects + curr_state.max_predicate_arity 
+
+			# Mask tensors
+			mask_tensors = self._get_mask_tensors(init_nlm_output_layer_shape, curr_state)
+
+			# Obtain an action (index) with the policy
+			chosen_action_index = self._initial_state_policy.select_action(curr_state_tensors, num_objs_with_virtuals,
+											                               mask_tensors)
+
+			# <Transform the chosen action index into a proper action -> atom and objects to add>
+
+			# chosen_action_index[0] is the predicate arity and chosen_action_index[-1] is the predicate index
+			# The indexes in between correspond to the object indeces the action/pred is instantiated on (if arity >= 1)
+			chosen_action_name = curr_state.get_predicate_by_arity_and_ind(chosen_action_index[0], chosen_action_index[-1])[0] # [0] to get the name
+			chosen_action = [chosen_action_name, chosen_action_index[1:-1]] # To form the chosen action, we add the action name and obj indexes like ['on', [1, 0]]
+
+			# See if we add new objects as part of the chosen action
+			chosen_action, objs_to_add = self._get_objs_to_add_and_atom_with_correct_indexes(curr_state, chosen_action)
+
+			# Execute the action to obtain the reward and next state
+			_, r = problem.apply_action_to_initial_state(objs_to_add, chosen_action)
+
+			# <Quitar>
+			print("\n -------------------------")
+			print("Action:", chosen_action)
+			print("Objs to add:", objs_to_add)
+			print("Reward:", r)
 
 		# --- Goal generation ---
-
+		# <TODO>
 
 
 

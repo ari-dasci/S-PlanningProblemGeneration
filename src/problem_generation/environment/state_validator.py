@@ -7,65 +7,6 @@ from abc import ABC, abstractmethod
 
 from problem_generation.environment.relational_state import RelationalState
 
-"""
-OLD
-
-State validator for the random generator for the blocksworld domain.
-It checks whether the (totally generated) initial state is consistent or not and can also "repair" it, i.e.,
-modify it so that it becomes a valid state.
-Types: 'block'
-Predicates: 'on', 'ontable', 'clear', 'handempty', 'holding'
-"""
-class StateValidatorRandomBlocksworld():
-
-	validation_type = 'state'
-
-	"""
-	Returns whether the initial state @new_state is consistent or not.
-	Additionally, if @repair==True, it repairs @new_state (makes it consistent) and returns it.
-	If @verbose==True, prints why the state is not consistent (in case it is not).
-
-	@new_state Instance of RelationalState
-	@output 'bool' if @repair==False, else 'bool', RelationalState instance
-	"""
-	def is_state_consistent(self, new_state, is_final, repair=True, verbose=False):
-		
-		#[['on', [0, 1]], ['on', [1, 0]], ['on', [2, 1]], ['on', [0, 2]], ['on', [3, 2]], ['on', [4, 2]],
-		# ['on', [5, 2]], ['on', [6, 5]], ['on', [6, 4]]]
-		
-		
-		is_state_consistent = True
-		
-		num_objs = new_state.num_objects
-		state_atoms = new_state.atoms
-		on_atoms = list(filter(lambda a: a[0] == 'on', state_atoms)) # List of atoms of predicate "on"
-
-		# Encode the information about the "on" atoms as an adjacency matrix
-		# if matrix[a][b] == True, then on(a, b) exists in the state. If not, it doesn't.
-		on_matrix = np.zeros(shape=(num_objs,num_objs), dtype='bool') # Initialized to False
-
-		for a in on_atoms:
-			on_matrix[a[1][0], a[1][1]] = True
-
-		if repair:
-			repaired_state = new_state.copy()
-
-		# <No block X can be on top of two blocks A, B. If repair, block X stops being on top of A or B.>
-		# > Exists (on X A) and (on X B) -> delete (on X A) or (on X B)
-
-		# If a block is on top of two or more blocks, there will be more than one "True" in its matrix row
-		for ind_row in range(on_matrix.shape[0]):
-			if sum(on_matrix[ind_row,:]) > 1:
-				is_state_consistent = False
-
-				if repair:
-					inds_true = np.where(on_matrix[ind_row,:])[0] # See which objects X is on
-					# Only keep one of those objects (set the rest to False)
-					sel_ind = random.choice(inds_true)
-					on_matrix[ind_row,:] = False
-					on_matrix[ind_row,sel_ind] = True
-
-		# VER SI EN VEZ DE HACER ESTO ESTABLEZCO UN ORDEN ENTRE LOS PREDICADOS Y VALIDO A NIVEL DE ACCIÓN EN VEZ DE ESTADO
 
 """
 Abstract class from which the validators with predicate order must inherit.
@@ -353,3 +294,132 @@ class ValidatorPredOrderBW(ValidatorPredOrder):
 			return curr_state
 	"""
 
+
+"""
+Consistency validator for blocksworld to test the initial state generation policy works.
+"""
+class DummyValidatorBW(ValidatorPredOrder):
+
+	#It establishes the order in which the atoms must be added to the state. In this example,
+	#                 atoms of type "ontable" must be added before those of type "on"
+	predicate_order = ['ontable', 'on', 'clear', 'holding', 'handempty']
+	predicates_required = [True, False, True, False, False] # If True, we cannot skip the generation of the corresponding predicate, i.e.,
+															# that predicate MUST appear in the totally-generated initial_state
+															# Otherwise, it may not appear in the state.
+
+	"""
+	Returns a list with the predicate names which are required in a totally-generated initial state.
+	In blocksworld, ['ontable', 'clear']
+	"""
+	@classmethod
+	def required_pred_names(cls):
+		return list(filter(lambda p: p is not None, [cls.predicate_order[i] if cls.predicates_required[i] else None for i in range(len(cls.predicate_order))]))
+															
+	"""
+	Returns a list with the predicates (atom types) in the current generation phase, i.e., those that can be added
+	to the state in the next action. These predicates are those whose order is the same or higher as the highest-order
+	predicate currently in the state.
+	Example: if the highest order predicate in the current state is 'clear', the we can add predicates of type 'clear', 'holding' or 'handempty'
+
+	@curr_state Instance of RelationalState
+	"""
+	@classmethod
+	def predicates_in_current_phase(cls, curr_state):
+		pred_types_in_state = set([a[0] for a in curr_state.atoms]) # Get the predicate types which appear in the current state
+
+		# See the predicate type of highest order (predicate_order) in the current state
+		ind_highest_order_pred_in_state = -1 # If the state contains no atoms, then the predicate of highest order is predicate_order[0]
+	   
+
+		for ind, pred_order in list(enumerate(cls.predicate_order))[::-1]: # Iterate over the predicate order from highest to lowest
+
+			if pred_order in pred_types_in_state:
+				ind_highest_order_pred_in_state = ind
+				break
+
+		# According to the predicate of highest order in the state (and predicates_required), see what atom types can be added to 
+		# the state in the next action
+		# Examples:
+		# <higher order predicate> -> <preds in curr phase>
+		# no atoms -> ontable
+		# ontable -> ontable, on, clear
+		# on -> on, clear
+		# clear -> clear, holding, handempty
+		# holding -> holding, handempty
+		# handempty -> handempty
+
+		available_predicates = []
+
+		if ind_highest_order_pred_in_state == -1: # No atoms in the state
+
+			for i in range(len(cls.predicate_order)):
+				available_predicates.append(cls.predicate_order[i])
+
+				if cls.predicates_required[i]:
+					break
+
+		else:
+			available_predicates.append(cls.predicate_order[ind_highest_order_pred_in_state])
+
+			for i in range(ind_highest_order_pred_in_state+1, len(cls.predicate_order)):
+				available_predicates.append(cls.predicate_order[i])
+
+				if cls.predicates_required[i]:
+					break
+
+		return available_predicates
+
+
+	"""
+	Checks if the continuous consistency rules are met at the next_state, obtained by applying @action to @curr_state.
+	<Note1>: this method does NOT check that the atom (@action) to add has no repeated parameters and is not already present in the state.
+	<Note2>: this method assumes that curr_state meets all the continuous consistency rules.
+	<Note3>: this method assumes that new objects (those present in @action but not in @curr_state) will be added AFTER this method
+			 to the state @curr_state -> Don't call this method after having already added the new objects to the state!!!
+
+	@curr_state An instance of RelationalState
+	@action The next atom to add (e.g,. ['on' [1, 0]])
+	"""
+	@classmethod
+	def check_continuous_consistency_state_and_action(cls, curr_state, action):
+		action_pred = action[0]
+		state_atoms = curr_state.atoms
+		state_objs = list(range(curr_state.num_objects)) # Represent the objects as a list of indexes, instead of ['block', 'block'...]
+
+		if action_pred not in cls.predicate_order:
+			raise ValueError("The predicate type is not in the list of predicates of the validator")
+		
+		# <Check if the action corresponds to a predicate of the current phase>
+
+		"""
+		preds_curr_phase = cls.predicates_in_current_phase(curr_state)
+
+		if action_pred not in preds_curr_phase:
+			return False # The action produces an inconsistent state
+		"""
+
+		# Consistency rules -> always select an atom of type "ontable"
+
+		# <Check continuous consistency rules for predicate (ontable X)>
+		# The block X must be on the table -> it cannot appear in predicates 'on' or 'holding'
+		# HOWEVER, as those predicates are of higher order, they will be added later, so they can't appear at the current state
+		if action_pred == 'ontable':
+			return True
+
+		return False
+
+
+	"""
+	Checks if the eventual consistency rules are met at the current state, corresponding to a totally generated initial state.
+	<Note>: we also need to check for the continuous consistency rules which may have been skipped due to not adding a given predicate type
+	        to the state. For example, if we haven't added an atom of type (handempty) or (holding _) to the state, then we have never
+			checked the continuous consistency rule that says "every block X on top needs an atom of type (clear X)" -> This is why
+			we check them here.
+
+	@curr_state An instance of RelationalState
+	"""
+	@classmethod
+	def check_eventual_consistency_state(cls, curr_state):
+		# In this dummy validator, we assume no eventual consistency rules
+		
+		return True

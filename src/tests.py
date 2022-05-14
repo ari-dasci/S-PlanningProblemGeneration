@@ -332,6 +332,7 @@ def test_trajectory_directed_generator():
 	from problem_generation.controller.directed_generator import DirectedGenerator
 	from problem_generation.environment.pddl_parser import Parser
 	from problem_generation.environment.planner import Planner
+	from problem_generation.environment.state_validator import DummyValidatorBW
 	
 	# Note: in the final version, we will not call directed_generator directly, but will use the methods of the Controller class
 
@@ -341,7 +342,8 @@ def test_trajectory_directed_generator():
 	parser.parse_domain(domain_file_path)
 	planner = Planner(domain_file_path)
 
-	directed_generator = DirectedGenerator(parser, planner)
+	# Use Dummy Validator
+	directed_generator = DirectedGenerator(parser, planner, consistency_validator=DummyValidatorBW)
 
 	trajectory = directed_generator._obtain_trajectory()
 
@@ -355,11 +357,14 @@ def test_trajectory_directed_generator():
 
 """
 Tests the functionality of directed_generator.py used to train the generative policies.
+
+# <TODO>: also test the goal policy
 """
 def test_train_generative_policies():
 	from problem_generation.controller.directed_generator import DirectedGenerator
 	from problem_generation.environment.pddl_parser import Parser
 	from problem_generation.environment.planner import Planner
+	from problem_generation.environment.state_validator import DummyValidatorBW
 
 	domain_file_path = '../data/domains/blocks-domain.pddl'
 
@@ -367,9 +372,19 @@ def test_train_generative_policies():
 	parser.parse_domain(domain_file_path)
 	planner = Planner(domain_file_path)
 
-	directed_generator = DirectedGenerator(parser, planner)
+	# Use Dummy Validator
+	directed_generator = DirectedGenerator(parser, planner, consistency_validator=DummyValidatorBW)
 	
+	# Generate a problem before training the policy
+	print("---------- Problem before training the policy ---------- \n\n")
+	directed_generator.generate_problem()
+
+	# Train the policies
 	directed_generator.train_generative_policies()
+
+	# Generate the problem
+	print("---------- Problem after training the policy ---------- \n\n")
+	directed_generator.generate_problem()
 
 # ---------------------------------------------------
 
