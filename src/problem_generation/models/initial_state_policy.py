@@ -12,11 +12,16 @@ class InitialStatePolicy(pl.LightningModule):
 
 	"""
 	Constructor. Creates the NLM used for the initial state policy.
+
+	@lifted_action_entropy_coeff Coefficient for the lifted_action_entropy, used when calculating the REINFORCE loss
+	@ground_action_entropy_coeff Coefficient for the ground_action_entropy, used when calculating the REINFORCE loss
 	"""
-	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, lr=5e-2):
+	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, lr=5e-2, lifted_action_entropy_coeff=0.2, ground_action_entropy_coeff=0.2):
 		super().__init__()
 
 		self._lr = lr
+		self._lifted_action_entropy_coeff = lifted_action_entropy_coeff
+		self._ground_action_entropy_coeff = ground_action_entropy_coeff
 		self._nlm = NLM(num_preds_layers_nlm, mlp_hidden_sizes_nlm)
 
 
@@ -25,6 +30,14 @@ class InitialStatePolicy(pl.LightningModule):
 	@property
 	def lr(self):
 		return self._lr
+
+	@property
+	def lifted_action_entropy_coeff(self):
+		return self._lifted_action_entropy_coeff
+
+	@property
+	def ground_action_entropy_coeff(self):
+		return self._ground_action_entropy_coeff
 
 	@property
 	def nlm(self):
@@ -78,6 +91,34 @@ class InitialStatePolicy(pl.LightningModule):
 
 		# Append the nullary predicate corresponding to the termination condition
 		pred_tensors[0] = torch.cat([pred_tensors[0], term_cond_value.reshape(1)]) # We need reshape() to transform from tensor of dimension 0 to dimension 1
+
+
+	"""
+	Calculates the entropy associated with the policy. This entropy calculation considers the entropy of the probability distribution
+	<of each action separately> and then the lifted action probability distribution, i.e., the probability distribution of
+	picking action (ontable x), (on x y), (clear x), (holding x), (handempty).
+	It returns the entropy for the lifted actions and the grounded actions, separately.
+
+	<Note>: This function must be differentiable.
+
+	@pred_tensors The output of the NLM <after the masking>.
+	"""
+	def _policy_entropy(self, pred_tensors):
+		# Transform log_probs to probs
+		prob_tensors = [torch.exp(tensor) for tensor in pred_tensors if tensor is not None]
+		prob_tensors[0] = prob_tensors[0][:-1] # Ignore the nullary predicate corresponding to the termination condition
+    
+		# Calculate entropy of the lifted action distribution
+		lifted_action_probs = torch.cat([torch.sum(tensor).reshape(1) for tensor in prob_tensors], dim=0) # We ignore None tensors, as they correspond to non-existent actions
+		# If we do it manually, we obtain NaN due to the probs=0 (0*log(0) is NaN)
+		# lifted_action_entropy = -torch.mean(lifted_action_probs*torch.log(lifted_action_probs)) # Calculate the entropy (we use mean instead of sum to scale depending on the number of actions)
+		lifted_action_entropy = torch.distributions.Categorical(probs = lifted_action_probs).entropy() / lifted_action_probs.shape[0]
+
+		# Calculate entropy of the grounded action distribution (i.e., of prob_tensors)
+		probs_flattened = torch.cat([tensor.flatten() for tensor in prob_tensors]) # Put all the probabilities into a single flattened tensor
+		grounded_action_entropy = torch.distributions.Categorical(probs = probs_flattened).entropy() / probs_flattened.shape[0]
+
+		return lifted_action_entropy, grounded_action_entropy
 
 
 	""" 
@@ -184,21 +225,32 @@ class InitialStatePolicy(pl.LightningModule):
 	For each training sample in the batch, it predicts the NLM output (self._nlm.forward()), obtains the log_probability of the chosen_action and
 	uses it along with the discount sum of rewards to obtain a loss, which will be used to train the NLM with REINFORCE.
 
+	Note: we add an entropy bonus to the loss, in order to prefer policies with high entropy.
+
 	@train_batch Batch of training samples, where each one is a tuple (state_tensors, num_objs_with_virtuals, chosen_action_index, disc_reward_sum)
 	"""
 	def training_step(self, train_batch, batch_idx=0):
 		loss = 0
 
 		for train_sample in train_batch:
-			state_tensors, num_objs_with_virtuals, chosen_action_index, disc_reward_sum = train_sample
+			state_tensors, num_objs_with_virtuals, mask_tensors, chosen_action_index, disc_reward_sum = train_sample
 
 			# Obtain log probability of the selected action
-			action_log_probs = self.forward(state_tensors, num_objs_with_virtuals, mask_tensors=None)
+			action_log_probs = self.forward(state_tensors, num_objs_with_virtuals, mask_tensors)
 			chosen_action_log_prob = action_log_probs[chosen_action_index[0]][tuple(chosen_action_index[1:])]
 
 			# Obtain REINFORCE loss for current sample
 			# We use the sign "-" because the optimizer minimizes the loss (and we want to maximize it)
-			curr_loss = -chosen_action_log_prob*disc_reward_sum
+			reinforce_loss = -chosen_action_log_prob*disc_reward_sum
+			
+			# Obtain policy entropy loss for current sample
+			# We use the sign "-" because the optimizer minimizes the loss (and we want to maximize it)
+			lifted_action_entropy, grounded_action_entropy = self._policy_entropy(action_log_probs)
+			entropy_loss = -(lifted_action_entropy*self._lifted_action_entropy_coeff + \
+					grounded_action_entropy*self._ground_action_entropy_coeff)
+			
+			# curr_loss = reinforce_loss + entropy_loss # The entropy loss has already been scaled
+			curr_loss = reinforce_loss + entropy_loss
 
 			# Accumulate loss
 			loss += curr_loss

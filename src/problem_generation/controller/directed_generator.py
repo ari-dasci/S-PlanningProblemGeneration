@@ -276,7 +276,7 @@ class DirectedGenerator():
 	to train the generative policies.It starts from an empty state s0 = (_, _) and finishes at a state sn = (s_i, s_g).
 	This trajectory is returned as a list of tuples for training the NLM with REINFORCE.
 
-	Each training_sample in the trajectory is (state_tensors, num_objs_with_virtuals, chosen_action_index, r).
+	Each training_sample in the trajectory is (state_tensors, num_objs_with_virtuals, mask_tensors, chosen_action_index, r).
 	We need to call the method self._sum_rewards_trajectory(trajectory) in order to obtain the training samples
 	with the disc_reward_sum.
 
@@ -289,7 +289,7 @@ class DirectedGenerator():
 	def _obtain_trajectory(self):
 		# <Delete> -> Instead of using this value, use the termination condition of the NLM, self._max_objects_init_state and 
 		#             self._max_atoms_init_state to decide when to finish the initial state generation phase
-		num_actions_init_state = 10
+		num_actions_init_state = 20
 
 		# Information about the NLM of the initial state policy
 		init_nlm_max_pred_arity = self._initial_state_policy.nlm.max_arity # This value corresponds to the breadth of the NLM
@@ -333,7 +333,7 @@ class DirectedGenerator():
 			_, r = problem.apply_action_to_initial_state(objs_to_add, chosen_action)
 
 			# Append sample to the trajectory
-			trajectory.append( [curr_state_tensors, num_objs_with_virtuals,
+			trajectory.append( [curr_state_tensors, num_objs_with_virtuals, mask_tensors,
 					            chosen_action_index, r] ) # We need to append a list to the trajectory since the reward value is changed in-place (tuples are immutable)
 
 			# <Quitar>
@@ -353,19 +353,25 @@ class DirectedGenerator():
 	def _train_initial_state_generation_policy(self):
 
 		# Hyperparameters
-		epochs = 500
+		epochs = 2000
+		trajectories_per_epoch = 1
 		train_its_per_epoch = 1
 
 		# Initialize trainer
 		trainer = pl.Trainer(max_epochs=train_its_per_epoch)
 
 		for i in range(epochs):
-			# Obtain a trajectory and create a dataset containing it
-			trajectory = self._obtain_trajectory()
-			self._sum_rewards_trajectory(trajectory, disc_factor=0)
-			trajectory_dataset = ReinforceDataset(trajectory)
-			trajectory_dataloader = torch.utils.data.DataLoader(dataset=trajectory_dataset, batch_size=10, collate_fn=TransformReinforceDatasetSample(),
-													 shuffle=True)
+			# Obtain a trajectories and create a dataset containing them
+			trajectories = []
+
+			for _ in range(trajectories_per_epoch):
+				trajectory = self._obtain_trajectory()
+				trajectories.extend(trajectory) # Add the samples of the current trajectory
+
+			self._sum_rewards_trajectory(trajectories, disc_factor=0)
+			trajectory_dataset = ReinforceDataset(trajectories)
+			trajectory_dataloader = torch.utils.data.DataLoader(dataset=trajectory_dataset, batch_size=len(trajectories),
+																collate_fn=TransformReinforceDatasetSample(), shuffle=True)
 
 			# Use the trajectory to train the policy
 			trainer.fit(self._initial_state_policy, trajectory_dataloader)
@@ -467,6 +473,10 @@ class DirectedGenerator():
 			chosen_action_index = self._initial_state_policy.select_action(curr_state_tensors, num_objs_with_virtuals,
 											                               mask_tensors)
 
+			# <Quitar>
+			nlm_output = self._initial_state_policy(curr_state_tensors, num_objs_with_virtuals,
+											                               mask_tensors)
+
 			# <Transform the chosen action index into a proper action -> atom and objects to add>
 
 			# chosen_action_index[0] is the predicate arity and chosen_action_index[-1] is the predicate index
@@ -485,6 +495,7 @@ class DirectedGenerator():
 			print("Action:", chosen_action)
 			print("Objs to add:", objs_to_add)
 			print("Reward:", r)
+			#print("NLM output:", nlm_output)
 
 		# --- Goal generation ---
 		# <TODO>

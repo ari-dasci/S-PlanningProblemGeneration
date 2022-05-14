@@ -391,22 +391,16 @@ class DummyValidatorBW(ValidatorPredOrder):
 		
 		# <Check if the action corresponds to a predicate of the current phase>
 
-		"""
+		#return action_pred == "ontable" # Always pick ontable
+
+
 		preds_curr_phase = cls.predicates_in_current_phase(curr_state)
 
 		if action_pred not in preds_curr_phase:
 			return False # The action produces an inconsistent state
-		"""
 
-		# Consistency rules -> always select an atom of type "ontable"
+		return True
 
-		# <Check continuous consistency rules for predicate (ontable X)>
-		# The block X must be on the table -> it cannot appear in predicates 'on' or 'holding'
-		# HOWEVER, as those predicates are of higher order, they will be added later, so they can't appear at the current state
-		if action_pred == 'ontable':
-			return True
-
-		return False
 
 
 	"""
