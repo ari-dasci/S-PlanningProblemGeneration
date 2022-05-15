@@ -5,6 +5,7 @@ import random
 import numpy as np
 import torch
 import pytorch_lightning as pl
+from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 
 from problem_generation.environment.problem_state import ProblemState
 from problem_generation.environment.pddl_parser import Parser
@@ -14,7 +15,6 @@ from problem_generation.environment.relational_state import RelationalState
 from problem_generation.models.nlm import NLM
 from problem_generation.models.reinforce import ReinforceDataset
 from problem_generation.models.initial_state_policy import InitialStatePolicy
-
 from problem_generation.models.reinforce import TransformReinforceDatasetSample
 
 class DirectedGenerator():
@@ -353,12 +353,13 @@ class DirectedGenerator():
 	def _train_initial_state_generation_policy(self):
 
 		# Hyperparameters
-		epochs = 2000
+		epochs = 2000 # 2000
 		trajectories_per_epoch = 1
 		train_its_per_epoch = 1
 
 		# Initialize trainer
-		trainer = pl.Trainer(max_epochs=train_its_per_epoch)
+		logger = TensorBoardLogger("lightning_logs", name="initial_state_policy/consistency_only_pred_order")
+		trainer = pl.Trainer(max_epochs=train_its_per_epoch, logger=logger)
 
 		for i in range(epochs):
 			# Obtain a trajectories and create a dataset containing them
@@ -375,45 +376,6 @@ class DirectedGenerator():
 
 			# Use the trajectory to train the policy
 			trainer.fit(self._initial_state_policy, trajectory_dataloader)
-
-	
-
-	def _train_initial_state_generation_policy_OLD(self):
-		# >> Por ahora, solo intento que prediga una accion
-
-		# Get NLM output before training
-
-		nlm_max_pred_arity = self._initial_state_policy.nlm.max_arity
-		problem = ProblemState(self._parser, self._predicates_to_consider_for_goal, self._initial_state_info,
-				self._penalization_inconsistent_state, self._penalization_non_applicable_action, 
-				consistency_validator=self._consistency_validator)
-		curr_state = problem.initial_state
-		curr_state_tensors = curr_state.atoms_nlm_encoding(max_arity=nlm_max_pred_arity)
-		num_objs_with_virtuals = curr_state.num_objects + curr_state.max_predicate_arity 
-		mask_tensors = self._get_mask_tensors(self._initial_state_policy.nlm.num_preds_layers[-1], curr_state)
-
-
-		nlm_output = self._initial_state_policy(curr_state_tensors, num_objs_with_virtuals, mask_tensors)
-
-		print("NLM output before training:", nlm_output)
-		print("chosen_action - [0,0] - (holding)")
-
-		# Train NLM to predict holding -> index [0,0]
-
-		train_sample_1 = (curr_state_tensors, num_objs_with_virtuals, [0,0], 1) # chosen_action_index = [0,0], reward = 1
-
-		dataset = ReinforceDataset([train_sample_1])
-		dataloader = torch.utils.data.DataLoader(dataset=dataset, batch_size=2, collate_fn=TransformReinforceDatasetSample(),
-												 shuffle=True)
-
-		trainer = pl.Trainer(max_epochs=100)
-		trainer.fit(self._initial_state_policy, dataloader)
-
-		# Get NLM output after training
-
-		nlm_output_after_train = self._initial_state_policy(curr_state_tensors, num_objs_with_virtuals, mask_tensors)
-
-		print("\nNLM output after training:", nlm_output_after_train)
 
 
 	# <TODO>

@@ -373,7 +373,12 @@ def test_train_generative_policies():
 	planner = Planner(domain_file_path)
 
 	# Use Dummy Validator
-	directed_generator = DirectedGenerator(parser, planner, consistency_validator=DummyValidatorBW)
+	nlm_inner_layers = [[8,8,8,8], [8,8,8,8]]
+	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
+
+	directed_generator = DirectedGenerator(parser, planner, consistency_validator=DummyValidatorBW,
+										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
+										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp)
 	
 	# Generate a problem before training the policy
 	print("---------- Problem before training the policy ---------- \n\n")
@@ -385,6 +390,18 @@ def test_train_generative_policies():
 	# Generate the problem
 	print("---------- Problem after training the policy ---------- \n\n")
 	directed_generator.generate_problem()
+
+
+	"""
+	Resultados:
+
+	> Es mejor no usar entropy loss ahora mismo
+	> El loss debe ser negativo
+	> Sin entropy loss y con 2 capas intermedias, es capaz de aprender consistency=pred_order
+	      - Con tres capas intermedias también, pero el entrenamiento es más inestable y a veces no converge
+
+	"""
+
 
 # ---------------------------------------------------
 

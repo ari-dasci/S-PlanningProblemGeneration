@@ -391,16 +391,17 @@ class DummyValidatorBW(ValidatorPredOrder):
 		
 		# <Check if the action corresponds to a predicate of the current phase>
 
-		#return action_pred == "ontable" # Always pick ontable
+		# return action_pred == "ontable" # Always pick ontable
 
-
+		
 		preds_curr_phase = cls.predicates_in_current_phase(curr_state)
 
 		if action_pred not in preds_curr_phase:
 			return False # The action produces an inconsistent state
 
 		return True
-
+		
+		
 
 
 	"""

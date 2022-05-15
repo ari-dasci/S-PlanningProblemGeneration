@@ -16,13 +16,16 @@ class InitialStatePolicy(pl.LightningModule):
 	@lifted_action_entropy_coeff Coefficient for the lifted_action_entropy, used when calculating the REINFORCE loss
 	@ground_action_entropy_coeff Coefficient for the ground_action_entropy, used when calculating the REINFORCE loss
 	"""
-	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, lr=5e-2, lifted_action_entropy_coeff=0.2, ground_action_entropy_coeff=0.2):
+	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, lr=2e-2, lifted_action_entropy_coeff=0.2, ground_action_entropy_coeff=0.2):
 		super().__init__()
 
 		self._lr = lr
 		self._lifted_action_entropy_coeff = lifted_action_entropy_coeff
 		self._ground_action_entropy_coeff = ground_action_entropy_coeff
 		self._nlm = NLM(num_preds_layers_nlm, mlp_hidden_sizes_nlm)
+
+		self.curr_train_epoch = 0 # Used to track the current training epoch (i.e., trainer.fit() call), in order to save the logs correctly
+								  # It is incremented by one each time training_step() is called
 
 
 	# ------- Getters
@@ -231,6 +234,8 @@ class InitialStatePolicy(pl.LightningModule):
 	"""
 	def training_step(self, train_batch, batch_idx=0):
 		loss = 0
+		reinforce_loss = 0
+		entropy_loss = 0
 
 		for train_sample in train_batch:
 			state_tensors, num_objs_with_virtuals, mask_tensors, chosen_action_index, disc_reward_sum = train_sample
@@ -241,22 +246,36 @@ class InitialStatePolicy(pl.LightningModule):
 
 			# Obtain REINFORCE loss for current sample
 			# We use the sign "-" because the optimizer minimizes the loss (and we want to maximize it)
-			reinforce_loss = -chosen_action_log_prob*disc_reward_sum
+			curr_reinforce_loss = -chosen_action_log_prob*disc_reward_sum
 			
 			# Obtain policy entropy loss for current sample
 			# We use the sign "-" because the optimizer minimizes the loss (and we want to maximize it)
 			lifted_action_entropy, grounded_action_entropy = self._policy_entropy(action_log_probs)
-			entropy_loss = -(lifted_action_entropy*self._lifted_action_entropy_coeff + \
+			curr_entropy_loss = -(lifted_action_entropy*self._lifted_action_entropy_coeff + \
 					grounded_action_entropy*self._ground_action_entropy_coeff)
 			
 			# curr_loss = reinforce_loss + entropy_loss # The entropy loss has already been scaled
-			curr_loss = reinforce_loss + entropy_loss
+			curr_loss = curr_reinforce_loss # Do not use entropy loss
 
 			# Accumulate loss
 			loss += curr_loss
+			reinforce_loss += curr_reinforce_loss
+			entropy_loss += curr_entropy_loss
 
 		# Scale loss by number of samples
 		loss /= float(len(train_batch))
+		reinforce_loss /= float(len(train_batch))
+		entropy_loss /= float(len(train_batch))
+
+		# Logs
+		self.logger.experiment.add_scalar("Reinforce Loss", loss, self.curr_train_epoch)
+		# self.logger.experiment.add_scalar("Entropy Loss", loss, self.curr_train_epoch)
+		self.logger.experiment.add_scalar("Entropy Loss", 0, self.curr_train_epoch)
+		self.logger.experiment.add_scalar("Total Loss", loss, self.curr_train_epoch)
+		self.curr_train_epoch += 1
 
 		return loss
+
+		#dict = {'loss' : loss}
+		#return dict
 
