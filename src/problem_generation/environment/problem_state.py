@@ -25,22 +25,25 @@ class ProblemState:
 	@initial_state_info Information used to create the initial state of the generation process. If None, the initial state is empty (contains no objects or atoms).
                         If str (e.g., 'block'), the initial state contains a single object of such type. If an instance of
 						RelationalState, the initial state will be the state passed as parameter.
-	@penalization_inconsistent_state Penalization if the initial state generation policy selects an action that produces a non-consistent state 
-	                                 (according to the consistency validator)
+	@penalization_continuous_consistency Penalization if the initial state generation policy selects an action that produces a state 
+	                                     which does not meet the continous consistency rules.
+	@penalization_eventual_consistency Penalization if the initial state has been completely generated but it does not meet the eventual consistency
+	                                   rules.
 	@penalization_non_applicable_action Penalization if the goal generation policy selects a ground domain action not applicable at the current 
 	                                    state (i.e., the preconditions are not met)
 	@consistency_validator ValidatorPredOrder class that checks if a given initial state is consistent or not.
 	                       If None, we assume all the initial states are consistent (we do not check for consistency).
 	"""
-	def __init__(self, parser, predicates_to_consider_for_goal, initial_state_info=None, penalization_inconsistent_state=-1, 
-			     penalization_non_applicable_action=-1, consistency_validator=None):
+	def __init__(self, parser, predicates_to_consider_for_goal, initial_state_info=None, penalization_continuous_consistency=-1, 
+			     penalization_eventual_consistency=-1, penalization_non_applicable_action=-1, consistency_validator=None):
 		self._parser = parser
 
 		# Create planner instance to obtain next state after applying action at the current state
 		self._planner = Planner()
 
 		# Rewards
-		self._penalization_inconsistent_state = penalization_inconsistent_state  
+		self._penalization_continuous_consistency = penalization_continuous_consistency  
+		self._penalization_eventual_consistency = penalization_eventual_consistency
 		self._penalization_non_applicable_action = penalization_non_applicable_action
 
 		# Goal predicates (list of predicates names -> ['on', 'ontable'])
@@ -76,8 +79,12 @@ class ProblemState:
 		return self._predicates_to_consider_for_goal
 
 	@property
-	def penalization_inconsistent_state(self):
-		return self._penalization_inconsistent_state
+	def penalization_continuous_consistency(self):
+		return self._penalization_continuous_consistency
+
+	@property
+	def penalization_eventual_consistency(self):
+		return self._penalization_eventual_consistency
 
 	@property
 	def penalization_non_applicable_action(self):
@@ -482,15 +489,22 @@ class ProblemState:
 			return True
 
 	"""
-	Checks if the totally generated initial state (self._initial_state) is consistent or not.
-	This method only checks the eventual consistency rules, as the continuous consistency rules have been checked before adding each atom
-	to the state.
+	Checks if the initial state (self._initial_state) meets the eventual consistency rules and returns
+	the associated reward.
 	"""
-	def is_totally_generated_init_state_consistent(self):
+	def get_eventual_consistency_reward_of_init_state(self):
+		# Check if the eventual consistency rules are met
 		if self._consistency_validator is None:
-			return True
+			eventual_consistency_is_met = True
 		else:
-			return self.init_state_contains_all_required_predicates() and self._consistency_validator.check_eventual_consistency_state(self._initial_state)
+			eventual_consistency_is_met = (self.init_state_contains_all_required_predicates() and self._consistency_validator.check_eventual_consistency_state(self._initial_state))
+
+		# Return the associated reward
+		if eventual_consistency_is_met:
+			return 0
+		else:
+			return self._penalization_eventual_consistency
+
 
 	"""
 	Uses the consistency validator to repair the totally-generated initial state so that it meets the eventual consistency requirements.
@@ -576,7 +590,7 @@ class ProblemState:
 			next_state.add_atom(new_atom)
 			r = 0
 		else:
-			r = self._penalization_inconsistent_state
+			r = self._penalization_continuous_consistency
 
 		# Assign the next_state
 		self._initial_state = next_state # Warning: the next_state returned and the one stored in self._initial_state share the reference

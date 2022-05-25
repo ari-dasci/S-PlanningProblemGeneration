@@ -206,14 +206,18 @@ class RelationalState():
     
     """
     Returns the state atoms in the encoding the NLM uses, as a list of tensors corresponding to predicates of different arities.
-    We add n virtual objects where n is equal to the maximum arity of the NLM.
+    If @add_virtual_objs is True, we add n virtual objects where n is equal to the maximum arity of the NLM.
     Note: the NLM does not differentiate between objects of different type!
     
     @max_arity If not -1, we assume that is the max arity of the predicates. This parameter is used to encode the relational
                state for a NLM which uses a higher max arity (for the inner layers) than the max arity of the relational
                state.
+    @perc_actions_executed If not -1, we add an extra nullary predicate (in the last position) which contains a real number between
+                           0 and 1 (given by @perc_actions_executed), representing the percentage of actions which have been executed
+                           with respect to the maximum number of actions.
+                           Examples: if we have executed 6 actions and the max number of actions is 10, then perc_actions_executed=0.6
     """
-    def atoms_nlm_encoding(self, max_arity = -1):      
+    def atoms_nlm_encoding(self, max_arity = -1, add_virtual_objs = True, perc_actions_executed=-1):      
         num_objs = self.num_objects
         atoms_list = []
         
@@ -223,15 +227,25 @@ class RelationalState():
         # The number of virtual objects to add is equal to the maximum arity of the state, not of the NLM!!!
         # Example: if the NLM has a breadth of 3 but the max_pred_arity of the state is 2 (for the predicate 'on', for example)
         # we add 2 virtual objects and not 3!!!
-        num_objs += self.max_predicate_arity
+        if add_virtual_objs:
+            num_objs += self.max_predicate_arity
         
         with torch.no_grad():
+            num_preds_each_arity = self._num_preds_each_arity.copy()
+
+            # Add one extra nullary predicate to encode the percentage of actions executed
+            if perc_actions_executed != -1:
+                if 0 not in num_preds_each_arity:
+                    num_preds_each_arity[0] = 1
+                else:
+                    num_preds_each_arity[0] = num_preds_each_arity[0]+1
+
             # Initialize tensors full of zeros
             for r in range(max_predicate_arity+1):
-                if r not in self._num_preds_each_arity or self._num_preds_each_arity[r] == 0: # No predicates for current arity
+                if r not in num_preds_each_arity or num_preds_each_arity[r] == 0: # No predicates for current arity
                     atoms_list.append(None)
                 else:
-                    curr_tensor_shape = [num_objs]*r + [self._num_preds_each_arity[r]]
+                    curr_tensor_shape = [num_objs]*r + [num_preds_each_arity[r]]
 
                     atoms_list.append(torch.zeros(curr_tensor_shape, dtype=torch.float32)) # Change to float16 to increase efficiency
                     
@@ -247,7 +261,11 @@ class RelationalState():
                     ind = tuple(atom_objs) + (pred_ind,) # Note: 'tuple' and 'list' work differently when using them to index np arrays or torch tensors!
 
                     atoms_list[pred_arity][ind] = 1.0
-                
+              
+            # Add the percentage of actions executed as the last nullary predicate 
+            if perc_actions_executed != -1:
+                atoms_list[0][-1] = perc_actions_executed
+
         return atoms_list    
         
     # Setters

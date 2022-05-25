@@ -349,9 +349,9 @@ def test_trajectory_directed_generator():
 
 	print(">> First element of the trajectory:", trajectory[0])
 
-	print(">> Trajectory actions and immediate rewards:", [ (x[-2], x[-1]) for x in trajectory])
+	print(">> Trajectory actions and immediate rewards:", [ (x[-3], x[-2], x[-1]) for x in trajectory])
 
-	directed_generator._sum_rewards_trajectory(trajectory, disc_factor=0.9)
+	directed_generator._sum_rewards_trajectory(trajectory)
 
 	print(">> Trajectory discounted sum of rewards:", [x[-1] for x in trajectory])
 
@@ -415,5 +415,5 @@ if __name__ == "__main__":
 	#test_planner()
 	#test_generate_random_problems()
 
-	#test_trajectory_directed_generator() 
-	test_train_generative_policies()
+	test_trajectory_directed_generator() 
+	#test_train_generative_policies()

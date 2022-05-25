@@ -15,6 +15,9 @@ class InitialStatePolicy(pl.LightningModule):
 
 	@lifted_action_entropy_coeff Coefficient for the lifted_action_entropy, used when calculating the REINFORCE loss
 	@ground_action_entropy_coeff Coefficient for the ground_action_entropy, used when calculating the REINFORCE loss
+	
+	Note: @num_preds_layers_nlm needs to include the extra nullary predicates for the termination condition (in the output layer)
+	      and the number of atoms already added to the initial state (in the input layer), in case these are needed.
 	"""
 	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, lr=2e-2, lifted_action_entropy_coeff=0.2, ground_action_entropy_coeff=0.2):
 		super().__init__()
@@ -64,7 +67,6 @@ class InitialStatePolicy(pl.LightningModule):
 	"""
 	Applies log_softmax to the tensors @pred_tensors. Applied to the output of the NLM in order to obtain
 	a list of tensors corresponding to probabilities.
-	We ignore the tensor value corresponding to the termination condition.
 
 	The log_softmax of the nlm output is used to obtain a log_probability (since softmax corresponds to probabilities, log_softmax is for log_probabilities)
 	for every atom/action. This value is used for REINFORCE (which calculates the gradient of the log_probability of the action selected).
@@ -74,11 +76,6 @@ class InitialStatePolicy(pl.LightningModule):
 		  to calculate this function quickly and in a stable manner.
 	"""
 	def _log_softmax(self, pred_tensors):
-		# Remove the nullary predicate associated with the termination condition, so that it does not
-		# affect the log_softmax computation
-		term_cond_value = pred_tensors[0][-1]
-		pred_tensors[0] = pred_tensors[0][:-1]
-
 		# Calculate log_sum_exp of all the values in the tensors of the list
 		# 1) flatten each tensor in the list
 		# 2) concatenate them as a unique tensor
@@ -91,9 +88,6 @@ class InitialStatePolicy(pl.LightningModule):
 			if pred_tensors[r] is not None:
 				# pred_tensors[r] -= log_sum_exp <-- This operation modifies the tensor inplaces and breaks autograd!
 				pred_tensors[r] = pred_tensors[r] - log_sum_exp
-
-		# Append the nullary predicate corresponding to the termination condition
-		pred_tensors[0] = torch.cat([pred_tensors[0], term_cond_value.reshape(1)]) # We need reshape() to transform from tensor of dimension 0 to dimension 1
 
 
 	"""
@@ -125,7 +119,7 @@ class InitialStatePolicy(pl.LightningModule):
 
 
 	""" 
-	Function to sample the output of the NLM. It never samples the "action" corresponding to the termination condition.
+	Function to sample the output of the NLM. It CAN sample the "action" corresponding to the termination condition.
 	It receives a list of tensors @pred_tensors corresponding to probabilities/weights and outputs the index of an element
 	of pred_tensors, according to the probability. The index is represented as a list [arity, o1, o2, ..., on, pred_number]
 
@@ -135,10 +129,6 @@ class InitialStatePolicy(pl.LightningModule):
 		# <Convert from torch to numpy>
 		# Use torch.exp to transform from log_softmax to softmax (i.e., from log_probs to probs)
 		pred_tensors_np = [np.exp(x.detach().numpy()) if x is not None else None for x in pred_tensors]
-	
-		# Set nullary predicate corresponding to termination condition to 0, so that it is never sampled
-		# (it does not correspond to an action)
-		pred_tensors_np[0][-1] = 0
 		
 		# QUITAR
 		# print("Tensor probs before sampling:", pred_tensors_np)
@@ -275,7 +265,3 @@ class InitialStatePolicy(pl.LightningModule):
 		self.curr_train_epoch += 1
 
 		return loss
-
-		#dict = {'loss' : loss}
-		#return dict
-

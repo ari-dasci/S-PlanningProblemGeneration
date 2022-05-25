@@ -345,8 +345,9 @@ class NLM(nn.Module):
         self._mlp_hidden_size_layers = mlp_hidden_size_layers
         self._lr = lr
         
-        # Add one nullary predicate to the last layer, representing the termination condition
-        num_preds_layers[-1][0] += 1
+        # Don't -> Add one nullary predicate to the last layer, representing the termination condition
+        # The extra predicates now must be included in the parameter @num_preds_layers
+        # num_preds_layers[-1][0] += 1
         
         # Create each NLM layer and add it to a module list
         self.layers = nn.ModuleList([_NLM_Layer(num_preds_layers[i], num_preds_layers[i+1], mlp_hidden_size_layers[i],
@@ -363,7 +364,6 @@ class NLM(nn.Module):
     def max_arity(self): # We assume that if num_preds_layers.shape[1] == n, then n-1 is the max arity (-1 comes from the fact that we start counting at the nullary predicates)
         return self._num_preds_layers.shape[1]-1
     
-    # This function takes into account the extra nullary predicate added to represent the termination condition
     @property
     def num_preds_layers(self):
         return self._num_preds_layers
@@ -394,6 +394,7 @@ class NLM(nn.Module):
             curr_tensors_list = self.layers[i](curr_tensors_list, num_objs)
 
         # Apply softmax to the nullary predicate of the termination condition
-        curr_tensors_list[0][-1].sigmoid_() # Apply sigmoid in-place
+        # > No need to do this now
+        # curr_tensors_list[0][-1].sigmoid_() # Apply sigmoid in-place
         
         return curr_tensors_list
