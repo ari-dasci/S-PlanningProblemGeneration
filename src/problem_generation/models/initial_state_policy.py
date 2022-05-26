@@ -129,9 +129,6 @@ class InitialStatePolicy(pl.LightningModule):
 		# <Convert from torch to numpy>
 		# Use torch.exp to transform from log_softmax to softmax (i.e., from log_probs to probs)
 		pred_tensors_np = [np.exp(x.detach().numpy()) if x is not None else None for x in pred_tensors]
-		
-		# QUITAR
-		# print("Tensor probs before sampling:", pred_tensors_np)
 
 		# <Decide which arity to sample>
 	

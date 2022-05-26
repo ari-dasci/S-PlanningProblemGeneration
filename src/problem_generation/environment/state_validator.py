@@ -393,15 +393,17 @@ class DummyValidatorBW(ValidatorPredOrder):
 
 		# return action_pred == "ontable" # Always pick ontable
 
-		
+		"""
 		preds_curr_phase = cls.predicates_in_current_phase(curr_state)
 
 		if action_pred not in preds_curr_phase:
 			return False # The action produces an inconsistent state
 
 		return True
+		"""
 		
-		
+		return True
+
 
 
 	"""
@@ -416,5 +418,6 @@ class DummyValidatorBW(ValidatorPredOrder):
 	@classmethod
 	def check_eventual_consistency_state(cls, curr_state):
 		# In this dummy validator, we assume no eventual consistency rules
+		# (apart from having all the required predicates in the completely-generated initial state)
 		
 		return True

@@ -2,6 +2,7 @@
 # It also contains the functionality used to train the generative policies.
 
 import random
+import sys
 import numpy as np
 import torch
 import pytorch_lightning as pl
@@ -336,7 +337,7 @@ class DirectedGenerator():
 
 			# Obtain an action (index) with the policy
 			chosen_action_index = self._initial_state_policy.select_action(curr_state_tensors, num_objs_with_virtuals,
-											                               mask_tensors)
+																			mask_tensors)
 
 			# <Process the action>
 
@@ -344,7 +345,7 @@ class DirectedGenerator():
 			# chosen_action_index[0] == 0 -> predicate of arity 0
 			# chosen_action_index[-1] == init_nlm_output_layer_shape[0]-1 -> the last predicate of arity 0 (which corresponds to the termination condition)
 			termination_condition = (chosen_action_index[0] == 0 and chosen_action_index[-1] == init_nlm_output_layer_shape[0]-1)
-			
+
 			if termination_condition:
 				initial_state_generated = True
 
@@ -360,13 +361,14 @@ class DirectedGenerator():
 				chosen_action_name = curr_state.get_predicate_by_arity_and_ind(chosen_action_index[0], chosen_action_index[-1])[0] # [0] to get the name
 				chosen_action = [chosen_action_name, chosen_action_index[1:-1]] # To form the chosen action, we add the action name and obj indexes like ['on', [1, 0]]
 				# See if we add new objects as part of the chosen action
-				chosen_action, objs_to_add = self._get_objs_to_add_and_atom_with_correct_indexes(curr_state, chosen_action)
-			
+				chosen_action, objs_to_add = self._get_objs_to_add_and_atom_with_correct_indexes(curr_state, chosen_action)		
+
 				# Execute the action to obtain the reward (associated with the continous consistency rules) and next state
 				_, r_continuous_consistency = problem.apply_action_to_initial_state(objs_to_add, chosen_action)
 
 				# Check if we have reached the maximum number of atoms allowed in the initial state
 				# If so, stop generating the initial state and check if the eventual consistency rules are met
+		
 				if problem.initial_state.num_atoms >= max_atoms_init_state:
 					initial_state_generated = True
 
@@ -378,7 +380,6 @@ class DirectedGenerator():
 			# Append sample to the trajectory
 			trajectory.append( [curr_state_tensors, num_objs_with_virtuals, mask_tensors,
 					            chosen_action_index, r_continuous_consistency, r_eventual_consistency] ) # We need to append a list to the trajectory since the reward value is changed in-place (tuples are immutable)
-
 
 			# <Quitar>
 			# print("\n--------------------")
@@ -416,7 +417,7 @@ class DirectedGenerator():
 				trajectories.extend(trajectory) # Add the samples of the current trajectory
 
 			trajectory_dataset = ReinforceDataset(trajectories)
-			trajectory_dataloader = torch.utils.data.DataLoader(dataset=trajectory_dataset, batch_size=len(trajectories),
+			trajectory_dataloader = torch.utils.data.DataLoader(dataset=trajectory_dataset, batch_size=10,
 																collate_fn=TransformReinforceDatasetSample(), shuffle=True)
 
 			# Use the trajectory to train the policy
@@ -432,9 +433,12 @@ class DirectedGenerator():
 	def train_generative_policies(self): # Add more parameters
 		self._train_initial_state_generation_policy()
 
+
 	"""
 	This method generates a single problem by using the generative policies. We assume the policies have already been trained by calling the method
 	self.train_generative_policies().
+
+	<TODO>: See what to do when the policies select an invalid action (e.g.: sample a new action).
 
 	<TODO>: implement termination of initial state and goal generation phases.
 		Initial state termination: when the termination condition is sampled as True or the current state surpasses self._max_objects_init_state
@@ -442,38 +446,28 @@ class DirectedGenerator():
 		Goal state termination: when the termination condition is sampled or N actions have been executed <--- <TODO>: we need to 
 		establish that limit as an additional parameter (max_possible_length_plan)
 	"""
-	# <TODO> -> This method has not been implemented yet
-	def generate_problem(self, problem_name = None, verbose=False):
-
-		# <TODO>
-		# Adapt new _obtain_trajectory() method to this method
-
-		num_actions_init_state = 30 # See if the num_actions (atoms) in the init state is given as a number or as an interval as a parameter to this method!
-
-		
-		# <Initialize ProblemState instance>
-
-		# Note: as the policies have already been trained, we do not care about the rewards
-		problem = ProblemState(self._parser, self._predicates_to_consider_for_goal, self._initial_state_info,
-				self._penalization_continuous_consistency, self._penalization_eventual_consistency,
-				self._penalization_non_applicable_action, consistency_validator=self._consistency_validator)
-
-		# --- Initial state generation ---
-
-		if verbose:
-			print("> Starting initial state generation phase")
+	def generate_problem(self, max_atoms_init_state=10, max_actions_goal_state=10, problem_name = None, verbose=False):
 
 		# Information about the NLM of the initial state policy
 		init_nlm_max_pred_arity = self._initial_state_policy.nlm.max_arity # This value corresponds to the breadth of the NLM
 		init_nlm_output_layer_shape = self._initial_state_policy.nlm.num_preds_layers[-1]
 
-		# < Add atoms to the initial state >
-		for _ in range(num_actions_init_state):
+		# < Generate state s0 >
+		problem = ProblemState(self._parser, self._predicates_to_consider_for_goal, self._initial_state_info,
+						self._penalization_continuous_consistency, self._penalization_eventual_consistency,
+					    self._penalization_non_applicable_action, consistency_validator=self._consistency_validator)
+
+		# < Generate initial state >
+		initial_state_generated = False
+
+		while not initial_state_generated:
 			# < Use the policy to select an action >
 
 			# Information about the current state
 			curr_state = problem.initial_state
-			curr_state_tensors = curr_state.atoms_nlm_encoding(max_arity=init_nlm_max_pred_arity)
+			perc_actions_executed = curr_state.num_atoms / max_atoms_init_state # Obtain percentage of actions executed/atoms added (with respect to the max number of actions/atoms)
+			curr_state_tensors = curr_state.atoms_nlm_encoding(max_arity=init_nlm_max_pred_arity, perc_actions_executed=perc_actions_executed)
+
 			# The number of virtual objects is equal to the maximum predicate arity of the <state>, not the max_pred_arity (breadth) of the <nlm>!!
 			num_objs_with_virtuals = curr_state.num_objects + curr_state.max_predicate_arity 
 
@@ -482,31 +476,54 @@ class DirectedGenerator():
 
 			# Obtain an action (index) with the policy
 			chosen_action_index = self._initial_state_policy.select_action(curr_state_tensors, num_objs_with_virtuals,
-											                               mask_tensors)
+																			mask_tensors)
 
-			# <Quitar>
-			nlm_output = self._initial_state_policy(curr_state_tensors, num_objs_with_virtuals,
-											                               mask_tensors)
+			# <Process the action>
 
-			# <Transform the chosen action index into a proper action -> atom and objects to add>
+			# Check if the chosen action corresponds to the termination condition
+			# chosen_action_index[0] == 0 -> predicate of arity 0
+			# chosen_action_index[-1] == init_nlm_output_layer_shape[0]-1 -> the last predicate of arity 0 (which corresponds to the termination condition)
+			termination_condition = (chosen_action_index[0] == 0 and chosen_action_index[-1] == init_nlm_output_layer_shape[0]-1)
 
-			# chosen_action_index[0] is the predicate arity and chosen_action_index[-1] is the predicate index
-			# The indexes in between correspond to the object indeces the action/pred is instantiated on (if arity >= 1)
-			chosen_action_name = curr_state.get_predicate_by_arity_and_ind(chosen_action_index[0], chosen_action_index[-1])[0] # [0] to get the name
-			chosen_action = [chosen_action_name, chosen_action_index[1:-1]] # To form the chosen action, we add the action name and obj indexes like ['on', [1, 0]]
+			if termination_condition:
+				initial_state_generated = True
 
-			# See if we add new objects as part of the chosen action
-			chosen_action, objs_to_add = self._get_objs_to_add_and_atom_with_correct_indexes(curr_state, chosen_action)
+				r_continuous_consistency = 0
+				r_eventual_consistency = problem.get_eventual_consistency_reward_of_init_state()
 
-			# Execute the action to obtain the reward and next state
-			_, r = problem.apply_action_to_initial_state(objs_to_add, chosen_action)
+			# If the selected action is not the termination condition, execute it (add the atom and objects to the initial state)
+			else:		
+				
+				# < Transform the chosen action index into a proper action -> atom and objects to add >
+				# chosen_action_index[0] is the predicate arity and chosen_action_index[-1] is the predicate index
+				# The indexes in between correspond to the object indeces the action/pred is instantiated on (if arity >= 1)
+				chosen_action_name = curr_state.get_predicate_by_arity_and_ind(chosen_action_index[0], chosen_action_index[-1])[0] # [0] to get the name
+				chosen_action = [chosen_action_name, chosen_action_index[1:-1]] # To form the chosen action, we add the action name and obj indexes like ['on', [1, 0]]
+				# See if we add new objects as part of the chosen action
+				chosen_action, objs_to_add = self._get_objs_to_add_and_atom_with_correct_indexes(curr_state, chosen_action)		
+
+				# Execute the action to obtain the reward (associated with the continous consistency rules) and next state
+				_, r_continuous_consistency = problem.apply_action_to_initial_state(objs_to_add, chosen_action)
+
+				# Check if we have reached the maximum number of atoms allowed in the initial state
+				# If so, stop generating the initial state and check if the eventual consistency rules are met
+				if problem.initial_state.num_atoms >= max_atoms_init_state:
+					initial_state_generated = True
+
+					r_eventual_consistency = problem.get_eventual_consistency_reward_of_init_state()
+				else:
+					r_eventual_consistency = 0
+
 
 			# <Quitar>
 			print("\n -------------------------")
 			print("Action:", chosen_action)
 			print("Objs to add:", objs_to_add)
-			print("Reward:", r)
+			print("Continuous consistency reward:", r_continuous_consistency)
+			print("Eventual consistency reward:", r_eventual_consistency)
 			#print("NLM output:", nlm_output)
+
+
 
 		# --- Goal generation ---
 		# <TODO>

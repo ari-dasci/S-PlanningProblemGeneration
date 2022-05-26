@@ -355,6 +355,7 @@ def test_trajectory_directed_generator():
 
 	print(">> Trajectory discounted sum of rewards:", [x[-1] for x in trajectory])
 
+
 """
 Tests the functionality of directed_generator.py used to train the generative policies.
 
@@ -393,13 +394,21 @@ def test_train_generative_policies():
 
 
 	"""
-	Resultados:
+	Resultados (con la initial state policy antigua):
 
 	> Es mejor no usar entropy loss ahora mismo
 	> El loss debe ser negativo
 	> Sin entropy loss y con 2 capas intermedias, es capaz de aprender consistency=pred_order
 	      - Con tres capas intermedias también, pero el entrenamiento es más inestable y a veces no converge
+	"""
 
+	"""
+	Resultados (con la initial state policy nueva):
+
+	> Cont. consist: nada (solo evitar átomos repetidos y átomos con params. repetidos) - 
+	  Eventual consist: nada (solo que el estado inicial contenga todos los predicados necesarios)
+
+	> 
 	"""
 
 
@@ -415,5 +424,5 @@ if __name__ == "__main__":
 	#test_planner()
 	#test_generate_random_problems()
 
-	test_trajectory_directed_generator() 
-	#test_train_generative_policies()
+	#test_trajectory_directed_generator() 
+	test_train_generative_policies()
