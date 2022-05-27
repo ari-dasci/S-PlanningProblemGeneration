@@ -375,7 +375,8 @@ def test_train_generative_policies():
 
 	# Use Dummy Validator
 	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8]]
-	nlm_inner_layers = [[4,4,4,4]]
+	# nlm_inner_layers = [[4,4,4,4]]
+	nlm_inner_layers = [[8,8,8,8], [8,8,8,8]]
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
 
 	directed_generator = DirectedGenerator(parser, planner, consistency_validator=DummyValidatorBW,
@@ -415,9 +416,29 @@ def test_train_generative_policies():
 
 	> Cont. consist: nada - (solo evitar átomos repetidos)
 	  Eventual consist: ejecutar termination condition con num_preds entre 1 y 9
-	  NO FUNCIONA:
-		> Probar a añadir perc_actions_executed a los MLPs de cada capa
+	  Funciona sin capas intermedias o una única capa intermedia de la NLM (y lr=5e-3)
 
+	  PARECE QUE SI NO USO NINGUNA CAPA INTERMEDIA DE LA NLM ENTONCES SÍ FUNCIONA!!!
+	  (en ese caso, son las operaciones internas de la NLM las que hacen que se "pierda" la información
+	  del perc_actions_executed (quizás al ser un valor real en vez de binario))
+
+	  2, 2 (con una capa intermedia) -> 1/3
+	  1.5, 1.5 (con una capa intermedia) -> 4/5
+	  1, 1 (con una capa intermedia) -> 3/5
+	  1, 1 (sin capas intermedias) -> 5/5, -> FUNCIONA MEJOR QUE CUANDO USO 1 CAPA INTERMEDIA!!
+	  1, 1 (dos capas intermedias) -> 0/3 -> FUNCIONA MUCHO PEOR QUE CON SOLO UNA CAPA INTERMEDIA!!
+	  1, 1 (dos capas intermedias) -> 2/3, 0 usando 10000 training epochs
+
+	  Con 2 capas intermedias y 8 predicados para cada ariedad a veces la probabilidad de la term. condition va a 0 (esto no debería pasar)
+	  Además, necesita una mayor entropy regularization para la política y más iteraciones.
+
+	  >> Cuanto más capas añado a la NLM, más dificultad tiene para "recordar" el perc_actions_exec que se le da como input
+	     a la primera capa
+
+	  >> PROBAR A USAR RELU EN VEZ DE SIGMOID PARA LA NLM!!
+
+	  >> DEBO PROBAR A AÑADIR EL perc_actions_exec A LAS MLP DE LA NLM COMO UN INPUT MÁS, A VER SI ASÍ
+	     LA NLM ES CAPAZ DE APRENDER MEJOR
 
 	"""
 

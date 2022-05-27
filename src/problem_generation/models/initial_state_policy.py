@@ -19,7 +19,7 @@ class InitialStatePolicy(pl.LightningModule):
 	Note: @num_preds_layers_nlm needs to include the extra nullary predicates for the termination condition (in the output layer)
 	      and the number of atoms already added to the initial state (in the input layer), in case these are needed.
 	"""
-	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, lr=5e-3, lifted_action_entropy_coeff=3, ground_action_entropy_coeff=2):
+	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, lr=5e-3, lifted_action_entropy_coeff=3, ground_action_entropy_coeff=3):
 		super().__init__()
 
 		self._lr = lr
@@ -226,7 +226,6 @@ class InitialStatePolicy(pl.LightningModule):
 		reinforce_loss = 0
 		entropy_loss = 0
 
-		# Quitar
 		mean_term_cond_prob = 0 # Mean probability of the termination condition across the batch
 
 		for train_sample in train_batch:
@@ -235,7 +234,13 @@ class InitialStatePolicy(pl.LightningModule):
 			# Obtain log probability of the selected action
 			action_log_probs = self.forward(state_tensors, num_objs_with_virtuals, mask_tensors)
 
-			# Quitar
+			# If any log prob is NaN, make it -infinity
+			for r in range(len(action_log_probs)):
+				if action_log_probs[r] is not None:
+					action_log_probs[r] = torch.where(torch.isnan(action_log_probs[r]),
+									      torch.tensor([-float("inf")], dtype=torch.float32), action_log_probs[r])
+
+			# Calculate probability of termination condition
 			with torch.no_grad():
 				term_cond_prob = action_log_probs[0][-1].clone()
 				term_cond_prob = np.exp(term_cond_prob.numpy())
@@ -266,7 +271,6 @@ class InitialStatePolicy(pl.LightningModule):
 		reinforce_loss /= len(train_batch)
 		entropy_loss /= len(train_batch)
 
-		# Quitar
 		mean_term_cond_prob /= len(train_batch)
 
 		# Logs
@@ -275,7 +279,6 @@ class InitialStatePolicy(pl.LightningModule):
 		# self.logger.experiment.add_scalar("Entropy Loss", 0, self.curr_train_epoch)
 		self.logger.experiment.add_scalar("Total Loss", loss, self.curr_train_epoch)
 
-		# Quitar
 		self.logger.experiment.add_scalar("Termination Condition Probability", mean_term_cond_prob, self.curr_train_epoch)
 
 		self.curr_train_epoch += 1

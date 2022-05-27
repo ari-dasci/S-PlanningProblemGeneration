@@ -413,7 +413,7 @@ class DirectedGenerator():
 	def _train_initial_state_generation_policy(self):
 
 		# Hyperparameters
-		epochs = 2000 # 2000
+		epochs = 10000 # 2000
 		trajectories_per_epoch = 1
 		train_its_per_epoch = 1
 
