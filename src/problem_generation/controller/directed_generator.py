@@ -300,12 +300,20 @@ class DirectedGenerator():
 	We need to call the method self._sum_rewards_trajectory(trajectory) in order to obtain the training samples
 	with the disc_reward_sum.
 
+	@max_atoms_init_state The maximum number of atoms the initial state can have. If we reach this number and the termination condition hasn't
+	                      been executed, we end the initial state generation phase and check the eventual consistency rules.
+	@max_atoms_goal_state The maximum number of actions that can be executed in the goal generation phase. <TODO>: what to do if we reach
+	                      this number and have not generated a full trajectory.
+	@max_actions_trajectory The maximum number of actions (invalid or not) that can be executed/tried in the current trajectory. 
+	                        If we reach this number of actions and the initial state hasn't been generated, we check the eventual consistency
+							rules and apply the penalization (if needed).
+
 	<TODO>: implement goal generation phase (and termination of goal generation phase).
 	        >> See what to do if we have finished generating the initial state but the eventual consistency rules are not met
 			   Should we continue with the generation of the goal state in that case or not?
                Option 1: do not generate the goal state and assume that the associated problem difficulty is 0 (since there is no problem to be solved)
 	"""
-	def _obtain_trajectory(self, max_atoms_init_state=10, max_actions_goal_state=10):
+	def _obtain_trajectory(self, max_atoms_init_state=10, max_actions_goal_state=10, max_actions_trajectory=15):
 
 		# Information about the NLM of the initial state policy
 		init_nlm_max_pred_arity = self._initial_state_policy.nlm.max_arity # This value corresponds to the breadth of the NLM
@@ -320,6 +328,8 @@ class DirectedGenerator():
 
 		# < Generate initial state >
 		initial_state_generated = False
+
+		actions_executed = 0 # Number of actions executed (including invalid actions that didn't change the state!)
 
 		while not initial_state_generated:
 			# < Use the policy to select an action >
@@ -352,6 +362,13 @@ class DirectedGenerator():
 				r_continuous_consistency = 0
 				r_eventual_consistency = problem.get_eventual_consistency_reward_of_init_state()
 
+
+				# Quitar
+				if r_eventual_consistency == 0:
+					print("\n---------------------\n TERMINATION CONDITION WITH NUM ATOMS IN [1,9] \n---------------------\n")
+
+
+
 			# If the selected action is not the termination condition, execute it (add the atom and objects to the initial state)
 			else:		
 				
@@ -365,11 +382,13 @@ class DirectedGenerator():
 
 				# Execute the action to obtain the reward (associated with the continous consistency rules) and next state
 				_, r_continuous_consistency = problem.apply_action_to_initial_state(objs_to_add, chosen_action)
+				actions_executed += 1
 
-				# Check if we have reached the maximum number of atoms allowed in the initial state
+				# Check if we have reached the maximum number of atoms allowed in the initial state (or the maximum number of actions
+				# in the trajectory)
 				# If so, stop generating the initial state and check if the eventual consistency rules are met
 		
-				if problem.initial_state.num_atoms >= max_atoms_init_state:
+				if problem.initial_state.num_atoms >= max_atoms_init_state or actions_executed >= max_actions_trajectory:
 					initial_state_generated = True
 
 					r_eventual_consistency = problem.get_eventual_consistency_reward_of_init_state()
@@ -381,13 +400,9 @@ class DirectedGenerator():
 			trajectory.append( [curr_state_tensors, num_objs_with_virtuals, mask_tensors,
 					            chosen_action_index, r_continuous_consistency, r_eventual_consistency] ) # We need to append a list to the trajectory since the reward value is changed in-place (tuples are immutable)
 
-			# <Quitar>
-			# print("\n--------------------")
-			# print("> Current state:", curr_state)
-			# print("> New state:", problem.initial_state)
-			# print("> Chosen action:", chosen_action)
-			# print("> Reward:", r)
-
+			# Quitar
+			#print("\nchosen_action_index:", chosen_action_index)
+			#print("r_continuous_consistency:", r_continuous_consistency)
 
 		# <<TODO>>
 		# < Generate goal state >
@@ -403,8 +418,8 @@ class DirectedGenerator():
 		train_its_per_epoch = 1
 
 		# Initialize trainer
-		logger = TensorBoardLogger("lightning_logs", name="initial_state_policy/consistency_only_pred_order")
-		trainer = pl.Trainer(max_epochs=train_its_per_epoch, logger=logger)
+		logger = TensorBoardLogger("lightning_logs", name="initial_state_policy/termination_cond_at_5_preds")
+		trainer = pl.Trainer(max_epochs=train_its_per_epoch, logger=logger) # gradient_clip_val=0.025
 
 		for i in range(epochs):
 			# Obtain trajectories and create a dataset containing them
@@ -412,6 +427,7 @@ class DirectedGenerator():
 
 			for _ in range(trajectories_per_epoch):
 				trajectory = self._obtain_trajectory()
+
 				self._sum_rewards_trajectory(trajectory)
 
 				trajectories.extend(trajectory) # Add the samples of the current trajectory
@@ -491,6 +507,13 @@ class DirectedGenerator():
 				r_continuous_consistency = 0
 				r_eventual_consistency = problem.get_eventual_consistency_reward_of_init_state()
 
+				# <Quitar>
+				print("\n -------------------------")
+				print("Termination condition")
+				print("Continuous consistency reward:", r_continuous_consistency)
+				print("Eventual consistency reward:", r_eventual_consistency)
+				#print("NLM output:", nlm_output)
+
 			# If the selected action is not the termination condition, execute it (add the atom and objects to the initial state)
 			else:		
 				
@@ -515,13 +538,13 @@ class DirectedGenerator():
 					r_eventual_consistency = 0
 
 
-			# <Quitar>
-			print("\n -------------------------")
-			print("Action:", chosen_action)
-			print("Objs to add:", objs_to_add)
-			print("Continuous consistency reward:", r_continuous_consistency)
-			print("Eventual consistency reward:", r_eventual_consistency)
-			#print("NLM output:", nlm_output)
+				# <Quitar>
+				print("\n -------------------------")
+				print("Action:", chosen_action)
+				print("Objs to add:", objs_to_add)
+				print("Continuous consistency reward:", r_continuous_consistency)
+				print("Eventual consistency reward:", r_eventual_consistency)
+				#print("NLM output:", nlm_output)
 
 
 

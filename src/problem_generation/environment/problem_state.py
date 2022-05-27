@@ -460,8 +460,10 @@ class ProblemState:
 			return False
 
 		# Check that the atom to add (@action) has no repeated parameters (e.g.: ['on', [0, 0]])
-		if len(action[1]) != len(set(action[1])):
+		# This condition is now checked by the state validator!
+		"""if len(action[1]) != len(set(action[1])):
 			return False
+		"""
 
 		# Check the continuous consistency rules by calling the consistency validator
 		if self._consistency_validator is None: # If there is no consistency validator, we assume the action is consistent
@@ -469,10 +471,13 @@ class ProblemState:
 		else:
 			return self._consistency_validator.check_continuous_consistency_state_and_action(self._initial_state, action)
 
+
 	"""
 	Returns if the current initial_state (self._initial_state) contains at least one atom of each predicate type required in the state.
 	For example, in blocksworld, it needs to contain at least one atom (ontable _) and one (clear _).
 	If there is no consistency validator, it returns True.
+	"""
+	# This method is no longer needed, as this is now checked by the state validator
 	"""
 	def init_state_contains_all_required_predicates(self):
 		if self._consistency_validator is None:
@@ -487,6 +492,7 @@ class ProblemState:
 					return False
 
 			return True
+	"""
 
 	"""
 	Checks if the initial state (self._initial_state) meets the eventual consistency rules and returns
@@ -497,7 +503,9 @@ class ProblemState:
 		if self._consistency_validator is None:
 			eventual_consistency_is_met = True
 		else:
-			eventual_consistency_is_met = (self.init_state_contains_all_required_predicates() and self._consistency_validator.check_eventual_consistency_state(self._initial_state))
+			# eventual_consistency_is_met = (self.init_state_contains_all_required_predicates() and self._consistency_validator.check_eventual_consistency_state(self._initial_state))
+			# The state validator is now the one that checks if the current initial state contains all the required predicates
+			eventual_consistency_is_met = self._consistency_validator.check_eventual_consistency_state(self._initial_state)
 
 		# Return the associated reward
 		if eventual_consistency_is_met:

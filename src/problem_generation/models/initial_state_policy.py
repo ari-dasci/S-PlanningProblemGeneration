@@ -19,7 +19,7 @@ class InitialStatePolicy(pl.LightningModule):
 	Note: @num_preds_layers_nlm needs to include the extra nullary predicates for the termination condition (in the output layer)
 	      and the number of atoms already added to the initial state (in the input layer), in case these are needed.
 	"""
-	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, lr=2e-2, lifted_action_entropy_coeff=0.2, ground_action_entropy_coeff=0.2):
+	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, lr=5e-3, lifted_action_entropy_coeff=3, ground_action_entropy_coeff=2):
 		super().__init__()
 
 		self._lr = lr
@@ -220,29 +220,41 @@ class InitialStatePolicy(pl.LightningModule):
 	@train_batch Batch of training samples, where each one is a tuple (state_tensors, num_objs_with_virtuals, chosen_action_index, disc_reward_sum)
 	"""
 	def training_step(self, train_batch, batch_idx=0):
+		assert len(train_batch) > 0, "Train batch cannot have length 0"
+		
 		loss = 0
 		reinforce_loss = 0
 		entropy_loss = 0
+
+		# Quitar
+		mean_term_cond_prob = 0 # Mean probability of the termination condition across the batch
 
 		for train_sample in train_batch:
 			state_tensors, num_objs_with_virtuals, mask_tensors, chosen_action_index, disc_reward_sum = train_sample
 
 			# Obtain log probability of the selected action
 			action_log_probs = self.forward(state_tensors, num_objs_with_virtuals, mask_tensors)
+
+			# Quitar
+			with torch.no_grad():
+				term_cond_prob = action_log_probs[0][-1].clone()
+				term_cond_prob = np.exp(term_cond_prob.numpy())
+				mean_term_cond_prob += term_cond_prob
+
 			chosen_action_log_prob = action_log_probs[chosen_action_index[0]][tuple(chosen_action_index[1:])]
 
 			# Obtain REINFORCE loss for current sample
 			# We use the sign "-" because the optimizer minimizes the loss (and we want to maximize it)
 			curr_reinforce_loss = -chosen_action_log_prob*disc_reward_sum
-			
+
 			# Obtain policy entropy loss for current sample
 			# We use the sign "-" because the optimizer minimizes the loss (and we want to maximize it)
 			lifted_action_entropy, grounded_action_entropy = self._policy_entropy(action_log_probs)
 			curr_entropy_loss = -(lifted_action_entropy*self._lifted_action_entropy_coeff + \
 					grounded_action_entropy*self._ground_action_entropy_coeff)
 			
-			# curr_loss = reinforce_loss + entropy_loss # The entropy loss has already been scaled
-			curr_loss = curr_reinforce_loss # Do not use entropy loss
+			curr_loss = curr_reinforce_loss + curr_entropy_loss # The entropy loss has already been scaled
+			# curr_loss = curr_reinforce_loss # Do not use entropy loss
 
 			# Accumulate loss
 			loss += curr_loss
@@ -250,15 +262,22 @@ class InitialStatePolicy(pl.LightningModule):
 			entropy_loss += curr_entropy_loss
 
 		# Scale loss by number of samples
-		loss /= float(len(train_batch))
-		reinforce_loss /= float(len(train_batch))
-		entropy_loss /= float(len(train_batch))
+		loss /= len(train_batch)
+		reinforce_loss /= len(train_batch)
+		entropy_loss /= len(train_batch)
+
+		# Quitar
+		mean_term_cond_prob /= len(train_batch)
 
 		# Logs
-		self.logger.experiment.add_scalar("Reinforce Loss", loss, self.curr_train_epoch)
-		# self.logger.experiment.add_scalar("Entropy Loss", loss, self.curr_train_epoch)
-		self.logger.experiment.add_scalar("Entropy Loss", 0, self.curr_train_epoch)
+		self.logger.experiment.add_scalar("Reinforce Loss", reinforce_loss, self.curr_train_epoch)
+		self.logger.experiment.add_scalar("Entropy Loss", entropy_loss, self.curr_train_epoch)
+		# self.logger.experiment.add_scalar("Entropy Loss", 0, self.curr_train_epoch)
 		self.logger.experiment.add_scalar("Total Loss", loss, self.curr_train_epoch)
+
+		# Quitar
+		self.logger.experiment.add_scalar("Termination Condition Probability", mean_term_cond_prob, self.curr_train_epoch)
+
 		self.curr_train_epoch += 1
 
 		return loss

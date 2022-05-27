@@ -374,7 +374,8 @@ def test_train_generative_policies():
 	planner = Planner(domain_file_path)
 
 	# Use Dummy Validator
-	nlm_inner_layers = [[8,8,8,8], [8,8,8,8]]
+	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8]]
+	nlm_inner_layers = [[4,4,4,4]]
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
 
 	directed_generator = DirectedGenerator(parser, planner, consistency_validator=DummyValidatorBW,
@@ -407,8 +408,17 @@ def test_train_generative_policies():
 
 	> Cont. consist: nada (solo evitar átomos repetidos y átomos con params. repetidos) - 
 	  Eventual consist: nada (solo que el estado inicial contenga todos los predicados necesarios)
+	  > Funciona
 
-	> 
+	> Always pick ontable -> no funciona (el loss se va muy alto)
+	  > Funciona
+
+	> Cont. consist: nada - (solo evitar átomos repetidos)
+	  Eventual consist: ejecutar termination condition con num_preds entre 1 y 9
+	  NO FUNCIONA:
+		> Probar a añadir perc_actions_executed a los MLPs de cada capa
+
+
 	"""
 
 

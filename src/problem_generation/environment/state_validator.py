@@ -122,6 +122,10 @@ class ValidatorPredOrderBW(ValidatorPredOrder):
 		if action_pred not in cls.predicate_order:
 			raise ValueError("The predicate type is not in the list of predicates of the validator")
 		
+		# <Check the atom has no repeated parameters (e.g.: (on 0 0) )>
+		if len(action[1]) != len(set(action[1])):
+			return False
+
 		# <Check if the action corresponds to a predicate of the current phase>
 		preds_curr_phase = cls.predicates_in_current_phase(curr_state)
 
@@ -255,6 +259,13 @@ class ValidatorPredOrderBW(ValidatorPredOrder):
 	def check_eventual_consistency_state(cls, curr_state):
 		state_objs = list(range(curr_state.num_objects)) # Represent the objects as a list of indexes, instead of ['block', 'block'...]
 		state_atoms = curr_state.atoms
+		preds_in_state = set([a[0] for a in state_atoms])
+		required_preds = cls.required_pred_names()
+
+		# <Check the state contains at least one atom of each required predicate type>
+		for pred in required_preds:
+			if pred not in preds_in_state:
+				return False
 
 		# <Make sure every block on top of a tower has the (clear) predicate>
 		# Get blocks with no other blocks on top and which are either on top of another block or ontable
@@ -391,8 +402,6 @@ class DummyValidatorBW(ValidatorPredOrder):
 		
 		# <Check if the action corresponds to a predicate of the current phase>
 
-		# return action_pred == "ontable" # Always pick ontable
-
 		"""
 		preds_curr_phase = cls.predicates_in_current_phase(curr_state)
 
@@ -420,4 +429,4 @@ class DummyValidatorBW(ValidatorPredOrder):
 		# In this dummy validator, we assume no eventual consistency rules
 		# (apart from having all the required predicates in the completely-generated initial state)
 		
-		return True
+		return curr_state.num_atoms >= 1 and curr_state.num_atoms <= 9
