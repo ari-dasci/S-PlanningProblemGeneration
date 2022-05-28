@@ -50,7 +50,7 @@ class _InferenceMLP(nn.Module):
                     nn.Linear(input_size, hidden_size),
                     nn.Sigmoid(),
                     nn.Linear(hidden_size, output_size))
-                
+
               
     # Getters for MLP dimensions
     @property
@@ -85,12 +85,17 @@ class _NLM_Layer(nn.Module):
                                                           8 unary predicates and 4 binary predicates.
     @num_out_preds_each_arity List with the number of output predicates of each arity, in ascending order.
     @mlp_hidden_size Units in the hidden layer of all the inference MLPs. If 0, the inference MLPs have no hidden layer.
+    @apply_sigmoid Whether the MLPs should apply sigmoid to the output of the last layer.
     @residual_connections If True, we add residual connections. This means we append, for each different arity, the input
                           predicates to the output predicates.
-    @apply_sigmoid Whether the MLPs should apply sigmoid to the output of the last layer.
+
+
+    Note: if we use residual_connections, @num_in_preds_each_arity must consider the extra predicates (due to the residual
+          connections) but @num_out_preds_each_arity must NOT consider the extra predicates.
+    Note 2: if we use residual_connections for the NLM, all NLM layers <except for the last one> must use residual_connections
     """
-    def __init__(self, num_in_preds_each_arity, num_out_preds_each_arity, mlp_hidden_size=0, residual_connections=False,
-                 apply_sigmoid = True):
+    def __init__(self, num_in_preds_each_arity, num_out_preds_each_arity, mlp_hidden_size=0, apply_sigmoid = True,
+                 residual_connections=True):
         super().__init__()
         
         assert len(num_in_preds_each_arity) == len(num_out_preds_each_arity), \
@@ -99,6 +104,7 @@ class _NLM_Layer(nn.Module):
         self._num_in_preds_each_arity = num_in_preds_each_arity
         self._num_out_preds_each_arity = num_out_preds_each_arity
         self._mlp_hidden_size = mlp_hidden_size
+        self._residual_connections = residual_connections   
         
         # Calculate the <real> number of input predicates for the inference mlp associated with each predicate arity
         # This <real> number takes into account the predicate number for the same arity r in the previous layer, 
@@ -304,16 +310,26 @@ class _NLM_Layer(nn.Module):
                 real_input_tensors_list.append(None) # Append None if we do not need the real input tensors for arity r
         
         # Obtain the output tensors by applying the MLP to the real input tensors
+        # Also, if we are using skip_connections, append the input predicates to the output predicates arity-wise
         output_tensors_list = []
         
         for r in range(len(self._num_out_preds_each_arity)):
-            if self._num_out_preds_each_arity[r] == 0: # Append None if we do not need to compute the output predicates for arity r
-                output_tensors_list.append(None)
+            if self._num_out_preds_each_arity[r] == 0: # We do not need to compute the output predicates for this arity
+                
+                if self._residual_connections:
+                    output_tensors_list.append(input_tensors_list[r])
+                else:
+                    output_tensors_list.append(None)
                 
             else:
                 out_tensor = self._mlps[r](real_input_tensors_list[r]) # Obtain the output tensor using the MLP corresponding to arity r
-                output_tensors_list.append(out_tensor)
                 
+                if self._residual_connections and input_tensors_list[r] is not None:
+                    out_tensor_cat = torch.cat((input_tensors_list[r], out_tensor), dim=-1) # Concatenate the output tensors to the input tensors
+                    output_tensors_list.append(out_tensor_cat)
+                else:
+                    output_tensors_list.append(out_tensor)
+               
         return output_tensors_list
   
     
@@ -333,27 +349,38 @@ class NLM(nn.Module):
                       output any predicate of arity r.
     @mlp_hidden_size_layers A list containing, for each layer, the hidden size of the MLPs to use. A value of 0 means
                             the mlps of the corresponding layer have no hidden layer.
-    @lr_rate Learning rate for the training optimizer.
+    @residual_connections Whether to use residual connections for the NLM (i.e., all the layers except the last one)
     """
-    def __init__(self, num_preds_layers, mlp_hidden_size_layers, lr=5e-2):
+    def __init__(self, num_preds_layers, mlp_hidden_size_layers, residual_connections=True):
         super().__init__()
         
         assert num_preds_layers.shape[0] >= 2, "The NLM must contain at least one layer"
         assert num_preds_layers.shape[0]-1 == len(mlp_hidden_size_layers), "Wrong length of mlp_hidden_size_layers"
         
-        self._num_preds_layers = num_preds_layers
         self._mlp_hidden_size_layers = mlp_hidden_size_layers
-        self._lr = lr
-        
-        # Don't -> Add one nullary predicate to the last layer, representing the termination condition
-        # The extra predicates now must be included in the parameter @num_preds_layers
-        # num_preds_layers[-1][0] += 1
-        
+        self._residual_connections = residual_connections
+       
+        # If we use residual connections, add the extra number of predicates to the input predicates of each layer
+        num_input_preds_layers = [num_preds_layers[i] for i in range(0, num_preds_layers.shape[0]-1)]
+        num_output_preds_layers = [num_preds_layers[i] for i in range(1, num_preds_layers.shape[0])]
+
+        if residual_connections:
+            num_input_preds_layers_with_res = [sum(num_input_preds_layers[:i+1]) for i in range(len(num_input_preds_layers))]
+        else:
+            num_input_preds_layers_with_res = num_input_preds_layers
+
         # Create each NLM layer and add it to a module list
-        self.layers = nn.ModuleList([_NLM_Layer(num_preds_layers[i], num_preds_layers[i+1], mlp_hidden_size_layers[i],
+        self.layers = nn.ModuleList([_NLM_Layer(num_input_preds_layers_with_res[i], num_output_preds_layers[i], mlp_hidden_size_layers[i],
+                                                apply_sigmoid = (i != num_preds_layers.shape[0]-2),
+                                                residual_connections = (residual_connections and i != num_preds_layers.shape[0]-2)) \
+                                     for i in range(len(num_input_preds_layers))])
+
+        """self.layers = nn.ModuleList([_NLM_Layer(num_preds_layers[i], num_preds_layers[i+1], mlp_hidden_size_layers[i],
                                                 apply_sigmoid = (i != num_preds_layers.shape[0]-2)) \
-                                     for i in range(num_preds_layers.shape[0]-1)])      
+                                     for i in range(num_preds_layers.shape[0]-1)])"""      
     
+        self._num_input_preds_layers = num_input_preds_layers_with_res
+        self._num_output_preds_layers = num_output_preds_layers
 
     # Getters
     @property
@@ -361,20 +388,20 @@ class NLM(nn.Module):
         return len(self.layers)
     
     @property
-    def max_arity(self): # We assume that if num_preds_layers.shape[1] == n, then n-1 is the max arity (-1 comes from the fact that we start counting at the nullary predicates)
-        return self._num_preds_layers.shape[1]-1
+    def max_arity(self): # We assume that if num_output_preds_layers[0].shape[0] == n, then n-1 is the max arity (-1 comes from the fact that we start counting at the nullary predicates)
+        return self._num_output_preds_layers[0].shape[0]-1
     
     @property
-    def num_preds_layers(self):
-        return self._num_preds_layers
+    def num_input_preds_layers(self):
+        return self._num_input_preds_layers
+
+    @property
+    def num_output_preds_layers(self):
+        return self._num_output_preds_layers
     
     @property
     def mlp_hidden_size_layers(self):
         return self._mlp_hidden_size_layers
-    
-    @property
-    def lr(self):
-        return self._lr
     
    
     """

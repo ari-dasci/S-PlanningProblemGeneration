@@ -13,19 +13,21 @@ class InitialStatePolicy(pl.LightningModule):
 	"""
 	Constructor. Creates the NLM used for the initial state policy.
 
+	@nlm_residual_connections Whether the NLM must use residual connections
 	@lifted_action_entropy_coeff Coefficient for the lifted_action_entropy, used when calculating the REINFORCE loss
 	@ground_action_entropy_coeff Coefficient for the ground_action_entropy, used when calculating the REINFORCE loss
 	
 	Note: @num_preds_layers_nlm needs to include the extra nullary predicates for the termination condition (in the output layer)
 	      and the number of atoms already added to the initial state (in the input layer), in case these are needed.
 	"""
-	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, lr=5e-3, lifted_action_entropy_coeff=3, ground_action_entropy_coeff=3):
+	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_residual_connections=True, lr=5e-3,
+			     lifted_action_entropy_coeff=0, ground_action_entropy_coeff=0):
 		super().__init__()
 
 		self._lr = lr
 		self._lifted_action_entropy_coeff = lifted_action_entropy_coeff
 		self._ground_action_entropy_coeff = ground_action_entropy_coeff
-		self._nlm = NLM(num_preds_layers_nlm, mlp_hidden_sizes_nlm)
+		self._nlm = NLM(num_preds_layers_nlm, mlp_hidden_sizes_nlm, residual_connections=nlm_residual_connections)
 
 		self.curr_train_epoch = 0 # Used to track the current training epoch (i.e., trainer.fit() call), in order to save the logs correctly
 								  # It is incremented by one each time training_step() is called
@@ -274,12 +276,15 @@ class InitialStatePolicy(pl.LightningModule):
 		mean_term_cond_prob /= len(train_batch)
 
 		# Logs
-		self.logger.experiment.add_scalar("Reinforce Loss", reinforce_loss, self.curr_train_epoch)
-		self.logger.experiment.add_scalar("Entropy Loss", entropy_loss, self.curr_train_epoch)
-		# self.logger.experiment.add_scalar("Entropy Loss", 0, self.curr_train_epoch)
-		self.logger.experiment.add_scalar("Total Loss", loss, self.curr_train_epoch)
+		# Add logs every N training iterations
 
-		self.logger.experiment.add_scalar("Termination Condition Probability", mean_term_cond_prob, self.curr_train_epoch)
+		if self.curr_train_epoch % 10 == 0:
+			self.logger.experiment.add_scalar("Reinforce Loss", reinforce_loss, self.curr_train_epoch)
+			self.logger.experiment.add_scalar("Entropy Loss", entropy_loss, self.curr_train_epoch)
+			# self.logger.experiment.add_scalar("Entropy Loss", 0, self.curr_train_epoch)
+			self.logger.experiment.add_scalar("Total Loss", loss, self.curr_train_epoch)
+
+			self.logger.experiment.add_scalar("Termination Condition Probability", mean_term_cond_prob, self.curr_train_epoch)
 
 		self.curr_train_epoch += 1
 

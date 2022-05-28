@@ -376,19 +376,22 @@ def test_train_generative_policies():
 	# Use Dummy Validator
 	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8]]
 	# nlm_inner_layers = [[4,4,4,4]]
-	nlm_inner_layers = [[8,8,8,8], [8,8,8,8]]
+	nlm_inner_layers = [[4,4,4,4]]
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
 
 	directed_generator = DirectedGenerator(parser, planner, consistency_validator=DummyValidatorBW,
 										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
-										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp)
-	
+										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
+										   res_connections_initial_state_nlm=False)
+
 	# Generate a problem before training the policy
 	print("---------- Problem before training the policy ---------- \n\n")
 	directed_generator.generate_problem()
 
 	# Train the policies
 	directed_generator.train_generative_policies()
+
+
 
 	# Generate the problem
 	print("---------- Problem after training the policy ---------- \n\n")
@@ -411,7 +414,7 @@ def test_train_generative_policies():
 	  Eventual consist: nada (solo que el estado inicial contenga todos los predicados necesarios)
 	  > Funciona
 
-	> Always pick ontable -> no funciona (el loss se va muy alto)
+	> Always pick ontable
 	  > Funciona
 
 	> Cont. consist: nada - (solo evitar átomos repetidos)
@@ -435,10 +438,15 @@ def test_train_generative_policies():
 	  >> Cuanto más capas añado a la NLM, más dificultad tiene para "recordar" el perc_actions_exec que se le da como input
 	     a la primera capa
 
-	  >> PROBAR A USAR RELU EN VEZ DE SIGMOID PARA LA NLM!!
+	  >> PROBAR A USAR RELU EN VEZ DE SIGMOID PARA LA NLM!! -> No funciona
 
-	  >> DEBO PROBAR A AÑADIR EL perc_actions_exec A LAS MLP DE LA NLM COMO UN INPUT MÁS, A VER SI ASÍ
-	     LA NLM ES CAPAZ DE APRENDER MEJOR
+	  >> Usar residual connections
+
+	  ----------------- Pruebas con residual connections
+
+	  > Always pick ontable
+		> Sin residual connections: Funciona (si uso 1,1 para los coefs. de entropy regularization)
+		> Con residual connections:
 
 	"""
 

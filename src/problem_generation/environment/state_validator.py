@@ -411,6 +411,8 @@ class DummyValidatorBW(ValidatorPredOrder):
 		return True
 		"""
 		
+		return action_pred == "ontable"
+
 		return True
 
 
@@ -429,4 +431,6 @@ class DummyValidatorBW(ValidatorPredOrder):
 		# In this dummy validator, we assume no eventual consistency rules
 		# (apart from having all the required predicates in the completely-generated initial state)
 		
-		return curr_state.num_atoms >= 1 and curr_state.num_atoms <= 9
+		# return curr_state.num_atoms >= 1 and curr_state.num_atoms <= 9
+
+		return curr_state.num_atoms == 10

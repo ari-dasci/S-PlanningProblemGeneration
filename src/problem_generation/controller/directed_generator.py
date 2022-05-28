@@ -31,7 +31,8 @@ class DirectedGenerator():
 	def __init__(self, parser, planner, 
 				 predicates_to_consider_for_goal=None, initial_state_info=None, consistency_validator=ValidatorPredOrderBW,
 				 penalization_continuous_consistency=-1, penalization_eventual_consistency=-1, penalization_non_applicable_action=-1,
-				 num_preds_inner_layers_initial_state_nlm=[[4,4,4,4]], mlp_hidden_layers_initial_state_nlm=[0,0], lr_initial_state_nlm=5e-2):
+				 num_preds_inner_layers_initial_state_nlm=[[4,4,4,4]], mlp_hidden_layers_initial_state_nlm=[0,0], res_connections_initial_state_nlm=True,
+				 lr_initial_state_nlm=5e-2):
 				 # <TODO> Add parameters for goal_nlm
 
 		self._parser = parser
@@ -53,7 +54,7 @@ class DirectedGenerator():
 		# Initial state generation policy
 		num_preds_all_layers_initial_state_nlm = self._num_preds_all_layers_initial_state_nlm(num_preds_inner_layers_initial_state_nlm)
 		self._initial_state_policy = InitialStatePolicy(num_preds_all_layers_initial_state_nlm, mlp_hidden_layers_initial_state_nlm, 
-												        lr_initial_state_nlm)
+												        res_connections_initial_state_nlm, lr_initial_state_nlm)
 
 		# <TODO>
 		# self._goal_policy = ...
@@ -61,6 +62,10 @@ class DirectedGenerator():
 
 	# ------- Getters and Setters --------
 		
+	@property
+	def initial_state_policy(self):
+		return self._initial_state_policy
+
 	@property
 	def predicates_to_consider_for_goal(self):
 		return self._predicates_to_consider_for_goal
@@ -317,7 +322,7 @@ class DirectedGenerator():
 
 		# Information about the NLM of the initial state policy
 		init_nlm_max_pred_arity = self._initial_state_policy.nlm.max_arity # This value corresponds to the breadth of the NLM
-		init_nlm_output_layer_shape = self._initial_state_policy.nlm.num_preds_layers[-1]
+		init_nlm_output_layer_shape = self._initial_state_policy.nlm.num_output_preds_layers[-1]
 
 		trajectory = []
 
@@ -413,7 +418,7 @@ class DirectedGenerator():
 	def _train_initial_state_generation_policy(self):
 
 		# Hyperparameters
-		epochs = 10000 # 2000
+		epochs = 2000 # 2000
 		trajectories_per_epoch = 1
 		train_its_per_epoch = 1
 
@@ -466,7 +471,7 @@ class DirectedGenerator():
 
 		# Information about the NLM of the initial state policy
 		init_nlm_max_pred_arity = self._initial_state_policy.nlm.max_arity # This value corresponds to the breadth of the NLM
-		init_nlm_output_layer_shape = self._initial_state_policy.nlm.num_preds_layers[-1]
+		init_nlm_output_layer_shape = self._initial_state_policy.nlm.num_output_preds_layers[-1]
 
 		# < Generate state s0 >
 		problem = ProblemState(self._parser, self._predicates_to_consider_for_goal, self._initial_state_info,
