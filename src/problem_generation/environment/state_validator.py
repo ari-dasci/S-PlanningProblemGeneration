@@ -402,14 +402,10 @@ class DummyValidatorBW(ValidatorPredOrder):
 		
 		# <Check if the action corresponds to a predicate of the current phase>
 
-		"""
 		preds_curr_phase = cls.predicates_in_current_phase(curr_state)
 
 		if action_pred not in preds_curr_phase:
 			return False # The action produces an inconsistent state
-
-		return True
-		"""
 
 		return True
 
@@ -426,7 +422,15 @@ class DummyValidatorBW(ValidatorPredOrder):
 	"""
 	@classmethod
 	def check_eventual_consistency_state(cls, curr_state):
-		# In this dummy validator, we assume no eventual consistency rules
-		# (apart from having all the required predicates in the completely-generated initial state)
+		state_objs = list(range(curr_state.num_objects)) # Represent the objects as a list of indexes, instead of ['block', 'block'...]
+		state_atoms = curr_state.atoms
+		preds_in_state = set([a[0] for a in state_atoms])
+		required_preds = cls.required_pred_names()
 		
+		# <Check the state contains at least one atom of each required predicate type>
+		for pred in required_preds:
+			if pred not in preds_in_state:
+				return False
+
+		# Between 3-7 atoms in state
 		return curr_state.num_atoms >= 3 and curr_state.num_atoms <= 7

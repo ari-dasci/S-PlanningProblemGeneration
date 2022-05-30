@@ -375,24 +375,23 @@ def test_train_generative_policies():
 
 	# Use Dummy Validator
 	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8]]
-	# nlm_inner_layers = [[4,4,4,4]]
-	nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	nlm_inner_layers = [[4,4,4,4], [4,4,4,4], [4,4,4,4]]
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
 
 	directed_generator = DirectedGenerator(parser, planner, consistency_validator=DummyValidatorBW,
 										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
 										   res_connections_initial_state_nlm=True,
-										   lr_initial_state_nlm = 5e-4,
-										   lifted_action_entropy_coeff_init_state_policy = 0.05,
-										   ground_action_entropy_coeff_init_state_policy = 0.05)
+										   lr_initial_state_nlm = 2e-4,
+										   lifted_action_entropy_coeff_init_state_policy = 0.02,
+										   ground_action_entropy_coeff_init_state_policy = 0.02)
 
 	# Generate a problem before training the policy
 	print("---------- Problem before training the policy ---------- \n\n")
 	directed_generator.generate_problem()
 
 	# Train the policies
-	directed_generator.train_generative_policies(num_train_epochs = 10000)
+	directed_generator.train_generative_policies(num_train_epochs = 200000)
 
 	# Generate the problem
 	print("---------- Problem after training the policy ---------- \n\n")
@@ -463,7 +462,27 @@ def test_train_generative_policies():
 		> lr=1e-3, reg_coeffs = 0.1: no funciona
 		> lr=1e-3, reg_coeffs = 0.05: no funciona
 		> lr=5e-3, reg_coeffs = 0.05: no funciona (con ese lr, la probabilidad del term_condition se va a 0!!)
-		> Probar lr=5e-4, reg_coeffs = 0.05: Funciona (parece que la NLM necesita una lr de 5e-4 para aprender mejor!)
+		> lr=5e-4, reg_coeffs = 0.05: Funciona (parece que la NLM necesita una lr de 5e-4 para aprender mejor!)
+
+	  > Predicates in current phase (residual connections, dos capas intermedias [4,4,4,4]):
+	    > lr=5e-4, reg_coeffs = 0.05: funciona, pero a veces escoge acciones incorrectas (creo que porque la política es demasiado estocástica debido a la entropy regularization)
+		> lr=5e-4, reg_coeffs = 0.02: funciona perfectamente.
+
+	  > Predicates in current phase y termination condition con 3-7 átomos en el estado (residual connections, dos capas intermedias [4,4,4,4]):
+	    > lr=5e-4, reg_coeffs = 0.02, 10000 training epochs: regular (ejecuta la termination condition una acción demasiado pronto) 
+		> lr=5e-4, reg_coeffs = 0.02, 20000 training epochs: regular (ejecuta bien la termination condition pero algunas veces selecciona acciones incorrectas)
+		> lr=1e-4, reg_coeffs = 0.02, 30000 training epochs: regular (ejecuta la termination condition una acción demasiado pronto y selecciona una acción incorrecta) 
+	    > lr=5e-4, reg_coeffs = 0.0, 50000 training epochs: Funciona muy mal (la prob_term_cond va a 0)
+		> Tres capas intermedias [8,8,8,8], lr=5e-4, reg_coeffs = 0.00, 30000 training epochs: Funciona muy mal (la prob_term_cond va a 0)
+		> Tres capas intermedias [8,8,8,8], lr=5e-5, reg_coeffs = 0.00, 30000 training epochs: Funciona mal (escoge los átomos en el orden incorrecto y selecciona la condición de parada demasiado pronto)
+		> Tres capas intermedias [4,4,4,4], lr=1e-5, reg_coeffs = 0.0, 50000 training epochs: Funciona mal (escoge los átomos en el orden incorrecto y selecciona la condición de parada demasiado pronto) -> creo que el lr es demasiado bajo!
+
+		> Tres capas intermedias [4,4,4,4], lr=2e-4, reg_coeffs = 0.02, 200000 training epochs: 
+
+		Si con este lr no aprende (1e-5), creo que no es culpa de que el lr sea demasiado alto. Dos opciones:
+			> Tengo que usar una arquitectura de NLM con más capas (ej. 5) -> NO! (ya estoy usando 4 capas en total y en el paper original de NLM usaban solo 4 capas para las tareas más sencillas)
+			> Tengo que usar un mayor coeff. de entropy regularization (ej.: 0.5)
+			> Tengo que entrenar durante más epochs -> ej.: usar un lr de 5e-4 y entrenar durante 200k epochs
 
 
 	"""
