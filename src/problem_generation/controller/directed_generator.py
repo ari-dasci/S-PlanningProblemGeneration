@@ -32,7 +32,7 @@ class DirectedGenerator():
 				 predicates_to_consider_for_goal=None, initial_state_info=None, consistency_validator=ValidatorPredOrderBW,
 				 penalization_continuous_consistency=-1, penalization_eventual_consistency=-1, penalization_non_applicable_action=-1,
 				 num_preds_inner_layers_initial_state_nlm=[[4,4,4,4]], mlp_hidden_layers_initial_state_nlm=[0,0], res_connections_initial_state_nlm=True,
-				 lr_initial_state_nlm=5e-2):
+				 lr_initial_state_nlm=5e-4, lifted_action_entropy_coeff_init_state_policy = 0.05, ground_action_entropy_coeff_init_state_policy = 0.05):
 				 # <TODO> Add parameters for goal_nlm
 
 		self._parser = parser
@@ -54,7 +54,8 @@ class DirectedGenerator():
 		# Initial state generation policy
 		num_preds_all_layers_initial_state_nlm = self._num_preds_all_layers_initial_state_nlm(num_preds_inner_layers_initial_state_nlm)
 		self._initial_state_policy = InitialStatePolicy(num_preds_all_layers_initial_state_nlm, mlp_hidden_layers_initial_state_nlm, 
-												        res_connections_initial_state_nlm, lr_initial_state_nlm)
+												        res_connections_initial_state_nlm, lr_initial_state_nlm,
+													    lifted_action_entropy_coeff_init_state_policy, ground_action_entropy_coeff_init_state_policy)
 
 		# <TODO>
 		# self._goal_policy = ...
@@ -415,10 +416,9 @@ class DirectedGenerator():
 		return trajectory
 		
 	# This method trains the initial state generation policy.
-	def _train_initial_state_generation_policy(self):
+	def _train_initial_state_generation_policy(self, num_train_epochs):
 
 		# Hyperparameters
-		epochs = 2000 # 2000
 		trajectories_per_epoch = 1
 		train_its_per_epoch = 1
 
@@ -426,7 +426,7 @@ class DirectedGenerator():
 		logger = TensorBoardLogger("lightning_logs", name="initial_state_policy/termination_cond_at_5_preds")
 		trainer = pl.Trainer(max_epochs=train_its_per_epoch, logger=logger) # gradient_clip_val=0.025
 
-		for i in range(epochs):
+		for i in range(num_train_epochs):
 			# Obtain trajectories and create a dataset containing them
 			trajectories = []
 
@@ -451,8 +451,8 @@ class DirectedGenerator():
 	# This also applies for the eventual consistency rules (associated with the termination condition)
 	# <Note 2>: if the gradient doesn't flow correctly, try to not use the log_softmax function for the last NLM layer.
 
-	def train_generative_policies(self): # Add more parameters
-		self._train_initial_state_generation_policy()
+	def train_generative_policies(self, num_train_epochs=10000): # Add more parameters
+		self._train_initial_state_generation_policy(num_train_epochs)
 
 
 	"""

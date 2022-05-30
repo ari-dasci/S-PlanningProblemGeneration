@@ -20,8 +20,8 @@ class InitialStatePolicy(pl.LightningModule):
 	Note: @num_preds_layers_nlm needs to include the extra nullary predicates for the termination condition (in the output layer)
 	      and the number of atoms already added to the initial state (in the input layer), in case these are needed.
 	"""
-	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_residual_connections=True, lr=5e-3,
-			     lifted_action_entropy_coeff=0, ground_action_entropy_coeff=0):
+	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_residual_connections, lr,
+			     lifted_action_entropy_coeff, ground_action_entropy_coeff):
 		super().__init__()
 
 		self._lr = lr

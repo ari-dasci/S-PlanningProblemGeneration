@@ -376,22 +376,23 @@ def test_train_generative_policies():
 	# Use Dummy Validator
 	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8]]
 	# nlm_inner_layers = [[4,4,4,4]]
-	nlm_inner_layers = [[4,4,4,4]]
+	nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
 
 	directed_generator = DirectedGenerator(parser, planner, consistency_validator=DummyValidatorBW,
 										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
-										   res_connections_initial_state_nlm=False)
+										   res_connections_initial_state_nlm=True,
+										   lr_initial_state_nlm = 5e-4,
+										   lifted_action_entropy_coeff_init_state_policy = 0.05,
+										   ground_action_entropy_coeff_init_state_policy = 0.05)
 
 	# Generate a problem before training the policy
 	print("---------- Problem before training the policy ---------- \n\n")
 	directed_generator.generate_problem()
 
 	# Train the policies
-	directed_generator.train_generative_policies()
-
-
+	directed_generator.train_generative_policies(num_train_epochs = 10000)
 
 	# Generate the problem
 	print("---------- Problem after training the policy ---------- \n\n")
@@ -446,7 +447,24 @@ def test_train_generative_policies():
 
 	  > Always pick ontable
 		> Sin residual connections: Funciona (si uso 1,1 para los coefs. de entropy regularization)
-		> Con residual connections:
+		> Con residual connections: Funciona si uso un lr de 1e-3 y una entropy regularization de 0.1 o menor.
+
+	  > Termination condition con 1-9 átomos en el estado (lr=1e-3, regularization coeffs=0.1, 0.1)
+		> Sin residual connections: 
+			> Sin capas intermedias: Funciona
+			> Con una capa intermedia [4,4,4,4]: Funciona (con 10000 train epochs)
+		> Con residual connections: 
+			> Con una capa intermedia [4,4,4,4]: Funciona (con 10000 train epochs)
+			> Con una capa intermedia [8,8,8,8]: Funciona (con 10000 train epochs)
+			> Con dos capas intermedias [8,8,8,8]: Funciona (con 10000 train epochs)
+			> Con tres capas intermedias [8,8,8,8]: Funciona (con 10000 train epochs)
+
+	  > Termination condition con 3-7 átomos en el estado (con residual connections, con tres capas intermedias [8,8,8,8])
+		> lr=1e-3, reg_coeffs = 0.1: no funciona
+		> lr=1e-3, reg_coeffs = 0.05: no funciona
+		> lr=5e-3, reg_coeffs = 0.05: no funciona (con ese lr, la probabilidad del term_condition se va a 0!!)
+		> Probar lr=5e-4, reg_coeffs = 0.05: Funciona (parece que la NLM necesita una lr de 5e-4 para aprender mejor!)
+
 
 	"""
 
