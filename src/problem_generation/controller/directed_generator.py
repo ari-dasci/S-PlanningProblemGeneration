@@ -423,7 +423,7 @@ class DirectedGenerator():
 		train_its_per_epoch = 1
 
 		# Initialize trainer
-		logger = TensorBoardLogger("lightning_logs", name="initial_state_policy/termination_cond_at_5_preds")
+		logger = TensorBoardLogger("lightning_logs", name="initial_state_policy/preds_curr_phase_and_3_to_7_preds")
 		trainer = pl.Trainer(max_epochs=train_its_per_epoch, logger=logger) # gradient_clip_val=0.025
 
 		for i in range(num_train_epochs):

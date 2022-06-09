@@ -382,16 +382,16 @@ def test_train_generative_policies():
 										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
 										   res_connections_initial_state_nlm=True,
-										   lr_initial_state_nlm = 2e-4,
-										   lifted_action_entropy_coeff_init_state_policy = 0.02,
-										   ground_action_entropy_coeff_init_state_policy = 0.02)
+										   lr_initial_state_nlm = 1e-2,
+										   lifted_action_entropy_coeff_init_state_policy = 0,
+										   ground_action_entropy_coeff_init_state_policy = 0)
 
 	# Generate a problem before training the policy
 	print("---------- Problem before training the policy ---------- \n\n")
 	directed_generator.generate_problem()
 
 	# Train the policies
-	directed_generator.train_generative_policies(num_train_epochs = 200000)
+	directed_generator.train_generative_policies(num_train_epochs = 100000)
 
 	# Generate the problem
 	print("---------- Problem after training the policy ---------- \n\n")
@@ -476,13 +476,26 @@ def test_train_generative_policies():
 		> Tres capas intermedias [8,8,8,8], lr=5e-4, reg_coeffs = 0.00, 30000 training epochs: Funciona muy mal (la prob_term_cond va a 0)
 		> Tres capas intermedias [8,8,8,8], lr=5e-5, reg_coeffs = 0.00, 30000 training epochs: Funciona mal (escoge los átomos en el orden incorrecto y selecciona la condición de parada demasiado pronto)
 		> Tres capas intermedias [4,4,4,4], lr=1e-5, reg_coeffs = 0.0, 50000 training epochs: Funciona mal (escoge los átomos en el orden incorrecto y selecciona la condición de parada demasiado pronto) -> creo que el lr es demasiado bajo!
+		> Tres capas intermedias [4,4,4,4], lr=2e-4, reg_coeffs = 0.02, 200000 training epochs: Funciona regular (ejecuta bien la termination condition pero algunas veces selecciona acciones incorrectas)
 
-		> Tres capas intermedias [4,4,4,4], lr=2e-4, reg_coeffs = 0.02, 200000 training epochs: 
+		> Tres capas intermedias [4,4,4,4], lr=5e-4, reg_coeffs = 2, 100000 training epochs: Funciona mal (la recompensa media en la gráfica es de -0.8) 
+		> Tres capas intermedias [4,4,4,4], lr=5e-4, reg_coeffs = 1, 200000 training epochs: Funciona regular (ejecuta bien la termination condition pero algunas veces selecciona acciones incorrectas)
+		> Tres capas intermedias [4,4,4,4], lr=5e-4, reg_coeffs = 0.5, 100000 training epochs: Funciona casi bien (ejecuta bien la termination condition y escoge casi todas las acciones en el orden correcto (aunque no siempre))
+		> Tres capas intermedias [4,4,4,4], lr=5e-4, reg_coeffs = 0.2, 100000 training epochs: 
+			> Ejecución 1: Funciona perfectamente (escoge bien las acciones en orden y la termination condition)
+			> Ejecución 2: Funciona regular (escoge algunas acciones en orden incorrecto pero la termination condition bien)
+		> Tres capas intermedias [4,4,4,4], lr=5e-4, reg_coeffs = 0.05, 200000 training epochs: Regular (recompensa llega a -0.5 y después baja)
+		> Tres capas intermedias [4,4,4,4], lr=5e-4, reg_coeffs = 0.02, 100000 training epochs: Mal (escoge las acciones en mal orden y mal la termination condition,
+		       la recompensa llega a -0.5 y después baja lentamente (funciona parecido a reg_coeffs=0.05))
+		
+		> Tres capas intermedias [4,4,4,4], reg_coeffs = 0, 200000 training epochs:
+			> Ejecución 1, lr=5e-4: PERFECTO (escoge bien todas las acciones y termination condition, la recompensa se aproxima a 0)
+			> Ejecución 2, lr=1e-3: PERFECTO (escoge bien todas las acciones y termination condition, la recompensa se aproxima a 0)
+			> Ejecución 3, lr=5e-3, 100000 training epochs: PERFECTO
+			> Ejecución 4, lr=1e-2 100000 training epochs: PERFECTO
+		
 
-		Si con este lr no aprende (1e-5), creo que no es culpa de que el lr sea demasiado alto. Dos opciones:
-			> Tengo que usar una arquitectura de NLM con más capas (ej. 5) -> NO! (ya estoy usando 4 capas en total y en el paper original de NLM usaban solo 4 capas para las tareas más sencillas)
-			> Tengo que usar un mayor coeff. de entropy regularization (ej.: 0.5)
-			> Tengo que entrenar durante más epochs -> ej.: usar un lr de 5e-4 y entrenar durante 200k epochs
+
 
 
 	"""

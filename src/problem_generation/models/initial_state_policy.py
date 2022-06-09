@@ -224,10 +224,13 @@ class InitialStatePolicy(pl.LightningModule):
 	def training_step(self, train_batch, batch_idx=0):
 		assert len(train_batch) > 0, "Train batch cannot have length 0"
 		
+		log_period = 50 # How many its need to pass before we add the next log
+
 		loss = 0
 		reinforce_loss = 0
 		entropy_loss = 0
-
+		entropy = 0
+		reward = 0
 		mean_term_cond_prob = 0 # Mean probability of the termination condition across the batch
 
 		for train_sample in train_batch:
@@ -263,28 +266,41 @@ class InitialStatePolicy(pl.LightningModule):
 			curr_loss = curr_reinforce_loss + curr_entropy_loss # The entropy loss has already been scaled
 			# curr_loss = curr_reinforce_loss # Do not use entropy loss
 
-			# Accumulate loss
+			# Accumulate loss and metrics
 			loss += curr_loss
 			reinforce_loss += curr_reinforce_loss
 			entropy_loss += curr_entropy_loss
+
+			entropy += lifted_action_entropy + grounded_action_entropy
+			reward += disc_reward_sum
 
 		# Scale loss by number of samples
 		loss /= len(train_batch)
 		reinforce_loss /= len(train_batch)
 		entropy_loss /= len(train_batch)
-
 		mean_term_cond_prob /= len(train_batch)
+		entropy /= len(train_batch)
+		reward /= len(train_batch)
 
 		# Logs
 		# Add logs every N training iterations
 
-		if self.curr_train_epoch % 10 == 0:
+		"""
+		if self.curr_train_epoch % log_period == 0:
 			self.logger.experiment.add_scalar("Reinforce Loss", reinforce_loss, self.curr_train_epoch)
 			self.logger.experiment.add_scalar("Entropy Loss", entropy_loss, self.curr_train_epoch)
 			# self.logger.experiment.add_scalar("Entropy Loss", 0, self.curr_train_epoch)
 			self.logger.experiment.add_scalar("Total Loss", loss, self.curr_train_epoch)
 
 			self.logger.experiment.add_scalar("Termination Condition Probability", mean_term_cond_prob, self.curr_train_epoch)
+		"""
+
+		if self.curr_train_epoch % log_period == 0:
+			self.logger.experiment.add_scalar("Reward", reward, global_step=self.curr_train_epoch)
+			self.logger.experiment.add_scalar("Policy Entropy", entropy, global_step=self.curr_train_epoch)
+			self.logger.experiment.add_scalars('Losses', {'Total Loss': loss, 'Reinforce Loss': reinforce_loss, 'Entropy Loss': entropy_loss},
+											   global_step=self.curr_train_epoch)
+			self.logger.experiment.add_scalar("Termination Condition Probability", mean_term_cond_prob, global_step=self.curr_train_epoch)
 
 		self.curr_train_epoch += 1
 
