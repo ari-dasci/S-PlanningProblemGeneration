@@ -7,6 +7,8 @@ import numpy as np
 import torch
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
+from joblib import Parallel, delayed
+from itertools import chain
 
 from problem_generation.environment.problem_state import ProblemState
 from problem_generation.environment.pddl_parser import Parser
@@ -272,12 +274,12 @@ class DirectedGenerator():
 	We assume the first element of the trajectory corresponds to the state at t=0 and the last element
 	to the state t=T.
 
-	@disc_factor_continous Discount factor to use for the continous consistency rewards
+	@disc_factor_continuous Discount factor to use for the continuous consistency rewards
 	@disc_factor_eventual Discount factor to use for the eventual consistency rewards
 
 	<Note>: this method is inplace (does not return the trajectory but transforms it inplace)
 	"""
-	def _sum_rewards_trajectory(self, trajectory, disc_factor_continous=0, disc_factor_eventual=0.8):
+	def _sum_rewards_trajectory(self, trajectory, disc_factor_continuous=0, disc_factor_eventual=0.8):
 		
 		r_continuous_sum = 0
 		r_eventual_sum = 0
@@ -291,7 +293,7 @@ class DirectedGenerator():
 			trajectory[i] = trajectory[i][:-2] + [curr_r]
 
 			r_continuous_sum += curr_r_continuous # Sum the current reward to the sum of disc rewards R
-			r_continuous_sum *= disc_factor_continous # Apply disc factor to all the rewards in the sum
+			r_continuous_sum *= disc_factor_continuous # Apply disc factor to all the rewards in the sum
 			r_eventual_sum += curr_r_eventual
 			r_eventual_sum *= disc_factor_eventual
 
@@ -368,13 +370,6 @@ class DirectedGenerator():
 				r_continuous_consistency = 0
 				r_eventual_consistency = problem.get_eventual_consistency_reward_of_init_state()
 
-
-				# Quitar
-				if r_eventual_consistency == 0:
-					print("\n---------------------\n TERMINATION CONDITION WITH NUM ATOMS IN [1,9] \n---------------------\n")
-
-
-
 			# If the selected action is not the termination condition, execute it (add the atom and objects to the initial state)
 			else:		
 				
@@ -386,7 +381,7 @@ class DirectedGenerator():
 				# See if we add new objects as part of the chosen action
 				chosen_action, objs_to_add = self._get_objs_to_add_and_atom_with_correct_indexes(curr_state, chosen_action)		
 
-				# Execute the action to obtain the reward (associated with the continous consistency rules) and next state
+				# Execute the action to obtain the reward (associated with the continuous consistency rules) and next state
 				_, r_continuous_consistency = problem.apply_action_to_initial_state(objs_to_add, chosen_action)
 				actions_executed += 1
 
@@ -415,12 +410,22 @@ class DirectedGenerator():
 
 		return trajectory
 		
+	"""
+	Obtains a trajectory and then sums the rewards.
+	"""
+	def _obtain_trajectory_and_sum_rewards(self, max_atoms_init_state=10, max_actions_goal_state=10, max_actions_trajectory=15, disc_factor_continuous=0, disc_factor_eventual=0.8):
+		trajectory = self._obtain_trajectory(max_atoms_init_state, max_actions_goal_state, max_actions_trajectory)
+		self._sum_rewards_trajectory(trajectory, disc_factor_continuous, disc_factor_eventual)
+
+		return trajectory
+
 	# This method trains the initial state generation policy.
 	def _train_initial_state_generation_policy(self, num_train_epochs):
 
 		# Hyperparameters
-		trajectories_per_epoch = 1
+		trajectories_per_epoch = 10 # 1
 		train_its_per_epoch = 1
+		num_parallel_jobs = 10 # Used for joblib
 
 		# Initialize trainer
 		logger = TensorBoardLogger("lightning_logs", name="initial_state_policy/preds_curr_phase_and_3_to_7_preds")
@@ -430,16 +435,21 @@ class DirectedGenerator():
 			# Obtain trajectories and create a dataset containing them
 			trajectories = []
 
+			# Obtain the trajectories sequentially, without using joblib
 			for _ in range(trajectories_per_epoch):
-				trajectory = self._obtain_trajectory()
-
-				self._sum_rewards_trajectory(trajectory)
+				trajectory = self._obtain_trajectory_and_sum_rewards()
 
 				trajectories.extend(trajectory) # Add the samples of the current trajectory
 
+			# Obtain the trajectories in parallel using joblib -> The overhead of creating the processes is too much!
+			"""
+			out = Parallel(n_jobs=num_parallel_jobs, backend="threading")(delayed(self._obtain_trajectory_and_sum_rewards)() for _ in range(trajectories_per_epoch))
+			trajectories = list(chain.from_iterable(out)) # Convert from list of lists to a single list (i.e., flatten the first level of the list)
+			"""
+
 			trajectory_dataset = ReinforceDataset(trajectories)
-			trajectory_dataloader = torch.utils.data.DataLoader(dataset=trajectory_dataset, batch_size=10,
-																collate_fn=TransformReinforceDatasetSample(), shuffle=True)
+			trajectory_dataloader = torch.utils.data.DataLoader(dataset=trajectory_dataset, batch_size=100,
+																collate_fn=TransformReinforceDatasetSample(), shuffle=True) # batch_size=10
 
 			# Use the trajectory to train the policy
 			trainer.fit(self._initial_state_policy, trajectory_dataloader)
@@ -467,7 +477,7 @@ class DirectedGenerator():
 		Goal state termination: when the termination condition is sampled or N actions have been executed <--- <TODO>: we need to 
 		establish that limit as an additional parameter (max_possible_length_plan)
 	"""
-	def generate_problem(self, max_atoms_init_state=10, max_actions_goal_state=10, problem_name = None, verbose=False):
+	def generate_problem(self, max_atoms_init_state=10, max_actions_goal_state=10, max_actions_trajectory=30, problem_name = None, verbose=False):
 
 		# Information about the NLM of the initial state policy
 		init_nlm_max_pred_arity = self._initial_state_policy.nlm.max_arity # This value corresponds to the breadth of the NLM
@@ -480,6 +490,8 @@ class DirectedGenerator():
 
 		# < Generate initial state >
 		initial_state_generated = False
+
+		actions_executed = 0
 
 		while not initial_state_generated:
 			# < Use the policy to select an action >
@@ -530,7 +542,7 @@ class DirectedGenerator():
 				# See if we add new objects as part of the chosen action
 				chosen_action, objs_to_add = self._get_objs_to_add_and_atom_with_correct_indexes(curr_state, chosen_action)		
 
-				# Execute the action to obtain the reward (associated with the continous consistency rules) and next state
+				# Execute the action to obtain the reward (associated with the continuous consistency rules) and next state
 				_, r_continuous_consistency = problem.apply_action_to_initial_state(objs_to_add, chosen_action)
 
 				# Check if we have reached the maximum number of atoms allowed in the initial state
@@ -550,6 +562,14 @@ class DirectedGenerator():
 				print("Continuous consistency reward:", r_continuous_consistency)
 				print("Eventual consistency reward:", r_eventual_consistency)
 				#print("NLM output:", nlm_output)
+
+			actions_executed += 1
+
+			if actions_executed >= max_actions_trajectory:
+				initial_state_generated = True
+
+				print("\n -------------------------")
+				print(">> Max number of actions reached - The problem has not been generated")
 
 
 

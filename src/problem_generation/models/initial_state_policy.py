@@ -104,11 +104,11 @@ class InitialStatePolicy(pl.LightningModule):
 	"""
 	def _policy_entropy(self, pred_tensors):
 		# Transform log_probs to probs
-		prob_tensors = [torch.exp(tensor) for tensor in pred_tensors if tensor is not None]
-		prob_tensors[0] = prob_tensors[0][:-1] # Ignore the nullary predicate corresponding to the termination condition
+		prob_tensors = [torch.exp(tensor) for tensor in pred_tensors if tensor is not None] # We ignore None tensors, as they correspond to non-existent actions
+		# prob_tensors[0] = prob_tensors[0][:-1] # Ignore the nullary predicate corresponding to the termination condition
     
 		# Calculate entropy of the lifted action distribution
-		lifted_action_probs = torch.cat([torch.sum(tensor).reshape(1) for tensor in prob_tensors], dim=0) # We ignore None tensors, as they correspond to non-existent actions
+		lifted_action_probs = torch.cat([torch.sum(tensor).reshape(1) for tensor in prob_tensors], dim=0)
 		# If we do it manually, we obtain NaN due to the probs=0 (0*log(0) is NaN)
 		# lifted_action_entropy = -torch.mean(lifted_action_probs*torch.log(lifted_action_probs)) # Calculate the entropy (we use mean instead of sum to scale depending on the number of actions)
 		lifted_action_entropy = torch.distributions.Categorical(probs = lifted_action_probs).entropy() / lifted_action_probs.shape[0]

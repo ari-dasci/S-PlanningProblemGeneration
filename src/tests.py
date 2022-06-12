@@ -366,6 +366,7 @@ def test_train_generative_policies():
 	from problem_generation.environment.pddl_parser import Parser
 	from problem_generation.environment.planner import Planner
 	from problem_generation.environment.state_validator import DummyValidatorBW
+	from problem_generation.environment.state_validator import ValidatorPredOrderBW
 
 	domain_file_path = '../data/domains/blocks-domain.pddl'
 
@@ -378,11 +379,11 @@ def test_train_generative_policies():
 	nlm_inner_layers = [[4,4,4,4], [4,4,4,4], [4,4,4,4]]
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
 
-	directed_generator = DirectedGenerator(parser, planner, consistency_validator=DummyValidatorBW,
+	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
 										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
 										   res_connections_initial_state_nlm=True,
-										   lr_initial_state_nlm = 1e-2,
+										   lr_initial_state_nlm = 5e-3,
 										   lifted_action_entropy_coeff_init_state_policy = 0,
 										   ground_action_entropy_coeff_init_state_policy = 0)
 
@@ -393,9 +394,14 @@ def test_train_generative_policies():
 	# Train the policies
 	directed_generator.train_generative_policies(num_train_epochs = 100000)
 
-	# Generate the problem
-	print("---------- Problem after training the policy ---------- \n\n")
-	directed_generator.generate_problem()
+	# Generate the problems
+	num_problems = 10
+
+	print("---------- Problems after training the policy ---------- \n\n")
+
+	for i in range(num_problems):
+		print(f"\n\n > Problem {i}")
+		directed_generator.generate_problem()
 
 
 	"""
@@ -494,8 +500,43 @@ def test_train_generative_policies():
 			> Ejecución 3, lr=5e-3, 100000 training epochs: PERFECTO
 			> Ejecución 4, lr=1e-2 100000 training epochs: PERFECTO
 		
+		> Pruebas con muy poca entropy reg (lr=1e-2): ---> EL LR DE 1E-2 ES DEMASIADO ALTO!!
+			> reg_coeffs = 0.01, 0.01: Muy mal (la recompensa llega a -0.6 y después empieza a caer en picado!)
+			> reg_coeffs = 0.01, 0: No aprende (la recompensa no converge a 0)
+			> reg_coeffs = 0, 0.01: No aprende (la recompensa no converge a 0)
+			> reg_coeffs = 0.001, 0.001: No aprende
+			> reg_coeffs = 0.0001, 0.0001: No aprende
+			> reg_coeffs = 0.00001, 0.00001: No aprende
+
+			>> lr=1e-2, reg_coeffs = 0, 0: NO APRENDE (la prob term_cond va a 0)
+			>> lr=5e-3, reg_coeffs = 0, 0: APRENDE
+
+		> Pruebas con muy poca entropy reg (lr=5e-3):
+			> reg_coeffs = 1e-9, 1e-9: Aprende
+			> reg_coeffs = 1e-8, 1e-8: Aprende
+			> reg_coeffs = 1e-7, 1e-7: Aprende
+			> reg_coeffs = 5e-7, 5e-7: No aprende
+			> reg_coeffs = 1e-6, 1e-6:
+				> Repetición 1: No Aprende
+				> Repetición 2: No Aprende
+
+		> Pruebas con varias trayectorias por cada época:
+			> 10 trajectories_per_epoch, reg_coeffs = 5e-7, 5e-7: Aprende, aunque converge a r=-0.05
+			> 10 trajectories_per_epoch, reg_coeffs = 0, 0: Aprende (y llega a r=0 más rápido que con reg_coeffs = 5e-7, 5e-7)
+			> 10 trajectories_per_epoch, reg_coeffs = 1e-2, 1e-2: No aprende (la recompensa termina divergiendo a r=-0.8)
+
+---------------------------------------------------------------------
+
+	>> Consistency rules Blocksworld
+		> 3 capas intermedias con 4 preds, reg_coeffs=0 0, lr=5e-3, 10 trajectories_per_epoch, 100k train its: 
+		
+	
 
 
+
+	< EL MAYOR LR POSIBLE ES 5e-3 >
+	< EL MAYOR ENTROPY REG POSIBLE ESTÁ ALREDEDOR DE 1e-7, 1e-7 (en los experimentos con predicate order y 3-7 atoms en el initial state >
+	< HAY DIFERENCIAS ENTRE LOS DISTINTOS VALORES DE ENTROPY REGULARIZATION (reg_coeffs) -> A mayor entropy regularization, mayor entropía de la política y más tarda en converger a r=0 >
 
 
 	"""
