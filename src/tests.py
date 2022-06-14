@@ -376,7 +376,7 @@ def test_train_generative_policies():
 
 	# Use Dummy Validator
 	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8]]
-	nlm_inner_layers = [[4,4,4,4], [4,4,4,4], [4,4,4,4]]
+	nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
 
 	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
@@ -384,18 +384,18 @@ def test_train_generative_policies():
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
 										   res_connections_initial_state_nlm=True,
 										   lr_initial_state_nlm = 5e-3,
-										   lifted_action_entropy_coeff_init_state_policy = 0,
-										   ground_action_entropy_coeff_init_state_policy = 0)
+										   lifted_action_entropy_coeff_init_state_policy = 1,
+										   ground_action_entropy_coeff_init_state_policy = 1)
 
 	# Generate a problem before training the policy
 	print("---------- Problem before training the policy ---------- \n\n")
 	directed_generator.generate_problem()
 
 	# Train the policies
-	directed_generator.train_generative_policies(num_train_epochs = 100000)
+	directed_generator.train_generative_policies(num_train_epochs = 10000)
 
 	# Generate the problems
-	num_problems = 10
+	num_problems = 30
 
 	print("---------- Problems after training the policy ---------- \n\n")
 
@@ -527,11 +527,63 @@ def test_train_generative_policies():
 
 ---------------------------------------------------------------------
 
-	>> Consistency rules Blocksworld
-		> 3 capas intermedias con 4 preds, reg_coeffs=0 0, lr=5e-3, 10 trajectories_per_epoch, 100k train its: 
-		
-	
+	>> Consistency rules Blocksworld (SIN predicado "on" obligatorio)
+		> 3 capas intermedias con 4 preds, reg_coeffs=0 0, lr=5e-3, 10 trajectories_per_epoch, 20000 train its: 
+		     Genera los 10 problemas perfectamente y el reward converge a 0. No obstante, de los 10 problemas, 9 son idénticos ->
+			 < LA POLÍTICA ES DEMASIADO DETERMINISTA >
 
+ 		> 4 capas intermedias con 8 preds, reg_coeffs=0 0, lr=5e-3, 10 trajectories_per_epoch, 20000 train its:
+			> Ejecución 1: funciona mucho peor que con 4 capas (la recompensa diverge a -0.8)
+			> Ejecución 2: funciona bien (recompensa converge a 0 pero la política es demasiado determinista)
+
+	>> Consistency rules Blocksworld (CON predicado "on" obligatorio):
+		> 4 capas intermedias con 8 preds, reg_coeffs=0 0, lr=5e-3, 10 trajectories_per_epoch, 20000 train its:
+			No aprende (la recompensa diverge)
+
+		> 3 capas intermedias con 4 preds, reg_coeffs=0 0, lr=5e-3, 10 trajectories_per_epoch, 20000 train its: 
+			No aprende (la recompensa diverge)
+
+		> 3 capas intermedias con 4 preds, reg_coeffs=1e-7 1e-7, lr=5e-3, 10 trajectories_per_epoch, 35000 train its:
+			No aprende (la recompensa llega en un punto a -0.05 pero después vuelve a diverger a -0.5)
+
+		> 3 capas intermedias con 4 preds, reg_coeffs=0 0, lr=2e-3, 10 trajectories_per_epoch, 20000 train its:
+			No aprende (la recompensa se queda en -0.5) y la gráfica de recompensa es igual de ruidosa
+
+
+		> 3 capas intermedias con 4 preds, reg_coeffs=5e-7 5e-7, lr=5e-3, 10 trajectories_per_epoch, 20000 train its: 
+			No aprende (casi todos los problemas generados son idénticos, con solo predicados de tipo ontable pero ninguno más (excepto
+			            algún clear o handempty ocasional)) -> Converge muy rápido a una política subóptima, donde solo aprende
+						a añadir átomos de tipo ontable
+
+		> 3 capas intermedias con 4 preds, reg_coeffs=1e-2 1e-2, lr=5e-3, 10 trajectories_per_epoch, 10000 train its:
+			La entropía de la política desciende demasiado rápido.
+
+		> 3 capas intermedias con 4 preds, reg_coeffs=1e-1 1e-1, lr=5e-3, 10 trajectories_per_epoch, 10000 train its:
+			La entropía de la política desciende demasiado rápido.
+
+		> 3 capas intermedias con 4 preds, reg_coeffs=1 1, lr=5e-3, 10 trajectories_per_epoch, 10000 train its:
+			La entropía disminuye lentamente, pero la recompensa no sube de -0.5 (creo, ya que la ejecución se paró a mitad).
+
+		> 4 capas intermedias con 8 preds, reg_coeffs=0.5 0.5, lr=5e-3, 10 trajectories_per_epoch, 20000 train its:
+			No aprende (la recompensa diverge)
+
+
+		> 4 capas intermedias con 8 preds, reg_coeffs=1 1, lr=5e-3, 10 trajectories_per_epoch, 10000 train its:
+			
+
+
+
+
+	
+	>>>>>> PARA APRENDER A GENERAR PROBLEMAS NECESITAMOS EXPLORAR MUY BIEN!!!! (si no, es poco probable que al azar sea capaz de
+	cumplir las eventual consistency rules)
+
+
+	>>> AL IMPLEMENTAR EL CRITIC, USAR UNA NLM DIFERENTE QUE LA QUE USO PARA EL ACTOR (ESCOGER LA ACCIÓN A REALIZAR)
+	    En PPO, el tamaño del dataset de entrenamiento (cada vez que entrenamos la política) es de 1024 samples.
+
+	> Probar a variar el entropy regularization (los entropy_reg_coeffs) según avanza el entrenamiento (ir disminuyéndolo poco a poco)
+	> Probar a usar un MLP más complejo (con una hidden layer en la última capa)
 
 
 	< EL MAYOR LR POSIBLE ES 5e-3 >

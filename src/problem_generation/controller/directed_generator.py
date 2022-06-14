@@ -397,6 +397,13 @@ class DirectedGenerator():
 					r_eventual_consistency = 0
 
 
+
+				# < QUITAR >
+				if chosen_action_name == "on":
+					print(">>> ACTION ON SELECTED")
+
+
+
 			# Append sample to the trajectory
 			trajectory.append( [curr_state_tensors, num_objs_with_virtuals, mask_tensors,
 					            chosen_action_index, r_continuous_consistency, r_eventual_consistency] ) # We need to append a list to the trajectory since the reward value is changed in-place (tuples are immutable)

@@ -37,9 +37,11 @@ class ValidatorPredOrderBW(ValidatorPredOrder):
 	#It establishes the order in which the atoms must be added to the state. In this example,
 	#                 atoms of type "ontable" must be added before those of type "on"
 	predicate_order = ['ontable', 'on', 'clear', 'holding', 'handempty']
-	predicates_required = [True, False, True, False, False] # If True, we cannot skip the generation of the corresponding predicate, i.e.,
+	# predicates_required = [True, False, True, False, False] # If True, we cannot skip the generation of the corresponding predicate, i.e.,
 															# that predicate MUST appear in the totally-generated initial_state
 															# Otherwise, it may not appear in the state.
+
+	predicates_required = [True, True, True, False, False]
 
 	"""
 	Returns a list with the predicate names which are required in a totally-generated initial state.
