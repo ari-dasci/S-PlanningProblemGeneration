@@ -86,10 +86,6 @@ class DirectedGenerator():
 		return self._penalization_non_applicable_action
 
 	@property
-	def initial_state_policy(self):
-		return self._initial_state_policy
-
-	@property
 	def domain_name(self):
 		name = self._parser.domain_name
 
@@ -324,8 +320,8 @@ class DirectedGenerator():
 	def _obtain_trajectory(self, max_atoms_init_state=10, max_actions_goal_state=10, max_actions_trajectory=15):
 
 		# Information about the NLM of the initial state policy
-		init_nlm_max_pred_arity = self._initial_state_policy.nlm.max_arity # This value corresponds to the breadth of the NLM
-		init_nlm_output_layer_shape = self._initial_state_policy.nlm.num_output_preds_layers[-1]
+		init_nlm_max_pred_arity = self._initial_state_policy.actor_nlm.max_arity # This value corresponds to the breadth of the NLM
+		init_nlm_output_layer_shape = self._initial_state_policy.actor_nlm.num_output_preds_layers[-1]
 
 		trajectory = []
 
@@ -487,8 +483,8 @@ class DirectedGenerator():
 	def generate_problem(self, max_atoms_init_state=10, max_actions_goal_state=10, max_actions_trajectory=30, problem_name = None, verbose=False):
 
 		# Information about the NLM of the initial state policy
-		init_nlm_max_pred_arity = self._initial_state_policy.nlm.max_arity # This value corresponds to the breadth of the NLM
-		init_nlm_output_layer_shape = self._initial_state_policy.nlm.num_output_preds_layers[-1]
+		init_nlm_max_pred_arity = self._initial_state_policy.actor_nlm.max_arity # This value corresponds to the breadth of the NLM
+		init_nlm_output_layer_shape = self._initial_state_policy.actor_nlm.num_output_preds_layers[-1]
 
 		# < Generate state s0 >
 		problem = ProblemState(self._parser, self._predicates_to_consider_for_goal, self._initial_state_info,

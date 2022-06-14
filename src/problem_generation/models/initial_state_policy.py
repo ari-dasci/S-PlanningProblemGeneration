@@ -11,13 +11,13 @@ from problem_generation.models.nlm import NLM
 class InitialStatePolicy(pl.LightningModule):
 
 	"""
-	Constructor. Creates the NLM used for the initial state policy.
+	Constructor. Creates the NLMs (actor and critic) used for the initial state policy.
 
 	@nlm_residual_connections Whether the NLM must use residual connections
 	@lifted_action_entropy_coeff Coefficient for the lifted_action_entropy, used when calculating the REINFORCE loss
 	@ground_action_entropy_coeff Coefficient for the ground_action_entropy, used when calculating the REINFORCE loss
 	
-	Note: @num_preds_layers_nlm needs to include the extra nullary predicates for the termination condition (in the output layer)
+	Note: @num_preds_layers_nlm needs to include the extra nullary predicate for the termination condition (in the output layer)
 	      and the number of atoms already added to the initial state (in the input layer), in case these are needed.
 	"""
 	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_residual_connections, lr,
@@ -27,10 +27,20 @@ class InitialStatePolicy(pl.LightningModule):
 		self._lr = lr
 		self._lifted_action_entropy_coeff = lifted_action_entropy_coeff
 		self._ground_action_entropy_coeff = ground_action_entropy_coeff
-		self._nlm = NLM(num_preds_layers_nlm, mlp_hidden_sizes_nlm, residual_connections=nlm_residual_connections)
+
+		self._actor_nlm = NLM(num_preds_layers_nlm, mlp_hidden_sizes_nlm, residual_connections=nlm_residual_connections)
+
+		# The NLM for the critic has the same shape as the actor NLM except for the output layer, where it only has
+		# a single nullary predicate corresponding to the value function prediction V(s)
+		num_preds_layers_nlm_critic = np.copy(num_preds_layers_nlm) # We can't share reference!
+		num_preds_layers_nlm_critic[-1, :] = 0
+		num_preds_layers_nlm_critic[-1, 0] = 1
+
+		self._critic_nlm = NLM(num_preds_layers_nlm_critic, mlp_hidden_sizes_nlm, residual_connections=nlm_residual_connections)
 
 		self.curr_train_epoch = 0 # Used to track the current training epoch (i.e., trainer.fit() call), in order to save the logs correctly
 								  # It is incremented by one each time training_step() is called
+
 
 
 	# ------- Getters
@@ -48,8 +58,13 @@ class InitialStatePolicy(pl.LightningModule):
 		return self._ground_action_entropy_coeff
 
 	@property
-	def nlm(self):
-		return self._nlm
+	def actor_nlm(self):
+		return self._actor_nlm
+
+	@property
+	def critic_nlm(self):
+		return self._critic_nlm
+
 
 	# ------- Auxiliar methods
 
@@ -178,7 +193,7 @@ class InitialStatePolicy(pl.LightningModule):
 	def forward(self, state_tensors, num_objs_with_virtuals, mask_tensors=None):
 		
 		# NLM forward pass
-		nlm_output = self._nlm(state_tensors, num_objs_with_virtuals)
+		nlm_output = self._actor_nlm(state_tensors, num_objs_with_virtuals)
 
 		# Mask NLM output (set to -inf values corresponding to invalid atoms)
 		if mask_tensors is not None:
@@ -229,6 +244,8 @@ class InitialStatePolicy(pl.LightningModule):
 		loss = 0
 		reinforce_loss = 0
 		entropy_loss = 0
+		actor_loss = 0
+		critic_loss = 0
 		entropy = 0
 		reward = 0
 		mean_term_cond_prob = 0 # Mean probability of the termination condition across the batch
@@ -236,7 +253,10 @@ class InitialStatePolicy(pl.LightningModule):
 		for train_sample in train_batch:
 			state_tensors, num_objs_with_virtuals, mask_tensors, chosen_action_index, disc_reward_sum = train_sample
 
-			# Obtain log probability of the selected action
+
+			# < Obtain log probability of the selected action >
+
+			# Obtain action probabilities for the current state (corresponding to the actor NLM)
 			action_log_probs = self.forward(state_tensors, num_objs_with_virtuals, mask_tensors)
 
 			# If any log prob is NaN, make it -infinity
@@ -253,9 +273,27 @@ class InitialStatePolicy(pl.LightningModule):
 
 			chosen_action_log_prob = action_log_probs[chosen_action_index[0]][tuple(chosen_action_index[1:])]
 
+
+			# < Obtain advantage value A(s,a) for selected action a at current state s>
+
+			# Use critic NLM to predict the value (disc reward) of the current state V(s)
+			
+			state_value = self._critic_nlm(state_tensors, num_objs_with_virtuals)[0][0] # [0][0] to select the first predicate of arity 0 (corresponding to V(s))
+
+			# Calculate the advantage < making sure the pytorch gradient does not flow through this new variable >
+			
+			state_value_np = state_value.detach().numpy()
+			advantage = disc_reward_sum - state_value_np # A(s,a) = R(s,a) - V(s)
+
+
+			# < Actor Losses >
+
 			# Obtain REINFORCE loss for current sample
 			# We use the sign "-" because the optimizer minimizes the loss (and we want to maximize it)
-			curr_reinforce_loss = -chosen_action_log_prob*disc_reward_sum
+			# curr_reinforce_loss = -chosen_action_log_prob*disc_reward_sum
+
+			# Obtain REINFORCE loss (for the actor) for current sample, using the advantage estimation
+			curr_reinforce_loss = -chosen_action_log_prob*advantage
 
 			# Obtain policy entropy loss for current sample
 			# We use the sign "-" because the optimizer minimizes the loss (and we want to maximize it)
@@ -263,43 +301,51 @@ class InitialStatePolicy(pl.LightningModule):
 			curr_entropy_loss = -(lifted_action_entropy*self._lifted_action_entropy_coeff + \
 					grounded_action_entropy*self._ground_action_entropy_coeff)
 			
-			curr_loss = curr_reinforce_loss + curr_entropy_loss # The entropy loss has already been scaled
-			# curr_loss = curr_reinforce_loss # Do not use entropy loss
+			curr_actor_loss = curr_reinforce_loss + curr_entropy_loss # The entropy loss has already been scaled
 
-			# Accumulate loss and metrics
-			loss += curr_loss
+
+			# < Critic Loss >
+
+			# Obtain critic loss
+			curr_critic_loss = (state_value - disc_reward_sum)**2
+
+
+			# < Accumulate losses and metrics >
 			reinforce_loss += curr_reinforce_loss
 			entropy_loss += curr_entropy_loss
+			actor_loss += curr_actor_loss
 
+			critic_loss += curr_critic_loss
+
+			loss += curr_actor_loss + curr_critic_loss # Loss combines Actor and Critic losses
+			
 			entropy += lifted_action_entropy + grounded_action_entropy
 			reward += disc_reward_sum
 
-		# Scale loss by number of samples
-		loss /= len(train_batch)
+		# Scale losses and metrics by number of samples
+
 		reinforce_loss /= len(train_batch)
 		entropy_loss /= len(train_batch)
+		actor_loss /= len(train_batch)
+
+		critic_loss /= len(train_batch)
+
+		loss /= len(train_batch)
+
 		mean_term_cond_prob /= len(train_batch)
 		entropy /= len(train_batch)
 		reward /= len(train_batch)
 
-		# Logs
+
+		# < Logs >
 		# Add logs every N training iterations
-
-		"""
-		if self.curr_train_epoch % log_period == 0:
-			self.logger.experiment.add_scalar("Reinforce Loss", reinforce_loss, self.curr_train_epoch)
-			self.logger.experiment.add_scalar("Entropy Loss", entropy_loss, self.curr_train_epoch)
-			# self.logger.experiment.add_scalar("Entropy Loss", 0, self.curr_train_epoch)
-			self.logger.experiment.add_scalar("Total Loss", loss, self.curr_train_epoch)
-
-			self.logger.experiment.add_scalar("Termination Condition Probability", mean_term_cond_prob, self.curr_train_epoch)
-		"""
 
 		if self.curr_train_epoch % log_period == 0:
 			self.logger.experiment.add_scalar("Reward", reward, global_step=self.curr_train_epoch)
-			self.logger.experiment.add_scalar("Policy Entropy", entropy, global_step=self.curr_train_epoch)
-			self.logger.experiment.add_scalars('Losses', {'Total Loss': loss, 'Reinforce Loss': reinforce_loss, 'Entropy Loss': entropy_loss},
+			self.logger.experiment.add_scalar("Actor Policy Entropy", entropy, global_step=self.curr_train_epoch)
+			self.logger.experiment.add_scalars('Actor Losses', {'Total Loss': actor_loss, 'Reinforce Loss': reinforce_loss, 'Entropy Loss': entropy_loss},
 											   global_step=self.curr_train_epoch)
+			self.logger.experiment.add_scalar("Critic Loss", critic_loss, global_step=self.curr_train_epoch)
 			self.logger.experiment.add_scalar("Termination Condition Probability", mean_term_cond_prob, global_step=self.curr_train_epoch)
 
 		self.curr_train_epoch += 1

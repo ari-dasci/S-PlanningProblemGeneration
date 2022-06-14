@@ -379,13 +379,24 @@ def test_train_generative_policies():
 	nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
 
-	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
+	# Use "real" BW validator (ValidatorPredOrderBW)
+	"""directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
 										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
 										   res_connections_initial_state_nlm=True,
 										   lr_initial_state_nlm = 5e-3,
 										   lifted_action_entropy_coeff_init_state_policy = 1,
-										   ground_action_entropy_coeff_init_state_policy = 1)
+										   ground_action_entropy_coeff_init_state_policy = 1)"""
+
+	# Use dummy validator
+	directed_generator = DirectedGenerator(parser, planner, consistency_validator=DummyValidatorBW,
+											   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
+											   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
+											   res_connections_initial_state_nlm=True,
+											   lr_initial_state_nlm = 5e-3,
+											   lifted_action_entropy_coeff_init_state_policy = 0,
+											   ground_action_entropy_coeff_init_state_policy = 0)
+
 
 	# Generate a problem before training the policy
 	print("---------- Problem before training the policy ---------- \n\n")
@@ -567,17 +578,30 @@ def test_train_generative_policies():
 		> 4 capas intermedias con 8 preds, reg_coeffs=0.5 0.5, lr=5e-3, 10 trajectories_per_epoch, 20000 train its:
 			No aprende (la recompensa diverge)
 
-
 		> 4 capas intermedias con 8 preds, reg_coeffs=1 1, lr=5e-3, 10 trajectories_per_epoch, 10000 train its:
-			
+			No aprende bien (la recompensa se queda alrededor de -0.8) -> Quizás necesita una NLM más compleja o más iteraciones de entrenamiento!!
 
+------------------ PRUEBAS ACTOR-CRITIC (sin PPO) ---------------- 
+
+	> Always pick ontable (entropy reg: 0 0)
+		> Funciona perfectamente
+
+	> Predicates in current phase (entropy reg: 0 0):
+		
 
 
 
 	
+
+
+
+
+---------------------------------- 
+
 	>>>>>> PARA APRENDER A GENERAR PROBLEMAS NECESITAMOS EXPLORAR MUY BIEN!!!! (si no, es poco probable que al azar sea capaz de
 	cumplir las eventual consistency rules)
 
+	>>> Para calcular el advantage, usamos la fórmula A_t = -V(s_t) + R_t, donde R_t es la recompensa descontada desde el tiempo t hasta el fin del episodio
 
 	>>> AL IMPLEMENTAR EL CRITIC, USAR UNA NLM DIFERENTE QUE LA QUE USO PARA EL ACTOR (ESCOGER LA ACCIÓN A REALIZAR)
 	    En PPO, el tamaño del dataset de entrenamiento (cada vez que entrenamos la política) es de 1024 samples.

@@ -402,8 +402,12 @@ class DummyValidatorBW(ValidatorPredOrder):
 		if action_pred not in cls.predicate_order:
 			raise ValueError("The predicate type is not in the list of predicates of the validator")
 		
-		# <Check if the action corresponds to a predicate of the current phase>
+		# Always choose ontable
+		# return action_pred == "ontable"
 
+
+		# <Check if the action corresponds to a predicate of the current phase>
+		
 		preds_curr_phase = cls.predicates_in_current_phase(curr_state)
 
 		if action_pred not in preds_curr_phase:
@@ -429,10 +433,16 @@ class DummyValidatorBW(ValidatorPredOrder):
 		preds_in_state = set([a[0] for a in state_atoms])
 		required_preds = cls.required_pred_names()
 		
+		# No eventual consistency rules
+		# return True
+
+
 		# <Check the state contains at least one atom of each required predicate type>
 		for pred in required_preds:
 			if pred not in preds_in_state:
 				return False
 
+		return True
+
 		# Between 3-7 atoms in state
-		return curr_state.num_atoms >= 3 and curr_state.num_atoms <= 7
+		# return curr_state.num_atoms >= 3 and curr_state.num_atoms <= 7

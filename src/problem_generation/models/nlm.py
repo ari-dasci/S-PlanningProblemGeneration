@@ -370,6 +370,7 @@ class NLM(nn.Module):
             num_input_preds_layers_with_res = num_input_preds_layers
 
         # Create each NLM layer and add it to a module list
+        # Do not apply sigmoid or residual connections to the last NLM layer
         self.layers = nn.ModuleList([_NLM_Layer(num_input_preds_layers_with_res[i], num_output_preds_layers[i], mlp_hidden_size_layers[i],
                                                 apply_sigmoid = (i != num_preds_layers.shape[0]-2),
                                                 residual_connections = (residual_connections and i != num_preds_layers.shape[0]-2)) \
