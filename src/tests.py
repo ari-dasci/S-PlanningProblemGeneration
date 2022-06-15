@@ -380,22 +380,22 @@ def test_train_generative_policies():
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
 
 	# Use "real" BW validator (ValidatorPredOrderBW)
-	"""directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
+	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
 										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
 										   res_connections_initial_state_nlm=True,
 										   lr_initial_state_nlm = 5e-3,
-										   lifted_action_entropy_coeff_init_state_policy = 1,
-										   ground_action_entropy_coeff_init_state_policy = 1)"""
+										   lifted_action_entropy_coeff_init_state_policy = 0.1,
+										   ground_action_entropy_coeff_init_state_policy = 0.1)
 
 	# Use dummy validator
-	directed_generator = DirectedGenerator(parser, planner, consistency_validator=DummyValidatorBW,
+	"""directed_generator = DirectedGenerator(parser, planner, consistency_validator=DummyValidatorBW,
 											   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
 											   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
 											   res_connections_initial_state_nlm=True,
 											   lr_initial_state_nlm = 5e-3,
 											   lifted_action_entropy_coeff_init_state_policy = 0,
-											   ground_action_entropy_coeff_init_state_policy = 0)
+											   ground_action_entropy_coeff_init_state_policy = 0)"""
 
 
 	# Generate a problem before training the policy
@@ -403,7 +403,7 @@ def test_train_generative_policies():
 	directed_generator.generate_problem()
 
 	# Train the policies
-	directed_generator.train_generative_policies(num_train_epochs = 10000)
+	directed_generator.train_generative_policies(num_train_epochs = 20000)
 
 	# Generate the problems
 	num_problems = 30
@@ -587,16 +587,35 @@ def test_train_generative_policies():
 		> Funciona perfectamente
 
 	> Predicates in current phase (entropy reg: 0 0):
-		
+		> Funciona perfectamente
+
+	>> Consistency rules Blocksworld (CON predicado "on" obligatorio):
+
+		> 4 capas intermedias con 8 preds, reg_coeffs=0 0, lr=5e-3, 10 trajectories_per_epoch, 20000 train its: 
+			No aprende (la recompensa converge a -0.44)
+
+		> 4 capas intermedias con 8 preds, reg_coeffs=1 1, lr=5e-3, 10 trajectories_per_epoch, 20000 train its: 
+			No aprende (la recompensa termina en -0.5 y la entropía en 0.01) -> Si se dejaran más iteraciones
+			(la ejecución se cortó tras 20k), quizás sí podría aprender, ya que la gráfica de recompensa seguía aumentando
+			un poco cuando terminó la ejecución
 
 
+		> 4 capas intermedias con 8 preds, reg_coeffs=0.1 0.1, lr=5e-3, 10 trajectories_per_epoch, 20000 train its:
+			
 
-	
 
-
+	>>> PRUEBA CAMBIANDO EL SIGNO DEL REINFORCE_LOSS (quitando el -):
+		En vez de maximizar la recompensa, la minimiza!! -> Es necesario el símbolo "-" para que maximice la recompensa!
 
 
 ---------------------------------- 
+
+	>>> Ver qué parámetros deben disminuir conforme avanza el entrenamiento:
+		> Entropy coeffs?
+		> Valor de alfa que se usa para ir disminuyendo el clipping parameter y el learning rate (ver paper de PPO)
+
+	>>> Probar a disminuir el valor de entropy regularization, aumentar la complejidad de la NLM y usar TD-alfa en vez de MonteCarlo para calcular V(s) con el critic
+	>>> Probar también a ir disminuyendo el entropy regularization con el tiempo
 
 	>>>>>> PARA APRENDER A GENERAR PROBLEMAS NECESITAMOS EXPLORAR MUY BIEN!!!! (si no, es poco probable que al azar sea capaz de
 	cumplir las eventual consistency rules)
