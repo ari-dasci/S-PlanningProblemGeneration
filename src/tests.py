@@ -1,6 +1,8 @@
 # Script used to test the functionality provided by the different modules
 # It should be executed from the same folder it is stored in
 
+import sys
+
 # Test relational_state.py module, used to work with PDDL states and problems
 def test_relational_state():
 	from problem_generation.environment.relational_state import RelationalState, RelationalStatesDataset
@@ -374,9 +376,8 @@ def test_train_generative_policies():
 	parser.parse_domain(domain_file_path)
 	planner = Planner(domain_file_path)
 
-	# Use Dummy Validator
-	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8]]
-	nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
 
 	# Use "real" BW validator (ValidatorPredOrderBW)
@@ -385,8 +386,10 @@ def test_train_generative_policies():
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
 										   res_connections_initial_state_nlm=True,
 										   lr_initial_state_nlm = 5e-3,
-										   lifted_action_entropy_coeff_init_state_policy = 0.1,
-										   ground_action_entropy_coeff_init_state_policy = 0.1)
+										   lifted_action_entropy_coeff_init_state_policy = 1,
+										   ground_action_entropy_coeff_init_state_policy = 1,
+										   init_state_policy_entropy_annealing_coeffs = (100, 0.1, 0.1),
+										   epsilon_init_state_policy=0.1)
 
 	# Use dummy validator
 	"""directed_generator = DirectedGenerator(parser, planner, consistency_validator=DummyValidatorBW,
@@ -394,8 +397,10 @@ def test_train_generative_policies():
 											   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
 											   res_connections_initial_state_nlm=True,
 											   lr_initial_state_nlm = 5e-3,
-											   lifted_action_entropy_coeff_init_state_policy = 0,
-											   ground_action_entropy_coeff_init_state_policy = 0)"""
+											   lifted_action_entropy_coeff_init_state_policy = 0.01,
+											   ground_action_entropy_coeff_init_state_policy = 0.01,
+											   init_state_policy_entropy_annealing_coeffs = None,
+											   epsilon_init_state_policy=0.2)"""
 
 
 	# Generate a problem before training the policy
@@ -403,7 +408,7 @@ def test_train_generative_policies():
 	directed_generator.generate_problem()
 
 	# Train the policies
-	directed_generator.train_generative_policies(num_train_epochs = 20000)
+	directed_generator.train_generative_policies(training_iterations = 1000)
 
 	# Generate the problems
 	num_problems = 30
@@ -411,230 +416,47 @@ def test_train_generative_policies():
 	print("---------- Problems after training the policy ---------- \n\n")
 
 	for i in range(num_problems):
-		print(f"\n\n > Problem {i}")
+		print(f"\n\n > Problem {i}\n")
 		directed_generator.generate_problem()
 
+"""
+We load an already-trained model (corresponding to the initial policy) and use it to generate problems.
 
-	"""
-	Resultados (con la initial state policy antigua):
+Note: in order to load a model, we need to know the NLMs shapes and hyperparameters!!!
 
-	> Es mejor no usar entropy loss ahora mismo
-	> El loss debe ser negativo
-	> Sin entropy loss y con 2 capas intermedias, es capaz de aprender consistency=pred_order
-	      - Con tres capas intermedias también, pero el entrenamiento es más inestable y a veces no converge
-	"""
+# <TODO>: also test the goal policy
+"""
+def test_load_model_and_generate_problems():
+	from problem_generation.controller.directed_generator import DirectedGenerator
+	from problem_generation.environment.pddl_parser import Parser
+	from problem_generation.environment.planner import Planner
+	from problem_generation.environment.state_validator import DummyValidatorBW
+	from problem_generation.environment.state_validator import ValidatorPredOrderBW
 
-	"""
-	Resultados (con la initial state policy nueva):
+	domain_file_path = '../data/domains/blocks-domain.pddl'
 
-	> Cont. consist: nada (solo evitar átomos repetidos y átomos con params. repetidos) - 
-	  Eventual consist: nada (solo que el estado inicial contenga todos los predicados necesarios)
-	  > Funciona
+	parser = Parser()
+	parser.parse_domain(domain_file_path)
+	planner = Planner(domain_file_path)
 
-	> Always pick ontable
-	  > Funciona
+	# Create the generator and load the trained model
+	model_path = "saved_models/model_its-180.ckpt"
 
-	> Cont. consist: nada - (solo evitar átomos repetidos)
-	  Eventual consist: ejecutar termination condition con num_preds entre 1 y 9
-	  Funciona sin capas intermedias o una única capa intermedia de la NLM (y lr=5e-3)
+	nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
 
-	  PARECE QUE SI NO USO NINGUNA CAPA INTERMEDIA DE LA NLM ENTONCES SÍ FUNCIONA!!!
-	  (en ese caso, son las operaciones internas de la NLM las que hacen que se "pierda" la información
-	  del perc_actions_executed (quizás al ser un valor real en vez de binario))
+	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
+										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
+										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
+										   res_connections_initial_state_nlm=True,
+										   load_init_state_policy_checkpoint_name=model_path)
 
-	  2, 2 (con una capa intermedia) -> 1/3
-	  1.5, 1.5 (con una capa intermedia) -> 4/5
-	  1, 1 (con una capa intermedia) -> 3/5
-	  1, 1 (sin capas intermedias) -> 5/5, -> FUNCIONA MEJOR QUE CUANDO USO 1 CAPA INTERMEDIA!!
-	  1, 1 (dos capas intermedias) -> 0/3 -> FUNCIONA MUCHO PEOR QUE CON SOLO UNA CAPA INTERMEDIA!!
-	  1, 1 (dos capas intermedias) -> 2/3, 0 usando 10000 training epochs
+	print(f">> Model {model_path} loaded")
 
-	  Con 2 capas intermedias y 8 predicados para cada ariedad a veces la probabilidad de la term. condition va a 0 (esto no debería pasar)
-	  Además, necesita una mayor entropy regularization para la política y más iteraciones.
+	# Generate the set of problems with the trained initial policy
+	num_problems = 10
 
-	  >> Cuanto más capas añado a la NLM, más dificultad tiene para "recordar" el perc_actions_exec que se le da como input
-	     a la primera capa
-
-	  >> PROBAR A USAR RELU EN VEZ DE SIGMOID PARA LA NLM!! -> No funciona
-
-	  >> Usar residual connections
-
-	  ----------------- Pruebas con residual connections
-
-	  > Always pick ontable
-		> Sin residual connections: Funciona (si uso 1,1 para los coefs. de entropy regularization)
-		> Con residual connections: Funciona si uso un lr de 1e-3 y una entropy regularization de 0.1 o menor.
-
-	  > Termination condition con 1-9 átomos en el estado (lr=1e-3, regularization coeffs=0.1, 0.1)
-		> Sin residual connections: 
-			> Sin capas intermedias: Funciona
-			> Con una capa intermedia [4,4,4,4]: Funciona (con 10000 train epochs)
-		> Con residual connections: 
-			> Con una capa intermedia [4,4,4,4]: Funciona (con 10000 train epochs)
-			> Con una capa intermedia [8,8,8,8]: Funciona (con 10000 train epochs)
-			> Con dos capas intermedias [8,8,8,8]: Funciona (con 10000 train epochs)
-			> Con tres capas intermedias [8,8,8,8]: Funciona (con 10000 train epochs)
-
-	  > Termination condition con 3-7 átomos en el estado (con residual connections, con tres capas intermedias [8,8,8,8])
-		> lr=1e-3, reg_coeffs = 0.1: no funciona
-		> lr=1e-3, reg_coeffs = 0.05: no funciona
-		> lr=5e-3, reg_coeffs = 0.05: no funciona (con ese lr, la probabilidad del term_condition se va a 0!!)
-		> lr=5e-4, reg_coeffs = 0.05: Funciona (parece que la NLM necesita una lr de 5e-4 para aprender mejor!)
-
-	  > Predicates in current phase (residual connections, dos capas intermedias [4,4,4,4]):
-	    > lr=5e-4, reg_coeffs = 0.05: funciona, pero a veces escoge acciones incorrectas (creo que porque la política es demasiado estocástica debido a la entropy regularization)
-		> lr=5e-4, reg_coeffs = 0.02: funciona perfectamente.
-
-	  > Predicates in current phase y termination condition con 3-7 átomos en el estado (residual connections, dos capas intermedias [4,4,4,4]):
-	    > lr=5e-4, reg_coeffs = 0.02, 10000 training epochs: regular (ejecuta la termination condition una acción demasiado pronto) 
-		> lr=5e-4, reg_coeffs = 0.02, 20000 training epochs: regular (ejecuta bien la termination condition pero algunas veces selecciona acciones incorrectas)
-		> lr=1e-4, reg_coeffs = 0.02, 30000 training epochs: regular (ejecuta la termination condition una acción demasiado pronto y selecciona una acción incorrecta) 
-	    > lr=5e-4, reg_coeffs = 0.0, 50000 training epochs: Funciona muy mal (la prob_term_cond va a 0)
-		> Tres capas intermedias [8,8,8,8], lr=5e-4, reg_coeffs = 0.00, 30000 training epochs: Funciona muy mal (la prob_term_cond va a 0)
-		> Tres capas intermedias [8,8,8,8], lr=5e-5, reg_coeffs = 0.00, 30000 training epochs: Funciona mal (escoge los átomos en el orden incorrecto y selecciona la condición de parada demasiado pronto)
-		> Tres capas intermedias [4,4,4,4], lr=1e-5, reg_coeffs = 0.0, 50000 training epochs: Funciona mal (escoge los átomos en el orden incorrecto y selecciona la condición de parada demasiado pronto) -> creo que el lr es demasiado bajo!
-		> Tres capas intermedias [4,4,4,4], lr=2e-4, reg_coeffs = 0.02, 200000 training epochs: Funciona regular (ejecuta bien la termination condition pero algunas veces selecciona acciones incorrectas)
-
-		> Tres capas intermedias [4,4,4,4], lr=5e-4, reg_coeffs = 2, 100000 training epochs: Funciona mal (la recompensa media en la gráfica es de -0.8) 
-		> Tres capas intermedias [4,4,4,4], lr=5e-4, reg_coeffs = 1, 200000 training epochs: Funciona regular (ejecuta bien la termination condition pero algunas veces selecciona acciones incorrectas)
-		> Tres capas intermedias [4,4,4,4], lr=5e-4, reg_coeffs = 0.5, 100000 training epochs: Funciona casi bien (ejecuta bien la termination condition y escoge casi todas las acciones en el orden correcto (aunque no siempre))
-		> Tres capas intermedias [4,4,4,4], lr=5e-4, reg_coeffs = 0.2, 100000 training epochs: 
-			> Ejecución 1: Funciona perfectamente (escoge bien las acciones en orden y la termination condition)
-			> Ejecución 2: Funciona regular (escoge algunas acciones en orden incorrecto pero la termination condition bien)
-		> Tres capas intermedias [4,4,4,4], lr=5e-4, reg_coeffs = 0.05, 200000 training epochs: Regular (recompensa llega a -0.5 y después baja)
-		> Tres capas intermedias [4,4,4,4], lr=5e-4, reg_coeffs = 0.02, 100000 training epochs: Mal (escoge las acciones en mal orden y mal la termination condition,
-		       la recompensa llega a -0.5 y después baja lentamente (funciona parecido a reg_coeffs=0.05))
-		
-		> Tres capas intermedias [4,4,4,4], reg_coeffs = 0, 200000 training epochs:
-			> Ejecución 1, lr=5e-4: PERFECTO (escoge bien todas las acciones y termination condition, la recompensa se aproxima a 0)
-			> Ejecución 2, lr=1e-3: PERFECTO (escoge bien todas las acciones y termination condition, la recompensa se aproxima a 0)
-			> Ejecución 3, lr=5e-3, 100000 training epochs: PERFECTO
-			> Ejecución 4, lr=1e-2 100000 training epochs: PERFECTO
-		
-		> Pruebas con muy poca entropy reg (lr=1e-2): ---> EL LR DE 1E-2 ES DEMASIADO ALTO!!
-			> reg_coeffs = 0.01, 0.01: Muy mal (la recompensa llega a -0.6 y después empieza a caer en picado!)
-			> reg_coeffs = 0.01, 0: No aprende (la recompensa no converge a 0)
-			> reg_coeffs = 0, 0.01: No aprende (la recompensa no converge a 0)
-			> reg_coeffs = 0.001, 0.001: No aprende
-			> reg_coeffs = 0.0001, 0.0001: No aprende
-			> reg_coeffs = 0.00001, 0.00001: No aprende
-
-			>> lr=1e-2, reg_coeffs = 0, 0: NO APRENDE (la prob term_cond va a 0)
-			>> lr=5e-3, reg_coeffs = 0, 0: APRENDE
-
-		> Pruebas con muy poca entropy reg (lr=5e-3):
-			> reg_coeffs = 1e-9, 1e-9: Aprende
-			> reg_coeffs = 1e-8, 1e-8: Aprende
-			> reg_coeffs = 1e-7, 1e-7: Aprende
-			> reg_coeffs = 5e-7, 5e-7: No aprende
-			> reg_coeffs = 1e-6, 1e-6:
-				> Repetición 1: No Aprende
-				> Repetición 2: No Aprende
-
-		> Pruebas con varias trayectorias por cada época:
-			> 10 trajectories_per_epoch, reg_coeffs = 5e-7, 5e-7: Aprende, aunque converge a r=-0.05
-			> 10 trajectories_per_epoch, reg_coeffs = 0, 0: Aprende (y llega a r=0 más rápido que con reg_coeffs = 5e-7, 5e-7)
-			> 10 trajectories_per_epoch, reg_coeffs = 1e-2, 1e-2: No aprende (la recompensa termina divergiendo a r=-0.8)
-
----------------------------------------------------------------------
-
-	>> Consistency rules Blocksworld (SIN predicado "on" obligatorio)
-		> 3 capas intermedias con 4 preds, reg_coeffs=0 0, lr=5e-3, 10 trajectories_per_epoch, 20000 train its: 
-		     Genera los 10 problemas perfectamente y el reward converge a 0. No obstante, de los 10 problemas, 9 son idénticos ->
-			 < LA POLÍTICA ES DEMASIADO DETERMINISTA >
-
- 		> 4 capas intermedias con 8 preds, reg_coeffs=0 0, lr=5e-3, 10 trajectories_per_epoch, 20000 train its:
-			> Ejecución 1: funciona mucho peor que con 4 capas (la recompensa diverge a -0.8)
-			> Ejecución 2: funciona bien (recompensa converge a 0 pero la política es demasiado determinista)
-
-	>> Consistency rules Blocksworld (CON predicado "on" obligatorio):
-		> 4 capas intermedias con 8 preds, reg_coeffs=0 0, lr=5e-3, 10 trajectories_per_epoch, 20000 train its:
-			No aprende (la recompensa diverge)
-
-		> 3 capas intermedias con 4 preds, reg_coeffs=0 0, lr=5e-3, 10 trajectories_per_epoch, 20000 train its: 
-			No aprende (la recompensa diverge)
-
-		> 3 capas intermedias con 4 preds, reg_coeffs=1e-7 1e-7, lr=5e-3, 10 trajectories_per_epoch, 35000 train its:
-			No aprende (la recompensa llega en un punto a -0.05 pero después vuelve a diverger a -0.5)
-
-		> 3 capas intermedias con 4 preds, reg_coeffs=0 0, lr=2e-3, 10 trajectories_per_epoch, 20000 train its:
-			No aprende (la recompensa se queda en -0.5) y la gráfica de recompensa es igual de ruidosa
-
-
-		> 3 capas intermedias con 4 preds, reg_coeffs=5e-7 5e-7, lr=5e-3, 10 trajectories_per_epoch, 20000 train its: 
-			No aprende (casi todos los problemas generados son idénticos, con solo predicados de tipo ontable pero ninguno más (excepto
-			            algún clear o handempty ocasional)) -> Converge muy rápido a una política subóptima, donde solo aprende
-						a añadir átomos de tipo ontable
-
-		> 3 capas intermedias con 4 preds, reg_coeffs=1e-2 1e-2, lr=5e-3, 10 trajectories_per_epoch, 10000 train its:
-			La entropía de la política desciende demasiado rápido.
-
-		> 3 capas intermedias con 4 preds, reg_coeffs=1e-1 1e-1, lr=5e-3, 10 trajectories_per_epoch, 10000 train its:
-			La entropía de la política desciende demasiado rápido.
-
-		> 3 capas intermedias con 4 preds, reg_coeffs=1 1, lr=5e-3, 10 trajectories_per_epoch, 10000 train its:
-			La entropía disminuye lentamente, pero la recompensa no sube de -0.5 (creo, ya que la ejecución se paró a mitad).
-
-		> 4 capas intermedias con 8 preds, reg_coeffs=0.5 0.5, lr=5e-3, 10 trajectories_per_epoch, 20000 train its:
-			No aprende (la recompensa diverge)
-
-		> 4 capas intermedias con 8 preds, reg_coeffs=1 1, lr=5e-3, 10 trajectories_per_epoch, 10000 train its:
-			No aprende bien (la recompensa se queda alrededor de -0.8) -> Quizás necesita una NLM más compleja o más iteraciones de entrenamiento!!
-
------------------- PRUEBAS ACTOR-CRITIC (sin PPO) ---------------- 
-
-	> Always pick ontable (entropy reg: 0 0)
-		> Funciona perfectamente
-
-	> Predicates in current phase (entropy reg: 0 0):
-		> Funciona perfectamente
-
-	>> Consistency rules Blocksworld (CON predicado "on" obligatorio):
-
-		> 4 capas intermedias con 8 preds, reg_coeffs=0 0, lr=5e-3, 10 trajectories_per_epoch, 20000 train its: 
-			No aprende (la recompensa converge a -0.44)
-
-		> 4 capas intermedias con 8 preds, reg_coeffs=1 1, lr=5e-3, 10 trajectories_per_epoch, 20000 train its: 
-			No aprende (la recompensa termina en -0.5 y la entropía en 0.01) -> Si se dejaran más iteraciones
-			(la ejecución se cortó tras 20k), quizás sí podría aprender, ya que la gráfica de recompensa seguía aumentando
-			un poco cuando terminó la ejecución
-
-
-		> 4 capas intermedias con 8 preds, reg_coeffs=0.1 0.1, lr=5e-3, 10 trajectories_per_epoch, 20000 train its:
-			
-
-
-	>>> PRUEBA CAMBIANDO EL SIGNO DEL REINFORCE_LOSS (quitando el -):
-		En vez de maximizar la recompensa, la minimiza!! -> Es necesario el símbolo "-" para que maximice la recompensa!
-
-
----------------------------------- 
-
-	>>> Ver qué parámetros deben disminuir conforme avanza el entrenamiento:
-		> Entropy coeffs?
-		> Valor de alfa que se usa para ir disminuyendo el clipping parameter y el learning rate (ver paper de PPO)
-
-	>>> Probar a disminuir el valor de entropy regularization, aumentar la complejidad de la NLM y usar TD-alfa en vez de MonteCarlo para calcular V(s) con el critic
-	>>> Probar también a ir disminuyendo el entropy regularization con el tiempo
-
-	>>>>>> PARA APRENDER A GENERAR PROBLEMAS NECESITAMOS EXPLORAR MUY BIEN!!!! (si no, es poco probable que al azar sea capaz de
-	cumplir las eventual consistency rules)
-
-	>>> Para calcular el advantage, usamos la fórmula A_t = -V(s_t) + R_t, donde R_t es la recompensa descontada desde el tiempo t hasta el fin del episodio
-
-	>>> AL IMPLEMENTAR EL CRITIC, USAR UNA NLM DIFERENTE QUE LA QUE USO PARA EL ACTOR (ESCOGER LA ACCIÓN A REALIZAR)
-	    En PPO, el tamaño del dataset de entrenamiento (cada vez que entrenamos la política) es de 1024 samples.
-
-	> Probar a variar el entropy regularization (los entropy_reg_coeffs) según avanza el entrenamiento (ir disminuyéndolo poco a poco)
-	> Probar a usar un MLP más complejo (con una hidden layer en la última capa)
-
-
-	< EL MAYOR LR POSIBLE ES 5e-3 >
-	< EL MAYOR ENTROPY REG POSIBLE ESTÁ ALREDEDOR DE 1e-7, 1e-7 (en los experimentos con predicate order y 3-7 atoms en el initial state >
-	< HAY DIFERENCIAS ENTRE LOS DISTINTOS VALORES DE ENTROPY REGULARIZATION (reg_coeffs) -> A mayor entropy regularization, mayor entropía de la política y más tarda en converger a r=0 >
-
-
-	"""
+	directed_generator.generate_problems(num_problems, verbose=True)
 
 
 # ---------------------------------------------------
@@ -650,4 +472,6 @@ if __name__ == "__main__":
 	#test_generate_random_problems()
 
 	#test_trajectory_directed_generator() 
-	test_train_generative_policies()
+	#test_train_generative_policies()
+
+	test_load_model_and_generate_problems()

@@ -9,6 +9,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from joblib import Parallel, delayed
 from itertools import chain
+import glob
 
 from problem_generation.environment.problem_state import ProblemState
 from problem_generation.environment.pddl_parser import Parser
@@ -29,12 +30,15 @@ class DirectedGenerator():
 											  since the shapes of these two layers are calculated from the information about the predicates/actions in the domain.
 											  If the NLM has no hidden layers, @num_preds_inner_layers_initial_state_nlm must be an empty list [].
 											  Otherwise, the inner layers shapes must be passed as a list of lists, e.g., [[1,1,1,1]] (for only one hidden layer)
+	@load_init_state_policy_checkpoint_name If not None, we load the initial state policy checkpoint given by @load_checkpoint_name instead of initializing
+											the initial state policy (actor and critic NLMs) weights from scratch.
 	"""
 	def __init__(self, parser, planner, 
 				 predicates_to_consider_for_goal=None, initial_state_info=None, consistency_validator=ValidatorPredOrderBW,
 				 penalization_continuous_consistency=-1, penalization_eventual_consistency=-1, penalization_non_applicable_action=-1,
 				 num_preds_inner_layers_initial_state_nlm=[[4,4,4,4]], mlp_hidden_layers_initial_state_nlm=[0,0], res_connections_initial_state_nlm=True,
-				 lr_initial_state_nlm=5e-4, lifted_action_entropy_coeff_init_state_policy = 0.05, ground_action_entropy_coeff_init_state_policy = 0.05):
+				 lr_initial_state_nlm=5e-4, lifted_action_entropy_coeff_init_state_policy = 0.05, ground_action_entropy_coeff_init_state_policy = 0.05,
+				 entropy_annealing_coeffs_init_state_policy = None, epsilon_init_state_policy=0.2, load_init_state_policy_checkpoint_name=None):
 				 # <TODO> Add parameters for goal_nlm
 
 		self._parser = parser
@@ -55,9 +59,23 @@ class DirectedGenerator():
 
 		# Initial state generation policy
 		num_preds_all_layers_initial_state_nlm = self._num_preds_all_layers_initial_state_nlm(num_preds_inner_layers_initial_state_nlm)
-		self._initial_state_policy = InitialStatePolicy(num_preds_all_layers_initial_state_nlm, mlp_hidden_layers_initial_state_nlm, 
+
+		if load_init_state_policy_checkpoint_name is None:
+			self._initial_state_policy = InitialStatePolicy(num_preds_all_layers_initial_state_nlm, mlp_hidden_layers_initial_state_nlm, 
 												        res_connections_initial_state_nlm, lr_initial_state_nlm,
-													    lifted_action_entropy_coeff_init_state_policy, ground_action_entropy_coeff_init_state_policy)
+													    lifted_action_entropy_coeff_init_state_policy, ground_action_entropy_coeff_init_state_policy,
+														entropy_annealing_coeffs_init_state_policy, epsilon_init_state_policy)
+		else: # Load initial state policy from checkpoint
+			self._initial_state_policy = InitialStatePolicy.load_from_checkpoint(checkpoint_path=load_init_state_policy_checkpoint_name,
+																		         num_preds_layers_nlm=num_preds_all_layers_initial_state_nlm, 
+																				 mlp_hidden_sizes_nlm=mlp_hidden_layers_initial_state_nlm, 
+																				 nlm_residual_connections=res_connections_initial_state_nlm, 
+																				 lr=lr_initial_state_nlm,
+																				 lifted_action_entropy_coeff=lifted_action_entropy_coeff_init_state_policy, 
+																				 ground_action_entropy_coeff=ground_action_entropy_coeff_init_state_policy,
+																				 entropy_annealing_coeffs=entropy_annealing_coeffs_init_state_policy, 
+																				 epsilon=epsilon_init_state_policy)
+
 
 		# <TODO>
 		# self._goal_policy = ...
@@ -295,6 +313,41 @@ class DirectedGenerator():
 
 
 	"""
+	This method adds the advantage and probability of the selected action for each element in the trajectory.
+	This is needed by the PPO algorithm.
+
+	Note: this method is in-place.
+	"""
+	def _calculate_state_value_and_old_policy_probs_trajectory(self, trajectory):
+		
+		for i in range(len(trajectory)):
+			state_tensors, num_objs_with_virtuals, mask_tensors, chosen_action_index, disc_reward_sum = trajectory[i]
+			
+			# < Obtain probability of the selected action >
+
+			# Use the Actor NLM of the initial state policy to obtain the action log_probs
+			action_log_probs = self._initial_state_policy(state_tensors, num_objs_with_virtuals, mask_tensors)
+		
+			# Choose the selected action
+			chosen_action_log_prob = action_log_probs[chosen_action_index[0]][tuple(chosen_action_index[1:])].detach().numpy()
+
+			# Convert from log_prob to prob
+			# Note: if the log_prob is NaN, then we assume the prob is 0 (1e-5 to avoid dividing by 0)
+			chosen_action_prob = np.exp(chosen_action_log_prob) if not np.isnan(chosen_action_log_prob) else 1e-5
+
+			# Append prob to the current element of the trajectory
+			trajectory[i].append(chosen_action_prob)
+
+			# < Estimate State Value V(s) >
+
+			# Estimate state-value V(s) with the Critic NLM of the initial state policy
+			state_value = self._initial_state_policy.critic_nlm(state_tensors, num_objs_with_virtuals)[0][0].detach().numpy() # [0][0] to select the first predicate of arity 0 (corresponding to V(s))
+
+			# Append advantage to the current element of the trajectory
+			trajectory[i].append(state_value)
+		
+
+	"""
 	Uses the current initial state and goal generation policies to obtain a full trajectory, which will then be used
 	to train the generative policies.It starts from an empty state s0 = (_, _) and finishes at a state sn = (s_i, s_g).
 	This trajectory is returned as a list of tuples for training the NLM with REINFORCE.
@@ -395,8 +448,8 @@ class DirectedGenerator():
 
 
 				# < QUITAR >
-				if chosen_action_name == "on":
-					print(">>> ACTION ON SELECTED")
+				#if chosen_action_name == "on":
+				#	print(">>> ACTION ON SELECTED")
 
 
 
@@ -414,58 +467,114 @@ class DirectedGenerator():
 		return trajectory
 		
 	"""
-	Obtains a trajectory and then sums the rewards.
+	This method obtains a trajectories and does all the preprocessing needed for PPO:
+
+	1. It first sums the trajectory rewards to obtain the discounted_accumulative_reward R_t.
+	2. For each element of the trajectory, it calculates the probability of the selected action (\pi(a | s)) and the advantage A(s,a). 
+	   Both elements are stored as numpy arrays, so that pytorch gradient does not flow through them.
 	"""
-	def _obtain_trajectory_and_sum_rewards(self, max_atoms_init_state=10, max_actions_goal_state=10, max_actions_trajectory=15, disc_factor_continuous=0, disc_factor_eventual=0.8):
+	def _obtain_trajectory_and_preprocess_for_PPO(self, max_atoms_init_state=10, max_actions_goal_state=10, max_actions_trajectory=15, 
+											      disc_factor_continuous=0, disc_factor_eventual=0.8):
+		# Obtain trajectory
 		trajectory = self._obtain_trajectory(max_atoms_init_state, max_actions_goal_state, max_actions_trajectory)
+		
+		# Sum rewards
 		self._sum_rewards_trajectory(trajectory, disc_factor_continuous, disc_factor_eventual)
+
+		# Calculate advantage and selected action probability
+		self._calculate_state_value_and_old_policy_probs_trajectory(trajectory)
 
 		return trajectory
 
-	# This method trains the initial state generation policy.
-	def _train_initial_state_generation_policy(self, num_train_epochs):
+	"""
+	This method trains the initial state generation policy.
+
+	@training_iterations The number of PPO iterations
+	@epochs_per_train_it For each PPO iteration, how many training epochs to use over the dataset of collected trajectories
+	@trajectories_per_train_it For each PPO iteration, how many trajectories to collect
+	@minibatch_size Minibatch size to use when training the model over the collected trajectories
+	@its_per_model_checkpoint Every this number of train its, the current model (Actor and Critic NLMs) weights are saved to the folder 
+	                          given by @checkpoint_save_path. If it is -1, we do not save checkpoint.
+	Note: We add an index to the folder name given by @checkpoint_save_path. Example: saved_models/init_state_policy_nlm_2
+	      (in case there are two other experiments ids=0, 1 before it).
+	
+	"""
+	def _train_initial_state_generation_policy(self, training_iterations, epochs_per_train_it=3, trajectories_per_train_it=100, minibatch_size=250,
+											   its_per_model_checkpoint=10, checkpoint_save_name="saved_models/init_state_policy"):
+
+		# Obtain folder name to save the model checkpoints in
+		folders = glob.glob(checkpoint_save_name + r'_*')
+		folder_inds = [f.split('_')[-1] for f in folders]
+		folder_inds = [int(ind) for ind in folder_inds if ind.isdigit()]
+		next_folder_ind = max(folder_inds)+1 if len(folder_inds) > 0 else 0
+		checkpoints_folder = checkpoint_save_name + f'_{next_folder_ind}'
+
+		# > Times for obtaining the trajectories
+		# Sequential avg time: 13s 
+		# Joblib 1 job: 13s
+		# Joblib 2 jobs: 12s
+		# Joblib 5 jobs: 9.5s
+		# Joblib 5 jobs: 15s
 
 		# Hyperparameters
-		trajectories_per_epoch = 10 # 1
-		train_its_per_epoch = 1
-		num_parallel_jobs = 10 # Used for joblib
+		num_parallel_jobs = 5 # Used for joblib
 
 		# Initialize trainer
-		logger = TensorBoardLogger("lightning_logs", name="initial_state_policy/preds_curr_phase_and_3_to_7_preds")
-		trainer = pl.Trainer(max_epochs=train_its_per_epoch, logger=logger) # gradient_clip_val=0.025
+		logger = TensorBoardLogger("lightning_logs", name="initial_state_policy/PPO_tests")
 
-		for i in range(num_train_epochs):
-			# Obtain trajectories and create a dataset containing them
+		# Train initial state generation policy with PPO
+		for i in range(training_iterations):
+			
+			# QUITAR
+			print(">>>> Curr train it:", i)
+
+			# Obtain the trajectories for the current PPO iteration
+			
 			trajectories = []
 
-			# Obtain the trajectories sequentially, without using joblib
-			for _ in range(trajectories_per_epoch):
-				trajectory = self._obtain_trajectory_and_sum_rewards()
+			print("\n > Collecting trajectories")
+
+			# Collect the trajectories sequentially, without joblib
+			"""for _ in range(trajectories_per_train_it):
+				trajectory = self._obtain_trajectory_and_preprocess_for_PPO()
 
 				trajectories.extend(trajectory) # Add the samples of the current trajectory
-
-			# Obtain the trajectories in parallel using joblib -> The overhead of creating the processes is too much!
 			"""
-			out = Parallel(n_jobs=num_parallel_jobs, backend="threading")(delayed(self._obtain_trajectory_and_sum_rewards)() for _ in range(trajectories_per_epoch))
+			
+			# Obtain the trajectories in parallel using joblib
+			out = Parallel(n_jobs=num_parallel_jobs, backend="threading")(delayed(self._obtain_trajectory_and_preprocess_for_PPO)() for _ in range(trajectories_per_train_it))
 			trajectories = list(chain.from_iterable(out)) # Convert from list of lists to a single list (i.e., flatten the first level of the list)
-			"""
+
+			print("> Trajectories collected - Num samples:", len(trajectories))
+
+			# Create training dataset and dataloader with the collected trajectories
 
 			trajectory_dataset = ReinforceDataset(trajectories)
-			trajectory_dataloader = torch.utils.data.DataLoader(dataset=trajectory_dataset, batch_size=100,
-																collate_fn=TransformReinforceDatasetSample(), shuffle=True) # batch_size=10
+			trajectory_dataloader = torch.utils.data.DataLoader(dataset=trajectory_dataset, batch_size=minibatch_size,
+																collate_fn=TransformReinforceDatasetSample(), shuffle=True) # Change to shuffle=False if we need to keep the order in the transitions (s,a,s')
 
 			# Use the trajectory to train the policy
+
+			trainer = pl.Trainer(max_epochs=epochs_per_train_it, logger=logger) # We need to reset the trainer, so we create a new one
 			trainer.fit(self._initial_state_policy, trajectory_dataloader)
+
+			# Linearly anneal the entropy regularization of the policy
+			self._initial_state_policy.reduce_entropy()
+
+			# Save a checkpoint
+			if its_per_model_checkpoint != -1 and i > 0 and i % its_per_model_checkpoint == 0:
+				trainer.save_checkpoint(checkpoints_folder + f'/model_its-{i}.ckpt') # Both actor and critic NLMs are saved
+
+
+
 
 
 	# <TODO>
-	# PARA IMPLEMENTAR REINFORCE MIRAR EL SIGUIENTE LINK: https://pytorch.org/docs/stable/distributions.html#score-function
-	# <Note>: Use a discount factor lambda of 0 for the reward associated with state consistency (we only care whether the next state is consistent or not, in a greedy way)
-	# This also applies for the eventual consistency rules (associated with the termination condition)
-	# <Note 2>: if the gradient doesn't flow correctly, try to not use the log_softmax function for the last NLM layer.
+	# Implement goal generation policy
 
-	def train_generative_policies(self, num_train_epochs=10000): # Add more parameters
-		self._train_initial_state_generation_policy(num_train_epochs)
+	# Each training iteration correspond to one PPO iteration (composed of multiple gradient updates)
+	def train_generative_policies(self, training_iterations): # Add more parameters
+		self._train_initial_state_generation_policy(training_iterations)
 
 
 	"""
@@ -480,7 +589,7 @@ class DirectedGenerator():
 		Goal state termination: when the termination condition is sampled or N actions have been executed <--- <TODO>: we need to 
 		establish that limit as an additional parameter (max_possible_length_plan)
 	"""
-	def generate_problem(self, max_atoms_init_state=10, max_actions_goal_state=10, max_actions_trajectory=30, problem_name = None, verbose=False):
+	def generate_problem(self, max_atoms_init_state=10, max_actions_goal_state=10, max_actions_trajectory=30, problem_name = "problem", verbose=True):
 
 		# Information about the NLM of the initial state policy
 		init_nlm_max_pred_arity = self._initial_state_policy.actor_nlm.max_arity # This value corresponds to the breadth of the NLM
@@ -495,6 +604,9 @@ class DirectedGenerator():
 		initial_state_generated = False
 
 		actions_executed = 0
+
+		if verbose:
+			print("> Starting initial state generation phase\n")
 
 		while not initial_state_generated:
 			# < Use the policy to select an action >
@@ -527,12 +639,12 @@ class DirectedGenerator():
 				r_continuous_consistency = 0
 				r_eventual_consistency = problem.get_eventual_consistency_reward_of_init_state()
 
-				# <Quitar>
-				print("\n -------------------------")
-				print("Termination condition")
-				print("Continuous consistency reward:", r_continuous_consistency)
-				print("Eventual consistency reward:", r_eventual_consistency)
-				#print("NLM output:", nlm_output)
+				if verbose:
+					print("\n -------------------------")
+					print("Termination condition")
+					print("Continuous consistency reward:", r_continuous_consistency)
+					print("Eventual consistency reward:", r_eventual_consistency)
+					#print("NLM output:", nlm_output)
 
 			# If the selected action is not the termination condition, execute it (add the atom and objects to the initial state)
 			else:		
@@ -557,28 +669,108 @@ class DirectedGenerator():
 				else:
 					r_eventual_consistency = 0
 
-
-				# <Quitar>
-				print("\n -------------------------")
-				print("Action:", chosen_action)
-				print("Objs to add:", objs_to_add)
-				print("Continuous consistency reward:", r_continuous_consistency)
-				print("Eventual consistency reward:", r_eventual_consistency)
-				#print("NLM output:", nlm_output)
+				if verbose:
+					print("\n -------------------------")
+					print("Action:", chosen_action)
+					print("Objs to add:", objs_to_add)
+					print("Continuous consistency reward:", r_continuous_consistency)
+					print("Eventual consistency reward:", r_eventual_consistency)
+					#print("NLM output:", nlm_output)
 
 			actions_executed += 1
 
 			if actions_executed >= max_actions_trajectory:
 				initial_state_generated = True
 
-				print("\n -------------------------")
-				print(">> Max number of actions reached - The problem has not been generated")
+				if verbose:
+					print("\n -------------------------")
+					print(">> Max number of actions reached - The problem has not been generated")
 
 
+
+		#if verbose:
+		#	print("> Starting goal generation phase\n")
 
 		# --- Goal generation ---
+
+		# NOTE: if the initial state is not consistent (i.e., it does not meet the eventual consistency rules),
+		#       the goal generation phase can't start!!!
+
+
+		problem.end_initial_state_generation_phase()
+
 		# <TODO>
 
+		# --- Obtain PDDL problem ---
+
+		problem.end_goal_state_generation_phase()
+
+		#if verbose:
+		#	print("> Goal state generated.\n>Obtaining PDDL encoding of the problem")
+
+		pddl_problem = problem.obtain_pddl_problem(problem_name)
+
+		return pddl_problem
 
 
+	"""
+	This method repeatedly calls self.generate_problem() to create a set of problems, saving them to 
+	the path indicated by @problems_path and with the name given by @problems_name (appending an index to the end of
+	each problem name).
 
+	<TODO>:
+	Store the metrics (for now, only the difficulty) of the problems generated to the file given by
+	@metrics_file_path.
+	Note: @problems_path must end with "/"
+
+	@verbose If True, print information about each problem generated)
+	"""
+	def generate_problems(self, num_problems_to_generate,
+								max_atoms_init_state=10, max_actions_goal_state=10, max_actions_trajectory=30,
+								problems_path = '../data/problems/only_init_state_policy_problems/',
+								problems_name = 'bw_only_init_state_policy_problem',
+								metrics_file_path = '../data/problems/only_init_state_policy_problems/only_init_state_policy_problems_metrics.txt',
+								max_planning_time=60,
+								verbose=False):
+
+		if verbose:
+			print("--- Random problem generation started ---")
+			print("Domain name:", self.domain_name)
+			print("Problems path and name:", problems_path)
+			# print("Metrics file path:", metrics_file_path)
+			print("\n")
+
+		# Create a file to store the metrics of the problems generated
+		#f_metrics = open(metrics_file_path, 'a+')
+		#f_metrics.write("\n-------------------\n")
+
+		for ind in range(num_problems_to_generate):
+			# Append index to problem name
+			curr_problem_name = problems_name + '_' + str(ind)
+
+			# Generate problem
+			new_problem = self.generate_problem(max_atoms_init_state, max_actions_goal_state, max_actions_trajectory,
+											    curr_problem_name, verbose)
+
+			# Save it to disk
+			curr_prob_path = problems_path + curr_problem_name + '.pddl'
+
+			with open(curr_prob_path, 'w+') as f:
+				f.write(new_problem)
+
+			if verbose:
+				print(f"> Problem {ind} created and saved - ", end="")
+
+			# Solve it with the planner and obtain difficulty
+			#curr_prob_difficulty = self._planner.get_problem_difficulty(curr_prob_path, max_planning_time)
+
+			# Save the difficulty
+			#f_metrics.write(f'Problem: {curr_problem_name} - difficulty (expanded nodes): {curr_prob_difficulty}\n')
+
+			#if verbose:
+			#	print(f" difficulty: {curr_prob_difficulty}")
+
+		#f_metrics.close()
+
+		if verbose:
+			print("\n--- Random problem generation finished ---")

@@ -16,17 +16,37 @@ class InitialStatePolicy(pl.LightningModule):
 	@nlm_residual_connections Whether the NLM must use residual connections
 	@lifted_action_entropy_coeff Coefficient for the lifted_action_entropy, used when calculating the REINFORCE loss
 	@ground_action_entropy_coeff Coefficient for the ground_action_entropy, used when calculating the REINFORCE loss
+	@epsilon PPO parameter that controls how much the policy can diverge from the old one
+	@epsilon_annealing_coeffs If None, we do not change the entropy coefficients during training.
+	                          Else, if it is a tuple (i, final_lifted_entropy, final_ground_entropy),
+							  we linearly anneal (reduce) @lifted_action_entropy_coeff so that it becomes
+							  final_lifted_entropy at training_iteration=i and we do the same for
+							  @ground_action_entropy_coeff.
+		Note: reduce_entropy() method must be manually called after each trainer.fit() in order to reduce the entropy.
 	
 	Note: @num_preds_layers_nlm needs to include the extra nullary predicate for the termination condition (in the output layer)
 	      and the number of atoms already added to the initial state (in the input layer), in case these are needed.
 	"""
 	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_residual_connections, lr,
-			     lifted_action_entropy_coeff, ground_action_entropy_coeff):
+			     lifted_action_entropy_coeff, ground_action_entropy_coeff, entropy_annealing_coeffs, epsilon):
 		super().__init__()
 
 		self._lr = lr
 		self._lifted_action_entropy_coeff = lifted_action_entropy_coeff
 		self._ground_action_entropy_coeff = ground_action_entropy_coeff
+		self._epsilon = epsilon
+
+		# Calculate how much we need to reduce the entropy coeffs at each training iteration (in case we use linear annealing)
+		if entropy_annealing_coeffs is None:
+			self._lifted_entropy_annealing_coeff = 0
+			self._ground_entropy_annealing_coeff = 0
+			self._final_iteration_entropy_annealing = 0
+		else:
+			self._lifted_entropy_annealing_coeff = (entropy_annealing_coeffs[1] - lifted_action_entropy_coeff) / entropy_annealing_coeffs[0]
+			self._ground_entropy_annealing_coeff = (entropy_annealing_coeffs[2] - ground_action_entropy_coeff) / entropy_annealing_coeffs[0]
+			self._final_iteration_entropy_annealing = entropy_annealing_coeffs[0]
+
+		self._curr_entropy_annealing_it = 0
 
 		self._actor_nlm = NLM(num_preds_layers_nlm, mlp_hidden_sizes_nlm, residual_connections=nlm_residual_connections)
 
@@ -38,8 +58,7 @@ class InitialStatePolicy(pl.LightningModule):
 
 		self._critic_nlm = NLM(num_preds_layers_nlm_critic, mlp_hidden_sizes_nlm, residual_connections=nlm_residual_connections)
 
-		self.curr_train_epoch = 0 # Used to track the current training epoch (i.e., trainer.fit() call), in order to save the logs correctly
-								  # It is incremented by one each time training_step() is called
+		self.curr_log_iteration = 0 # Used to track the current logging iteration in order to save the logs correctly
 
 
 
@@ -58,13 +77,28 @@ class InitialStatePolicy(pl.LightningModule):
 		return self._ground_action_entropy_coeff
 
 	@property
+	def epsilon(self):
+		return self._epsilon
+
+	@property
+	def lifted_entropy_annealing_coeff(self):
+		return self._lifted_entropy_annealing_coeff
+
+	@property
+	def ground_entropy_annealing_coeff(self):
+		return self._ground_entropy_annealing_coeff
+
+	@property
+	def final_iteration_entropy_annealing(self):
+		return self._final_iteration_entropy_annealing
+
+	@property
 	def actor_nlm(self):
 		return self._actor_nlm
 
 	@property
 	def critic_nlm(self):
 		return self._critic_nlm
-
 
 	# ------- Auxiliar methods
 
@@ -180,6 +214,16 @@ class InitialStatePolicy(pl.LightningModule):
 
 	# ------- Main methods
 
+	"""
+	This method must be called after each trainer.fit(), in order to reduce the entropy coefficients.
+	"""
+	def reduce_entropy(self):
+
+		if self._curr_entropy_annealing_it < self._final_iteration_entropy_annealing:
+			self._lifted_action_entropy_coeff += self._lifted_entropy_annealing_coeff # Note, the annealing coefficients are already negative
+			self._ground_action_entropy_coeff += self._ground_entropy_annealing_coeff
+
+		self._curr_entropy_annealing_it += 1
 
 	"""
 	Computes the forward pass of the policy.
@@ -238,11 +282,10 @@ class InitialStatePolicy(pl.LightningModule):
 	"""
 	def training_step(self, train_batch, batch_idx=0):
 		assert len(train_batch) > 0, "Train batch cannot have length 0"
-		
-		log_period = 50 # How many its need to pass before we add the next log
 
+		# Metrics and Losses
 		loss = 0
-		reinforce_loss = 0
+		PPO_loss = 0
 		entropy_loss = 0
 		actor_loss = 0
 		critic_loss = 0
@@ -251,19 +294,53 @@ class InitialStatePolicy(pl.LightningModule):
 		mean_term_cond_prob = 0 # Mean probability of the termination condition across the batch
 
 		for train_sample in train_batch:
-			state_tensors, num_objs_with_virtuals, mask_tensors, chosen_action_index, disc_reward_sum = train_sample
+			state_tensors, num_objs_with_virtuals, mask_tensors, chosen_action_index, disc_reward_sum, action_prob_old_policy, state_value = train_sample
 
+			# < Critic >
 
-			# < Obtain log probability of the selected action >
+			# Obtain critic loss -> Only train the critic for the first epoch
+			# This is worse than training for every epoch!
+			"""
+			if self.current_epoch == 0:
+				state_value_with_gradient = self._critic_nlm(state_tensors, num_objs_with_virtuals)[0][0]
+				curr_critic_loss = (state_value_with_gradient - disc_reward_sum)**2
+			else:
+				curr_critic_loss = 0
+			"""
 
-			# Obtain action probabilities for the current state (corresponding to the actor NLM)
+			# Train the critic every epoch (just as we do with the actor)
+			state_value_with_gradient = self._critic_nlm(state_tensors, num_objs_with_virtuals)[0][0]
+			curr_critic_loss = (state_value_with_gradient - disc_reward_sum)**2
+
+			# < Actor >
+
+			# Obtain the log_probs of the current policy
 			action_log_probs = self.forward(state_tensors, num_objs_with_virtuals, mask_tensors)
+		
+			# Choose the selected action
+			chosen_action_log_prob = action_log_probs[chosen_action_index[0]][tuple(chosen_action_index[1:])]
 
-			# If any log prob is NaN, make it -infinity
-			for r in range(len(action_log_probs)):
-				if action_log_probs[r] is not None:
-					action_log_probs[r] = torch.where(torch.isnan(action_log_probs[r]),
-									      torch.tensor([-float("inf")], dtype=torch.float32), action_log_probs[r])
+			# Convert from log_prob to prob
+			# Note: if the log_prob is NaN, then we assume the prob is 0 
+			chosen_action_prob = torch.exp(chosen_action_log_prob) if not torch.isnan(chosen_action_log_prob) else \
+								 torch.tensor([1e-5], dtype=torch.float32)
+
+			# > Calculate the probability ratio r_t
+			prob_ratio = chosen_action_prob / action_prob_old_policy
+
+			# Calculate the advantage
+			advantage = disc_reward_sum - state_value # A(s,a) = R(s,a) - V(s)
+
+			# Calculate the PPO loss
+			curr_PPO_loss = -torch.min(prob_ratio * advantage, torch.clip(prob_ratio, 1-self._epsilon, 1+self._epsilon) * advantage)
+
+			# Calculate the entropy loss
+			lifted_action_entropy, grounded_action_entropy = self._policy_entropy(action_log_probs)
+			curr_entropy_loss = -(lifted_action_entropy*self._lifted_action_entropy_coeff + \
+					grounded_action_entropy*self._ground_action_entropy_coeff)
+
+			# Calculate the actor loss
+			curr_actor_loss = curr_PPO_loss + curr_entropy_loss
 
 			# Calculate probability of termination condition
 			with torch.no_grad():
@@ -271,47 +348,8 @@ class InitialStatePolicy(pl.LightningModule):
 				term_cond_prob = np.exp(term_cond_prob.numpy())
 				mean_term_cond_prob += term_cond_prob
 
-			chosen_action_log_prob = action_log_probs[chosen_action_index[0]][tuple(chosen_action_index[1:])]
-
-
-			# < Obtain advantage value A(s,a) for selected action a at current state s>
-
-			# Use critic NLM to predict the value (disc reward) of the current state V(s)
-			
-			state_value = self._critic_nlm(state_tensors, num_objs_with_virtuals)[0][0] # [0][0] to select the first predicate of arity 0 (corresponding to V(s))
-
-			# Calculate the advantage < making sure the pytorch gradient does not flow through this new variable >
-			
-			state_value_np = state_value.detach().numpy()
-			advantage = disc_reward_sum - state_value_np # A(s,a) = R(s,a) - V(s)
-
-
-			# < Actor Losses >
-
-			# Obtain REINFORCE loss for current sample
-			# We use the sign "-" because the optimizer minimizes the loss (and we want to maximize it)
-			# curr_reinforce_loss = -chosen_action_log_prob*disc_reward_sum
-
-			# Obtain REINFORCE loss (for the actor) for current sample, using the advantage estimation
-			curr_reinforce_loss = -chosen_action_log_prob*advantage
-
-			# Obtain policy entropy loss for current sample
-			# We use the sign "-" because the optimizer minimizes the loss (and we want to maximize it)
-			lifted_action_entropy, grounded_action_entropy = self._policy_entropy(action_log_probs)
-			curr_entropy_loss = -(lifted_action_entropy*self._lifted_action_entropy_coeff + \
-					grounded_action_entropy*self._ground_action_entropy_coeff)
-			
-			curr_actor_loss = curr_reinforce_loss + curr_entropy_loss # The entropy loss has already been scaled
-
-
-			# < Critic Loss >
-
-			# Obtain critic loss
-			curr_critic_loss = (state_value - disc_reward_sum)**2
-
-
 			# < Accumulate losses and metrics >
-			reinforce_loss += curr_reinforce_loss
+			PPO_loss += curr_PPO_loss
 			entropy_loss += curr_entropy_loss
 			actor_loss += curr_actor_loss
 
@@ -324,7 +362,7 @@ class InitialStatePolicy(pl.LightningModule):
 
 		# Scale losses and metrics by number of samples
 
-		reinforce_loss /= len(train_batch)
+		PPO_loss /= len(train_batch)
 		entropy_loss /= len(train_batch)
 		actor_loss /= len(train_batch)
 
@@ -336,18 +374,17 @@ class InitialStatePolicy(pl.LightningModule):
 		entropy /= len(train_batch)
 		reward /= len(train_batch)
 
-
 		# < Logs >
-		# Add logs every N training iterations
 
-		if self.curr_train_epoch % log_period == 0:
-			self.logger.experiment.add_scalar("Reward", reward, global_step=self.curr_train_epoch)
-			self.logger.experiment.add_scalar("Actor Policy Entropy", entropy, global_step=self.curr_train_epoch)
-			self.logger.experiment.add_scalars('Actor Losses', {'Total Loss': actor_loss, 'Reinforce Loss': reinforce_loss, 'Entropy Loss': entropy_loss},
-											   global_step=self.curr_train_epoch)
-			self.logger.experiment.add_scalar("Critic Loss", critic_loss, global_step=self.curr_train_epoch)
-			self.logger.experiment.add_scalar("Termination Condition Probability", mean_term_cond_prob, global_step=self.curr_train_epoch)
+		# For each training iteration, we store the logs several times, but only for the first training epoch
+		if self.current_epoch == 0:
+			self.logger.experiment.add_scalar("Reward", reward, global_step=self.curr_log_iteration)
+			self.logger.experiment.add_scalar("Actor Policy Entropy", entropy, global_step=self.curr_log_iteration)
+			self.logger.experiment.add_scalars('Actor Losses', {'Total Loss': actor_loss, 'PPO Loss': PPO_loss, 'Entropy Loss': entropy_loss},
+											   global_step=self.curr_log_iteration)
+			self.logger.experiment.add_scalar("Critic Loss", critic_loss, global_step=self.curr_log_iteration)
+			self.logger.experiment.add_scalar("Termination Condition Probability", mean_term_cond_prob, global_step=self.curr_log_iteration)
 
-		self.curr_train_epoch += 1
+			self.curr_log_iteration += 1
 
 		return loss

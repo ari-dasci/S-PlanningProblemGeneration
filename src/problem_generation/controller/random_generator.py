@@ -98,7 +98,7 @@ class RandomGenerator():
 	@verbose If True, prints information about the process (e.g., the actions applied to generate the problem).
 	"""
 	def _generate_random_problem(self, num_actions_for_init_state, num_actions_for_goal_state, pred_probabilities=None,
-								problem_name = None, seed=None, verbose=False):
+								problem_name = "problem", seed=None, verbose=False):
 
 		# Choose a random seed based on system time
 		random.seed(seed)
@@ -384,9 +384,9 @@ class RandomGenerator():
 	"""
 	def generate_random_problems(self, num_problems_to_generate,
 								num_actions_for_init_state=(3, 15), num_actions_for_goal_state=(3, 20), pred_probabilities=None,
-								problems_path = '../data/problems/',
+								problems_path = '../data/problems/random_problems/',
 								problems_name = 'bw_random_problem',
-								metrics_file_path = '../data/problems/random_problems_metrics.txt',
+								metrics_file_path = '../data/problems/random_problems/random_problems_metrics.txt',
 								max_planning_time=60,
 								verbose=False):
 
