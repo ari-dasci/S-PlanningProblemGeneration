@@ -8,14 +8,14 @@ import pytorch_lightning as pl
 
 from problem_generation.models.nlm import NLM
 
-class InitialStatePolicy(pl.LightningModule):
+class GenerativePolicy(pl.LightningModule):
 
 	"""
 	Constructor. Creates the NLMs (actor and critic) used for the initial state policy.
 
 	@nlm_residual_connections Whether the NLM must use residual connections
-	@lifted_action_entropy_coeff Coefficient for the lifted_action_entropy, used when calculating the REINFORCE loss
-	@ground_action_entropy_coeff Coefficient for the ground_action_entropy, used when calculating the REINFORCE loss
+	@lifted_action_entropy_coeff Coefficient for the lifted_action_entropy, used when calculating the Actor loss
+	@ground_action_entropy_coeff Coefficient for the ground_action_entropy, used when calculating the Actor loss
 	@epsilon PPO parameter that controls how much the policy can diverge from the old one
 	@epsilon_annealing_coeffs If None, we do not change the entropy coefficients during training.
 	                          Else, if it is a tuple (i, final_lifted_entropy, final_ground_entropy),
@@ -25,7 +25,7 @@ class InitialStatePolicy(pl.LightningModule):
 		Note: reduce_entropy() method must be manually called after each trainer.fit() in order to reduce the entropy.
 	
 	Note: @num_preds_layers_nlm needs to include the extra nullary predicate for the termination condition (in the output layer)
-	      and the number of atoms already added to the initial state (in the input layer), in case these are needed.
+	      and the number of atoms already added to the initial state (perc_actions_executed, a number between 0 and 1), in case these are needed.
 	"""
 	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_residual_connections, lr,
 			     lifted_action_entropy_coeff, ground_action_entropy_coeff, entropy_annealing_coeffs, epsilon):
@@ -46,7 +46,6 @@ class InitialStatePolicy(pl.LightningModule):
 			self._ground_entropy_annealing_coeff = (entropy_annealing_coeffs[2] - ground_action_entropy_coeff) / entropy_annealing_coeffs[0]
 			self._final_iteration_entropy_annealing = entropy_annealing_coeffs[0]
 
-		self._curr_entropy_annealing_it = 0
 
 		self._actor_nlm = NLM(num_preds_layers_nlm, mlp_hidden_sizes_nlm, residual_connections=nlm_residual_connections)
 
@@ -60,6 +59,7 @@ class InitialStatePolicy(pl.LightningModule):
 
 		self.curr_log_iteration = 0 # Used to track the current logging iteration in order to save the logs correctly
 
+		self._curr_entropy_annealing_it = 0
 
 
 	# ------- Getters
@@ -120,7 +120,7 @@ class InitialStatePolicy(pl.LightningModule):
 	a list of tensors corresponding to probabilities.
 
 	The log_softmax of the nlm output is used to obtain a log_probability (since softmax corresponds to probabilities, log_softmax is for log_probabilities)
-	for every atom/action. This value is used for REINFORCE (which calculates the gradient of the log_probability of the action selected).
+	for every atom/action. This value is used for PPO (which calculates the gradient of the log_probability of the action selected).
 
 	Note 1: we do not return the new tensors. This operation is applied in-place. 
 	Note 2: we use the log-sum-exp trick (https://blog.feedly.com/tricks-of-the-trade-logsumexp/)
@@ -212,8 +212,6 @@ class InitialStatePolicy(pl.LightningModule):
 		return final_index
 
 
-	# ------- Main methods
-
 	"""
 	This method must be called after each trainer.fit(), in order to reduce the entropy coefficients.
 	"""
@@ -224,6 +222,10 @@ class InitialStatePolicy(pl.LightningModule):
 			self._ground_action_entropy_coeff += self._ground_entropy_annealing_coeff
 
 		self._curr_entropy_annealing_it += 1
+
+
+	# ------- Main methods
+
 
 	"""
 	Computes the forward pass of the policy.

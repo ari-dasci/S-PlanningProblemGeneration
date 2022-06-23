@@ -268,6 +268,44 @@ class RelationalState():
 
         return atoms_list    
         
+        
+    """
+    This method works the same as atoms_nlm_encoding() but encodes the atoms of this state (self) AND the atoms of another state
+    @goal_state. Both states (self and @goal_state) must have the same objects and the same predicate types.
+
+    The resulting NLM encoding of the atoms of both states will simply correspond to the nlm encoding of the atoms of this
+    state (self) concatenated with the nlm encoding of the atoms of @goal_state (we stack the atom encodings of both states).
+
+    This method is used for the goal generation policy, to obtain a NLM encoding of the partially-generated problem (s_i, s_gc).
+    To do this, this object (self) must correspond to the initial state (s_i) and @goal_state to the current goal state (s_gc).
+    """
+    def atoms_nlm_encoding_with_goal_state(self, goal_state, max_arity = -1, perc_actions_executed=-1):
+        # Check if the predicate types and number of objects are the same in both states (self and goal_state)
+        if self.predicates != goal_state.predicates:
+            raise ValueError("The initial and goal states contain different predicates")
+
+        if self.objects != goal_state.objects:
+            raise ValueError("The initial and goal states contain different objects")
+        
+        # Obtain NLM encoding of each state
+        init_state_nlm_encoding = self.atoms_nlm_encoding(max_arity, False, perc_actions_executed) # add_virtual_objs=False, as we do not need to add virtual objects
+        goal_state_nlm_encoding = goal_state.atoms_nlm_encoding(max_arity, False, perc_actions_executed)
+
+        # Stack goal_state_nlm_encoding to init_state_nlm_encoding
+        both_states_nlm_encoding = []
+
+        for r in range(len(init_state_nlm_encoding)):
+            
+            if init_state_nlm_encoding[r] is None:
+                both_states_nlm_encoding.append(None)
+            else:
+                # Concatenate the initial state predicates of arity r and the goal state predicates of arity r (the last dimension (dim=-1) corresponds to the predicates)
+                both_states_nlm_encoding.append(torch.cat( (init_state_nlm_encoding[r], goal_state_nlm_encoding[r]), dim=-1))
+
+        return both_states_nlm_encoding
+
+
+
     # Setters
 
     @types.setter

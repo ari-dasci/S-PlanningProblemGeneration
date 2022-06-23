@@ -454,7 +454,7 @@ def test_load_model_and_generate_problems():
 	print(f">> Model {model_path} loaded")
 
 	# Generate the set of problems with the trained initial policy
-	num_problems = 10
+	num_problems = 1
 
 	directed_generator.generate_problems(num_problems, verbose=True)
 

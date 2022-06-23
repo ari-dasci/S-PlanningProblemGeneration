@@ -18,7 +18,7 @@ from problem_generation.environment.state_validator import ValidatorPredOrderBW
 from problem_generation.environment.relational_state import RelationalState
 from problem_generation.models.nlm import NLM
 from problem_generation.models.reinforce import ReinforceDataset
-from problem_generation.models.initial_state_policy import InitialStatePolicy
+from problem_generation.models.generative_policy import GenerativePolicy
 from problem_generation.models.reinforce import TransformReinforceDatasetSample
 
 class DirectedGenerator():
@@ -36,10 +36,15 @@ class DirectedGenerator():
 	def __init__(self, parser, planner, 
 				 predicates_to_consider_for_goal=None, initial_state_info=None, consistency_validator=ValidatorPredOrderBW,
 				 penalization_continuous_consistency=-1, penalization_eventual_consistency=-1, penalization_non_applicable_action=-1,
+				
 				 num_preds_inner_layers_initial_state_nlm=[[4,4,4,4]], mlp_hidden_layers_initial_state_nlm=[0,0], res_connections_initial_state_nlm=True,
 				 lr_initial_state_nlm=5e-4, lifted_action_entropy_coeff_init_state_policy = 0.05, ground_action_entropy_coeff_init_state_policy = 0.05,
-				 entropy_annealing_coeffs_init_state_policy = None, epsilon_init_state_policy=0.2, load_init_state_policy_checkpoint_name=None):
-				 # <TODO> Add parameters for goal_nlm
+				 entropy_annealing_coeffs_init_state_policy = None, epsilon_init_state_policy=0.2, load_init_state_policy_checkpoint_name=None,
+				 
+				 num_preds_inner_layers_goal_nlm=[[4,4,4,4]], mlp_hidden_layers_goal_nlm=[0,0], res_connections_goal_nlm=True,
+				 lr_goal_nlm=5e-4, lifted_action_entropy_coeff_goal_policy = 0.05, ground_action_entropy_coeff_goal_policy = 0.05,
+				 entropy_annealing_coeffs_goal_policy = None, epsilon_goal_policy=0.2, load_goal_policy_checkpoint_name=None):
+				 
 
 		self._parser = parser
 		self._planner = planner
@@ -48,6 +53,10 @@ class DirectedGenerator():
 		self._penalization_continuous_consistency = penalization_continuous_consistency
 		self._penalization_eventual_consistency = penalization_eventual_consistency
 		self._penalization_non_applicable_action = penalization_non_applicable_action
+
+		# Relational State which contains the object types and actions in the domain
+		# Used to convert from action name to index and vice versa (e.g.: "stack" <-> 1)
+		self._dummy_rel_state_actions = RelationalState(self.domain_types, self.domain_actions_and_parameters) 
 
 		# Goal predicates (list of predicates names -> ['on', 'ontable'])
 		if predicates_to_consider_for_goal is None: # Consider every predicate for the goal
@@ -61,12 +70,12 @@ class DirectedGenerator():
 		num_preds_all_layers_initial_state_nlm = self._num_preds_all_layers_initial_state_nlm(num_preds_inner_layers_initial_state_nlm)
 
 		if load_init_state_policy_checkpoint_name is None:
-			self._initial_state_policy = InitialStatePolicy(num_preds_all_layers_initial_state_nlm, mlp_hidden_layers_initial_state_nlm, 
+			self._initial_state_policy = GenerativePolicy(num_preds_all_layers_initial_state_nlm, mlp_hidden_layers_initial_state_nlm, 
 												        res_connections_initial_state_nlm, lr_initial_state_nlm,
 													    lifted_action_entropy_coeff_init_state_policy, ground_action_entropy_coeff_init_state_policy,
 														entropy_annealing_coeffs_init_state_policy, epsilon_init_state_policy)
 		else: # Load initial state policy from checkpoint
-			self._initial_state_policy = InitialStatePolicy.load_from_checkpoint(checkpoint_path=load_init_state_policy_checkpoint_name,
+			self._initial_state_policy = GenerativePolicy.load_from_checkpoint(checkpoint_path=load_init_state_policy_checkpoint_name,
 																		         num_preds_layers_nlm=num_preds_all_layers_initial_state_nlm, 
 																				 mlp_hidden_sizes_nlm=mlp_hidden_layers_initial_state_nlm, 
 																				 nlm_residual_connections=res_connections_initial_state_nlm, 
@@ -76,9 +85,25 @@ class DirectedGenerator():
 																				 entropy_annealing_coeffs=entropy_annealing_coeffs_init_state_policy, 
 																				 epsilon=epsilon_init_state_policy)
 
+		# Goal generation policy
+		num_preds_all_layers_goal_nlm = self._num_preds_all_layers_goal_nlm(num_preds_inner_layers_goal_nlm)
 
-		# <TODO>
-		# self._goal_policy = ...
+		if load_goal_policy_checkpoint_name is None:
+			self._goal_policy = GenerativePolicy(num_preds_all_layers_goal_nlm, mlp_hidden_layers_goal_nlm, 
+												        res_connections_goal_nlm, lr_goal_nlm,
+													    lifted_action_entropy_coeff_goal_policy, ground_action_entropy_coeff_goal_policy,
+														entropy_annealing_coeffs_goal_policy, epsilon_goal_policy)
+		else: # Load initial state policy from checkpoint
+			self._goal_policy = GenerativePolicy.load_from_checkpoint(checkpoint_path=load_goal_policy_checkpoint_name,
+																		         num_preds_layers_nlm=num_preds_all_layers_goal_nlm, 
+																				 mlp_hidden_sizes_nlm=mlp_hidden_layers_goal_nlm, 
+																				 nlm_residual_connections=res_connections_goal_nlm, 
+																				 lr=lr_goal_nlm,
+																				 lifted_action_entropy_coeff=lifted_action_entropy_coeff_goal_policy, 
+																				 ground_action_entropy_coeff=ground_action_entropy_coeff_goal_policy,
+																				 entropy_annealing_coeffs=entropy_annealing_coeffs_goal_policy, 
+																				 epsilon=epsilon_goal_policy)
+
 
 
 	# ------- Getters and Setters --------
@@ -158,7 +183,7 @@ class DirectedGenerator():
 	(it adds the shapes corresponding to the input and output layers).
 
 	This function also adds the extra input nullary predicate corresponding to the number of atoms already added to the initial state
-	and the extra output nullary predicate corresponding to the termination condition.
+	and the extra output nullary predicate (in the last position) corresponding to the termination condition.
 	"""
 	def _num_preds_all_layers_initial_state_nlm(self, num_preds_inner_layers_initial_state_nlm):
 		num_preds_inner_layers_initial_state_nlm = np.array(num_preds_inner_layers_initial_state_nlm, dtype=np.int) # Convert to np array in case it was a list
@@ -174,7 +199,7 @@ class DirectedGenerator():
 
 			input_and_output_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate for both the input and output layers
 
-			num_preds_all_layers_initial_state_nlm = np.concatenate((input_and_output_nlm_layer_shape, input_and_output_nlm_layer_shape)) # Both the input and output layers have the same shape, as they correspond with state predicates
+			num_preds_all_layers_initial_state_nlm = np.concatenate((input_and_output_nlm_layer_shape, input_and_output_nlm_layer_shape))
 
 		else: # Use inner layers, as given by @num_preds_inner_layers_initial_state_nlm
 			max_nlm_arity = len(num_preds_inner_layers_initial_state_nlm[0])-1
@@ -186,6 +211,50 @@ class DirectedGenerator():
 																	 input_and_output_nlm_layer_shape))
 
 		return num_preds_all_layers_initial_state_nlm
+
+	"""
+	Receives @num_preds_inner_layers_goal_nlm and returns the number of predicates of ALL the layers in the NLM 
+	(it adds the shapes corresponding to the input and output layers).
+
+	This function also adds the extra input nullary predicate corresponding to the number of actions already executed to obtain the current goal state
+	and the extra output nullary predicate (in the last position) corresponding to the termination condition.
+	"""
+	def _num_preds_all_layers_goal_nlm(self, num_preds_inner_layers_goal_nlm):
+		num_preds_inner_layers_goal_nlm = np.array(num_preds_inner_layers_goal_nlm, dtype=np.int) # Convert to np array in case it was a list
+		
+		# Get domain types and actions (with their parameters types) -> e.g.: ['stack', ['block', 'block']]
+		domain_types = self.domain_types
+		domain_preds = self.domain_predicates
+		
+		dummy_rel_state_input = RelationalState(domain_types, domain_preds) 
+		# dummy_rel_state_output = RelationalState(domain_types, domain_actions)
+		dummy_rel_state_output = self._dummy_rel_state_actions
+
+		if len(num_preds_inner_layers_goal_nlm) == 0: # Don't use inner layers
+			input_nlm_layer_shape = np.array(dummy_rel_state_input.num_preds_each_arity_for_nlm(-1)).reshape(1,-1)
+			input_nlm_layer_shape *= 2 # The number of input predicates is actually twice, as it corresponds to both the predicates of the initial and goal states	
+			input_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate representing the percentage of actions executed
+
+			output_nlm_layer_shape = np.array(dummy_rel_state_output.num_preds_each_arity_for_nlm(-1)).reshape(1,-1)
+			output_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate representing the termination condition
+
+			num_preds_all_layers_goal_nlm = np.concatenate((input_nlm_layer_shape, output_nlm_layer_shape)) # Both the input and output layers have the same shape, as they correspond to state predicates
+
+		else: # Use inner layers, as given by @num_preds_inner_layers_initial_state_nlm
+			max_nlm_arity = len(num_preds_inner_layers_goal_nlm[0])-1
+
+			input_nlm_layer_shape = np.array(dummy_rel_state_input.num_preds_each_arity_for_nlm(max_nlm_arity)).reshape(1,-1)
+			input_nlm_layer_shape *= 2 # The number of input predicates is actually twice, as it corresponds to both the predicates of the initial and goal states	
+			input_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate representing the percentage of actions executed
+
+			output_nlm_layer_shape = np.array(dummy_rel_state_output.num_preds_each_arity_for_nlm(max_nlm_arity)).reshape(1,-1)
+			output_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate representing the termination condition
+
+			num_preds_all_layers_goal_nlm = np.concatenate((input_nlm_layer_shape, num_preds_inner_layers_goal_nlm,
+																	 output_nlm_layer_shape))
+
+		return num_preds_all_layers_goal_nlm
+
 
 	"""
 	Returns the mask tensors used to mask (i.e., set to -inf) the probabilities of invalid atoms/actions
@@ -235,6 +304,41 @@ class DirectedGenerator():
 					curr_tensor[incorrect_obj_inds, pred_ind] = -float("inf") # -inf
             
 		return mask_tensors 
+
+
+	"""
+	Returns the mask tensors used to mask the goal policy's NLM output. It masks (sets to -inf) the tensor positions
+	corresponding to invalid actions, i.e., those with parameters of invalid type or those for which their preconditions
+	are not met.
+
+	@nlm_output_shape Shape of the last NLM layer, as a list of num_preds, e.g., [1,2,3,0]. Note: @nlm_output_shape must
+	                  take into account the extra nullary predicate added for the termination condition (in case it is added).
+	@problem The current problem (s_i, s_gc), used to obtain the applicable actions at the current goal state.
+	"""
+	def _get_mask_tensors_goal_policy(self, nlm_output_shape, problem):
+		num_objs = problem.goal_state.num_objects # Number of objects in the goal state (and also in the initial state)
+		
+		# Get applicable ground actions at the current goal state s_gc
+		applicable_ground_actions = problem.applicable_ground_actions()
+
+		# Convert from the relational encoding ( ['stack', [1, 2]] ) to the encoding
+		# used by the NLM ( [action_arity, obj_1_ind, obj_2_ind, ..., action_ind] -> [2, 1, 2, 0] )
+		action_name_to_ind_dict = self._dummy_rel_state_actions.pred_names_to_indices_dict_each_arity
+
+		applicable_ground_actions_nlm_format = [ [len(a[1])] + a[1] + [action_name_to_ind_dict[a[0]]] \
+										        for a in applicable_ground_actions ]
+
+		# We mask all the NLM output positions except the ones corresponding to applicable_ground_actions_nlm_format
+		
+		# Initialize mask tensors full of -inf (all values are masked to -inf)
+		mask_tensors = [torch.full( (num_objs,)*r + (num_preds,), -float("inf"), dtype=torch.float32) \
+						if num_preds != 0 else None for r, num_preds in enumerate(nlm_output_shape)]
+
+		# Unmask (set to 0) positions corresponding to applicable actions
+		for a in applicable_ground_actions_nlm_format:
+			mask_tensors[a[0]][tuple(a[1:])] = 0.0
+
+		return mask_tensors
 
 
 	"""

@@ -299,7 +299,8 @@ class ProblemState:
 
 	"""
 	Returns all the ground (domain) actions that are applicable at the current goal state.
-	They are returned as a vector where each element represents a ground action, e.g., ['stack', [1, 2]]
+	We assume actions cannot have repeated parameters (e.g.: stack A A)
+	They are returned as a list where each element represents a ground action, e.g., ['stack', [1, 2]]
 	"""
 	def applicable_ground_actions(self):
 		# Represent the state in an encoding suitable for the parser
