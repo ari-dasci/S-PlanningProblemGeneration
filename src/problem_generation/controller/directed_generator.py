@@ -417,6 +417,25 @@ class DirectedGenerator():
 
 
 	"""
+	Obtains the discounted sum of rewards R for each sample in a goal policy trajectory. The only
+	reward is the final reward corresponding to the difficulty of the problem solved.
+
+	<Note>: this method is inplace (does not return the trajectory but transforms it inplace)
+	"""
+	def _sum_rewards_trajectory_goal_policy(self, trajectory, disc_factor=0.95):
+		r_sum = 0
+
+		# Iterate over the trajectory in reverse (from the end to the beginning)
+		for i in range(len(trajectory)-1,-1,-1):
+			curr_r = trajectory[i][-1]
+
+			trajectory[i][-1] += r_sum
+
+			r_sum += curr_r # Sum the current reward to the sum of disc rewards R
+			r_sum *= disc_factor # Apply disc factor to all the rewards in the sum
+
+
+	"""
 	This method adds the advantage and probability of the selected action for each element in the trajectory.
 	This is needed by the PPO algorithm.
 
@@ -450,6 +469,42 @@ class DirectedGenerator():
 			# Append advantage to the current element of the trajectory
 			trajectory[i].append(state_value)
 		
+
+	"""
+	This method adds the advantage and probability (of the goal policy) of the selected action for each element in the trajectory.
+	This is needed by the PPO algorithm.
+
+	Note: this method is in-place.
+	"""
+	def _calculate_state_value_and_old_policy_probs_trajectory_goal_policy(self, trajectory):
+		
+		for i in range(len(trajectory)):
+			state_tensors, num_objs_with_virtuals, mask_tensors, chosen_action_index, disc_reward_sum = trajectory[i]
+			
+			# < Obtain probability of the selected action >
+
+			# Use the Actor NLM of the goal state policy to obtain the action log_probs
+			action_log_probs = self._goal_policy(state_tensors, num_objs_with_virtuals, mask_tensors)
+		
+			# Choose the selected action
+			chosen_action_log_prob = action_log_probs[chosen_action_index[0]][tuple(chosen_action_index[1:])].detach().numpy()
+
+			# Convert from log_prob to prob
+			# Note: if the log_prob is NaN, then we assume the prob is 0 (1e-5 to avoid dividing by 0)
+			chosen_action_prob = np.exp(chosen_action_log_prob) if not np.isnan(chosen_action_log_prob) else 1e-5
+
+			# Append prob to the current element of the trajectory
+			trajectory[i].append(chosen_action_prob)
+
+			# < Estimate State Value V(s) >
+
+			# Estimate state-value V(s) with the Critic NLM of the goal state policy
+			state_value = self._goal_policy.critic_nlm(state_tensors, num_objs_with_virtuals)[0][0].detach().numpy() # [0][0] to select the first predicate of arity 0 (corresponding to V(s))
+
+			# Append advantage to the current element of the trajectory
+			trajectory[i].append(state_value)
+
+
 
 	"""
 	Uses the current initial state and goal generation policies to obtain a full trajectory, which will then be used
@@ -571,7 +626,135 @@ class DirectedGenerator():
 		return trajectory
 		
 	"""
-	This method obtains a trajectories and does all the preprocessing needed for PPO:
+	This method receives a completely-generated problem (s_i, s_g) and returns its difficulty.
+	This difficulty corresponds to the number of nodes expanded by the planner divided by the maximum
+	difficulty (@max_difficulty).
+	If the planner uses more than @max_planning_time seconds to solve the problem, we assume
+	the difficulty of the problem is equal to max_difficulty, and we return a value of 1.
+
+	<Note>: it is possible that the scaled difficulty is greater than 1.0 if problem_difficulty > max_difficulty
+	"""
+	def get_problem_difficulty(self, problem, max_difficulty=10000, max_planning_time=60):
+		# Encode the problem in PDDL
+		pddl_problem = problem.obtain_pddl_problem()
+
+		# Obtain its difficulty (number of nodes expanded by the planner o -1 if couldn't solve it under
+		# max_planning_time)
+		# <TODO>
+		problem_difficulty = self._planner.get_problem_difficulty_no_save_disk(pddl_problem, max_planning_time)
+
+		# Scale the problem difficulty
+		# Note: it is possible that the scaled difficulty is greater than 1.0 if problem_difficulty > max_difficulty
+		scaled_problem_difficulty = 1.0 if problem_difficulty == -1 else problem_difficulty / max_difficulty
+		
+		return scaled_problem_difficulty
+
+
+	"""
+	Uses the goal policy to obtain a trajectory from the given initial state to a goal state.
+
+	@initial_state The (completely-generated) initial state from which to start the generation of the goal state.
+	               It must be an instance of RelationalState.
+	@max_actions_goal_state The maximum number of actions the goal policy can apply from @initial_state. If we reach this
+	                        number of actions and the goal policy hasn't chosen the termination condition, we assume
+							the current state corresponds to the completely-generated goal state.
+	"""
+	def _obtain_trajectory_goal_policy(self, initial_state, max_actions_goal_state=10):
+		
+		# Information about the NLM of the goal policy
+		goal_nlm_max_pred_arity = self._goal_policy.actor_nlm.max_arity # This value corresponds to the breadth of the NLM
+		goal_nlm_output_layer_shape = self._goal_policy.actor_nlm.num_output_preds_layers[-1]
+
+		trajectory = []
+
+		# < Generate initial state s_gc from which to generate the trajectory >
+		problem = ProblemState(self._parser, self._predicates_to_consider_for_goal, initial_state,
+						self._penalization_continuous_consistency, self._penalization_eventual_consistency,
+					    self._penalization_non_applicable_action, consistency_validator=self._consistency_validator)
+		
+		problem.end_initial_state_generation_phase()
+
+		# < Generate goal state >
+		
+		init_state = problem.initial_state # The initial state of the problem does not change during the trajectory
+		num_objs = init_state.num_objects
+
+		
+		goal_state_generated = False
+
+		actions_executed = 0
+
+		while not goal_state_generated:
+			# < Use the goal policy to select an action >
+
+			curr_goal_state = problem.goal_state
+
+			# Information about the current state
+			perc_actions_executed = actions_executed / max_actions_goal_state # Obtain percentage of actions executed (with respect to the max number of actions)
+			curr_goal_and_init_state_tensors = init_state.atoms_nlm_encoding_with_goal_state(curr_goal_state, goal_nlm_max_pred_arity, perc_actions_executed)
+
+			# Mask tensors
+			mask_tensors = self._get_mask_tensors_goal_policy(goal_nlm_output_layer_shape, problem)
+
+			# Obtain an action (index) with the goal policy
+			chosen_action_index = self._goal_policy.select_action(curr_goal_and_init_state_tensors, num_objs, mask_tensors)
+
+			# <Process the action>
+
+			# Check if the chosen action corresponds to the termination condition
+			# chosen_action_index[0] == 0 -> action of arity 0
+			# chosen_action_index[-1] == init_nlm_output_layer_shape[0]-1 -> the last action of arity 0 (which corresponds to the termination condition)
+			termination_condition = (chosen_action_index[0] == 0 and chosen_action_index[-1] == goal_nlm_output_layer_shape[0]-1)
+
+			if termination_condition:
+				goal_state_generated = True
+				problem.end_goal_state_generation_phase()
+
+				# Call the planner to obtain the difficulty of the problem generated
+				r_difficulty = self.get_problem_difficulty(problem) # Difficulty scaled to real values between 0 and 1 (unless the problem difficulty surpasses the maximum difficulty)
+
+			# If the selected action is not the termination condition, execute it
+			else:		
+				
+				# Transform the action index into a proper action
+				action_name = self._dummy_rel_state_actions.get_predicate_by_arity_and_ind(chosen_action_index[0], 
+																			               chosen_action_index[-1])[0] # [0] to get the name
+				action_params = chosen_action_index[1:-1]
+
+				_, r_action_validity = problem.apply_action_to_goal_state(action_name, action_params)
+
+				# TODO: quitar la comprobacion de aplicabilidad en metodo apply_action_to_goal_state()
+
+				actions_executed += 1
+
+				if r_action_validity != 0:
+					print("\n>>>> Error: the executed action wasn't applicable at the current goal state!\n")
+
+				# Check if we have reached the maximum number of actions
+				# If so, stop generating the initial state and check if the eventual consistency rules are met
+		
+				if actions_executed >= max_actions_goal_state:
+					goal_state_generated = True
+
+					# Call the planner to obtain the difficulty of the problem generated
+					r_difficulty = self.get_problem_difficulty(problem)
+
+
+			# Append sample to the trajectory
+			trajectory.append( [curr_goal_and_init_state_tensors, num_objs, mask_tensors,
+					            chosen_action_index, r_difficulty )
+
+
+
+		# <TODO>
+		# COMPROBAR QUE LAS ACCIONES ELEGIDAS POR LA GOAL POLICY (TRAS EL MASKING) SIEMPRE SON APLICABLES!!!
+		# Si ese es el caso, podemos eliminar el "penalization_non_applicable_action" en ProblemState
+		# y la comprobacion de aplicabilidad en problem.apply_action_to_goal_state(action_name, action_params)
+
+
+
+	"""
+	This method obtains a trajectory and does all the preprocessing needed for PPO:
 
 	1. It first sums the trajectory rewards to obtain the discounted_accumulative_reward R_t.
 	2. For each element of the trajectory, it calculates the probability of the selected action (\pi(a | s)) and the advantage A(s,a). 
@@ -589,6 +772,27 @@ class DirectedGenerator():
 		self._calculate_state_value_and_old_policy_probs_trajectory(trajectory)
 
 		return trajectory
+
+
+
+
+
+	"""
+	This method obtains a trajectory with the goal policy and does all the preprocessing needed for PPO.
+
+	1. It first sums the trajectory rewards to obtain the discounted_accumulative_reward R_t.
+	2. For each element of the trajectory, it calculates the probability of the selected action (\pi(a | s)) and the advantage A(s,a). 
+	   Both elements are stored as numpy arrays, so that pytorch gradient does not flow through them.
+	"""
+	def _obtain_trajectory_and_preprocess_for_PPO_goal_policy(self, max_actions_trajectory=10, disc_factor=0.95):
+		pass
+		# <TODO>
+
+
+
+
+
+
 
 	"""
 	This method trains the initial state generation policy.
@@ -628,9 +832,7 @@ class DirectedGenerator():
 
 		# Train initial state generation policy with PPO
 		for i in range(training_iterations):
-			
-			# QUITAR
-			print(">>>> Curr train it:", i)
+			print("\n>> Curr train it:", i)
 
 			# Obtain the trajectories for the current PPO iteration
 			

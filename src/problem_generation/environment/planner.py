@@ -63,7 +63,7 @@ class Planner():
 					   assume the problem was not solvable (even though maybe it is).
 	"""
 	def get_problem_difficulty(self, pddl_problem_path, max_planning_time = 60):
-		planner_output = self.solve_problem(pddl_problem_path)
+		planner_output = self.solve_problem(pddl_problem_path, max_planning_time)
 
 		# Check if there was a timeout -> we consider this case the same as when the planner does not find a solution
 		if planner_output == 'timeout':
@@ -77,3 +77,13 @@ class Planner():
 			expanded_nodes = -1
 
 		return expanded_nodes
+
+	"""
+	The same as get_problem_difficulty but we don't write the PDDL problem to disk. Instead, we use named pipes
+	so that the planner can access the (virtual) file.
+	"""
+	def get_problem_difficulty_no_save_disk(pddl_problem, max_planning_time = 60):
+		raise NotImplementedError()
+
+		# TODO
+		# https://stackoverflow.com/questions/8612189/how-to-create-a-filehandle-in-memory-and-pass-to-an-external-command-in-python

@@ -22,9 +22,10 @@ class ProblemState:
 
 	@parser Instance of Parser class, containing the parsed information about the PDDL domain.
 	@predicates_to_consider_for_goal List of predicate <names> (e.g., ['on', 'ontable']) to consider for the goals of the generated problems.
-	@initial_state_info Information used to create the initial state of the generation process. If None, the initial state is empty (contains no objects or atoms).
-                        If str (e.g., 'block'), the initial state contains a single object of such type. If an instance of
-						RelationalState, the initial state will be the state passed as parameter.
+	@initial_state_info Information used to create the initial state of the generation process. 
+	                    If None, the initial state is empty (contains no objects or atoms).
+                        If str (e.g., 'block'), the initial state contains a single object of such type. 
+						If an instance of RelationalState, the initial state will be the state passed as parameter.
 	@penalization_continuous_consistency Penalization if the initial state generation policy selects an action that produces a state 
 	                                     which does not meet the continous consistency rules.
 	@penalization_eventual_consistency Penalization if the initial state has been completely generated but it does not meet the eventual consistency
