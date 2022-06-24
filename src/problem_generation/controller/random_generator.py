@@ -129,7 +129,7 @@ class RandomGenerator():
 		ind_action = 0
 		available_actions = True
 
-		while (ind_action < num_actions_for_init_state or not problem.is_totally_generated_init_state_consistent()) and available_actions:
+		while (ind_action < num_actions_for_init_state or problem.get_eventual_consistency_reward_of_init_state() != 0) and available_actions:
 			available_actions = True
 			
 			# Obtain the possible actions (atoms) that can be applied to the current state

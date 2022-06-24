@@ -308,7 +308,7 @@ Test generate_random_problems() in Controller class.
 def test_generate_random_problems():
 	from problem_generation.controller.controller import Controller
 
-	num_problems_to_generate = 10
+	num_problems_to_generate = 1
 
 	domain_file_path = '../data/domains/blocks-domain.pddl'
 
@@ -470,8 +470,8 @@ if __name__ == "__main__":
 	#test_random_problem_generation()
 	#test_planner()
 	#test_generate_random_problems()
-
 	#test_trajectory_directed_generator() 
 	#test_train_generative_policies()
+	#test_load_model_and_generate_problems()
 
-	test_load_model_and_generate_problems()
+	test_generate_random_problems()

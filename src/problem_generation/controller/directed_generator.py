@@ -635,14 +635,15 @@ class DirectedGenerator():
 	<Note1>: This method also selects the goal atoms corresponding to the goal predicates given by the user
 	<Note2>: it is possible that the scaled difficulty is greater than 1.0 if problem_difficulty > max_difficulty
 	"""
-	def get_problem_difficulty(self, problem, max_difficulty=10000, max_planning_time=60):
+	def get_problem_difficulty(self, problem, max_difficulty=1e6, max_planning_time=60):
 		# Encode the problem in PDDL
 		# This method also selects the goal atoms corresponding to the goal predicates given by the user
 		pddl_problem = problem.obtain_pddl_problem()
 
 		# Obtain its difficulty (number of nodes expanded by the planner o -1 if couldn't solve it under
 		# max_planning_time)
-		# <TODO>
+		# Note: if the planner does not find a solution, it also returns -1, but this situation should not happen
+		#       as every problem is solvable.
 		problem_difficulty = self._planner.get_problem_difficulty_no_save_disk(pddl_problem, max_planning_time)
 
 		# Scale the problem difficulty
