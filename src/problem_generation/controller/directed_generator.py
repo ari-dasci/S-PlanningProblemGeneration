@@ -694,6 +694,12 @@ class DirectedGenerator():
 			perc_actions_executed = actions_executed / max_actions_goal_state # Obtain percentage of actions executed (with respect to the max number of actions)
 			curr_goal_and_init_state_tensors = init_state.atoms_nlm_encoding_with_goal_state(curr_goal_state, goal_nlm_max_pred_arity, perc_actions_executed)
 
+
+			print("curr_goal_and_init_state_tensors:", curr_goal_and_init_state_tensors)
+			# QUITAR
+			sys.exit()
+
+
 			# Mask tensors
 			mask_tensors = self._get_mask_tensors_goal_policy(goal_nlm_output_layer_shape, problem)
 
@@ -896,11 +902,10 @@ class DirectedGenerator():
 											   its_per_model_checkpoint=10, checkpoint_save_name="saved_models/goal_policy"):
 
 		# Create the initial state from which to start the goal generation process
-
 		initial_state = RelationalState(['block'], 
 							         [ ['on', ['block', 'block']], ['ontable', ['block']], ['clear', ['block']], ['handempty', []], ['holding', ['block']] ],
 									 objects=['block', 'block', 'block', 'block', 'block', 'block'],
-									 atoms=[ ['ontable', [0]], ['clear', [0]]
+									 atoms=[ ['ontable', [0]], ['clear', [0]],
 											 ['ontable', [1]], ['on', [2, 1]], ['clear', [2]],
 										     ['ontable', [3]], ['on', [4, 3]], ['on', [5, 4]], ['clear', [5]],
 											 ['handempty', []] ])

@@ -288,22 +288,32 @@ class RelationalState():
             raise ValueError("The initial and goal states contain different objects")
         
         # Obtain NLM encoding of each state
-        init_state_nlm_encoding = self.atoms_nlm_encoding(max_arity, False, perc_actions_executed) # add_virtual_objs=False, as we do not need to add virtual objects
-        goal_state_nlm_encoding = goal_state.atoms_nlm_encoding(max_arity, False, perc_actions_executed)
+        # We pass the parameter perc_actions_executed=-1 so that atoms_nlm_encoding() does not add
+        # the extra predicate correspoding to the perc_actions_executed
+        # This extra predicate has to be added AFTER stacking init_state_nlm_encoding and goal_state_nlm_encoding
+        with torch.no_grad():
+            init_state_nlm_encoding = self.atoms_nlm_encoding(max_arity, False, -1) # add_virtual_objs=False, as we do not need to add virtual objects
+            goal_state_nlm_encoding = goal_state.atoms_nlm_encoding(max_arity, False, -1)
 
-        # Stack goal_state_nlm_encoding to init_state_nlm_encoding
-        both_states_nlm_encoding = []
+            # Stack goal_state_nlm_encoding to init_state_nlm_encoding
+            both_states_nlm_encoding = []
 
-        for r in range(len(init_state_nlm_encoding)):
+            for r in range(len(init_state_nlm_encoding)):
             
-            if init_state_nlm_encoding[r] is None:
-                both_states_nlm_encoding.append(None)
-            else:
-                # Concatenate the initial state predicates of arity r and the goal state predicates of arity r (the last dimension (dim=-1) corresponds to the predicates)
-                both_states_nlm_encoding.append(torch.cat( (init_state_nlm_encoding[r], goal_state_nlm_encoding[r]), dim=-1))
+                if init_state_nlm_encoding[r] is None:
+                    both_states_nlm_encoding.append(None)
+                else:
+                    # Concatenate the initial state predicates of arity r and the goal state predicates of arity r (the last dimension (dim=-1) corresponds to the predicates)
+                    both_states_nlm_encoding.append(torch.cat( (init_state_nlm_encoding[r], goal_state_nlm_encoding[r]), dim=-1))
 
+            # Add the extra nullary predicate corresponding to perc_actions_executed (if needed)
+            if perc_actions_executed != -1:
+                new_tensor = torch.full((1,), fill_value=perc_actions_executed, dtype=torch.float32)
+
+                both_states_nlm_encoding[0] = new_tensor if both_states_nlm_encoding[0] is None else \
+                                              torch.cat( (both_states_nlm_encoding[0], new_tensor), dim=-1)
+            
         return both_states_nlm_encoding
-
 
 
     # Setters

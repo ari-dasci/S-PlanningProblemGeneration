@@ -326,11 +326,9 @@ def test_generate_random_problems():
 
 
 """
-Uses the NLM (without training) to obtain a trajectory, i.e., select actions according to the initial state and goal generation policies.
-
-# <TODO> Test the goal generation policy (right now we only test the initial state generation policy)
+Uses the NLM (without training) to obtain a trajectory, i.e., select actions according to the initial state policy.
 """
-def test_trajectory_directed_generator():
+def test_trajectory_initial_state_policy():
 	from problem_generation.controller.directed_generator import DirectedGenerator
 	from problem_generation.environment.pddl_parser import Parser
 	from problem_generation.environment.planner import Planner
@@ -458,6 +456,47 @@ def test_load_model_and_generate_problems():
 
 	directed_generator.generate_problems(num_problems, verbose=True)
 
+"""
+We use the NLMs of the goal generation policy (without training) to obtain a single trajectory.
+"""
+def test_trajectory_goal_policy():
+	from problem_generation.controller.directed_generator import DirectedGenerator
+	from problem_generation.environment.pddl_parser import Parser
+	from problem_generation.environment.planner import Planner
+	from problem_generation.environment.state_validator import ValidatorPredOrderBW
+	from problem_generation.environment.relational_state import RelationalState
+	
+	# Note: in the final version, we will not call directed_generator directly, but will use the methods of the Controller class
+
+	domain_file_path = '../data/domains/blocks-domain.pddl'
+
+	parser = Parser()
+	parser.parse_domain(domain_file_path)
+	planner = Planner(domain_file_path)
+
+	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW)
+
+	# Initial state from which to generate the goal
+	initial_state = RelationalState(['block'], 
+							        [ ['on', ['block', 'block']], ['ontable', ['block']], ['clear', ['block']], ['handempty', []], ['holding', ['block']] ],
+								    objects=['block', 'block', 'block', 'block', 'block', 'block'],
+								    atoms=[ ['ontable', [0]], ['clear', [0]],
+										    ['ontable', [1]], ['on', [2, 1]], ['clear', [2]],
+										    ['ontable', [3]], ['on', [4, 3]], ['on', [5, 4]], ['clear', [5]],
+										    ['handempty', []] ])
+
+	trajectory = directed_generator._obtain_trajectory_goal_policy(initial_state)
+
+
+
+	print(">> First element of the trajectory:", trajectory[0])
+
+	print(">> Trajectory actions and immediate rewards:", [ (x[-3], x[-2], x[-1]) for x in trajectory])
+
+	directed_generator._sum_rewards_trajectory_goal_policy(trajectory)
+
+	print(">> Trajectory discounted sum of rewards:", [x[-1] for x in trajectory])
+
 
 # ---------------------------------------------------
 
@@ -470,8 +509,10 @@ if __name__ == "__main__":
 	#test_random_problem_generation()
 	#test_planner()
 	#test_generate_random_problems()
-	#test_trajectory_directed_generator() 
+	#test_trajectory_initial_state_policy() 
 	#test_train_generative_policies()
 	#test_load_model_and_generate_problems()
 
-	test_generate_random_problems()
+	#test_generate_random_problems()
+
+	test_trajectory_goal_policy()
