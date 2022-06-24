@@ -638,6 +638,9 @@ class ProblemState:
 	Encodes in PDDL format the problem represented by this instance of ProblemState. It returns the problem as a string (str).
 	Both initial and goal state generation phases must have concluded.
 
+	Note: this method also converts the goal state to the problem goal, by only selecting the goal atoms corresponding
+	      to predicates given by the user (self._predicates_to_consider_for_goal)
+
 	@problem_name If not None, the name of the problem generated
 	"""
 	def obtain_pddl_problem(self, problem_name=None):

@@ -632,10 +632,12 @@ class DirectedGenerator():
 	If the planner uses more than @max_planning_time seconds to solve the problem, we assume
 	the difficulty of the problem is equal to max_difficulty, and we return a value of 1.
 
-	<Note>: it is possible that the scaled difficulty is greater than 1.0 if problem_difficulty > max_difficulty
+	<Note1>: This method also selects the goal atoms corresponding to the goal predicates given by the user
+	<Note2>: it is possible that the scaled difficulty is greater than 1.0 if problem_difficulty > max_difficulty
 	"""
 	def get_problem_difficulty(self, problem, max_difficulty=10000, max_planning_time=60):
 		# Encode the problem in PDDL
+		# This method also selects the goal atoms corresponding to the goal predicates given by the user
 		pddl_problem = problem.obtain_pddl_problem()
 
 		# Obtain its difficulty (number of nodes expanded by the planner o -1 if couldn't solve it under
@@ -679,9 +681,7 @@ class DirectedGenerator():
 		init_state = problem.initial_state # The initial state of the problem does not change during the trajectory
 		num_objs = init_state.num_objects
 
-		
 		goal_state_generated = False
-
 		actions_executed = 0
 
 		while not goal_state_generated:
@@ -711,6 +711,7 @@ class DirectedGenerator():
 				problem.end_goal_state_generation_phase()
 
 				# Call the planner to obtain the difficulty of the problem generated
+				# This method also selects the goal atoms corresponding to the goal predicates given by the user
 				r_difficulty = self.get_problem_difficulty(problem) # Difficulty scaled to real values between 0 and 1 (unless the problem difficulty surpasses the maximum difficulty)
 
 			# If the selected action is not the termination condition, execute it
@@ -731,18 +732,20 @@ class DirectedGenerator():
 					print("\n>>>> Error: the executed action wasn't applicable at the current goal state!\n")
 
 				# Check if we have reached the maximum number of actions
-				# If so, stop generating the initial state and check if the eventual consistency rules are met
+				# If so, stop generating the goal state and obtain the difficulty of the problem
 		
 				if actions_executed >= max_actions_goal_state:
 					goal_state_generated = True
+					problem.end_goal_state_generation_phase()
 
 					# Call the planner to obtain the difficulty of the problem generated
+					# This method also selects the goal atoms corresponding to the goal predicates given by the user
 					r_difficulty = self.get_problem_difficulty(problem)
 
 
 			# Append sample to the trajectory
 			trajectory.append( [curr_goal_and_init_state_tensors, num_objs, mask_tensors,
-					            chosen_action_index, r_difficulty )
+					            chosen_action_index, r_difficulty] )
 
 
 
@@ -750,6 +753,8 @@ class DirectedGenerator():
 		# COMPROBAR QUE LAS ACCIONES ELEGIDAS POR LA GOAL POLICY (TRAS EL MASKING) SIEMPRE SON APLICABLES!!!
 		# Si ese es el caso, podemos eliminar el "penalization_non_applicable_action" en ProblemState
 		# y la comprobacion de aplicabilidad en problem.apply_action_to_goal_state(action_name, action_params)
+
+		# IMPLEMENTAR EL get_problem_difficulty(problem) !!!
 
 
 
@@ -774,9 +779,6 @@ class DirectedGenerator():
 		return trajectory
 
 
-
-
-
 	"""
 	This method obtains a trajectory with the goal policy and does all the preprocessing needed for PPO.
 
@@ -784,14 +786,17 @@ class DirectedGenerator():
 	2. For each element of the trajectory, it calculates the probability of the selected action (\pi(a | s)) and the advantage A(s,a). 
 	   Both elements are stored as numpy arrays, so that pytorch gradient does not flow through them.
 	"""
-	def _obtain_trajectory_and_preprocess_for_PPO_goal_policy(self, max_actions_trajectory=10, disc_factor=0.95):
-		pass
-		# <TODO>
+	def _obtain_trajectory_and_preprocess_for_PPO_goal_policy(self, initial_state, max_actions_trajectory=10, disc_factor=0.95):
+		# Obtain trajectory
+		trajectory = self._obtain_trajectory_goal_policy(initial_state, max_actions_trajectory)
+		
+		# Sum rewards
+		self._sum_rewards_trajectory_goal_policy(trajectory, disc_factor)
 
+		# Calculate advantage and selected action probability
+		self._calculate_state_value_and_old_policy_probs_trajectory_goal_policy(trajectory)
 
-
-
-
+		return trajectory
 
 
 	"""
@@ -873,15 +878,93 @@ class DirectedGenerator():
 
 
 
+	"""
+	This method trains the initial state generation policy.
 
+	@training_iterations The number of PPO iterations
+	@epochs_per_train_it For each PPO iteration, how many training epochs to use over the dataset of collected trajectories
+	@trajectories_per_train_it For each PPO iteration, how many trajectories to collect
+	@minibatch_size Minibatch size to use when training the model over the collected trajectories
+	@its_per_model_checkpoint Every this number of train its, the current model (Actor and Critic NLMs) weights are saved to the folder 
+	                          given by @checkpoint_save_path. If it is -1, we do not save checkpoint.
+	Note: We add an index to the folder name given by @checkpoint_save_path. Example: saved_models/init_state_policy_nlm_2
+	      (in case there are two other experiments ids=0, 1 before it).
+	
+	"""
+	def _train_goal_generation_policy(self, training_iterations, epochs_per_train_it=3, trajectories_per_train_it=100, minibatch_size=250,
+											   its_per_model_checkpoint=10, checkpoint_save_name="saved_models/goal_policy"):
 
-	# <TODO>
-	# Implement goal generation policy
+		# Create the initial state from which to start the goal generation process
+
+		initial_state = RelationalState(['block'], 
+							         [ ['on', ['block', 'block']], ['ontable', ['block']], ['clear', ['block']], ['handempty', []], ['holding', ['block']] ],
+									 objects=['block', 'block', 'block', 'block', 'block', 'block'],
+									 atoms=[ ['ontable', [0]], ['clear', [0]]
+											 ['ontable', [1]], ['on', [2, 1]], ['clear', [2]],
+										     ['ontable', [3]], ['on', [4, 3]], ['on', [5, 4]], ['clear', [5]],
+											 ['handempty', []] ])
+
+		# Obtain folder name to save the model checkpoints in
+		folders = glob.glob(checkpoint_save_name + r'_*')
+		folder_inds = [f.split('_')[-1] for f in folders]
+		folder_inds = [int(ind) for ind in folder_inds if ind.isdigit()]
+		next_folder_ind = max(folder_inds)+1 if len(folder_inds) > 0 else 0
+		checkpoints_folder = checkpoint_save_name + f'_{next_folder_ind}'
+
+		# Hyperparameters
+		num_parallel_jobs = 5 # Used for joblib
+
+		# Initialize trainer
+		logger = TensorBoardLogger("lightning_logs", name="goal_policy/one_init_state")
+
+		# Train goal generation policy with PPO
+		for i in range(training_iterations):
+			print("\n>> Curr train it:", i)
+
+			# Obtain the trajectories for the current PPO iteration
+			
+			trajectories = []
+
+			print("\n > Collecting trajectories")
+
+			# Collect the trajectories sequentially, without joblib
+			"""for _ in range(trajectories_per_train_it):
+				trajectory = self._obtain_trajectory_and_preprocess_for_PPO_goal_policy(initial_state)
+
+				trajectories.extend(trajectory) # Add the samples of the current trajectory
+			"""
+			
+			# Obtain the trajectories in parallel using joblib
+			out = Parallel(n_jobs=num_parallel_jobs, backend="threading")( \
+				           delayed(self._obtain_trajectory_and_preprocess_for_PPO_goal_policy)(initial_state) for _ in range(trajectories_per_train_it))
+			trajectories = list(chain.from_iterable(out)) # Convert from list of lists to a single list (i.e., flatten the first level of the list)
+
+			print("> Trajectories collected - Num samples:", len(trajectories))
+
+			# Create training dataset and dataloader with the collected trajectories
+
+			trajectory_dataset = ReinforceDataset(trajectories)
+			trajectory_dataloader = torch.utils.data.DataLoader(dataset=trajectory_dataset, batch_size=minibatch_size,
+																collate_fn=TransformReinforceDatasetSample(), shuffle=True) # Change to shuffle=False if we need to keep the order in the transitions (s,a,s')
+
+			# Use the trajectory to train the policy
+
+			trainer = pl.Trainer(max_epochs=epochs_per_train_it, logger=logger) # We need to reset the trainer, so we create a new one
+			trainer.fit(self._goal_policy, trajectory_dataloader)
+
+			# Linearly anneal the entropy regularization of the policy
+			self._goal_policy.reduce_entropy()
+
+			# Save a checkpoint
+			if its_per_model_checkpoint != -1 and i > 0 and i % its_per_model_checkpoint == 0:
+				trainer.save_checkpoint(checkpoints_folder + f'/model_its-{i}.ckpt') # Both actor and critic NLMs are saved
+
 
 	# Each training iteration correspond to one PPO iteration (composed of multiple gradient updates)
+	# TODO: train both policies at the same time.
 	def train_generative_policies(self, training_iterations): # Add more parameters
-		self._train_initial_state_generation_policy(training_iterations)
-
+		#self._train_initial_state_generation_policy(training_iterations)
+		self._train_goal_generation_policy(training_iterations)
 
 	"""
 	This method generates a single problem by using the generative policies. We assume the policies have already been trained by calling the method

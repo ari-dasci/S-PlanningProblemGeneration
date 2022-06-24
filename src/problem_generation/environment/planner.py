@@ -4,6 +4,7 @@
 import subprocess
 from subprocess import TimeoutExpired
 import re
+import os
 
 class Planner():
 
@@ -81,9 +82,23 @@ class Planner():
 	"""
 	The same as get_problem_difficulty but we don't write the PDDL problem to disk. Instead, we use named pipes
 	so that the planner can access the (virtual) file.
-	"""
-	def get_problem_difficulty_no_save_disk(pddl_problem, max_planning_time = 60):
-		raise NotImplementedError()
 
-		# TODO
-		# https://stackoverflow.com/questions/8612189/how-to-create-a-filehandle-in-memory-and-pass-to-an-external-command-in-python
+	<Source>: https://stackoverflow.com/questions/8612189/how-to-create-a-filehandle-in-memory-and-pass-to-an-external-command-in-python
+	"""
+	def get_problem_difficulty_no_save_disk(self, pddl_problem, max_planning_time = 60):
+		# Create a virtual file in RAM (use a named pipe or FIFO)
+		file_name = "problem.pddl"
+		os.mkfifo(file_name)
+
+		# Save the PDDL problem to the virtual file just created
+		with open(file_name, 'w+') as f:
+			f.write(pddl_problem)
+
+		# Obtain the difficulty of the problem (by reading the virtual file containing the PDDL encoding of the problem)
+		difficulty = self.get_problem_difficulty(file_name, max_planning_time)
+
+		# Delete the virtual file
+		os.remove(file_name)
+
+		return difficulty
+		
