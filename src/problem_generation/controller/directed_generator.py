@@ -314,8 +314,10 @@ class DirectedGenerator():
 	@nlm_output_shape Shape of the last NLM layer, as a list of num_preds, e.g., [1,2,3,0]. Note: @nlm_output_shape must
 	                  take into account the extra nullary predicate added for the termination condition (in case it is added).
 	@problem The current problem (s_i, s_gc), used to obtain the applicable actions at the current goal state.
+	@termination_condition Whether the NLM output contains an extra nullary predicate representing the termination condition.
+	                       If True, we must also unmask that predicate (since the termination_condition can always be executed).
 	"""
-	def _get_mask_tensors_goal_policy(self, nlm_output_shape, problem):
+	def _get_mask_tensors_goal_policy(self, nlm_output_shape, problem, termination_condition=True):
 		num_objs = problem.goal_state.num_objects # Number of objects in the goal state (and also in the initial state)
 		
 		# Get applicable ground actions at the current goal state s_gc
@@ -337,6 +339,10 @@ class DirectedGenerator():
 		# Unmask (set to 0) positions corresponding to applicable actions
 		for a in applicable_ground_actions_nlm_format:
 			mask_tensors[a[0]][tuple(a[1:])] = 0.0
+
+		# If the NLM output has a termination condition, also unmask it
+		if termination_condition:
+			mask_tensors[0][nlm_output_shape[0]-1] = 0.0
 
 		return mask_tensors
 
@@ -694,12 +700,6 @@ class DirectedGenerator():
 			perc_actions_executed = actions_executed / max_actions_goal_state # Obtain percentage of actions executed (with respect to the max number of actions)
 			curr_goal_and_init_state_tensors = init_state.atoms_nlm_encoding_with_goal_state(curr_goal_state, goal_nlm_max_pred_arity, perc_actions_executed)
 
-
-			print("curr_goal_and_init_state_tensors:", curr_goal_and_init_state_tensors)
-			# QUITAR
-			sys.exit()
-
-
 			# Mask tensors
 			mask_tensors = self._get_mask_tensors_goal_policy(goal_nlm_output_layer_shape, problem)
 
@@ -748,20 +748,19 @@ class DirectedGenerator():
 					# Call the planner to obtain the difficulty of the problem generated
 					# This method also selects the goal atoms corresponding to the goal predicates given by the user
 					r_difficulty = self.get_problem_difficulty(problem)
-
+				else:
+					r_difficulty = 0.0 # Before calculating the problem difficulty, it must be fully generated
 
 			# Append sample to the trajectory
 			trajectory.append( [curr_goal_and_init_state_tensors, num_objs, mask_tensors,
 					            chosen_action_index, r_difficulty] )
 
-
+		return trajectory
 
 		# <TODO>
 		# COMPROBAR QUE LAS ACCIONES ELEGIDAS POR LA GOAL POLICY (TRAS EL MASKING) SIEMPRE SON APLICABLES!!!
 		# Si ese es el caso, podemos eliminar el "penalization_non_applicable_action" en ProblemState
 		# y la comprobacion de aplicabilidad en problem.apply_action_to_goal_state(action_name, action_params)
-
-		# IMPLEMENTAR EL get_problem_difficulty(problem) !!!
 
 
 

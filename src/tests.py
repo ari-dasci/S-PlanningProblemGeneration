@@ -487,15 +487,15 @@ def test_trajectory_goal_policy():
 
 	trajectory = directed_generator._obtain_trajectory_goal_policy(initial_state)
 
-
-
 	print(">> First element of the trajectory:", trajectory[0])
 
-	print(">> Trajectory actions and immediate rewards:", [ (x[-3], x[-2], x[-1]) for x in trajectory])
+	print(">> Trajectory actions and immediate rewards:", [ x[-1] for x in trajectory])
 
 	directed_generator._sum_rewards_trajectory_goal_policy(trajectory)
 
 	print(">> Trajectory discounted sum of rewards:", [x[-1] for x in trajectory])
+
+
 
 
 # ---------------------------------------------------
