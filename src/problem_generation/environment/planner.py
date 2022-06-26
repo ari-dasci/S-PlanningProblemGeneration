@@ -74,11 +74,15 @@ class Planner():
 		# Check if the planner found a solution
 		if re.search("Solution found.", planner_output):
 			# Search for number of expanded nodes
-			expanded_nodes = int(re.search(r"Expanded ([0-9]+) state\(s\)\.", planner_output).group(1))
+			# expanded_nodes = int(re.search(r"Expanded ([0-9]+) state\(s\)\.", planner_output).group(1))
+
+			# QUITAR
+			expanded_nodes = int(re.search(r"Plan length: ([0-9]+) step\(s\)\.", planner_output).group(1))
 		else:
 			expanded_nodes = -1
 
 		return expanded_nodes
+
 
 	"""
 	The same as get_problem_difficulty but we create a temporary file to store the PDDL problem, which is deleted

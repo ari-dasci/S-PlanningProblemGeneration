@@ -357,11 +357,9 @@ def test_trajectory_initial_state_policy():
 
 
 """
-Tests the functionality of directed_generator.py used to train the generative policies.
-
-# <TODO>: also test the goal policy
+Tests the functionality of directed_generator.py used to train the initial state policy.
 """
-def test_train_generative_policies():
+def test_train_initial_state_policy():
 	from problem_generation.controller.directed_generator import DirectedGenerator
 	from problem_generation.environment.pddl_parser import Parser
 	from problem_generation.environment.planner import Planner
@@ -405,7 +403,7 @@ def test_train_generative_policies():
 	print("---------- Problem before training the policy ---------- \n\n")
 	directed_generator.generate_problem()
 
-	# Train the policies
+	# Train the initial statey generation policy
 	directed_generator.train_generative_policies(training_iterations = 1000)
 
 	# Generate the problems
@@ -496,7 +494,85 @@ def test_trajectory_goal_policy():
 	print(">> Trajectory discounted sum of rewards:", [x[-1] for x in trajectory])
 
 
+"""
+Tests the functionality of directed_generator.py used to train the goal policy.
+"""
+def test_train_goal_policy():
+	from problem_generation.controller.directed_generator import DirectedGenerator
+	from problem_generation.environment.pddl_parser import Parser
+	from problem_generation.environment.planner import Planner
+	from problem_generation.environment.state_validator import ValidatorPredOrderBW
 
+	domain_file_path = '../data/domains/blocks-domain.pddl'
+
+	parser = Parser()
+	parser.parse_domain(domain_file_path)
+	planner = Planner(domain_file_path)
+
+	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
+
+	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
+										   num_preds_inner_layers_goal_nlm=nlm_inner_layers,
+										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
+										   res_connections_goal_nlm=True,
+										   lr_goal_nlm = 5e-3,
+										   lifted_action_entropy_coeff_goal_policy = 0.001,
+										   ground_action_entropy_coeff_goal_policy = 0.001,
+										   entropy_annealing_coeffs_goal_policy = None,
+										   epsilon_goal_policy=0.1)
+
+
+	# Train the goal generation policy
+	directed_generator.train_generative_policies(training_iterations = 1000)
+
+"""
+# --------------------- Pruebas goal policy
+
+-- Pruebas difficulty=num_expanded_nodes / max_difficulty=1e6
+	> Entropy reg coeffs = 0 0, lr = 5e-3:
+		No aprende (r converge a 1e-6)
+
+	> Entropy reg coeffs = 0 0, lr = 5e-2:
+		No aprende (r converge a 1e-6 incluso más rápido)
+
+	> Entropy reg coeffs = 0 0, lr = 1e-3:
+		Funciona mejor que con lr = 5e-3, ya que aprende, aunque muy lentamente.
+
+-- Pruebas difficulty = plan_length * 0.1
+	> Entropy reg coeffs = 0 0, lr = 5e-3: 
+		No aprende, (la r converge a 0.2 y la entropía cae a 0!)
+
+	> Entropy reg coeffs = 0.1 0.1, lr = 5e-3: 
+		Tarda mucho (al usar 100 trajectories_per_train_it).
+
+	> Entropy reg coeffs = 0.1 0.1, lr = 5e-3, <trajectories_per_train_it=10, minibatch_size=25>:
+		La recompensa converge a r=0.65 (creo que la entropía es demasiado alta y por eso aún ejecuta la termination condition a veces).
+
+	> <Entropy reg coeffs = 0.01 0.01>, lr = 5e-3, trajectories_per_train_it=10, minibatch_size=25:
+		La recompensa converge a r=0.75.
+
+	> <Entropy reg coeffs = 0.001 0.001>, lr = 5e-3, trajectories_per_train_it=10, minibatch_size=25:
+		La recompensa también converge a r=0.75 (creo que no es posible hacer problemas con planes de longitud mayor a 8).
+
+	> 
+
+
+# ------------------------------------------------------
+
+# MIRAR LINK: https://vitalab.github.io/article/2020/01/14/Implementation_Matters.html
+# HAY MUCHOS "CODE-LEVEL OPTIMIZATIONS" QUE PUEDEN SER IMPORTANTES DE CARA A TRABAJAR CON PPO!!!
+
+> Cambiar la escala de las recompensas por cada conjunto de trayectorias para que así no sean
+  demasiado pequeñas al inicio del entrenamiento!!
+  https://medium.com/mindboard/scaling-reward-values-for-improved-deep-reinforcement-learning-e9a89f89411d
+  https://stackoverflow.com/questions/49801638/normalizing-rewards-to-generate-returns-in-reinforcement-learning
+
+> Ver cómo mejorar el rendimiento (quizás permitiendo ejecutar el planner en paralelo para así poder
+					               obtener trayectorias en paralelo)
+
+"""
 
 # ---------------------------------------------------
 
@@ -510,9 +586,10 @@ if __name__ == "__main__":
 	#test_planner()
 	#test_generate_random_problems()
 	#test_trajectory_initial_state_policy() 
-	#test_train_generative_policies()
+	#test_train_initial_state_policy()
 	#test_load_model_and_generate_problems()
 
 	#test_generate_random_problems()
+	#test_trajectory_goal_policy()
 
-	test_trajectory_goal_policy()
+	test_train_goal_policy()

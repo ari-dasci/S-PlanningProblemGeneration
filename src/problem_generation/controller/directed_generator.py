@@ -64,6 +64,11 @@ class DirectedGenerator():
 		else:
 			self._predicates_to_consider_for_goal = predicates_to_consider_for_goal
 
+		# Parameters used to normalize the rewards
+		self._reward_moving_mean = 0
+		self._reward_moving_std = 1
+
+
 		# -- Generative policies --
 
 		# Initial state generation policy
@@ -641,7 +646,7 @@ class DirectedGenerator():
 	<Note1>: This method also selects the goal atoms corresponding to the goal predicates given by the user
 	<Note2>: it is possible that the scaled difficulty is greater than 1.0 if problem_difficulty > max_difficulty
 	"""
-	def get_problem_difficulty(self, problem, max_difficulty=1e6, max_planning_time=60):
+	def get_problem_difficulty(self, problem, max_difficulty=1e6, max_planning_time=10):
 		# Encode the problem in PDDL
 		# This method also selects the goal atoms corresponding to the goal predicates given by the user
 		pddl_problem = problem.obtain_pddl_problem()
@@ -654,7 +659,11 @@ class DirectedGenerator():
 
 		# Scale the problem difficulty
 		# Note: it is possible that the scaled difficulty is greater than 1.0 if problem_difficulty > max_difficulty
-		scaled_problem_difficulty = 1.0 if problem_difficulty == -1 else problem_difficulty / max_difficulty
+		# scaled_problem_difficulty = 1.0 if problem_difficulty == -1 else problem_difficulty / max_difficulty
+
+		# QUITAR
+		# scaled_problem_difficulty = 1.0 if problem_difficulty == -1 else problem_difficulty*0.1
+		scaled_problem_difficulty = 10 if problem_difficulty == -1 else problem_difficulty # We do not scale rewards here, as we use moving mean and std to normalize returns
 		
 		return scaled_problem_difficulty
 
@@ -765,6 +774,31 @@ class DirectedGenerator():
 
 
 	"""
+	This method normalizes the rewards in a trajectory so that they aproximately distribute normally (according to N(0,1)).
+	Since the scale of rewards can vary a lot during training, we use a moving average to calculate the mean (\mu)
+	and std (\sigma) used to normalize the rewards.
+
+	<Note1>: we assume the rewards are in the last position of each trajectory sample.
+	<Note2>: this method modifies the trajectory in-place.
+	<Note3>: I think this method doesn't work if called in parallel! (as we would be accessing the self._reward_moving_mean and self._reward_moving_std
+	         variables in parallel!)
+	"""
+	def _normalize_rewards(self, trajectory, moving_avg_coeff=0.95, moving_std_coeff=0.95):
+
+		# Update the mu and sigma parameters using a moving average
+		trajectory_rewards_np = np.array([sample[-1] for sample in trajectory], dtype=np.float32)
+		trajectory_rewards_mean = np.mean(trajectory_rewards_np)
+		trajectory_rewards_std = np.std(trajectory_rewards_np)
+
+		self._reward_moving_mean = self._reward_moving_mean*moving_avg_coeff + trajectory_rewards_mean*(1-moving_avg_coeff)
+		self._reward_moving_std = self._reward_moving_std*moving_std_coeff + trajectory_rewards_std*(1-moving_std_coeff)
+
+		# Normalize the trajectory rewards
+		for i in range(len(trajectory)):
+			trajectory[i][-1] = (trajectory[i][-1] - self._reward_moving_mean) / (self._reward_moving_std + 1e-10) # z-score normalization
+
+
+	"""
 	This method obtains a trajectory and does all the preprocessing needed for PPO:
 
 	1. It first sums the trajectory rewards to obtain the discounted_accumulative_reward R_t.
@@ -772,12 +806,16 @@ class DirectedGenerator():
 	   Both elements are stored as numpy arrays, so that pytorch gradient does not flow through them.
 	"""
 	def _obtain_trajectory_and_preprocess_for_PPO(self, max_atoms_init_state=10, max_actions_goal_state=10, max_actions_trajectory=15, 
-											      disc_factor_continuous=0, disc_factor_eventual=0.8):
+											      disc_factor_continuous=0, disc_factor_eventual=0.8, 
+												  moving_avg_coeff=0.95, moving_std_coeff=0.95):
 		# Obtain trajectory
 		trajectory = self._obtain_trajectory(max_atoms_init_state, max_actions_goal_state, max_actions_trajectory)
 		
-		# Sum rewards
+		# Sum rewards to obtain the return (discounted sum of rewards)
 		self._sum_rewards_trajectory(trajectory, disc_factor_continuous, disc_factor_eventual)
+
+		# Scale rewards (using moving average and std) so that they aproximately distribute normally (~N(0,1))
+		self._normalize_rewards(trajectory, moving_avg_coeff, moving_std_coeff)
 
 		# Calculate advantage and selected action probability
 		self._calculate_state_value_and_old_policy_probs_trajectory(trajectory)
@@ -792,12 +830,16 @@ class DirectedGenerator():
 	2. For each element of the trajectory, it calculates the probability of the selected action (\pi(a | s)) and the advantage A(s,a). 
 	   Both elements are stored as numpy arrays, so that pytorch gradient does not flow through them.
 	"""
-	def _obtain_trajectory_and_preprocess_for_PPO_goal_policy(self, initial_state, max_actions_trajectory=10, disc_factor=0.95):
+	def _obtain_trajectory_and_preprocess_for_PPO_goal_policy(self, initial_state, max_actions_trajectory=10, disc_factor=0.95,
+														      moving_avg_coeff=0.95, moving_std_coeff=0.95):
 		# Obtain trajectory
 		trajectory = self._obtain_trajectory_goal_policy(initial_state, max_actions_trajectory)
 		
 		# Sum rewards
 		self._sum_rewards_trajectory_goal_policy(trajectory, disc_factor)
+
+		# Scale rewards (using moving average and std) so that they aproximately distribute normally (~N(0,1))
+		self._normalize_rewards(trajectory, moving_avg_coeff, moving_std_coeff)
 
 		# Calculate advantage and selected action probability
 		self._calculate_state_value_and_old_policy_probs_trajectory_goal_policy(trajectory)
@@ -852,15 +894,19 @@ class DirectedGenerator():
 			print("\n > Collecting trajectories")
 
 			# Collect the trajectories sequentially, without joblib
-			"""for _ in range(trajectories_per_train_it):
+			for _ in range(trajectories_per_train_it):
 				trajectory = self._obtain_trajectory_and_preprocess_for_PPO()
 
 				trajectories.extend(trajectory) # Add the samples of the current trajectory
-			"""
 			
+
 			# Obtain the trajectories in parallel using joblib
+			# We can't obtain the trajectories in parallel because I don't know if the method
+			# _normalize_rewards() can be called in parallel (as it modifies some class attributes)
+			"""
 			out = Parallel(n_jobs=num_parallel_jobs, backend="threading")(delayed(self._obtain_trajectory_and_preprocess_for_PPO)() for _ in range(trajectories_per_train_it))
 			trajectories = list(chain.from_iterable(out)) # Convert from list of lists to a single list (i.e., flatten the first level of the list)
+			"""
 
 			print("> Trajectories collected - Num samples:", len(trajectories))
 
@@ -897,7 +943,7 @@ class DirectedGenerator():
 	      (in case there are two other experiments ids=0, 1 before it).
 	
 	"""
-	def _train_goal_generation_policy(self, training_iterations, epochs_per_train_it=3, trajectories_per_train_it=100, minibatch_size=250,
+	def _train_goal_generation_policy(self, training_iterations, epochs_per_train_it=3, trajectories_per_train_it=10, minibatch_size=25,
 											   its_per_model_checkpoint=10, checkpoint_save_name="saved_models/goal_policy"):
 
 		# Create the initial state from which to start the goal generation process
@@ -933,16 +979,18 @@ class DirectedGenerator():
 			print("\n > Collecting trajectories")
 
 			# Collect the trajectories sequentially, without joblib
-			"""for _ in range(trajectories_per_train_it):
+			for _ in range(trajectories_per_train_it):
 				trajectory = self._obtain_trajectory_and_preprocess_for_PPO_goal_policy(initial_state)
 
 				trajectories.extend(trajectory) # Add the samples of the current trajectory
-			"""
 			
 			# Obtain the trajectories in parallel using joblib
+			# We cannot calculate the problem difficulty in parallel, as the planner can only be called by a single process at the same time!!
+			"""
 			out = Parallel(n_jobs=num_parallel_jobs, backend="threading")( \
 				           delayed(self._obtain_trajectory_and_preprocess_for_PPO_goal_policy)(initial_state) for _ in range(trajectories_per_train_it))
 			trajectories = list(chain.from_iterable(out)) # Convert from list of lists to a single list (i.e., flatten the first level of the list)
+			"""
 
 			print("> Trajectories collected - Num samples:", len(trajectories))
 
