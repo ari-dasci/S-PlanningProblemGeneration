@@ -65,8 +65,10 @@ class DirectedGenerator():
 			self._predicates_to_consider_for_goal = predicates_to_consider_for_goal
 
 		# Parameters used to normalize the rewards
-		self._reward_moving_mean = 0
-		self._reward_moving_std = 1
+		self._reward_moving_mean = 0 # 0
+		self._reward_moving_std = 1 # 1
+		self._initialize_reward_moving_mean_and_std = True # As initialization, we set self._reward_moving_mean and std to the
+		                                                   # mean and std reward of the first group of trajectories
 
 
 		# -- Generative policies --
@@ -774,28 +776,38 @@ class DirectedGenerator():
 
 
 	"""
-	This method normalizes the rewards in a trajectory so that they aproximately distribute normally (according to N(0,1)).
+	This method normalizes the rewards in a trajectory (or set of trajectories) so that they aproximately distribute normally (according to N(0,1)).
 	Since the scale of rewards can vary a lot during training, we use a moving average to calculate the mean (\mu)
 	and std (\sigma) used to normalize the rewards.
 
-	<Note1>: we assume the rewards are in the last position of each trajectory sample.
+	<Note1>: we assume the rewards are in the 4-th position of each trajectory sample. We append to the 5-th position
+	         the normalized reward.
 	<Note2>: this method modifies the trajectory in-place.
 	<Note3>: I think this method doesn't work if called in parallel! (as we would be accessing the self._reward_moving_mean and self._reward_moving_std
 	         variables in parallel!)
 	"""
-	def _normalize_rewards(self, trajectory, moving_avg_coeff=0.95, moving_std_coeff=0.95):
+	def _normalize_rewards(self, trajectory, moving_avg_coeff, moving_std_coeff):
 
-		# Update the mu and sigma parameters using a moving average
-		trajectory_rewards_np = np.array([sample[-1] for sample in trajectory], dtype=np.float32)
+		# <Calculate the mean and std of the trajectory rewards>
+		trajectory_rewards_np = np.array([sample[4] for sample in trajectory], dtype=np.float32)
 		trajectory_rewards_mean = np.mean(trajectory_rewards_np)
 		trajectory_rewards_std = np.std(trajectory_rewards_np)
 
-		self._reward_moving_mean = self._reward_moving_mean*moving_avg_coeff + trajectory_rewards_mean*(1-moving_avg_coeff)
-		self._reward_moving_std = self._reward_moving_std*moving_std_coeff + trajectory_rewards_std*(1-moving_std_coeff)
-
-		# Normalize the trajectory rewards
+		# <Normalize the trajectory rewards>
+		# We store both the reward before normalization and after it
 		for i in range(len(trajectory)):
-			trajectory[i][-1] = (trajectory[i][-1] - self._reward_moving_mean) / (self._reward_moving_std + 1e-10) # z-score normalization
+			norm_reward = (trajectory[i][4] - self._reward_moving_mean) / (self._reward_moving_std + 1e-10) # z-score normalization
+			trajectory[i] = trajectory[i][:5] + [norm_reward] + trajectory[i][5:] # Store the normalized reward in the trajectory[i][-3] position
+
+		# <Update the mu and sigma parameters using a moving average>
+		if self._initialize_reward_moving_mean_and_std:
+			self._initialize_reward_moving_mean_and_std = False
+			self._reward_moving_mean = trajectory_rewards_mean
+			self._reward_moving_std = trajectory_rewards_std
+		else:
+			self._reward_moving_mean = self._reward_moving_mean*moving_avg_coeff + trajectory_rewards_mean*(1-moving_avg_coeff)
+			self._reward_moving_std = self._reward_moving_std*moving_std_coeff + trajectory_rewards_std*(1-moving_std_coeff)
+
 
 
 	"""
@@ -806,16 +818,12 @@ class DirectedGenerator():
 	   Both elements are stored as numpy arrays, so that pytorch gradient does not flow through them.
 	"""
 	def _obtain_trajectory_and_preprocess_for_PPO(self, max_atoms_init_state=10, max_actions_goal_state=10, max_actions_trajectory=15, 
-											      disc_factor_continuous=0, disc_factor_eventual=0.8, 
-												  moving_avg_coeff=0.95, moving_std_coeff=0.95):
+											      disc_factor_continuous=0, disc_factor_eventual=0.8):
 		# Obtain trajectory
 		trajectory = self._obtain_trajectory(max_atoms_init_state, max_actions_goal_state, max_actions_trajectory)
 		
 		# Sum rewards to obtain the return (discounted sum of rewards)
 		self._sum_rewards_trajectory(trajectory, disc_factor_continuous, disc_factor_eventual)
-
-		# Scale rewards (using moving average and std) so that they aproximately distribute normally (~N(0,1))
-		self._normalize_rewards(trajectory, moving_avg_coeff, moving_std_coeff)
 
 		# Calculate advantage and selected action probability
 		self._calculate_state_value_and_old_policy_probs_trajectory(trajectory)
@@ -830,16 +838,12 @@ class DirectedGenerator():
 	2. For each element of the trajectory, it calculates the probability of the selected action (\pi(a | s)) and the advantage A(s,a). 
 	   Both elements are stored as numpy arrays, so that pytorch gradient does not flow through them.
 	"""
-	def _obtain_trajectory_and_preprocess_for_PPO_goal_policy(self, initial_state, max_actions_trajectory=10, disc_factor=0.95,
-														      moving_avg_coeff=0.95, moving_std_coeff=0.95):
+	def _obtain_trajectory_and_preprocess_for_PPO_goal_policy(self, initial_state, max_actions_trajectory=10, disc_factor=0.95):
 		# Obtain trajectory
 		trajectory = self._obtain_trajectory_goal_policy(initial_state, max_actions_trajectory)
 		
 		# Sum rewards
 		self._sum_rewards_trajectory_goal_policy(trajectory, disc_factor)
-
-		# Scale rewards (using moving average and std) so that they aproximately distribute normally (~N(0,1))
-		self._normalize_rewards(trajectory, moving_avg_coeff, moving_std_coeff)
 
 		# Calculate advantage and selected action probability
 		self._calculate_state_value_and_old_policy_probs_trajectory_goal_policy(trajectory)
@@ -909,6 +913,9 @@ class DirectedGenerator():
 			"""
 
 			print("> Trajectories collected - Num samples:", len(trajectories))
+
+			# Normalize the rewards
+			self._normalize_rewards(trajectories, moving_avg_coeff=0.8, moving_std_coeff=0.8)
 
 			# Create training dataset and dataloader with the collected trajectories
 
@@ -993,6 +1000,9 @@ class DirectedGenerator():
 			"""
 
 			print("> Trajectories collected - Num samples:", len(trajectories))
+
+			# Normalize the rewards
+			self._normalize_rewards(trajectories, moving_avg_coeff=0.8, moving_std_coeff=0.8)
 
 			# Create training dataset and dataloader with the collected trajectories
 

@@ -293,10 +293,12 @@ class GenerativePolicy(pl.LightningModule):
 		critic_loss = 0
 		entropy = 0
 		reward = 0
+		reward_norm = 0
 		mean_term_cond_prob = 0 # Mean probability of the termination condition across the batch
 
 		for train_sample in train_batch:
-			state_tensors, num_objs_with_virtuals, mask_tensors, chosen_action_index, disc_reward_sum, action_prob_old_policy, state_value = train_sample
+			state_tensors, num_objs_with_virtuals, mask_tensors, chosen_action_index, disc_reward_sum, disc_reward_sum_norm, \
+		    action_prob_old_policy, state_value = train_sample
 
 			# < Critic >
 
@@ -305,14 +307,14 @@ class GenerativePolicy(pl.LightningModule):
 			"""
 			if self.current_epoch == 0:
 				state_value_with_gradient = self._critic_nlm(state_tensors, num_objs_with_virtuals)[0][0]
-				curr_critic_loss = (state_value_with_gradient - disc_reward_sum)**2
+				curr_critic_loss = (state_value_with_gradient - disc_reward_sum_norm)**2
 			else:
 				curr_critic_loss = 0
 			"""
 
 			# Train the critic every epoch (just as we do with the actor)
 			state_value_with_gradient = self._critic_nlm(state_tensors, num_objs_with_virtuals)[0][0]
-			curr_critic_loss = (state_value_with_gradient - disc_reward_sum)**2
+			curr_critic_loss = (state_value_with_gradient - disc_reward_sum_norm)**2
 
 			# < Actor >
 
@@ -331,7 +333,7 @@ class GenerativePolicy(pl.LightningModule):
 			prob_ratio = chosen_action_prob / action_prob_old_policy
 
 			# Calculate the advantage
-			advantage = disc_reward_sum - state_value # A(s,a) = R(s,a) - V(s)
+			advantage = disc_reward_sum_norm - state_value # A(s,a) = R(s,a) - V(s)
 
 			# Calculate the PPO loss
 			curr_PPO_loss = -torch.min(prob_ratio * advantage, torch.clip(prob_ratio, 1-self._epsilon, 1+self._epsilon) * advantage)
@@ -361,6 +363,7 @@ class GenerativePolicy(pl.LightningModule):
 			
 			entropy += lifted_action_entropy + grounded_action_entropy
 			reward += disc_reward_sum
+			reward_norm += disc_reward_sum_norm
 
 		# Scale losses and metrics by number of samples
 
@@ -375,12 +378,14 @@ class GenerativePolicy(pl.LightningModule):
 		mean_term_cond_prob /= len(train_batch)
 		entropy /= len(train_batch)
 		reward /= len(train_batch)
+		reward_norm /= len(train_batch)
 
 		# < Logs >
 
 		# For each training iteration, we store the logs several times, but only for the first training epoch
 		if self.current_epoch == 0:
 			self.logger.experiment.add_scalar("Reward", reward, global_step=self.curr_log_iteration)
+			self.logger.experiment.add_scalar("Reward Normalized", reward_norm, global_step=self.curr_log_iteration)
 			self.logger.experiment.add_scalar("Actor Policy Entropy", entropy, global_step=self.curr_log_iteration)
 			self.logger.experiment.add_scalars('Actor Losses', {'Total Loss': actor_loss, 'PPO Loss': PPO_loss, 'Entropy Loss': entropy_loss},
 											   global_step=self.curr_log_iteration)

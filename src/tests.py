@@ -518,8 +518,8 @@ def test_train_goal_policy():
 										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
 										   res_connections_goal_nlm=True,
 										   lr_goal_nlm = 5e-3,
-										   lifted_action_entropy_coeff_goal_policy = 0.001,
-										   ground_action_entropy_coeff_goal_policy = 0.001,
+										   lifted_action_entropy_coeff_goal_policy = 0.01,
+										   ground_action_entropy_coeff_goal_policy = 0.01,
 										   entropy_annealing_coeffs_goal_policy = None,
 										   epsilon_goal_policy=0.1)
 
@@ -556,7 +556,33 @@ def test_train_goal_policy():
 	> <Entropy reg coeffs = 0.001 0.001>, lr = 5e-3, trajectories_per_train_it=10, minibatch_size=25:
 		La recompensa también converge a r=0.75 (creo que no es posible hacer problemas con planes de longitud mayor a 8).
 
-	> 
+	> Entropy reg coeffs = 0.01 0.01, lr = 5e-3, <moving_avg_coeff=0.95, moving_std_coeff=0.95>:
+		Aprende (r converge a r=0.75).
+
+	> Entropy reg coeffs = 0.01 0.01, lr = 5e-3, <moving_avg_coeff=0.9, moving_std_coeff=0.9>:
+		Aprende (r converge a r=0.75) y la recompensa se normaliza antes a N(0, 1) que con
+		moving_coeffs = 0.95 0.95.
+
+	> Entropy reg coeffs = 0.01 0.01, lr = 5e-3, moving_avg_coeff=0.9, moving_std_coeff=0.9,
+	  media inicializada a 5 en vez de 0:
+		Igual que inicializando la media a 0 (r converge a 0.75).
+
+	> Entropy reg coeffs = 0.01 0.01, lr = 5e-3, moving_avg_coeff=0.9, moving_std_coeff=0.9,
+	  <aplicando _normalize_rewards() sobre todas las trayectorias a la vez>:
+		Funciona bien pero la recompensa normalizada tarda en converger a media=0.
+
+	> Entropy reg coeffs = 0.01 0.01, lr = 5e-3, moving_avg_coeff=0.9, moving_std_coeff=0.9,
+	  <inicializando reward moving mean and std al reward mean and std del primer grupo
+	   de trayectorias>:
+		Funciona prácticamente igual que inicializando reward moving mean a 0 y std = 1.
+
+	> Entropy reg coeffs = 0.01 0.01, lr = 5e-3, moving_avg_coeff=0.9, moving_std_coeff=0.9,
+		
+
+		
+
+	INTENTAR NORMALIZAR MEJOR LAS RECOMPENSAS!!! (CALCULAR LA MEDIA Y STD DE TODAS LAS TRAYECTORIAS A LA VEZ Y NO DE UNA POR UNA)
+	-> LLAMAR AL MÉTODO _normalize_rewards() SOBRE EL CONJUNTO DE 10 TRAYECTORIAS EN VEZ DE SOBRE CADA UNA POR SEPARADA!
 
 
 # ------------------------------------------------------
