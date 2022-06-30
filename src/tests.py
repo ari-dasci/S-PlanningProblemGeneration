@@ -513,7 +513,16 @@ def test_train_goal_policy():
 	nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
 
+	# Initial generation policy to use to generate the initial state
+	init_model_path = "saved_models/model_its-180.ckpt"
+
 	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
+
+										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
+										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
+										   res_connections_initial_state_nlm=True,
+										   load_init_state_policy_checkpoint_name=init_model_path,
+
 										   num_preds_inner_layers_goal_nlm=nlm_inner_layers,
 										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
 										   res_connections_goal_nlm=True,
@@ -622,8 +631,8 @@ def test_train_goal_policy():
 	  <random init state from set of 9 possible init states>:
 		Aprende bien, pero de manera muy lenta!
 
-	> Prueba random policy (SIN termination condition) <random init state from set of 9 possible init states>:
-		
+	>>> Prueba random policy (SIN termination condition) <random init state from set of 9 possible init states>:
+		La log reward es 2.5. >>> LA GOAL GENERATION POLICY GENERA PROBLEMAS UNAS 15 VECES MÁS DIFÍCILES!!! (15 veces más de nodos expandidos)
 
 
 

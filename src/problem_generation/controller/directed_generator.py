@@ -354,16 +354,7 @@ class DirectedGenerator():
 		if termination_condition:
 			mask_tensors[0][nlm_output_shape[0]-1] = 0.0
 
-
-		# QUITAR
-		mask_tensors[0][nlm_output_shape[0]-1] = -float("inf")
-
 		return mask_tensors
-
-		
-
-		
-		
 
 
 	"""
@@ -641,7 +632,94 @@ class DirectedGenerator():
 		# < Generate goal state >
 
 		return trajectory
+	
+
+
+
+	"""
+	Method to generate an initial state with the initial state generation policy.
+	It works just like _obtain_trajectory() but, instead of returning the full trajectory,
+	it returns the problem (as a ProblemState instance) corresponding to the fully-generated initial state.
+
+	<Note>: the problem might not meet all the eventual consistency requirements.
+	"""
+	def _generate_initial_state_with_initial_policy(self, max_atoms_init_state=10, max_actions_trajectory=15):
 		
+		# Information about the NLM of the initial state policy
+		init_nlm_max_pred_arity = self._initial_state_policy.actor_nlm.max_arity # This value corresponds to the breadth of the NLM
+		init_nlm_output_layer_shape = self._initial_state_policy.actor_nlm.num_output_preds_layers[-1]
+
+		# < Generate state s0 >
+		problem = ProblemState(self._parser, self._predicates_to_consider_for_goal, self._initial_state_info,
+						self._penalization_continuous_consistency, self._penalization_eventual_consistency,
+					    self._penalization_non_applicable_action, consistency_validator=self._consistency_validator)
+
+		# < Generate initial state >
+		initial_state_generated = False
+
+		actions_executed = 0 # Number of actions executed (including invalid actions that didn't change the state!)
+
+		while not initial_state_generated:
+			# < Use the policy to select an action >
+
+			# Information about the current state
+			curr_state = problem.initial_state
+			perc_actions_executed = curr_state.num_atoms / max_atoms_init_state # Obtain percentage of actions executed/atoms added (with respect to the max number of actions/atoms)
+			curr_state_tensors = curr_state.atoms_nlm_encoding(max_arity=init_nlm_max_pred_arity, perc_actions_executed=perc_actions_executed)
+
+			# The number of virtual objects is equal to the maximum predicate arity of the <state>, not the max_pred_arity (breadth) of the <nlm>!!
+			num_objs_with_virtuals = curr_state.num_objects + curr_state.max_predicate_arity 
+
+			# Mask tensors
+			mask_tensors = self._get_mask_tensors(init_nlm_output_layer_shape, curr_state)
+
+			# Obtain an action (index) with the policy
+			chosen_action_index = self._initial_state_policy.select_action(curr_state_tensors, num_objs_with_virtuals,
+																			mask_tensors)
+
+			# <Process the action>
+
+			# Check if the chosen action corresponds to the termination condition
+			# chosen_action_index[0] == 0 -> predicate of arity 0
+			# chosen_action_index[-1] == init_nlm_output_layer_shape[0]-1 -> the last predicate of arity 0 (which corresponds to the termination condition)
+			termination_condition = (chosen_action_index[0] == 0 and chosen_action_index[-1] == init_nlm_output_layer_shape[0]-1)
+
+			if termination_condition:
+				initial_state_generated = True
+
+			# If the selected action is not the termination condition, execute it (add the atom and objects to the initial state)
+			else:		
+				
+				# < Transform the chosen action index into a proper action -> atom and objects to add >
+				# chosen_action_index[0] is the predicate arity and chosen_action_index[-1] is the predicate index
+				# The indexes in between correspond to the object indeces the action/pred is instantiated on (if arity >= 1)
+				chosen_action_name = curr_state.get_predicate_by_arity_and_ind(chosen_action_index[0], chosen_action_index[-1])[0] # [0] to get the name
+				chosen_action = [chosen_action_name, chosen_action_index[1:-1]] # To form the chosen action, we add the action name and obj indexes like ['on', [1, 0]]
+				# See if we add new objects as part of the chosen action
+				chosen_action, objs_to_add = self._get_objs_to_add_and_atom_with_correct_indexes(curr_state, chosen_action)		
+
+				# Execute the action to obtain the reward (associated with the continuous consistency rules) and next state
+				problem.apply_action_to_initial_state(objs_to_add, chosen_action)
+				actions_executed += 1
+
+				# Check if we have reached the maximum number of atoms allowed in the initial state (or the maximum number of actions
+				# in the trajectory)
+				# If so, stop generating the initial state and check if the eventual consistency rules are met
+		
+				if problem.initial_state.num_atoms >= max_atoms_init_state or actions_executed >= max_actions_trajectory:
+					initial_state_generated = True
+
+
+		return problem
+
+
+
+
+
+
+
+
+	
 	"""
 	This method receives a completely-generated problem (s_i, s_g) and returns its difficulty.
 	This difficulty corresponds to the number of nodes expanded by the planner.
@@ -671,16 +749,31 @@ class DirectedGenerator():
 
 
 	"""
-	Uses the goal policy to obtain a trajectory from the given initial state to a goal state.
+	Uses the goal policy to obtain a trajectory from the initial state obtained with the initial generation policy.
 
-	@initial_state The (completely-generated) initial state from which to start the generation of the goal state.
-	               It must be an instance of RelationalState.
 	@max_actions_goal_state The maximum number of actions the goal policy can apply from @initial_state. If we reach this
 	                        number of actions and the goal policy hasn't chosen the termination condition, we assume
 							the current state corresponds to the completely-generated goal state.
 	"""
-	def _obtain_trajectory_goal_policy(self, initial_state, max_actions_goal_state=10):
+	def _obtain_trajectory_goal_policy(self, max_actions_goal_state=10):
 		
+		# <Use the initial generation policy to obtain the initial state>
+
+		generated_consistent_init_state = False
+
+		while not generated_consistent_init_state:
+			problem = self._generate_initial_state_with_initial_policy(max_atoms_init_state=10, max_actions_trajectory=15)
+
+			# Check if the initial state is eventual-consistent. If not, generate another problem.
+			generated_consistent_init_state = (problem.get_eventual_consistency_reward_of_init_state() == 0)
+
+
+
+		# QUITAR
+		print(">>> Initial state:", problem.initial_state)
+		sys.exit()
+
+
 		# Information about the NLM of the goal policy
 		goal_nlm_max_pred_arity = self._goal_policy.actor_nlm.max_arity # This value corresponds to the breadth of the NLM
 		goal_nlm_output_layer_shape = self._goal_policy.actor_nlm.num_output_preds_layers[-1]
@@ -688,9 +781,11 @@ class DirectedGenerator():
 		trajectory = []
 
 		# < Generate initial state s_gc from which to generate the trajectory >
+		"""
 		problem = ProblemState(self._parser, self._predicates_to_consider_for_goal, initial_state,
 						self._penalization_continuous_consistency, self._penalization_eventual_consistency,
 					    self._penalization_non_applicable_action, consistency_validator=self._consistency_validator)
+		"""
 		
 		problem.end_initial_state_generation_phase()
 
@@ -829,9 +924,9 @@ class DirectedGenerator():
 	2. For each element of the trajectory, it calculates the probability of the selected action (\pi(a | s)) and the advantage A(s,a). 
 	   Both elements are stored as numpy arrays, so that pytorch gradient does not flow through them.
 	"""
-	def _obtain_trajectory_and_preprocess_for_PPO_goal_policy(self, initial_state, max_actions_trajectory=10, disc_factor=0.95):
+	def _obtain_trajectory_and_preprocess_for_PPO_goal_policy(self, max_actions_trajectory=10, disc_factor=0.95):
 		# Obtain trajectory
-		trajectory = self._obtain_trajectory_goal_policy(initial_state, max_actions_trajectory)
+		trajectory = self._obtain_trajectory_goal_policy(max_actions_trajectory)
 		
 		# Sum rewards
 		self._sum_rewards_trajectory_goal_policy(trajectory, disc_factor)
@@ -945,6 +1040,7 @@ class DirectedGenerator():
 											   its_per_model_checkpoint=10, checkpoint_save_name="saved_models/goal_policy"):
 
 		# Create the initial state from which to start the goal generation process
+		"""
 		init_state_1 = RelationalState(['block'], 
 							         [ ['on', ['block', 'block']], ['ontable', ['block']], ['clear', ['block']], ['handempty', []], ['holding', ['block']] ],
 									 objects=['block', 'block', 'block', 'block', 'block', 'block'],
@@ -1016,9 +1112,8 @@ class DirectedGenerator():
 										['on', [9, 2]],
 										['clear', [6]], ['clear', [8]], ['clear', [9]],
 										['handempty', []] ])
-
-
 		init_states = [init_state_1, init_state_2, init_state_3, init_state_4, init_state_5, init_state_6, init_state_7, init_state_8, init_state_9]
+		"""
 
 		# Obtain folder name to save the model checkpoints in
 		folders = glob.glob(checkpoint_save_name + r'_*')
@@ -1031,7 +1126,7 @@ class DirectedGenerator():
 		num_parallel_jobs = 5 # Used for joblib
 
 		# Initialize trainer
-		logger = TensorBoardLogger("lightning_logs", name="goal_policy/one_init_state")
+		logger = TensorBoardLogger("lightning_logs", name="goal_policy/init_state_from_policy")
 
 		# Train goal generation policy with PPO
 		for i in range(training_iterations):
@@ -1046,10 +1141,11 @@ class DirectedGenerator():
 			# Collect the trajectories sequentially, without joblib
 			for _ in range(trajectories_per_train_it):
 				# Select a random initial state to start from
-				chosen_init_state = random.choice(init_states)
-				initial_state = chosen_init_state.copy() # I copy the state just in case
+				#chosen_init_state = random.choice(init_states)
+				#initial_state = chosen_init_state.copy() # I copy the state just in case
 
-				trajectory = self._obtain_trajectory_and_preprocess_for_PPO_goal_policy(initial_state)
+				# trajectory = self._obtain_trajectory_and_preprocess_for_PPO_goal_policy(initial_state)
+				trajectory = self._obtain_trajectory_and_preprocess_for_PPO_goal_policy()
 
 				trajectories.extend(trajectory) # Add the samples of the current trajectory
 			

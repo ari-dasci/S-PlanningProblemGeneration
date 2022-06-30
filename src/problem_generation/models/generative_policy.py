@@ -394,7 +394,4 @@ class GenerativePolicy(pl.LightningModule):
 
 			self.curr_log_iteration += 1
 
-		# return loss
-
-		# QUITAR
-		return None
+		return loss
