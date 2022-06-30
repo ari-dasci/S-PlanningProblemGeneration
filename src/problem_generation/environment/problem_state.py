@@ -397,54 +397,37 @@ class ProblemState:
 		return new_rel_state
 
 	"""
-	Checks if the grounded action passed as parameter is applicable at the current state and, if it is, applies it to obtain the next state.
-	Returns next_state : RelationalState, action_applicable : bool  -  if the action is not applicable, next_state is a copy of the current state @state.
-
-	@action_name Name of the action (e.g., "pick-up")
-	@action_objs The instantiated parameters of the action, as a list of indices corresponding to objects in @state (e.g., [0,1])
-	@state The state to apply the action to, an instance of RelationalState
-	"""
-	def _check_domain_action_applicability_and_get_next_state(self, action_name, action_objs, state):
-		# <Get state objects and atoms in the encoding self._parser uses>
-		state_objs, state_atoms = self._encode_relational_state_for_parser(state)
-
-		# <Check action applicability>
-		is_applicable = self._is_ground_action_applicable(action_name, action_objs, state_objs, state_atoms)
-
-		# <Get next state>
-		if is_applicable: 
-			next_state = self._apply_ground_action_and_get_next_state(action_name, action_objs, state_objs, state_atoms, state)
-		else:
-			next_state = state.copy() # The next state is the current state if the action is not applicable
-
-		return next_state, is_applicable
-
-	"""
 	Applies a domain (ground) action to the goal state in order to obtain the next goal state.
 	It returns (next_state, reward). It also assigns the next state to self._goal_state.
 	If the action is not applicable, next_state is a copy of the current state.
 
 	@action_name Name of the action (e.g., "pick-up")
 	@action_objs The instantiated parameters of the action, as a list of indices corresponding to objects in @state (e.g., [0,1])
+	@check_action_applicability If True, we check if the action passed as argument can be applied at the current goal state, i.e., if its
+	                            preconditions are met. If False, we assume the action is applicable and return an action_reward of 0.
 	"""
-	def apply_action_to_goal_state(self, action_name, action_objs):
+	def apply_action_to_goal_state(self, action_name, action_objs, check_action_applicability=True):
 		# Make sure we are in the goal generation phase
 		if not self._is_initial_state_generated:
 			raise Exception("The initial state generation phase has not finished yet")
 		
-		# Obtain next state and check if the action is applicable
-		next_state, is_applicable = self._check_domain_action_applicability_and_get_next_state(action_name, action_objs, self._goal_state)
+		# Get state objects and atoms in the encoding self._parser uses
+		state_objs, state_atoms = self._encode_relational_state_for_parser(self._goal_state)
 
-		# Obtain reward
-		if is_applicable:
-			action_reward = 0
+		# Check action applicability (only if check_action_applicability is True)
+		if check_action_applicability:
+			is_applicable = self._is_ground_action_applicable(action_name, action_objs, state_objs, state_atoms)
 		else:
+			is_applicable = True # We assume the action is applicable
+		
+		# Get next goal state
+		if is_applicable: 
+			self._goal_state = self._apply_ground_action_and_get_next_state(action_name, action_objs, state_objs, state_atoms, self._goal_state)
+			action_reward = 0
+		else: # If the action is not applicable, we don't change the goal state
 			action_reward = self._penalization_non_applicable_action
-
-		# Advance the current state
-		self._goal_state = next_state # Warning: the next_state returned and the one stored in self._goal_state share the reference
-
-		return next_state, action_reward
+		
+		return self._goal_state, action_reward
 
 
 	"""

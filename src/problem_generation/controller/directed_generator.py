@@ -8,7 +8,7 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from joblib import Parallel, delayed
-from itertools import chain
+from itertools import chain 
 import glob
 
 from problem_generation.environment.problem_state import ProblemState
@@ -32,6 +32,9 @@ class DirectedGenerator():
 											  Otherwise, the inner layers shapes must be passed as a list of lists, e.g., [[1,1,1,1]] (for only one hidden layer)
 	@load_init_state_policy_checkpoint_name If not None, we load the initial state policy checkpoint given by @load_checkpoint_name instead of initializing
 											the initial state policy (actor and critic NLMs) weights from scratch.
+
+	<Note>: when we load the init or goal policies, only the weights are restored, but the rest of the hyperparameters (e.g.: entropy coeffs, curr_log_it)
+	        are not loaded but initialized by the constructor!
 	"""
 	def __init__(self, parser, planner, 
 				 predicates_to_consider_for_goal=None, initial_state_info=None, consistency_validator=ValidatorPredOrderBW,
@@ -351,7 +354,16 @@ class DirectedGenerator():
 		if termination_condition:
 			mask_tensors[0][nlm_output_shape[0]-1] = 0.0
 
+
+		# QUITAR
+		mask_tensors[0][nlm_output_shape[0]-1] = -float("inf")
+
 		return mask_tensors
+
+		
+
+		
+		
 
 
 	"""
@@ -617,14 +629,6 @@ class DirectedGenerator():
 				else:
 					r_eventual_consistency = 0
 
-
-
-				# < QUITAR >
-				#if chosen_action_name == "on":
-				#	print(">>> ACTION ON SELECTED")
-
-
-
 			# Append sample to the trajectory
 			trajectory.append( [curr_state_tensors, num_objs_with_virtuals, mask_tensors,
 					            chosen_action_index, r_continuous_consistency, r_eventual_consistency] ) # We need to append a list to the trajectory since the reward value is changed in-place (tuples are immutable)
@@ -640,13 +644,11 @@ class DirectedGenerator():
 		
 	"""
 	This method receives a completely-generated problem (s_i, s_g) and returns its difficulty.
-	This difficulty corresponds to the number of nodes expanded by the planner divided by the maximum
-	difficulty (@max_difficulty).
+	This difficulty corresponds to the number of nodes expanded by the planner.
 	If the planner uses more than @max_planning_time seconds to solve the problem, we assume
-	the difficulty of the problem is equal to max_difficulty, and we return a value of 1.
+	the difficulty of the problem is equal to @max_difficulty.
 
-	<Note1>: This method also selects the goal atoms corresponding to the goal predicates given by the user
-	<Note2>: it is possible that the scaled difficulty is greater than 1.0 if problem_difficulty > max_difficulty
+	<Note>: This method also selects the goal atoms corresponding to the goal predicates given by the user
 	"""
 	def get_problem_difficulty(self, problem, max_difficulty=1e6, max_planning_time=10):
 		# Encode the problem in PDDL
@@ -659,15 +661,13 @@ class DirectedGenerator():
 		#       as every problem is solvable.
 		problem_difficulty = self._planner.get_problem_difficulty_no_save_disk(pddl_problem, max_planning_time)
 
-		# Scale the problem difficulty
-		# Note: it is possible that the scaled difficulty is greater than 1.0 if problem_difficulty > max_difficulty
-		# scaled_problem_difficulty = 1.0 if problem_difficulty == -1 else problem_difficulty / max_difficulty
+		# scaled_problem_difficulty = 10 if problem_difficulty == -1 else problem_difficulty # We do not scale rewards here, as we use moving mean and std to normalize returns
+		scaled_problem_difficulty = max_difficulty if problem_difficulty == -1 else problem_difficulty
 
-		# QUITAR
-		# scaled_problem_difficulty = 1.0 if problem_difficulty == -1 else problem_difficulty*0.1
-		scaled_problem_difficulty = 10 if problem_difficulty == -1 else problem_difficulty # We do not scale rewards here, as we use moving mean and std to normalize returns
-		
-		return scaled_problem_difficulty
+		# use log of rewards
+		log_problem_difficulty = np.log(scaled_problem_difficulty)
+
+		return log_problem_difficulty
 
 
 	"""
@@ -740,14 +740,9 @@ class DirectedGenerator():
 																			               chosen_action_index[-1])[0] # [0] to get the name
 				action_params = chosen_action_index[1:-1]
 
-				_, r_action_validity = problem.apply_action_to_goal_state(action_name, action_params)
-
-				# TODO: quitar la comprobacion de aplicabilidad en metodo apply_action_to_goal_state()
+				problem.apply_action_to_goal_state(action_name, action_params, check_action_applicability=False)
 
 				actions_executed += 1
-
-				if r_action_validity != 0:
-					print("\n>>>> Error: the executed action wasn't applicable at the current goal state!\n")
 
 				# Check if we have reached the maximum number of actions
 				# If so, stop generating the goal state and obtain the difficulty of the problem
@@ -767,11 +762,6 @@ class DirectedGenerator():
 					            chosen_action_index, r_difficulty] )
 
 		return trajectory
-
-		# <TODO>
-		# COMPROBAR QUE LAS ACCIONES ELEGIDAS POR LA GOAL POLICY (TRAS EL MASKING) SIEMPRE SON APLICABLES!!!
-		# Si ese es el caso, podemos eliminar el "penalization_non_applicable_action" en ProblemState
-		# y la comprobacion de aplicabilidad en problem.apply_action_to_goal_state(action_name, action_params)
 
 
 
@@ -793,12 +783,6 @@ class DirectedGenerator():
 		trajectory_rewards_mean = np.mean(trajectory_rewards_np)
 		trajectory_rewards_std = np.std(trajectory_rewards_np)
 
-		# <Normalize the trajectory rewards>
-		# We store both the reward before normalization and after it
-		for i in range(len(trajectory)):
-			norm_reward = (trajectory[i][4] - self._reward_moving_mean) / (self._reward_moving_std + 1e-10) # z-score normalization
-			trajectory[i] = trajectory[i][:5] + [norm_reward] + trajectory[i][5:] # Store the normalized reward in the trajectory[i][-3] position
-
 		# <Update the mu and sigma parameters using a moving average>
 		if self._initialize_reward_moving_mean_and_std:
 			self._initialize_reward_moving_mean_and_std = False
@@ -807,6 +791,13 @@ class DirectedGenerator():
 		else:
 			self._reward_moving_mean = self._reward_moving_mean*moving_avg_coeff + trajectory_rewards_mean*(1-moving_avg_coeff)
 			self._reward_moving_std = self._reward_moving_std*moving_std_coeff + trajectory_rewards_std*(1-moving_std_coeff)
+
+		# <Normalize the trajectory rewards>
+		# We store both the reward before normalization and after it
+		for i in range(len(trajectory)):
+			norm_reward = (trajectory[i][4] - self._reward_moving_mean) / (self._reward_moving_std + 1e-10) # z-score normalization
+			trajectory[i] = trajectory[i][:5] + [norm_reward] + trajectory[i][5:] # Store the normalized reward in the trajectory[i][-3] position
+		
 
 
 
@@ -950,17 +941,84 @@ class DirectedGenerator():
 	      (in case there are two other experiments ids=0, 1 before it).
 	
 	"""
-	def _train_goal_generation_policy(self, training_iterations, epochs_per_train_it=3, trajectories_per_train_it=10, minibatch_size=25,
+	def _train_goal_generation_policy(self, training_iterations, epochs_per_train_it=3, trajectories_per_train_it=100, minibatch_size=250,
 											   its_per_model_checkpoint=10, checkpoint_save_name="saved_models/goal_policy"):
 
 		# Create the initial state from which to start the goal generation process
-		initial_state = RelationalState(['block'], 
+		init_state_1 = RelationalState(['block'], 
 							         [ ['on', ['block', 'block']], ['ontable', ['block']], ['clear', ['block']], ['handempty', []], ['holding', ['block']] ],
 									 objects=['block', 'block', 'block', 'block', 'block', 'block'],
 									 atoms=[ ['ontable', [0]], ['clear', [0]],
 											 ['ontable', [1]], ['on', [2, 1]], ['clear', [2]],
 										     ['ontable', [3]], ['on', [4, 3]], ['on', [5, 4]], ['clear', [5]],
 											 ['handempty', []] ])
+
+
+		init_state_2 = RelationalState(['block'], 
+							         [ ['on', ['block', 'block']], ['ontable', ['block']], ['clear', ['block']], ['handempty', []], ['holding', ['block']] ],
+									 objects=['block', 'block', 'block', 'block', 'block', 'block'],
+									 atoms=[ ['ontable', [0]], 
+				                             ['on', [1, 0]], ['on', [2, 1]], ['on', [3, 2]], ['on', [4, 3]], ['on', [5, 4]], 
+											 ['clear', [5]], ['handempty', []] ])
+
+		init_state_3 = RelationalState(['block'], 
+							    [ ['on', ['block', 'block']], ['ontable', ['block']], ['clear', ['block']], ['handempty', []], ['holding', ['block']] ],
+								objects=['block', 'block', 'block', 'block', 'block', 'block'],
+								atoms=[ ['ontable', [0]], ['ontable', [1]],
+				                        ['on', [2, 0]], ['on', [3, 2]], ['on', [4, 1]], ['on', [5, 4]], 
+										['clear', [3]], ['clear', [5]],
+										['handempty', []] ])
+
+		init_state_4 = RelationalState(['block'], 
+							    [ ['on', ['block', 'block']], ['ontable', ['block']], ['clear', ['block']], ['handempty', []], ['holding', ['block']] ],
+								objects=['block', 'block', 'block', 'block', 'block', 'block'],
+								atoms=[ ['ontable', [0]], ['ontable', [1]],
+				                        ['on', [2, 0]], ['on', [3, 2]], ['on', [4, 3]], ['on', [5, 1]],
+										['clear', [4]], ['clear', [5]],
+										['handempty', []] ])
+
+		init_state_5 = RelationalState(['block'], 
+							    [ ['on', ['block', 'block']], ['ontable', ['block']], ['clear', ['block']], ['handempty', []], ['holding', ['block']] ],
+								objects=['block', 'block', 'block', 'block', 'block', 'block'],
+								atoms=[ ['ontable', [0]], ['ontable', [1]], ['ontable', [2]], ['ontable', [3]], ['ontable', [4]], ['ontable', [5]],
+										['clear', [0]], ['clear', [1]], ['clear', [2]], ['clear', [3]], ['clear', [4]], ['clear', [5]],
+										['handempty', []] ])
+
+		init_state_6 = RelationalState(['block'], 
+								[ ['on', ['block', 'block']], ['ontable', ['block']], ['clear', ['block']], ['handempty', []], ['holding', ['block']] ],
+								objects=['block', 'block', 'block'],
+								atoms=[ ['ontable', [0]], ['ontable', [1]],
+										['clear', [0]], ['clear', [1]],
+										['holding', [2]] ])
+
+		init_state_7 = RelationalState(['block'], 
+								[ ['on', ['block', 'block']], ['ontable', ['block']], ['clear', ['block']], ['handempty', []], ['holding', ['block']] ],
+								objects=['block', 'block', 'block', 'block'],
+								atoms=[ ['ontable', [0]], ['ontable', [1]], ['ontable', [2]],
+			                            ['on', [3, 2]],
+										['clear', [0]], ['clear', [1]], ['clear', [3]],
+										['handempty', []] ])
+
+		init_state_8 = RelationalState(['block'], 
+								[ ['on', ['block', 'block']], ['ontable', ['block']], ['clear', ['block']], ['handempty', []], ['holding', ['block']] ],
+								objects=['block', 'block', 'block', 'block', 'block', 'block', 'block', 'block'],
+								atoms=[ ['ontable', [0]], ['ontable', [1]], ['ontable', [2]], ['ontable', [3]], 
+			                            ['on', [4, 0]], ['on', [5, 1]], ['on', [6, 2]], ['on', [7, 3]],
+										['clear', [4]], ['clear', [5]], ['clear', [6]], ['clear', [7]],
+										['handempty', []] ])
+
+		init_state_9 = RelationalState(['block'], 
+								[ ['on', ['block', 'block']], ['ontable', ['block']], ['clear', ['block']], ['handempty', []], ['holding', ['block']] ],
+								objects=['block', 'block', 'block', 'block', 'block', 'block', 'block', 'block', 'block', 'block'],
+								atoms=[ ['ontable', [0]], ['ontable', [1]], ['ontable', [2]],
+			                            ['on', [3, 0]], ['on', [4, 3]], ['on', [5, 4]], ['on', [6, 5]],
+										['on', [7, 1]], ['on', [8, 7]],
+										['on', [9, 2]],
+										['clear', [6]], ['clear', [8]], ['clear', [9]],
+										['handempty', []] ])
+
+
+		init_states = [init_state_1, init_state_2, init_state_3, init_state_4, init_state_5, init_state_6, init_state_7, init_state_8, init_state_9]
 
 		# Obtain folder name to save the model checkpoints in
 		folders = glob.glob(checkpoint_save_name + r'_*')
@@ -987,6 +1045,10 @@ class DirectedGenerator():
 
 			# Collect the trajectories sequentially, without joblib
 			for _ in range(trajectories_per_train_it):
+				# Select a random initial state to start from
+				chosen_init_state = random.choice(init_states)
+				initial_state = chosen_init_state.copy() # I copy the state just in case
+
 				trajectory = self._obtain_trajectory_and_preprocess_for_PPO_goal_policy(initial_state)
 
 				trajectories.extend(trajectory) # Add the samples of the current trajectory

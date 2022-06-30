@@ -518,14 +518,14 @@ def test_train_goal_policy():
 										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
 										   res_connections_goal_nlm=True,
 										   lr_goal_nlm = 5e-3,
-										   lifted_action_entropy_coeff_goal_policy = 0.01,
-										   ground_action_entropy_coeff_goal_policy = 0.01,
-										   entropy_annealing_coeffs_goal_policy = None,
+										   lifted_action_entropy_coeff_goal_policy = 1,
+										   ground_action_entropy_coeff_goal_policy = 1,
+										   entropy_annealing_coeffs_goal_policy = (300, 0.01, 0.01),
 										   epsilon_goal_policy=0.1)
 
 
 	# Train the goal generation policy
-	directed_generator.train_generative_policies(training_iterations = 1000)
+	directed_generator.train_generative_policies(training_iterations = 10000)
 
 """
 # --------------------- Pruebas goal policy
@@ -576,24 +576,70 @@ def test_train_goal_policy():
 	   de trayectorias>:
 		Funciona prácticamente igual que inicializando reward moving mean a 0 y std = 1.
 
-	> Entropy reg coeffs = 0.01 0.01, lr = 5e-3, moving_avg_coeff=0.9, moving_std_coeff=0.9,
+	> Entropy reg coeffs = 0.01 0.01, lr = 5e-3, <moving_avg_coeff=0.8, moving_std_coeff=0.8>:
+		Aprende y el reward normalized converge a 0 más rápido.
+		
+-- Pruebas difficulty=num_expanded_nodes + reward_normalization
+
+	> Entropy reg coeffs = 0.01 0.01, lr = 5e-3, moving_avg_coeffs=0.8 0.8:
+		No aprende (converge a r=1e3 (1000 nodos expandidos))
+
+	> Entropy reg coeffs = 0.01 0.01, lr = 5e-3, moving_avg_coeffs=0.8 0.8, <log rewards>:
+		Explora poco. La recompensa no pasa de 6 (en log reward).
+
+	> <Entropy reg coeffs = 0.1 0.1>, lr = 5e-3, moving_avg_coeffs=0.8 0.8, log rewards:
+		La log reward converge a 5.5 (lo que corresponde a 240 nodos expandidos aprox.)
+		El critic loss es muy alto y no parece disminuir durante el entrenamiento
+		(es como si no aprendiera).
+		La policy entropy se mantiene muy alta.
+
+	> Entropy reg coeffs = 0.1 0.1, lr = 5e-3, moving_avg_coeffs=0.8 0.8, log rewards,
+	  <no _normalize_rewards()>:
+		Peor que con normalize_rewards (no consigue más recompensa y tarda más en aprender).
+
+	> Entropy reg coeffs = 0.1 0.1, lr = 5e-3, moving_avg_coeffs=0.8 0.8, log rewards,
+	  <no_term_condition (he modificado _get_mask_tensors_goal_policy())>:
+		Aprende (la log reward converge a 5.5). Creo que la recompensa podría ser mayor con
+		una entropy reg menor.
+
+	> <Entropy reg coeffs = 1 1>, <entropy_annealing = (300, 0.01, 0.01)>, lr = 5e-3, moving_avg_coeffs=0.8 0.8,
+      log rewards, <WITH term condition>:
+		Aprende (la log reward converge a 5.5).
 		
 
+	>>> Prueba random policy (SIN termination condition (i.e., siempre ejecutando 10 acciones al azar)):
+		La log reward media es de 2.8 -> mucho por debajo de la log reward media de 5.5 de la goal generation policy!
+		>>> LA GOAL GENERATION POLICY ES CAPAZ DE GENERAR PROBLEMAS 15 VECES MÁS DIFÍCILES (con 15 veces más nodos expandidos)
+		    QUE LA RANDOM POLICY (cuando el número máximo de goal actions son 10).
+
+	
+	> Entropy reg coeffs = 1 1, entropy_annealing = (300, 0.01, 0.01), lr = 5e-3, moving_avg_coeffs=0.8 0.8,
+	  <random init state from set of 9 possible init states>:
+		Aprende (la log reward converge a 5.2).
+
+	> Entropy reg coeffs = 1 1, entropy_annealing = (300, 0.01, 0.01), lr = 5e-3, moving_avg_coeffs=0.8 0.8,
+	  <trajectories_per_train_it=100, minibatch_size=250>,
+	  <random init state from set of 9 possible init states>:
+		Aprende bien, pero de manera muy lenta!
+
+	> Prueba random policy (SIN termination condition) <random init state from set of 9 possible init states>:
 		
 
-	INTENTAR NORMALIZAR MEJOR LAS RECOMPENSAS!!! (CALCULAR LA MEDIA Y STD DE TODAS LAS TRAYECTORIAS A LA VEZ Y NO DE UNA POR UNA)
-	-> LLAMAR AL MÉTODO _normalize_rewards() SOBRE EL CONJUNTO DE 10 TRAYECTORIAS EN VEZ DE SOBRE CADA UNA POR SEPARADA!
 
 
-# ------------------------------------------------------
+
+
+
+
+
+
+# ------------------------------------------------------ TODO
 
 # MIRAR LINK: https://vitalab.github.io/article/2020/01/14/Implementation_Matters.html
 # HAY MUCHOS "CODE-LEVEL OPTIMIZATIONS" QUE PUEDEN SER IMPORTANTES DE CARA A TRABAJAR CON PPO!!!
 
-> Cambiar la escala de las recompensas por cada conjunto de trayectorias para que así no sean
-  demasiado pequeñas al inicio del entrenamiento!!
-  https://medium.com/mindboard/scaling-reward-values-for-improved-deep-reinforcement-learning-e9a89f89411d
-  https://stackoverflow.com/questions/49801638/normalizing-rewards-to-generate-returns-in-reinforcement-learning
+> PROBAR DQN o SAC! -> https://pytorch-lightning-bolts.readthedocs.io/en/latest/reinforce_learn.html
+> Probar n-step DQN
 
 > Ver cómo mejorar el rendimiento (quizás permitiendo ejecutar el planner en paralelo para así poder
 					               obtener trayectorias en paralelo)
