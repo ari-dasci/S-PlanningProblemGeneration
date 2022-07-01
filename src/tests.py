@@ -635,10 +635,24 @@ def test_train_goal_policy():
 		La log reward es 2.5. >>> LA GOAL GENERATION POLICY GENERA PROBLEMAS UNAS 15 VECES MÁS DIFÍCILES!!! (15 veces más de nodos expandidos)
 
 
+	> Entropy reg coeffs = 1 1, entropy_annealing = (300, 0.01, 0.01), lr = 5e-3, moving_avg_coeffs=0.8 0.8,
+	  <trajectories_per_train_it=10, minibatch_size=25>,
+	  <init state generated with initial generation policy>:
+		La log reward converge a 3.2.
+
+	> Entropy reg coeffs = 1 1, entropy_annealing = (300, 0.01, 0.01), lr = 5e-3, moving_avg_coeffs=0.8 0.8,
+	  trajectories_per_train_it=10, minibatch_size=25, <discount_factor_rewards (gamma) = 1>
+	  <init state generated with initial generation policy>:
+	    La log reward también converge a 3.2 -> no hay diferencia entre usar un discount_factor de 1 o 0.95.
+		-> Paso a usar un disc_factor=0.99.
+
+	>>> Prueba random policy (SIN termination condition) <init state generated with initial generation policy>:
+		La log reward es 1.3. >>> LA GOAL GENERATION POLICY GENERA PROBLEMAS UNAS 7 VECES MÁS DIFÍCILES (7 de más nodos expandidos). 
 
 
 
 
+	>>> CAMBIAR trajectories_per_train_it=100, minibatch_size=250
 
 
 

@@ -353,8 +353,10 @@ class DirectedGenerator():
 		# If the NLM output has a termination condition, also unmask it
 		if termination_condition:
 			mask_tensors[0][nlm_output_shape[0]-1] = 0.0
-
+			
 		return mask_tensors
+
+
 
 
 	"""
@@ -438,7 +440,7 @@ class DirectedGenerator():
 
 	<Note>: this method is inplace (does not return the trajectory but transforms it inplace)
 	"""
-	def _sum_rewards_trajectory_goal_policy(self, trajectory, disc_factor=0.95):
+	def _sum_rewards_trajectory_goal_policy(self, trajectory, disc_factor=0.99):
 		r_sum = 0
 
 		# Iterate over the trajectory in reverse (from the end to the beginning)
@@ -768,12 +770,6 @@ class DirectedGenerator():
 			generated_consistent_init_state = (problem.get_eventual_consistency_reward_of_init_state() == 0)
 
 
-
-		# QUITAR
-		print(">>> Initial state:", problem.initial_state)
-		sys.exit()
-
-
 		# Information about the NLM of the goal policy
 		goal_nlm_max_pred_arity = self._goal_policy.actor_nlm.max_arity # This value corresponds to the breadth of the NLM
 		goal_nlm_output_layer_shape = self._goal_policy.actor_nlm.num_output_preds_layers[-1]
@@ -950,7 +946,7 @@ class DirectedGenerator():
 	      (in case there are two other experiments ids=0, 1 before it).
 	
 	"""
-	def _train_initial_state_generation_policy(self, training_iterations, epochs_per_train_it=3, trajectories_per_train_it=100, minibatch_size=250,
+	def _train_initial_state_generation_policy(self, training_iterations, epochs_per_train_it=3, trajectories_per_train_it=10, minibatch_size=25,
 											   its_per_model_checkpoint=10, checkpoint_save_name="saved_models/init_state_policy"):
 
 		# Obtain folder name to save the model checkpoints in
@@ -1034,7 +1030,6 @@ class DirectedGenerator():
 	                          given by @checkpoint_save_path. If it is -1, we do not save checkpoint.
 	Note: We add an index to the folder name given by @checkpoint_save_path. Example: saved_models/init_state_policy_nlm_2
 	      (in case there are two other experiments ids=0, 1 before it).
-	
 	"""
 	def _train_goal_generation_policy(self, training_iterations, epochs_per_train_it=3, trajectories_per_train_it=100, minibatch_size=250,
 											   its_per_model_checkpoint=10, checkpoint_save_name="saved_models/goal_policy"):
