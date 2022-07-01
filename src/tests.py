@@ -564,7 +564,7 @@ def test_train_init_and_goal_policy():
 										   lr_initial_state_nlm = 5e-3,
 										   lifted_action_entropy_coeff_init_state_policy = 1,
 										   ground_action_entropy_coeff_init_state_policy = 1,
-										   init_state_policy_entropy_annealing_coeffs = (300, 0.01, 0.01),
+										   entropy_annealing_coeffs_init_state_policy = (300, 0.01, 0.01),
 										   epsilon_init_state_policy=0.1,
 
 										   num_preds_inner_layers_goal_nlm=nlm_inner_layers,
@@ -584,6 +584,8 @@ def test_train_init_and_goal_policy():
 
 
 
+
+>>> Ver si debería reescalar la difficulty_reward (por si es mucho más alta que las otras recompensas)
 
 # ------------------------------------------------------ TODO
 

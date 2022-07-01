@@ -413,8 +413,8 @@ class DirectedGenerator():
 	We assume the first element of the trajectory corresponds to the state at t=0 and the last element
 	to the state t=T.
 
-	@disc_factor_continuous Discount factor to use for the continuous consistency rewards
-	@disc_factor_eventual Discount factor to use for the eventual consistency rewards
+	@disc_factor_cont_consistency Discount factor to use for the continuous consistency rewards
+	@disc_factor_event_consistency Discount factor to use for the eventual consistency rewards
 	@disc_factor_difficulty Discount factor to use for the difficulty rewards
 
 	<Note>: this method is inplace (does not return the trajectory but transforms it inplace)
@@ -436,9 +436,9 @@ class DirectedGenerator():
 			trajectory[i] = trajectory[i][:-3] + [curr_r]
 
 			r_continuous_sum += curr_r_continuous # Sum the current reward to the sum of disc rewards R
-			r_continuous_sum *= disc_factor_continuous # Apply disc factor to all the rewards in the sum
+			r_continuous_sum *= disc_factor_cont_consistency # Apply disc factor to all the rewards in the sum
 			r_eventual_sum += curr_r_eventual
-			r_eventual_sum *= disc_factor_eventual
+			r_eventual_sum *= disc_factor_event_consistency
 			r_difficulty_sum += curr_r_difficulty
 			r_difficulty_sum *= disc_factor_difficulty
 
@@ -586,7 +586,7 @@ class DirectedGenerator():
 	<Note3>: I think this method doesn't work if called in parallel! (as we would be accessing the self._reward_moving_mean and self._reward_moving_std
 	         variables in parallel!)
 	"""
-	def _normalize_rewards_goal_policy(self, trajectory, moving_avg_coeff, moving_std_coeff):
+	def _normalize_rewards_goal_policy(self, trajectory, moving_avg_coeff=0.8, moving_std_coeff=0.8):
 
 		# <Calculate the mean and std of the trajectory rewards>
 		trajectory_rewards_np = np.array([sample[4] for sample in trajectory], dtype=np.float32)
@@ -634,7 +634,7 @@ class DirectedGenerator():
 		# < Generate state s0 >
 		problem = ProblemState(self._parser, self._predicates_to_consider_for_goal, self._initial_state_info,
 						self._penalization_continuous_consistency, self._penalization_eventual_consistency,
-					    self._penalization_non_applicable_action, consistency_validator=self._consistency_validator)
+						consistency_validator=self._consistency_validator)
 
 		# < Generate initial state >
 		initial_state_generated = False
@@ -668,6 +668,7 @@ class DirectedGenerator():
 
 			if termination_condition:
 				initial_state_generated = True
+				problem.end_initial_state_generation_phase()
 
 				r_continuous_consistency = 0
 				r_eventual_consistency = problem.get_eventual_consistency_reward_of_init_state()
@@ -693,6 +694,7 @@ class DirectedGenerator():
 		
 				if problem.initial_state.num_atoms >= max_atoms_init_state or actions_executed >= max_length_trajectory:
 					initial_state_generated = True
+					problem.end_initial_state_generation_phase()
 
 					r_eventual_consistency = problem.get_eventual_consistency_reward_of_init_state()
 				else:
@@ -827,8 +829,8 @@ class DirectedGenerator():
 		init_policy_trajectory_length = len(init_policy_trajectory)
 		init_and_goal_policy_trajectory = init_policy_trajectory 
 		init_and_goal_policy_trajectory.extend(goal_policy_trajectory) # Note: init_policy_trajectory is also modified as it shares the reference
-		self._sum_rewards_trajectory(init_and_goal_policy_trajectory, disc_factor_cont_consistency, disc_factor_event_consistency, disc_factor_difficulty)
 
+		self._sum_rewards_trajectory(init_and_goal_policy_trajectory, disc_factor_cont_consistency, disc_factor_event_consistency, disc_factor_difficulty)
 
 		# <Calculate the state value and selected action probability>
 
@@ -837,7 +839,6 @@ class DirectedGenerator():
 
 		self._calculate_state_value_and_old_policy_probs_trajectory_init_policy(init_policy_trajectory)
 		self._calculate_state_value_and_old_policy_probs_trajectory_goal_policy(goal_policy_trajectory)
-
 
 		return init_policy_trajectory, goal_policy_trajectory
 
@@ -855,8 +856,7 @@ class DirectedGenerator():
 	      (in case there are two other experiments ids=0, 1 before it).
 	"""
 	def train_generative_policies(self, training_iterations, epochs_per_train_it=3, trajectories_per_train_it=10, minibatch_size=25,
-									    its_per_model_checkpoint=10, checkpoint_folder="saved_models/both_policies", 
-										logs_name="both_policies"):
+							      its_per_model_checkpoint=10, checkpoint_folder="saved_models/both_policies", logs_name="both_policies"):
 
 		# Obtain folder name to save the model checkpoints in
 		folders = glob.glob(checkpoint_folder + r'_*')
@@ -891,7 +891,8 @@ class DirectedGenerator():
 
 			# Normalize the rewards
 			self._normalize_rewards_init_policy(init_policy_trajectories)
-			self._normalize_rewards_goal_policy(goal_policy_trajectories)
+			if len(goal_policy_trajectories) > 0:
+				self._normalize_rewards_goal_policy(goal_policy_trajectories)
 
 			# < Train the generative policies >
 
@@ -906,10 +907,10 @@ class DirectedGenerator():
 
 			# Train the policy
 			trainer_init_policy = pl.Trainer(max_epochs=epochs_per_train_it, logger=logger_init_policy) # We need to reset the trainer, so we create a new one
-			trainer_init_policy.fit(self._init_policy, trajectory_dataloader_init_policy)
+			trainer_init_policy.fit(self._initial_state_policy, trajectory_dataloader_init_policy)
 
 			# Linearly anneal the entropy regularization of the policy
-			self._init_policy.reduce_entropy()
+			self._initial_state_policy.reduce_entropy()
 
 			# Save a checkpoint
 			if its_per_model_checkpoint != -1 and i > 0 and i % its_per_model_checkpoint == 0:
@@ -917,19 +918,35 @@ class DirectedGenerator():
 
 			# -- Goal state policy
 
-			# Create training dataset and dataloader with the collected trajectories
-			trajectory_dataset_goal_policy = ReinforceDataset(goal_policy_trajectories)
-			trajectory_dataloader_goal_policy= torch.utils.data.DataLoader(dataset=trajectory_dataset_goal_policy, batch_size=minibatch_size,
-																collate_fn=TransformReinforceDatasetSample(), shuffle=True) # Change to shuffle=False if we need to keep the order in the transitions (s,a,s')
+			if len(goal_policy_trajectories) > 0:
+				# Create training dataset and dataloader with the collected trajectories
+				trajectory_dataset_goal_policy = ReinforceDataset(goal_policy_trajectories)
+				trajectory_dataloader_goal_policy= torch.utils.data.DataLoader(dataset=trajectory_dataset_goal_policy, batch_size=minibatch_size,
+																	collate_fn=TransformReinforceDatasetSample(), shuffle=True) # Change to shuffle=False if we need to keep the order in the transitions (s,a,s')
 
-			# Train the policy
-			trainer_goal_policy = pl.Trainer(max_epochs=epochs_per_train_it, logger=logger_goal_policy) # We need to reset the trainer, so we create a new one
-			trainer_goal_policy.fit(self._goal_policy, trajectory_dataloader_goal_policy)
+				# Train the policy
+				trainer_goal_policy = pl.Trainer(max_epochs=epochs_per_train_it, logger=logger_goal_policy)
+				trainer_goal_policy.fit(self._goal_policy, trajectory_dataloader_goal_policy)
 
-			# Linearly anneal the entropy regularization of the policy
-			self._goal_policy.reduce_entropy()
+				# Linearly anneal the entropy regularization of the policy
+				self._goal_policy.reduce_entropy()
 
-			# Save a checkpoint
-			if its_per_model_checkpoint != -1 and i > 0 and i % its_per_model_checkpoint == 0:
-				trainer_goal_policy.save_checkpoint(checkpoints_folder + f'/goal_policy_its-{i}.ckpt') # Both actor and critic NLMs are saved
+				# Save a checkpoint
+				if its_per_model_checkpoint != -1 and i > 0 and i % its_per_model_checkpoint == 0:
+					trainer_goal_policy.save_checkpoint(checkpoints_folder + f'/goal_policy_its-{i}.ckpt') # Both actor and critic NLMs are saved
 
+
+
+	# <TODO>
+	def generate_problem(self, max_atoms_init_state=10, max_actions_goal_state=10, max_actions_trajectory=30, problem_name = "problem", verbose=True):
+		raise NotImplementedError()
+
+	# <TODO>
+	def generate_problems(self, num_problems_to_generate,
+								max_atoms_init_state=10, max_actions_goal_state=10, max_actions_trajectory=30,
+								problems_path = '../data/problems/only_init_state_policy_problems/',
+								problems_name = 'bw_only_init_state_policy_problem',
+								metrics_file_path = '../data/problems/only_init_state_policy_problems/only_init_state_policy_problems_metrics.txt',
+								max_planning_time=60,
+								verbose=False):
+		raise NotImplementedError()
