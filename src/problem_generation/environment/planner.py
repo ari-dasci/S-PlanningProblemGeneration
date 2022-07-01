@@ -88,7 +88,7 @@ class Planner():
 	The same as get_problem_difficulty but we create a temporary file to store the PDDL problem, which is deleted
 	as soon as the difficulty is calculated.
 	"""
-	def get_problem_difficulty_no_save_disk(self, pddl_problem, max_planning_time = 60):
+	def get_problem_difficulty_temp_file(self, pddl_problem, max_planning_time = 60):
 		
 		"""
 		# This doesn't work in Windows!!

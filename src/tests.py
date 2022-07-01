@@ -536,123 +536,52 @@ def test_train_goal_policy():
 	# Train the goal generation policy
 	directed_generator.train_generative_policies(training_iterations = 10000)
 
+
 """
-# --------------------- Pruebas goal policy
+Tests the functionality of directed_generator.py used to train both the initial and goal generation policies.
+"""
+def test_train_init_and_goal_policy():
+	from problem_generation.controller.directed_generator import DirectedGenerator
+	from problem_generation.environment.pddl_parser import Parser
+	from problem_generation.environment.planner import Planner
+	from problem_generation.environment.state_validator import ValidatorPredOrderBW
 
--- Pruebas difficulty=num_expanded_nodes / max_difficulty=1e6
-	> Entropy reg coeffs = 0 0, lr = 5e-3:
-		No aprende (r converge a 1e-6)
+	domain_file_path = '../data/domains/blocks-domain.pddl'
 
-	> Entropy reg coeffs = 0 0, lr = 5e-2:
-		No aprende (r converge a 1e-6 incluso más rápido)
+	parser = Parser()
+	parser.parse_domain(domain_file_path)
+	planner = Planner(domain_file_path)
 
-	> Entropy reg coeffs = 0 0, lr = 1e-3:
-		Funciona mejor que con lr = 5e-3, ya que aprende, aunque muy lentamente.
+	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
 
--- Pruebas difficulty = plan_length * 0.1
-	> Entropy reg coeffs = 0 0, lr = 5e-3: 
-		No aprende, (la r converge a 0.2 y la entropía cae a 0!)
+	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
 
-	> Entropy reg coeffs = 0.1 0.1, lr = 5e-3: 
-		Tarda mucho (al usar 100 trajectories_per_train_it).
+										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
+										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
+										   res_connections_initial_state_nlm=True,
+										   lr_initial_state_nlm = 5e-3,
+										   lifted_action_entropy_coeff_init_state_policy = 1,
+										   ground_action_entropy_coeff_init_state_policy = 1,
+										   init_state_policy_entropy_annealing_coeffs = (300, 0.01, 0.01),
+										   epsilon_init_state_policy=0.1,
 
-	> Entropy reg coeffs = 0.1 0.1, lr = 5e-3, <trajectories_per_train_it=10, minibatch_size=25>:
-		La recompensa converge a r=0.65 (creo que la entropía es demasiado alta y por eso aún ejecuta la termination condition a veces).
-
-	> <Entropy reg coeffs = 0.01 0.01>, lr = 5e-3, trajectories_per_train_it=10, minibatch_size=25:
-		La recompensa converge a r=0.75.
-
-	> <Entropy reg coeffs = 0.001 0.001>, lr = 5e-3, trajectories_per_train_it=10, minibatch_size=25:
-		La recompensa también converge a r=0.75 (creo que no es posible hacer problemas con planes de longitud mayor a 8).
-
-	> Entropy reg coeffs = 0.01 0.01, lr = 5e-3, <moving_avg_coeff=0.95, moving_std_coeff=0.95>:
-		Aprende (r converge a r=0.75).
-
-	> Entropy reg coeffs = 0.01 0.01, lr = 5e-3, <moving_avg_coeff=0.9, moving_std_coeff=0.9>:
-		Aprende (r converge a r=0.75) y la recompensa se normaliza antes a N(0, 1) que con
-		moving_coeffs = 0.95 0.95.
-
-	> Entropy reg coeffs = 0.01 0.01, lr = 5e-3, moving_avg_coeff=0.9, moving_std_coeff=0.9,
-	  media inicializada a 5 en vez de 0:
-		Igual que inicializando la media a 0 (r converge a 0.75).
-
-	> Entropy reg coeffs = 0.01 0.01, lr = 5e-3, moving_avg_coeff=0.9, moving_std_coeff=0.9,
-	  <aplicando _normalize_rewards() sobre todas las trayectorias a la vez>:
-		Funciona bien pero la recompensa normalizada tarda en converger a media=0.
-
-	> Entropy reg coeffs = 0.01 0.01, lr = 5e-3, moving_avg_coeff=0.9, moving_std_coeff=0.9,
-	  <inicializando reward moving mean and std al reward mean and std del primer grupo
-	   de trayectorias>:
-		Funciona prácticamente igual que inicializando reward moving mean a 0 y std = 1.
-
-	> Entropy reg coeffs = 0.01 0.01, lr = 5e-3, <moving_avg_coeff=0.8, moving_std_coeff=0.8>:
-		Aprende y el reward normalized converge a 0 más rápido.
-		
--- Pruebas difficulty=num_expanded_nodes + reward_normalization
-
-	> Entropy reg coeffs = 0.01 0.01, lr = 5e-3, moving_avg_coeffs=0.8 0.8:
-		No aprende (converge a r=1e3 (1000 nodos expandidos))
-
-	> Entropy reg coeffs = 0.01 0.01, lr = 5e-3, moving_avg_coeffs=0.8 0.8, <log rewards>:
-		Explora poco. La recompensa no pasa de 6 (en log reward).
-
-	> <Entropy reg coeffs = 0.1 0.1>, lr = 5e-3, moving_avg_coeffs=0.8 0.8, log rewards:
-		La log reward converge a 5.5 (lo que corresponde a 240 nodos expandidos aprox.)
-		El critic loss es muy alto y no parece disminuir durante el entrenamiento
-		(es como si no aprendiera).
-		La policy entropy se mantiene muy alta.
-
-	> Entropy reg coeffs = 0.1 0.1, lr = 5e-3, moving_avg_coeffs=0.8 0.8, log rewards,
-	  <no _normalize_rewards()>:
-		Peor que con normalize_rewards (no consigue más recompensa y tarda más en aprender).
-
-	> Entropy reg coeffs = 0.1 0.1, lr = 5e-3, moving_avg_coeffs=0.8 0.8, log rewards,
-	  <no_term_condition (he modificado _get_mask_tensors_goal_policy())>:
-		Aprende (la log reward converge a 5.5). Creo que la recompensa podría ser mayor con
-		una entropy reg menor.
-
-	> <Entropy reg coeffs = 1 1>, <entropy_annealing = (300, 0.01, 0.01)>, lr = 5e-3, moving_avg_coeffs=0.8 0.8,
-      log rewards, <WITH term condition>:
-		Aprende (la log reward converge a 5.5).
-		
-
-	>>> Prueba random policy (SIN termination condition (i.e., siempre ejecutando 10 acciones al azar)):
-		La log reward media es de 2.8 -> mucho por debajo de la log reward media de 5.5 de la goal generation policy!
-		>>> LA GOAL GENERATION POLICY ES CAPAZ DE GENERAR PROBLEMAS 15 VECES MÁS DIFÍCILES (con 15 veces más nodos expandidos)
-		    QUE LA RANDOM POLICY (cuando el número máximo de goal actions son 10).
-
-	
-	> Entropy reg coeffs = 1 1, entropy_annealing = (300, 0.01, 0.01), lr = 5e-3, moving_avg_coeffs=0.8 0.8,
-	  <random init state from set of 9 possible init states>:
-		Aprende (la log reward converge a 5.2).
-
-	> Entropy reg coeffs = 1 1, entropy_annealing = (300, 0.01, 0.01), lr = 5e-3, moving_avg_coeffs=0.8 0.8,
-	  <trajectories_per_train_it=100, minibatch_size=250>,
-	  <random init state from set of 9 possible init states>:
-		Aprende bien, pero de manera muy lenta!
-
-	>>> Prueba random policy (SIN termination condition) <random init state from set of 9 possible init states>:
-		La log reward es 2.5. >>> LA GOAL GENERATION POLICY GENERA PROBLEMAS UNAS 15 VECES MÁS DIFÍCILES!!! (15 veces más de nodos expandidos)
+										   num_preds_inner_layers_goal_nlm=nlm_inner_layers,
+										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
+										   res_connections_goal_nlm=True,
+										   lr_goal_nlm = 5e-3,
+										   lifted_action_entropy_coeff_goal_policy = 1,
+										   ground_action_entropy_coeff_goal_policy = 1,
+										   entropy_annealing_coeffs_goal_policy = (300, 0.01, 0.01),
+										   epsilon_goal_policy=0.1)
 
 
-	> Entropy reg coeffs = 1 1, entropy_annealing = (300, 0.01, 0.01), lr = 5e-3, moving_avg_coeffs=0.8 0.8,
-	  <trajectories_per_train_it=10, minibatch_size=25>,
-	  <init state generated with initial generation policy>:
-		La log reward converge a 3.2.
+	# Train the goal generation policy
+	directed_generator.train_generative_policies(training_iterations = 10000)
 
-	> Entropy reg coeffs = 1 1, entropy_annealing = (300, 0.01, 0.01), lr = 5e-3, moving_avg_coeffs=0.8 0.8,
-	  trajectories_per_train_it=10, minibatch_size=25, <discount_factor_rewards (gamma) = 1>
-	  <init state generated with initial generation policy>:
-	    La log reward también converge a 3.2 -> no hay diferencia entre usar un discount_factor de 1 o 0.95.
-		-> Paso a usar un disc_factor=0.99.
+"""
 
-	>>> Prueba random policy (SIN termination condition) <init state generated with initial generation policy>:
-		La log reward es 1.3. >>> LA GOAL GENERATION POLICY GENERA PROBLEMAS UNAS 7 VECES MÁS DIFÍCILES (7 de más nodos expandidos). 
-
-
-
-
-	>>> CAMBIAR trajectories_per_train_it=100, minibatch_size=250
 
 
 
@@ -683,8 +612,8 @@ if __name__ == "__main__":
 	#test_trajectory_initial_state_policy() 
 	#test_train_initial_state_policy()
 	#test_load_model_and_generate_problems()
-
 	#test_generate_random_problems()
 	#test_trajectory_goal_policy()
+	#test_train_goal_policy()
 
-	test_train_goal_policy()
+	test_train_init_and_goal_policy()
