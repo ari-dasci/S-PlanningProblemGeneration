@@ -564,7 +564,7 @@ def test_train_init_and_goal_policy():
 										   lr_initial_state_nlm = 5e-3,
 										   lifted_action_entropy_coeff_init_state_policy = 1,
 										   ground_action_entropy_coeff_init_state_policy = 1,
-										   entropy_annealing_coeffs_init_state_policy = (300, 0.01, 0.01),
+										   entropy_annealing_coeffs_init_state_policy = (300, 0.1, 0.1),
 										   epsilon_init_state_policy=0.1,
 
 										   num_preds_inner_layers_goal_nlm=nlm_inner_layers,
@@ -573,7 +573,7 @@ def test_train_init_and_goal_policy():
 										   lr_goal_nlm = 5e-3,
 										   lifted_action_entropy_coeff_goal_policy = 1,
 										   ground_action_entropy_coeff_goal_policy = 1,
-										   entropy_annealing_coeffs_goal_policy = (300, 0.01, 0.01),
+										   entropy_annealing_coeffs_goal_policy = (300, 0.1, 0.1),
 										   epsilon_goal_policy=0.1)
 
 
@@ -582,8 +582,23 @@ def test_train_init_and_goal_policy():
 
 """
 
+>  init_policy_entropy_coeffs = 1 1, entropy_annealing_coeffs_init_state_policy = (300, 0.01, 0.01), 
+   init_policy_entropy_coeffs = 1 1, entropy_annealing_coeffs_goal_policy = (300, 0.01, 0.01):
+	Aprende (la reward de la init state policy llega a 1.5 y la de la goal policy a 3.4) pero después
+	la reward de la init state policy diverge a -0.83.
 
 
+
+> init_policy_entropy_coeffs = 1 1, <entropy_annealing_coeffs_init_state_policy = (300, 0.1, 0.1)>, 
+  init_policy_entropy_coeffs = 1 1, <entropy_annealing_coeffs_goal_policy = (300, 0.1, 0.1)>,
+  <goal_policy_train_epochs dependiendo del num goal policy train samples>:
+	
+	
+
+
+
+>>> Quizás debería esperar para entrenar la goal policy (ej.: solo entrenar cuando hay al menos X samples), es decir,
+    una vez que la initial policy es capaz de generar problemas consistentes
 
 >>> Ver si debería reescalar la difficulty_reward (por si es mucho más alta que las otras recompensas)
 

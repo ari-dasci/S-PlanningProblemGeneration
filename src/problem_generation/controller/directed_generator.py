@@ -409,7 +409,8 @@ class DirectedGenerator():
 		return atom_to_add, objs_to_add
 
 	"""
-	This method receives a trajectory as input and, for each element, it obtains the discounted sum of rewards.
+	This method receives a trajectory as input and, for each element, it obtains the discounted sum of rewards, accounting
+	for the continuous consistency, eventual consistency, problem difficulty and the sum of these three discounted rewards.
 	We assume the first element of the trajectory corresponds to the state at t=0 and the last element
 	to the state t=T.
 
@@ -431,9 +432,12 @@ class DirectedGenerator():
 			curr_r_eventual = trajectory[i][-2]
 			curr_r_difficulty = trajectory[i][-1]
 
-			curr_r = curr_r_continuous + curr_r_eventual + curr_r_difficulty + r_continuous_sum + r_eventual_sum + r_difficulty_sum
+			sum_r_continuous = curr_r_continuous + r_continuous_sum
+			sum_r_eventual = curr_r_eventual + r_eventual_sum
+			sum_r_difficulty = curr_r_difficulty + r_difficulty_sum
+			sum_r_total = sum_r_continuous + sum_r_eventual + sum_r_difficulty
 
-			trajectory[i] = trajectory[i][:-3] + [curr_r]
+			trajectory[i] = trajectory[i][:-3] + [sum_r_continuous, sum_r_eventual, sum_r_difficulty, sum_r_total]
 
 			r_continuous_sum += curr_r_continuous # Sum the current reward to the sum of disc rewards R
 			r_continuous_sum *= disc_factor_cont_consistency # Apply disc factor to all the rewards in the sum
@@ -452,7 +456,7 @@ class DirectedGenerator():
 	def _calculate_state_value_and_old_policy_probs_trajectory_init_policy(self, trajectory):
 		
 		for i in range(len(trajectory)):
-			state_tensors, num_objs_with_virtuals, mask_tensors, chosen_action_index, disc_reward_sum = trajectory[i]
+			state_tensors, num_objs_with_virtuals, mask_tensors, chosen_action_index, r_continuous, r_eventual, r_difficulty, r_total = trajectory[i]
 			
 			# < Obtain probability of the selected action >
 
@@ -487,7 +491,7 @@ class DirectedGenerator():
 	def _calculate_state_value_and_old_policy_probs_trajectory_goal_policy(self, trajectory):
 		
 		for i in range(len(trajectory)):
-			state_tensors, num_objs_with_virtuals, mask_tensors, chosen_action_index, disc_reward_sum = trajectory[i]
+			state_tensors, num_objs_with_virtuals, mask_tensors, chosen_action_index, r_continuous, r_eventual, r_difficulty, r_total = trajectory[i]
 			
 			# < Obtain probability of the selected action >
 
@@ -545,7 +549,7 @@ class DirectedGenerator():
 	Since the scale of rewards can vary a lot during training, we use a moving average to calculate the mean (\mu)
 	and std (\sigma) used to normalize the rewards.
 
-	<Note1>: we assume the rewards are in the 4-th position of each trajectory sample. We append to the 5-th position
+	<Note1>: we assume the rewards are in the position -3 of each trajectory sample. We insert in the -2 position
 	         the normalized reward.
 	<Note2>: this method modifies the trajectory in-place.
 	<Note3>: I think this method doesn't work if called in parallel! (as we would be accessing the self._reward_moving_mean and self._reward_moving_std
@@ -554,7 +558,7 @@ class DirectedGenerator():
 	def _normalize_rewards_init_policy(self, trajectory, moving_avg_coeff=0.8, moving_std_coeff=0.8):
 
 		# <Calculate the mean and std of the trajectory rewards>
-		trajectory_rewards_np = np.array([sample[4] for sample in trajectory], dtype=np.float32)
+		trajectory_rewards_np = np.array([sample[-3] for sample in trajectory], dtype=np.float32)
 		trajectory_rewards_mean = np.mean(trajectory_rewards_np)
 		trajectory_rewards_std = np.std(trajectory_rewards_np)
 
@@ -570,8 +574,8 @@ class DirectedGenerator():
 		# <Normalize the trajectory rewards>
 		# We store both the reward before normalization and after it
 		for i in range(len(trajectory)):
-			norm_reward = (trajectory[i][4] - self._reward_moving_mean_init_policy) / (self._reward_moving_std_init_policy + 1e-10) # z-score normalization
-			trajectory[i] = trajectory[i][:5] + [norm_reward] + trajectory[i][5:] # Store the normalized reward in the trajectory[i][-3] position
+			norm_reward = (trajectory[i][-3] - self._reward_moving_mean_init_policy) / (self._reward_moving_std_init_policy + 1e-10) # z-score normalization
+			trajectory[i] = trajectory[i][:-2] + [norm_reward] + trajectory[i][-2:] # Store the normalized reward in the trajectory[i][-3] position
 
 
 	"""
@@ -589,7 +593,7 @@ class DirectedGenerator():
 	def _normalize_rewards_goal_policy(self, trajectory, moving_avg_coeff=0.8, moving_std_coeff=0.8):
 
 		# <Calculate the mean and std of the trajectory rewards>
-		trajectory_rewards_np = np.array([sample[4] for sample in trajectory], dtype=np.float32)
+		trajectory_rewards_np = np.array([sample[-3] for sample in trajectory], dtype=np.float32)
 		trajectory_rewards_mean = np.mean(trajectory_rewards_np)
 		trajectory_rewards_std = np.std(trajectory_rewards_np)
 
@@ -605,8 +609,8 @@ class DirectedGenerator():
 		# <Normalize the trajectory rewards>
 		# We store both the reward before normalization and after it
 		for i in range(len(trajectory)):
-			norm_reward = (trajectory[i][4] - self._reward_moving_mean_goal_policy) / (self._reward_moving_std_goal_policy + 1e-10) # z-score normalization
-			trajectory[i] = trajectory[i][:5] + [norm_reward] + trajectory[i][5:] # Store the normalized reward in the trajectory[i][-3] position
+			norm_reward = (trajectory[i][-3] - self._reward_moving_mean_goal_policy) / (self._reward_moving_std_goal_policy + 1e-10) # z-score normalization
+			trajectory[i] = trajectory[i][:-2] + [norm_reward] + trajectory[i][-2:] # Store the normalized reward in the trajectory[i][-3] position
 
 
 	# ------- Main Methods --------
@@ -832,6 +836,7 @@ class DirectedGenerator():
 
 		self._sum_rewards_trajectory(init_and_goal_policy_trajectory, disc_factor_cont_consistency, disc_factor_event_consistency, disc_factor_difficulty)
 
+
 		# <Calculate the state value and selected action probability>
 
 		init_policy_trajectory = init_and_goal_policy_trajectory[:init_policy_trajectory_length]
@@ -925,7 +930,14 @@ class DirectedGenerator():
 																	collate_fn=TransformReinforceDatasetSample(), shuffle=True) # Change to shuffle=False if we need to keep the order in the transitions (s,a,s')
 
 				# Train the policy
-				trainer_goal_policy = pl.Trainer(max_epochs=epochs_per_train_it, logger=logger_goal_policy)
+				goal_policy_train_epochs = 1
+
+				if len(goal_policy_trajectories) > 33:
+					goal_policy_train_epochs += 1
+				if len(goal_policy_trajectories) > 66:
+					goal_policy_train_epochs += 1
+
+				trainer_goal_policy = pl.Trainer(max_epochs=goal_policy_train_epochs, logger=logger_goal_policy)
 				trainer_goal_policy.fit(self._goal_policy, trajectory_dataloader_goal_policy)
 
 				# Linearly anneal the entropy regularization of the policy

@@ -292,12 +292,18 @@ class GenerativePolicy(pl.LightningModule):
 		actor_loss = 0
 		critic_loss = 0
 		entropy = 0
-		reward = 0
-		reward_norm = 0
+
+		reward_continuous = 0
+		reward_eventual = 0
+		reward_difficulty = 0
+		reward_total = 0
+		reward_total_norm = 0
+
 		mean_term_cond_prob = 0 # Mean probability of the termination condition across the batch
 
 		for train_sample in train_batch:
-			state_tensors, num_objs_with_virtuals, mask_tensors, chosen_action_index, disc_reward_sum, disc_reward_sum_norm, \
+			state_tensors, num_objs_with_virtuals, mask_tensors, chosen_action_index, \
+		    curr_r_continuous, curr_r_eventual, curr_r_difficulty, curr_r_total, curr_r_total_norm, \
 		    action_prob_old_policy, state_value = train_sample
 
 			# < Critic >
@@ -307,14 +313,14 @@ class GenerativePolicy(pl.LightningModule):
 			"""
 			if self.current_epoch == 0:
 				state_value_with_gradient = self._critic_nlm(state_tensors, num_objs_with_virtuals)[0][0]
-				curr_critic_loss = (state_value_with_gradient - disc_reward_sum_norm)**2
+				curr_critic_loss = (state_value_with_gradient - curr_r_total_norm)**2
 			else:
 				curr_critic_loss = 0
 			"""
 
 			# Train the critic every epoch (just as we do with the actor)
 			state_value_with_gradient = self._critic_nlm(state_tensors, num_objs_with_virtuals)[0][0]
-			curr_critic_loss = (state_value_with_gradient - disc_reward_sum_norm)**2
+			curr_critic_loss = (state_value_with_gradient - curr_r_total_norm)**2
 
 			# < Actor >
 
@@ -333,7 +339,7 @@ class GenerativePolicy(pl.LightningModule):
 			prob_ratio = chosen_action_prob / action_prob_old_policy
 
 			# Calculate the advantage
-			advantage = disc_reward_sum_norm - state_value # A(s,a) = R(s,a) - V(s)
+			advantage = curr_r_total_norm - state_value # A(s,a) = R(s,a) - V(s)
 
 			# Calculate the PPO loss
 			curr_PPO_loss = -torch.min(prob_ratio * advantage, torch.clip(prob_ratio, 1-self._epsilon, 1+self._epsilon) * advantage)
@@ -362,8 +368,13 @@ class GenerativePolicy(pl.LightningModule):
 			loss += curr_actor_loss + curr_critic_loss # Loss combines Actor and Critic losses
 			
 			entropy += lifted_action_entropy + grounded_action_entropy
-			reward += disc_reward_sum
-			reward_norm += disc_reward_sum_norm
+			
+			reward_continuous += curr_r_continuous
+			reward_eventual += curr_r_eventual
+			reward_difficulty += curr_r_difficulty
+			reward_total += curr_r_total
+			reward_total_norm += curr_r_total_norm		
+			
 
 		# Scale losses and metrics by number of samples
 
@@ -377,15 +388,21 @@ class GenerativePolicy(pl.LightningModule):
 
 		mean_term_cond_prob /= len(train_batch)
 		entropy /= len(train_batch)
-		reward /= len(train_batch)
-		reward_norm /= len(train_batch)
+
+		reward_continuous /= len(train_batch)
+		reward_eventual /= len(train_batch)
+		reward_difficulty /= len(train_batch)
+		reward_total /= len(train_batch)
+		reward_total_norm /= len(train_batch)
 
 		# < Logs >
 
-		# For each training iteration, we store the logs several times, but only for the first training epoch
-		if self.current_epoch == 0:
-			self.logger.experiment.add_scalar("Reward", reward, global_step=self.curr_log_iteration)
-			self.logger.experiment.add_scalar("Reward Normalized", reward_norm, global_step=self.curr_log_iteration)
+		# Store the logs
+		if self.curr_log_iteration % 10 == 0 and self.current_epoch == 0: # self.current_epoch == 0 -> only store the logs for the first training epoch of PPO
+			self.logger.experiment.add_scalar("Total Reward Normalized", reward_total_norm, global_step=self.curr_log_iteration)
+			self.logger.experiment.add_scalars('Rewards', {'Reward Continuous': reward_continuous, 'Reward Eventual': reward_eventual, 'Reward Difficulty': reward_difficulty, 
+												           'Total Reward': reward_total},
+											   global_step=self.curr_log_iteration)
 			self.logger.experiment.add_scalar("Actor Policy Entropy", entropy, global_step=self.curr_log_iteration)
 			self.logger.experiment.add_scalars('Actor Losses', {'Total Loss': actor_loss, 'PPO Loss': PPO_loss, 'Entropy Loss': entropy_loss},
 											   global_step=self.curr_log_iteration)
