@@ -223,6 +223,36 @@ class GenerativePolicy(pl.LightningModule):
 
 		self._curr_entropy_annealing_it += 1
 
+	"""
+	This method is used to inspect the gradients.
+
+	Note: it seems like this method is called BEFORE the gradient is clipped, so it isn't useful.
+	"""
+	"""
+	def on_after_backward(self):
+		
+		# Sum all the gradients of the actor
+		grad_sum_actor = 0
+		len_grad_sum_actor = 0
+
+		grad_sum_critic = 0
+		len_grad_sum_critic = 0
+
+		if self.current_epoch == 0: 
+			for name, param in self._actor_nlm.named_parameters():
+				if param.requires_grad and param.grad is not None:
+					grad_sum_actor += torch.sum(param.grad).item()
+					len_grad_sum_actor += len(param.grad)
+
+			self.logger.experiment.add_scalar("Actor Gradient Sum", grad_sum_actor / len_grad_sum_actor, global_step=self.curr_log_iteration)
+
+			for name, param in self._critic_nlm.named_parameters():
+				if param.requires_grad and param.grad is not None:
+					grad_sum_critic += torch.sum(param.grad).item()
+					len_grad_sum_critic += len(param.grad)
+
+			self.logger.experiment.add_scalar("Critic Gradient Sum", grad_sum_critic / len_grad_sum_critic, global_step=self.curr_log_iteration)
+	"""
 
 	# ------- Main methods
 
@@ -398,7 +428,7 @@ class GenerativePolicy(pl.LightningModule):
 		# < Logs >
 
 		# Store the logs
-		if self.curr_log_iteration % 10 == 0 and self.current_epoch == 0: # self.current_epoch == 0 -> only store the logs for the first training epoch of PPO
+		if self.current_epoch == 0: # self.current_epoch == 0 -> only store the logs for the first training epoch of PPO
 			self.logger.experiment.add_scalar("Total Reward Normalized", reward_total_norm, global_step=self.curr_log_iteration)
 			self.logger.experiment.add_scalars('Rewards', {'Reward Continuous': reward_continuous, 'Reward Eventual': reward_eventual, 'Reward Difficulty': reward_difficulty, 
 												           'Total Reward': reward_total},

@@ -56,6 +56,7 @@ class DirectedGenerator():
 		self._penalization_continuous_consistency = penalization_continuous_consistency
 		self._penalization_eventual_consistency = penalization_eventual_consistency
 
+
 		# <Relational State which contains the object types and actions in the domain>
 		# Used to convert from action name to index and vice versa (e.g.: "stack" <-> 1)
 		self._dummy_rel_state_actions = RelationalState(self.domain_types, self.domain_actions_and_parameters) 
@@ -522,9 +523,12 @@ class DirectedGenerator():
 	If the planner uses more than @max_planning_time seconds to solve the problem, we assume
 	the difficulty of the problem is equal to @max_difficulty.
 
+	@rescale_factor We multiply the log_r_difficulty by this factor to rescale it, with respect to the other rewards
+	                (r_continuous_consistency and r_eventual_consistency)
+
 	<Note>: This method also selects the goal atoms corresponding to the goal predicates given by the user
 	"""
-	def get_problem_difficulty(self, problem, max_difficulty=1e6, max_planning_time=10):
+	def get_problem_difficulty(self, problem, max_difficulty=1e6, rescale_factor=0.1, max_planning_time=10):
 		# Encode the problem in PDDL
 		# > This method also selects the goal atoms corresponding to the goal predicates given by the user
 		pddl_problem = problem.obtain_pddl_problem()
@@ -540,6 +544,9 @@ class DirectedGenerator():
 
 		# use log of rewards
 		log_problem_difficulty = np.log(scaled_problem_difficulty)
+
+		# rescale problem_difficulty
+		log_problem_difficulty *= rescale_factor
 
 		return log_problem_difficulty
 
@@ -617,7 +624,7 @@ class DirectedGenerator():
 
 
 	"""
-	Uses the initial policy to obtain a trajectory to train the initial policy's NLMs.
+	Uses the initial policy to obtain a trajectory to train the initial policy's NLMs (or generate a problem at the test/production phase).
 	This method returns a tuple (problem, trajectory), where "problem" contains the problem corresponding to the state in the last
 	trajectory sample.
 
@@ -716,7 +723,7 @@ class DirectedGenerator():
 
 
 	"""
-	Uses the goal policy to obtain a trajectory to train the goal policy's NLMs.
+	Uses the goal policy to obtain a trajectory to train the goal policy's NLMs (or generate a problem at the test/production phase).
 	The goal generation phase starts from an initial state obtained with the initial generation policy.
 
 	@problem A ProblemState instance containing the initial state to start the goal generation phase from.
@@ -800,7 +807,7 @@ class DirectedGenerator():
 			trajectory.append( [curr_goal_and_init_state_tensors, num_objs, mask_tensors,
 					            chosen_action_index, 0.0, 0.0, r_difficulty] ) # The two '0.0' correspond to the continuous and eventual consistency rewards
 
-		return trajectory
+		return problem, trajectory
 
 	"""
 	This method uses _obtain_trajectory_init_policy() and _obtain_trajectory_goal_policy() to obtain a full trajectory
@@ -820,13 +827,11 @@ class DirectedGenerator():
 
 		# <Obtain a trajectory with the goal policy>
 		# If the initial policy trajectory is not consistent, then we don't generate a goal policy trajectory
-
 		if is_init_policy_trajectory_consistent:
-			goal_policy_trajectory = self._obtain_trajectory_goal_policy(problem, max_actions_goal_state)
+			_, goal_policy_trajectory = self._obtain_trajectory_goal_policy(problem, max_actions_goal_state)
 		else:
 			goal_policy_trajectory = []
 
-		
 		# <Sum the rewards to obtain the return>
 		# For this operation, we need to append the init and goal policy trajectories
 
@@ -860,7 +865,7 @@ class DirectedGenerator():
 	Note: We add an index to the folder name given by @checkpoint_folder. Example: saved_models/both_policies_2
 	      (in case there are two other experiments ids=0, 1 before it).
 	"""
-	def train_generative_policies(self, training_iterations, epochs_per_train_it=3, trajectories_per_train_it=10, minibatch_size=25,
+	def train_generative_policies(self, training_iterations, epochs_per_train_it=3, trajectories_per_train_it=50, minibatch_size=125,
 							      its_per_model_checkpoint=10, checkpoint_folder="saved_models/both_policies", logs_name="both_policies"):
 
 		# Obtain folder name to save the model checkpoints in
@@ -911,6 +916,7 @@ class DirectedGenerator():
 																collate_fn=TransformReinforceDatasetSample(), shuffle=True) # Change to shuffle=False if we need to keep the order in the transitions (s,a,s')
 
 			# Train the policy
+
 			trainer_init_policy = pl.Trainer(max_epochs=epochs_per_train_it, logger=logger_init_policy) # We need to reset the trainer, so we create a new one
 			trainer_init_policy.fit(self._initial_state_policy, trajectory_dataloader_init_policy)
 
@@ -923,18 +929,20 @@ class DirectedGenerator():
 
 			# -- Goal state policy
 
-			if len(goal_policy_trajectories) > 0:
+			if len(goal_policy_trajectories) > minibatch_size / 2:
 				# Create training dataset and dataloader with the collected trajectories
 				trajectory_dataset_goal_policy = ReinforceDataset(goal_policy_trajectories)
 				trajectory_dataloader_goal_policy= torch.utils.data.DataLoader(dataset=trajectory_dataset_goal_policy, batch_size=minibatch_size,
 																	collate_fn=TransformReinforceDatasetSample(), shuffle=True) # Change to shuffle=False if we need to keep the order in the transitions (s,a,s')
 
 				# Train the policy
-				goal_policy_train_epochs = 1
+				goal_policy_train_epochs = 0
 
-				if len(goal_policy_trajectories) > 33:
+				if len(goal_policy_trajectories) > minibatch_size / 2:
 					goal_policy_train_epochs += 1
-				if len(goal_policy_trajectories) > 66:
+				if len(goal_policy_trajectories) > 2*10*trajectories_per_train_it / 4:
+					goal_policy_train_epochs += 1
+				if len(goal_policy_trajectories) > 3*10*trajectories_per_train_it / 4:
 					goal_policy_train_epochs += 1
 
 				trainer_goal_policy = pl.Trainer(max_epochs=goal_policy_train_epochs, logger=logger_goal_policy)
@@ -949,16 +957,121 @@ class DirectedGenerator():
 
 
 
-	# <TODO>
-	def generate_problem(self, max_atoms_init_state=10, max_actions_goal_state=10, max_actions_trajectory=30, problem_name = "problem", verbose=True):
-		raise NotImplementedError()
+	"""
+	This method generates a single problem using the trained init and goal generation policies.
 
-	# <TODO>
+	@max_atoms_init_state The maximum number of atoms the initial state can contain. If we reach this number, the initial state generation phase ends.
+	@max_actions_init_state The maximum number of actions that can be executed in the initial state before ending the initial state generation phase.
+							This parameter is different from @max_atoms_init_state since the number of actions executed in the initial state generation phase
+							is always greater or equal to the number of atoms added, since an invalid action (one which does not meet the continuous
+							consistency rules) will add no atom and result in the same current state (next_state = curr_state).
+	@max_actions_goal_state The maximum number of actions we can execute from the initial state to arrive at a goal state. If we reach this number,
+	                        the goal generation phase ends.
+	@problem_name The name of the generated problem, which appears in the PDDL encoding.
+	@verbose If True, print information about the problem generation process.
+	"""
+	def generate_problem(self, max_atoms_init_state=10, max_actions_init_state=20, max_actions_goal_state=10, problem_name = "problem", verbose=True):
+		
+		if max_atoms_init_state > max_actions_init_state:
+			return ValueError("max_actions_init_state must be greater or equal than max_atoms_init_state")
+
+		if verbose:
+			print(f"\n\n---------- Problem {problem_name} ----------\n\n")
+			print("> Generating initial state (:init)")
+
+		# <Generate a consistent initial state with the initial state policy>
+		consistent_init_state = False
+
+		while not consistent_init_state:
+			# Generate the initial state
+			init_problem, _ = self._obtain_trajectory_init_policy(self, max_atoms_init_state, max_actions_init_state)
+
+			# Check if the generated initial state meets the eventual consistency rules. 
+			# If not, we need to generate another initial state.
+			consistent_init_state = (init_problem.get_eventual_consistency_reward_of_init_state() == 0) # The initial state is consistent iff its associated eventual_consistency_reward is 0
+
+		if verbose:
+			print("> Generating goal (:goal)")
+
+		# <Generate a goal state with the goal policy>
+		final_problem, _ = self._obtain_trajectory_goal_policy(init_problem, max_actions_goal_state)
+
+		# <Obtain the PDDL encoding of the problem>
+		# Note: this method also selects at the goal state the predicates given by the user, in order to obtain the problem goal (:goal)
+		pddl_problem = final_problem.obtain_pddl_problem(problem_name)
+
+		if verbose:
+			print("> PDDL problem completely generated")
+
+		return pddl_problem
+
+
+	"""
+	This method generates several problems by repeatedly calling self.generate_problem() and measures their difficulty.
+
+	@num_problems_to_generate Number of problems to generate.
+	@max_atoms_init_state The maximum number of atoms the initial state can contain. If we reach this number, the initial state generation phase ends.
+	@max_actions_init_state The maximum number of actions that can be executed in the initial state before ending the initial state generation phase.
+							This parameter is different from @max_atoms_init_state since the number of actions executed in the initial state generation phase
+							is always greater or equal to the number of atoms added, since an invalid action (one which does not meet the continuous
+							consistency rules) will add no atom and result in the same current state (next_state = curr_state).
+	@max_actions_goal_state The maximum number of actions we can execute from the initial state to arrive at a goal state. If we reach this number,
+	                        the goal generation phase ends.
+	@problem_path Path where the generated PDDL problems are saved to. It must end with '/'.
+	@problems_name Name used to save each generated PDDL problem (they are saved to the path @problem_path with the name @problems_name).
+	               We append an index to the end of each problem name (to differentiate between them).
+	@metrics_file_path Path (including name) of the file where we store the metrics (for now, only difficulty) of the problems generated.
+	@max_planning_time The maximum number of seconds we allow the planner to run when solving each generated PDDL problem. If there is a timeout,
+	                   we assume the problem is too difficult to be solved by the planner and assign a difficulty of -1 to it.
+					   Note: it could also be because the problem is unsolvable but, as the problems generated are always solvable by definition,
+					         this situation can't occur.
+	@verbose If True, print information about the problem generation process.
+	"""
 	def generate_problems(self, num_problems_to_generate,
-								max_atoms_init_state=10, max_actions_goal_state=10, max_actions_trajectory=30,
-								problems_path = '../data/problems/only_init_state_policy_problems/',
-								problems_name = 'bw_only_init_state_policy_problem',
-								metrics_file_path = '../data/problems/only_init_state_policy_problems/only_init_state_policy_problems_metrics.txt',
+								max_atoms_init_state=10, max_actions_init_state=20, max_actions_goal_state=10, 
+								problems_path = '../data/problems/problems_both_generative_policies/',
+								problems_name = 'bw_both_generative_policies',
+								metrics_file_path = '../data/problems/problems_both_generative_policies/problems_both_generative_policies_metrics.txt',
 								max_planning_time=60,
-								verbose=False):
-		raise NotImplementedError()
+								verbose=True):
+		
+		if verbose:
+			print("\n\n\n================= Directed Problem Generation Started =================\n")
+			print("Domain name:", self.domain_name)
+			print("Problems path and name:", problems_path)
+			print("Metrics file path:", metrics_file_path)
+			print("\n")
+
+		# Create a file to store the metrics of the problems generated
+		f_metrics = open(metrics_file_path, 'a+')
+		f_metrics.write("\n-------------------\n")
+
+		for ind in range(num_problems_to_generate):
+			# Append index to problem name
+			curr_problem_name = problems_name + '_' + str(ind)
+
+			# Generate problem
+			new_problem = self.generate_problem(max_atoms_init_state, max_actions_init_state, max_actions_goal_state, curr_problem_name, verbose)
+
+			# Save it to disk
+			curr_prob_path = problems_path + curr_problem_name + '.pddl'
+
+			with open(curr_prob_path, 'w+') as f:
+				f.write(new_problem)
+
+			if verbose:
+				print(f"> PDDL problem saved as {curr_prob_path}")
+
+			# Solve it with the planner and obtain difficulty
+			curr_prob_difficulty = self._planner.get_problem_difficulty(curr_prob_path, max_planning_time)
+
+			# Save the difficulty
+			f_metrics.write(f'Problem: {curr_problem_name} - difficulty (expanded nodes): {curr_prob_difficulty}\n')
+
+			if verbose:
+				print(f"> Problem difficulty (num expanded nodes): {curr_prob_difficulty}")
+
+		f_metrics.close()
+
+		if verbose:
+			print("\n\n================= Directed Problem Generation Finished =================\n")
