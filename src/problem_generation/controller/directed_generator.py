@@ -528,7 +528,7 @@ class DirectedGenerator():
 
 	<Note>: This method also selects the goal atoms corresponding to the goal predicates given by the user
 	"""
-	def get_problem_difficulty(self, problem, max_difficulty=1e6, rescale_factor=0.1, max_planning_time=10):
+	def get_problem_difficulty(self, problem, max_difficulty=1e6, rescale_factor=0.2, max_planning_time=10):
 		# Encode the problem in PDDL
 		# > This method also selects the goal atoms corresponding to the goal predicates given by the user
 		pddl_problem = problem.obtain_pddl_problem()
@@ -815,12 +815,12 @@ class DirectedGenerator():
 
 	It returns a tuple (init_policy_trajectory, goal_policy_trajectory).
 	"""
-	def _obtain_trajectory_and_preprocess_for_PPO(self, max_atoms_init_state=10, max_length_trajectory=15, max_actions_goal_state=10,
+	def _obtain_trajectory_and_preprocess_for_PPO(self, max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10,
 											            disc_factor_cont_consistency=0, disc_factor_event_consistency=0.8, disc_factor_difficulty=0.99):
 
 		# <Obtain a trajectory with the initial policy>
 
-		problem, init_policy_trajectory = self._obtain_trajectory_init_policy(max_atoms_init_state, max_length_trajectory)
+		problem, init_policy_trajectory = self._obtain_trajectory_init_policy(max_atoms_init_state, max_actions_init_state)
 
 		# Check if the last_state_problem meets the eventual consistency rules
 		is_init_policy_trajectory_consistent = (problem.get_eventual_consistency_reward_of_init_state() == 0)
@@ -929,7 +929,7 @@ class DirectedGenerator():
 
 			# -- Goal state policy
 
-			if len(goal_policy_trajectories) > minibatch_size / 2:
+			if len(goal_policy_trajectories) > minibatch_size / 2: # If we have very few samples to train the goal policy on, we skip the training
 				# Create training dataset and dataloader with the collected trajectories
 				trajectory_dataset_goal_policy = ReinforceDataset(goal_policy_trajectories)
 				trajectory_dataloader_goal_policy= torch.utils.data.DataLoader(dataset=trajectory_dataset_goal_policy, batch_size=minibatch_size,
@@ -970,7 +970,7 @@ class DirectedGenerator():
 	@problem_name The name of the generated problem, which appears in the PDDL encoding.
 	@verbose If True, print information about the problem generation process.
 	"""
-	def generate_problem(self, max_atoms_init_state=10, max_actions_init_state=20, max_actions_goal_state=10, problem_name = "problem", verbose=True):
+	def generate_problem(self, max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10, problem_name = "problem", verbose=True):
 		
 		if max_atoms_init_state > max_actions_init_state:
 			return ValueError("max_actions_init_state must be greater or equal than max_atoms_init_state")
@@ -984,7 +984,7 @@ class DirectedGenerator():
 
 		while not consistent_init_state:
 			# Generate the initial state
-			init_problem, _ = self._obtain_trajectory_init_policy(self, max_atoms_init_state, max_actions_init_state)
+			init_problem, _ = self._obtain_trajectory_init_policy(max_atoms_init_state, max_actions_init_state)
 
 			# Check if the generated initial state meets the eventual consistency rules. 
 			# If not, we need to generate another initial state.
@@ -1028,7 +1028,7 @@ class DirectedGenerator():
 	@verbose If True, print information about the problem generation process.
 	"""
 	def generate_problems(self, num_problems_to_generate,
-								max_atoms_init_state=10, max_actions_init_state=20, max_actions_goal_state=10, 
+								max_atoms_init_state=10, max_actions_init_state=15, max_actions_goal_state=10, 
 								problems_path = '../data/problems/problems_both_generative_policies/',
 								problems_name = 'bw_both_generative_policies',
 								metrics_file_path = '../data/problems/problems_both_generative_policies/problems_both_generative_policies_metrics.txt',

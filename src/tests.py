@@ -560,18 +560,18 @@ def test_train_init_and_goal_policy():
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
 										   res_connections_initial_state_nlm=True,
 										   lr_initial_state_nlm = 5e-3,
-										   lifted_action_entropy_coeff_init_state_policy = 1,
+										   lifted_action_entropy_coeff_init_state_policy = 0,
 										   ground_action_entropy_coeff_init_state_policy = 1,
-										   entropy_annealing_coeffs_init_state_policy = (100, 0.1, 0.1),
+										   entropy_annealing_coeffs_init_state_policy = None,
 										   epsilon_init_state_policy=0.1,
 
 										   num_preds_inner_layers_goal_nlm=nlm_inner_layers,
 										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
 										   res_connections_goal_nlm=True,
 										   lr_goal_nlm = 5e-3,
-										   lifted_action_entropy_coeff_goal_policy = 1,
+										   lifted_action_entropy_coeff_goal_policy = 0,
 										   ground_action_entropy_coeff_goal_policy = 1,
-										   entropy_annealing_coeffs_goal_policy = (100, 0.1, 0.1),
+										   entropy_annealing_coeffs_goal_policy = None,
 										   epsilon_goal_policy=0.1)
 
 
@@ -594,8 +594,8 @@ def test_load_models_and_generate_problems():
 	planner = Planner(domain_file_path)
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/best_models/init_policy_its-120.ckpt"
-	goal_policy_path = "saved_models/best_models/goal_policy_its-120.ckpt"
+	init_policy_path = "saved_models/both_policies_36/init_policy_its-330.ckpt"
+	goal_policy_path = "saved_models/both_policies_36/goal_policy_its-330.ckpt"
 
 	nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
@@ -615,47 +615,12 @@ def test_load_models_and_generate_problems():
 	print(f">> Init model {init_policy_path} and goal model {goal_policy_path} loaded")
 
 	# Generate the set of problems with the trained initial policy
-	num_problems = 1
+	num_problems = 10
 
-	directed_generator.generate_problems(num_problems, verbose=True)
+	directed_generator.generate_problems(num_problems, max_actions_init_state=30, verbose=True)
 
 
 """
-
-------------- Training both policies
-
->  init_policy_entropy_coeffs = 1 1, entropy_annealing_coeffs_init_state_policy = (300, 0.01, 0.01), 
-   init_policy_entropy_coeffs = 1 1, entropy_annealing_coeffs_goal_policy = (300, 0.01, 0.01):
-	Aprende (la reward de la init state policy llega a 1.5 y la de la goal policy a 3.4) pero después
-	la reward de la init state policy diverge a -0.83.
-
-> init_policy_entropy_coeffs = 1 1, <entropy_annealing_coeffs_init_state_policy = (300, 0.1, 0.1)>, 
-  init_policy_entropy_coeffs = 1 1, <entropy_annealing_coeffs_goal_policy = (300, 0.1, 0.1)>,
-  <goal_policy_train_epochs dependiendo del num goal policy train samples>:
-	Aprende algo hasta cierto momento (en la goal policy la r_difficulty llega a 3.7 y en la init
-	policy la r_eventual llega a -0.15). No obstante, la r_continuous de la init policy no deja
-	de disminuir durante todo el entrenamiento y a partir de cierto número de iteraciones la r_difficulty
-	se va a 0 ya que los estados iniciales generados no son nunca eventual-consistent.
-	>> Creo que la recompensa por difficultad es demasiado grande respecto a r_eventual y r_continuous,
-	   por lo que eso hace que la init policy "se olvide" de la r_eventual y r_continuous e intente solo
-	   optimizar la dificultad.
-
-> init_policy_entropy_coeffs = 1 1, entropy_annealing_coeffs_init_state_policy = (300, 0.1, 0.1), 
-  init_policy_entropy_coeffs = 1 1, entropy_annealing_coeffs_goal_policy = (300, 0.1, 0.1),
-  goal_policy_train_epochs dependiendo del num goal policy train samples,
-  <r_difficulty rescale_factor 0.1>:
-	Resultados parecidos a sin r_difficulty rescale_factor 0.1 (experimento anterior), aunque
-	ahora la r_continuous se mantiene alta (cercana a 0) durante parte del entrenamiento.
-	>> Cuando la r_continuous aumenta la r_eventual disminuye y viceversa!!
-
-> init_policy_entropy_coeffs = 1 1, <entropy_annealing_coeffs_init_state_policy = (100, 0.1, 0.1)>, 
-  init_policy_entropy_coeffs = 1 1, <entropy_annealing_coeffs_goal_policy = (100, 0.1, 0.1)>,
-  <goal_policy_train_epochs dependiendo del num goal policy train samples: 0-3>,
-  r_difficulty rescale_factor = 0.1,
-  <trajectories_per_train_it=50, minibatch_size=125>:
-		>>>> Aprende!!!! -> las r_eventual y r_continuous convergen a -0.1 y la r_difficulty (de la goal policy)
-		     alcanza 0.55!!
-			 No obstante, las recompensas son bastante inestables (suben y bajan con bastantes picos).
 
 ---------------- Training only init policy
 
@@ -695,7 +660,7 @@ def test_load_models_and_generate_problems():
 		No funciona, la r_eventual sigue sin ir a 0 mientras que la r_continuous sí.
 
 
->>> No sirve de nada cambiar la penalization_eventual_consistency
+No sirve de nada cambiar la penalization_eventual_consistency
 
 
 > init_policy_entropy_coeffs = 1 1, <entropy_annealing_coeffs_init_state_policy = (200, 0.1, 0.1)>, 
@@ -726,7 +691,7 @@ def test_load_models_and_generate_problems():
 		1e-2 -> Funciona igual que sin gradient_clip_val
 	
 
->>> Parece que el gradient_clip_val no ayuda a entrenar las políticas!!!
+Parece que el gradient_clip_val no ayuda a entrenar las políticas!!!
 
 
 
@@ -738,33 +703,98 @@ def test_load_models_and_generate_problems():
 		aunque hayan convergido, sigue habiendo algunos picos.
 
 
+------------- Training both policies
 
----> Ver pruebas Training both policies
+>  init_policy_entropy_coeffs = 1 1, entropy_annealing_coeffs_init_state_policy = (300, 0.01, 0.01), 
+   init_policy_entropy_coeffs = 1 1, entropy_annealing_coeffs_goal_policy = (300, 0.01, 0.01):
+	Aprende (la reward de la init state policy llega a 1.5 y la de la goal policy a 3.4) pero después
+	la reward de la init state policy diverge a -0.83.
+
+> init_policy_entropy_coeffs = 1 1, <entropy_annealing_coeffs_init_state_policy = (300, 0.1, 0.1)>, 
+  init_policy_entropy_coeffs = 1 1, <entropy_annealing_coeffs_goal_policy = (300, 0.1, 0.1)>,
+  <goal_policy_train_epochs dependiendo del num goal policy train samples>:
+	Aprende algo hasta cierto momento (en la goal policy la r_difficulty llega a 3.7 y en la init
+	policy la r_eventual llega a -0.15). No obstante, la r_continuous de la init policy no deja
+	de disminuir durante todo el entrenamiento y a partir de cierto número de iteraciones la r_difficulty
+	se va a 0 ya que los estados iniciales generados no son nunca eventual-consistent.
+	>> Creo que la recompensa por difficultad es demasiado grande respecto a r_eventual y r_continuous,
+	   por lo que eso hace que la init policy "se olvide" de la r_eventual y r_continuous e intente solo
+	   optimizar la dificultad.
+
+> init_policy_entropy_coeffs = 1 1, entropy_annealing_coeffs_init_state_policy = (300, 0.1, 0.1), 
+  init_policy_entropy_coeffs = 1 1, entropy_annealing_coeffs_goal_policy = (300, 0.1, 0.1),
+  goal_policy_train_epochs dependiendo del num goal policy train samples,
+  <r_difficulty rescale_factor 0.1>:
+	Resultados parecidos a sin r_difficulty rescale_factor 0.1 (experimento anterior), aunque
+	ahora la r_continuous se mantiene alta (cercana a 0) durante parte del entrenamiento.
+	>> Cuando la r_continuous aumenta la r_eventual disminuye y viceversa!!
+
+> init_policy_entropy_coeffs = 1 1, <entropy_annealing_coeffs_init_state_policy = (100, 0.1, 0.1)>, 
+  init_policy_entropy_coeffs = 1 1, <entropy_annealing_coeffs_goal_policy = (100, 0.1, 0.1)>,
+  <goal_policy_train_epochs dependiendo del num goal policy train samples: 0-3>,
+  r_difficulty rescale_factor = 0.1,
+  <trajectories_per_train_it=50, minibatch_size=125>:
+		>>>> Aprende!!!! -> las r_eventual y r_continuous convergen a -0.1 y la r_difficulty (de la goal policy)
+		     alcanza 0.55!!
+			 No obstante, las recompensas son bastante inestables (suben y bajan con bastantes picos).
+			 Después de muchas its, la r_eventual converge a -0.45 y la r_difficulty a 0 -> deja de generar
+			 estados iniciales consistentes eventualmente. <<Esto sucede cuando la entropía de la política
+			 desciende mucho (a 0.02).>>
+
+			# --- Resultados problem generation (model folder = both_policies_35)
+			# 60 its -> poca dificultad y los problemas siguen siendo poco diversos!
+			# 100 its -> avg. diff = 54, problemas poco diversos
+			# 110 its -> dificultad baja
+			# 120 its -> malo (poca dificultad y problemas parecidos)
+			# >> 140 its -> avg. diff = 553.9 y los problemas son más o menos diversos!
+			# 160 its -> avg. diff = 65 y los problemas son un poco menos diversos -> El entrenamiento es muy inestable y hay grandes cambios de un num_its a otro número parecido!
+			# > 170 its -> avg. diff = 1403 <pero los problemas son muy poco diversos!>
+			# > 260 its -> avg. diff = 475.4 pero los problemas son poco diversos
+			# >> 320 its -> avg. diff = 900 y diversidad media tirando a baja
+
+
+> init_policy_entropy_coeffs = 1 1, <entropy_annealing_coeffs_init_state_policy = None>, 
+  init_policy_entropy_coeffs = 1 1, <entropy_annealing_coeffs_goal_policy = None>,
+  <r_difficulty rescale_factor = 0.2>,
+  trajectories_per_train_it=50, minibatch_size=125,
+  <max_actions_init_state = 30>:
+	Aprende y más rápido que en el experimento anterior!: r_continuous converge a -0.15, r_eventual a -0.05
+	y r_difficulty (goal_policy) a 0.6 (ojo, al usar rescale_factor = 0.2 es como si fuera r_difficulty=0.3).
+	La entropía de la goal policy es casi tan alta como al empezar el entrenamiento.
+
+	# --- Resultados problem generation (model folder = both_policies_36)
+	Los problemas generados son bastante diversos (en general), pero poco difíciles de resolver.
+
+
+> <init_policy_entropy_coeffs = 0 1>, entropy_annealing_coeffs_init_state_policy = None, 
+  <init_policy_entropy_coeffs = 0 1>, entropy_annealing_coeffs_goal_policy = None,
+  r_difficulty rescale_factor = 0.2,
+  trajectories_per_train_it=50, minibatch_size=125,
+  max_actions_init_state = 30:
+	
 
 
 
 
 
->>>> Eliminar logs init_policy para que el ind coincida con los logs de goal_policy
 
->>>> REDUCIR EL TAMAÑO DE LOS LOGS AL LOGEAR SOLO CADA X CURR_LOG_ITS!!
 
 ------
 
-> Probar entropy_annealing_coeffs (100, 0.01, 0.01)
+>>> Probar a ir bajando el learning rate hasta 0
+>>> Probar aún un mayor valor de entropía (quizás un valor diferente para la initial y goal policies)
+
+>>>> REDUCIR EL TAMAÑO DE LOS LOGS AL LOGEAR SOLO CADA X CURR_LOG_ITS!!
 
 >>> Probar learning rate decay to 0
 >>> Aumentar la complejidad de las NLM
->>> Quizás debería esperar para entrenar la goal policy (ej.: solo entrenar cuando hay al menos X samples), es decir,
-    una vez que la initial policy es capaz de generar problemas consistentes
 
 # ------------------------------------------------------ TODO
 
 # MIRAR LINK: https://vitalab.github.io/article/2020/01/14/Implementation_Matters.html
 # HAY MUCHOS "CODE-LEVEL OPTIMIZATIONS" QUE PUEDEN SER IMPORTANTES DE CARA A TRABAJAR CON PPO!!!
 
-> PROBAR DQN o SAC! -> https://pytorch-lightning-bolts.readthedocs.io/en/latest/reinforce_learn.html
-> Probar n-step DQN
+# Probar SAC
 
 > Ver cómo mejorar el rendimiento (quizás permitiendo ejecutar el planner en paralelo para así poder
 					               obtener trayectorias en paralelo)
@@ -789,6 +819,5 @@ if __name__ == "__main__":
 	#test_trajectory_goal_policy()
 	#test_train_goal_policy()
 
-	#test_train_init_and_goal_policy()
-
-	test_load_models_and_generate_problems()
+	#test_load_models_and_generate_problems()
+	test_train_init_and_goal_policy()
