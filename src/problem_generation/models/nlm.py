@@ -374,11 +374,7 @@ class NLM(nn.Module):
         self.layers = nn.ModuleList([_NLM_Layer(num_input_preds_layers_with_res[i], num_output_preds_layers[i], mlp_hidden_size_layers[i],
                                                 apply_sigmoid = (i != num_preds_layers.shape[0]-2),
                                                 residual_connections = (residual_connections and i != num_preds_layers.shape[0]-2)) \
-                                     for i in range(len(num_input_preds_layers))])
-
-        """self.layers = nn.ModuleList([_NLM_Layer(num_preds_layers[i], num_preds_layers[i+1], mlp_hidden_size_layers[i],
-                                                apply_sigmoid = (i != num_preds_layers.shape[0]-2)) \
-                                     for i in range(num_preds_layers.shape[0]-1)])"""      
+                                     for i in range(len(num_input_preds_layers))]) 
     
         self._num_input_preds_layers = num_input_preds_layers_with_res
         self._num_output_preds_layers = num_output_preds_layers

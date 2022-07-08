@@ -594,8 +594,8 @@ def test_load_models_and_generate_problems():
 	planner = Planner(domain_file_path)
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_36/init_policy_its-330.ckpt"
-	goal_policy_path = "saved_models/both_policies_36/goal_policy_its-330.ckpt"
+	init_policy_path = "saved_models/both_policies_37/init_policy_its-80.ckpt"
+	goal_policy_path = "saved_models/both_policies_37/goal_policy_its-80.ckpt"
 
 	nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
@@ -771,10 +771,24 @@ Parece que el gradient_clip_val no ayuda a entrenar las políticas!!!
   r_difficulty rescale_factor = 0.2,
   trajectories_per_train_it=50, minibatch_size=125,
   max_actions_init_state = 30:
+	>> Mejores resultados que en la ejecución anterior: la r_continuous converge a -0.02, r_eventual a -0.05,
+	   y r_difficulty (goal policy y con rescale_factor=0.2) a 1.15.
+	   La entropía de la goal policy disminuye mucho. La entropía de la init policy también es menor que en el experimento
+	   anterior.
+	   Los problemas generados ahora, al eliminar la lifted_action_entropy respecto al ejemplo anterior,
+	   son muy difíciles pero pocos diversos. << Al aumentar la dificultad de los problemas baja su diversidad y viceversa! >>
+
+	   # --- Resultados problem generation (model folder = both_policies_37)
+		Its:
+		- 80: avg. diff = 2322, pero los problemas son muy poco diversos!
+
+
+> init_policy_entropy_coeffs = 0 1, entropy_annealing_coeffs_init_state_policy = None, 
+  init_policy_entropy_coeffs = 0 1, entropy_annealing_coeffs_goal_policy = None,
+  r_difficulty rescale_factor = 0.2, trajectories_per_train_it=50, minibatch_size=125,
+  max_actions_init_state = 30, 
+  <entropy bug arreglado (ahora la entropía se escala por el log del número de acciones (y no por el num de acciones))>:
 	
-
-
-
 
 
 

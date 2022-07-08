@@ -160,11 +160,11 @@ class GenerativePolicy(pl.LightningModule):
 		lifted_action_probs = torch.cat([torch.sum(tensor).reshape(1) for tensor in prob_tensors], dim=0)
 		# If we do it manually, we obtain NaN due to the probs=0 (0*log(0) is NaN)
 		# lifted_action_entropy = -torch.mean(lifted_action_probs*torch.log(lifted_action_probs)) # Calculate the entropy (we use mean instead of sum to scale depending on the number of actions)
-		lifted_action_entropy = torch.distributions.Categorical(probs = lifted_action_probs).entropy() / lifted_action_probs.shape[0]
+		lifted_action_entropy = torch.distributions.Categorical(probs = lifted_action_probs).entropy() / np.log(lifted_action_probs.shape[0])
 
 		# Calculate entropy of the grounded action distribution (i.e., of prob_tensors)
 		probs_flattened = torch.cat([tensor.flatten() for tensor in prob_tensors]) # Put all the probabilities into a single flattened tensor
-		grounded_action_entropy = torch.distributions.Categorical(probs = probs_flattened).entropy() / probs_flattened.shape[0]
+		grounded_action_entropy = torch.distributions.Categorical(probs = probs_flattened).entropy() / np.log(probs_flattened.shape[0])
 
 		return lifted_action_entropy, grounded_action_entropy
 
