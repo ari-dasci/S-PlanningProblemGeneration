@@ -559,18 +559,18 @@ def test_train_init_and_goal_policy():
 										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
 										   res_connections_initial_state_nlm=True,
-										   lr_initial_state_nlm = 5e-3,
+										   lr_initial_state_nlm = 1e-3,
 										   lifted_action_entropy_coeff_init_state_policy = 0,
-										   ground_action_entropy_coeff_init_state_policy = 1,
+										   ground_action_entropy_coeff_init_state_policy = 0.5,
 										   entropy_annealing_coeffs_init_state_policy = None,
 										   epsilon_init_state_policy=0.1,
 
 										   num_preds_inner_layers_goal_nlm=nlm_inner_layers,
 										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
 										   res_connections_goal_nlm=True,
-										   lr_goal_nlm = 5e-3,
+										   lr_goal_nlm = 1e-3,
 										   lifted_action_entropy_coeff_goal_policy = 0,
-										   ground_action_entropy_coeff_goal_policy = 1,
+										   ground_action_entropy_coeff_goal_policy = 0.5,
 										   entropy_annealing_coeffs_goal_policy = None,
 										   epsilon_goal_policy=0.1)
 
@@ -594,14 +594,14 @@ def test_load_models_and_generate_problems():
 	planner = Planner(domain_file_path)
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_37/init_policy_its-80.ckpt"
-	goal_policy_path = "saved_models/both_policies_37/goal_policy_its-80.ckpt"
+	init_policy_path = "saved_models/both_policies_39/init_policy_its-200.ckpt"
+	goal_policy_path = "saved_models/both_policies_39/goal_policy_its-200.ckpt"
 
 	nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
 
 	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
-
+										  
 										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
 										   res_connections_initial_state_nlm=True,
@@ -788,8 +788,45 @@ Parece que el gradient_clip_val no ayuda a entrenar las políticas!!!
   r_difficulty rescale_factor = 0.2, trajectories_per_train_it=50, minibatch_size=125,
   max_actions_init_state = 30, 
   <entropy bug arreglado (ahora la entropía se escala por el log del número de acciones (y no por el num de acciones))>:
-	
+	r_continuous converge a -0.3, r_eventual a -0.05 y r_difficulty (goal policy con rescale_factor=0.2) a 0.7.
+	La entropía de la init and goal policies es muy alta!
 
+	# --- Resultados problem generation (model folder = both_policies_38)
+	# Los problemas generados son muy diversos pero poco difíciles (creo que la entropía de las generative policies
+	# es demasiado alta)
+
+
+> <init_policy_entropy_coeffs = 0 0.5>, entropy_annealing_coeffs_init_state_policy = None, 
+  <init_policy_entropy_coeffs = 0 0.5>, entropy_annealing_coeffs_goal_policy = None,
+  r_difficulty rescale_factor = 0.2, trajectories_per_train_it=50, minibatch_size=125,
+  max_actions_init_state = 30:
+	r_eventual converge a 0, r_continuous primero llega a -0.15 y después converge a -0.65
+	y r_difficulty (goal_policy, con rescale_factor=0.2) llega a 1.2.
+	Tanto la init como goal policy tienen mucha entropía.
+	No obstante, tarda mucho en entrenar (9h en llegar hasta este punto).
+
+  	# --- Resultados problem generation (model folder = both_policies_39)
+	# >>>> ES CAPAZ DE GENERAR PROBLEMAS MUY DIFÍCILES Y DIVERSOS!!!
+	# - 200 its -> avg. diff = 1890.2, problemas muy diversos!
+
+
+> init_policy_entropy_coeffs = 0 0.5, entropy_annealing_coeffs_init_state_policy = None, 
+  init_policy_entropy_coeffs = 0 0.5, entropy_annealing_coeffs_goal_policy = None,
+  r_difficulty rescale_factor = 0.2, <trajectories_per_train_it=20, minibatch_size=100>,
+  max_actions_init_state = 30:
+	Respecto a la ejecución anterior (usando trajectories_per_train_it=50), la r_eventual
+	y r_continuous son parecidas, pero la r_difficulty es peor (es más inestable).
+	Además, la entropía de la init policy es peor (es menor) y la de la goal policy es igual.
+	>>> Por tanto, las generative policies aprenden con trajectories_per_train_it=20 en vez
+	    de 50, pero el resultado es un poco peor (y de 8h de entrenamiento pasamos solo a 
+		6h y media, con lo que no hay mucha diferencia). --> Usamos trajectories_per_train_it=50, minibatch_size=125!
+
+
+> init_policy_entropy_coeffs = 0 0.5, entropy_annealing_coeffs_init_state_policy = None, 
+  init_policy_entropy_coeffs = 0 0.5, entropy_annealing_coeffs_goal_policy = None,
+  r_difficulty rescale_factor = 0.2, <trajectories_per_train_it=50, minibatch_size=125>,
+  max_actions_init_state = 30, <lr_initial_state_nlm=1e-3, lr_goal_nlm=1e-3>:
+	
 
 
 

@@ -250,12 +250,12 @@ class GenerativePolicy(pl.LightningModule):
 			# Train_sample: [curr_s,a,r,next_s]
 			# curr_s -> curr_s_state_tensors, curr_s_num_objs, curr_s_mask_tensors
 			# a -> chosen_action_index
-			# r -> curr_r_continuous, curr_r_eventual, curr_r_difficulty
+			# r -> curr_r_continuous, curr_r_eventual, curr_r_difficulty, disc_sum_r_continuous, disc_sum_eventual, disc_sum_difficulty
 			# next_s -> next_s_state_tensors, next_s_num_objs, next_s_mask_tensors
 			curr_s_train_sample, chosen_action_index, r_train_sample, next_s_train_sample = train_sample
 
 			curr_s_state_tensors, curr_s_num_objs, curr_s_mask_tensors = curr_s_train_sample
-			curr_r_continuous, curr_r_eventual, curr_r_difficulty = r_train_sample
+			curr_r_continuous, curr_r_eventual, curr_r_difficulty, disc_sum_r_continuous, disc_sum_eventual, disc_sum_difficulty = r_train_sample
 			next_s_state_tensors, next_s_num_objs, next_s_mask_tensors = next_s_train_sample
 
 			curr_r = curr_r_continuous + curr_r_eventual + curr_r_difficulty
@@ -326,9 +326,9 @@ class GenerativePolicy(pl.LightningModule):
 			total_loss_actor += loss_actor
 			total_loss_alpha += loss_alpha
 
-			total_r_continuous += curr_r_continuous
-			total_r_eventual += curr_r_eventual
-			total_r_difficulty += curr_r_difficulty
+			total_r_continuous += disc_sum_r_continuous
+			total_r_eventual += disc_sum_r_eventual
+			total_r_difficulty += disc_sum_r_difficulty
 
 			# Calculate probability of termination condition
 			term_cond_prob = pi_curr_s_unflattened.detach().numpy()[0][-1]

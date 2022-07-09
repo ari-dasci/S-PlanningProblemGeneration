@@ -422,10 +422,7 @@ class DirectedGenerator():
 	<Note>: this method is inplace (does not return the trajectory but transforms it inplace)
 	"""
 
-
-
-	"""
-	>>> ESTE MÉTODO NO ES NECESARIO AHORA!!!! (ahora ni sumamos las recompensas ni normalizamos)
+	# >>> ESTE MÉTODO AHORA SOLO ES NECESARIO DE CARA A LOGEAR LAS RECOMPENSAS, PERO NO PARA ENTRENAR LAS POLICIES CON SAC!
 	def _sum_rewards_trajectory(self, trajectory, disc_factor_cont_consistency=0, disc_factor_event_consistency=0.8, disc_factor_difficulty=0.99):
 		
 		r_continuous_sum = 0
@@ -451,7 +448,7 @@ class DirectedGenerator():
 			r_eventual_sum *= disc_factor_event_consistency
 			r_difficulty_sum += curr_r_difficulty
 			r_difficulty_sum *= disc_factor_difficulty
-	"""
+			
 
 	"""
 	This method adds the state value and probability of the selected action for each element in the trajectory corresponding
