@@ -81,6 +81,8 @@ class Planner():
 		else:
 			expanded_nodes = -1
 
+			print(">>> NO SOLUTION")
+
 		return expanded_nodes
 
 

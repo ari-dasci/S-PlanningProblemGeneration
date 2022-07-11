@@ -555,22 +555,23 @@ def test_train_init_and_goal_policy():
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
 
 	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
+										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
 
 										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
 										   res_connections_initial_state_nlm=True,
-										   lr_initial_state_nlm = 1e-3,
+										   lr_initial_state_nlm = 5e-4,
 										   lifted_action_entropy_coeff_init_state_policy = 0,
-										   ground_action_entropy_coeff_init_state_policy = 0.5,
+										   ground_action_entropy_coeff_init_state_policy = 2,
 										   entropy_annealing_coeffs_init_state_policy = None,
 										   epsilon_init_state_policy=0.1,
 
 										   num_preds_inner_layers_goal_nlm=nlm_inner_layers,
 										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
 										   res_connections_goal_nlm=True,
-										   lr_goal_nlm = 1e-3,
+										   lr_goal_nlm = 5e-4,
 										   lifted_action_entropy_coeff_goal_policy = 0,
-										   ground_action_entropy_coeff_goal_policy = 0.5,
+										   ground_action_entropy_coeff_goal_policy = 2,
 										   entropy_annealing_coeffs_goal_policy = None,
 										   epsilon_goal_policy=0.1)
 
@@ -594,13 +595,14 @@ def test_load_models_and_generate_problems():
 	planner = Planner(domain_file_path)
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_39/init_policy_its-200.ckpt"
-	goal_policy_path = "saved_models/both_policies_39/goal_policy_its-200.ckpt"
+	init_policy_path = "saved_models/both_policies_45/init_policy_its-410.ckpt"
+	goal_policy_path = "saved_models/both_policies_45/goal_policy_its-410.ckpt"
 
 	nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
 
 	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
+										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
 										  
 										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -617,7 +619,8 @@ def test_load_models_and_generate_problems():
 	# Generate the set of problems with the trained initial policy
 	num_problems = 10
 
-	directed_generator.generate_problems(num_problems, max_actions_init_state=30, verbose=True)
+	directed_generator.generate_problems(num_problems, max_atoms_init_state=-1, max_actions_init_state=-1,
+									     max_actions_goal_state=-1, verbose=True)
 
 
 """
@@ -826,18 +829,87 @@ Parece que el gradient_clip_val no ayuda a entrenar las políticas!!!
   init_policy_entropy_coeffs = 0 0.5, entropy_annealing_coeffs_goal_policy = None,
   r_difficulty rescale_factor = 0.2, <trajectories_per_train_it=50, minibatch_size=125>,
   max_actions_init_state = 30, <lr_initial_state_nlm=1e-3, lr_goal_nlm=1e-3>:
+	Los resultados empeoran! (Al aumentar el learning rate, de hecho tarda más en aprender.)
+
+> init_policy_entropy_coeffs = 0 0.5, entropy_annealing_coeffs_init_state_policy = None, 
+  init_policy_entropy_coeffs = 0 0.5, entropy_annealing_coeffs_goal_policy = None,
+  r_difficulty rescale_factor = 0.2, trajectories_per_train_it=50, minibatch_size=125,
+  max_actions_init_state = 30, <lr_initial_state_nlm=5e-4, lr_goal_nlm=5e-4>,
+  <epsilon=0.2>:
+	Funciona peor que con epsilon=0.1 (la r_difficulty está a 0 durante más tiempo que
+	con epsilon=0.1 -> entren más lento!)
+
+
+-------- Pruebas problemas con max_atoms_init_state=20 y max_actions_goal_state=20
+
+
+> init_policy_entropy_coeffs = 0 0.5, entropy_annealing_coeffs_init_state_policy = None, 
+  init_policy_entropy_coeffs = 0 0.5, entropy_annealing_coeffs_goal_policy = None,
+  r_difficulty rescale_factor = 0.2, trajectories_per_train_it=50, minibatch_size=125,
+  max_actions_init_state = 30, lr_initial_state_nlm=5e-4, lr_goal_nlm=5e-4, <epsilon=0.1>,
+  <max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20>:
+	La r_eventual no converge sino que diverge.
+
+> init_policy_entropy_coeffs = 0 0.5, entropy_annealing_coeffs_init_state_policy = None, 
+  init_policy_entropy_coeffs = 0 0.5, entropy_annealing_coeffs_goal_policy = None,
+  r_difficulty rescale_factor = 0.2, trajectories_per_train_it=50, minibatch_size=125,
+  max_actions_init_state = 30, lr_initial_state_nlm=5e-4, lr_goal_nlm=5e-4, epsilon=0.1,
+  max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
+  <disc_factor_event_consistency=0.95>:
+	No aprende, la r_eventual converge a -0.6 así que no es capaz de generar
+	problemas consistentes en ningún momento. -> Creo que al haber aumentado
+	el tamaño de las trayectorias, la probabilidad de que por "azar" genere
+	un estado inicial consistente son muy bajas! -> QUIZÁS DEBERÍA EMPEZAR
+	GENERANDO PROBLEMAS PEQUEÑOS E IR AUMENTANDO EL TAMAÑO POCO A POCO! (como un automated curriculum)
+
+
+> <init_policy_entropy_coeffs = 0.5 0.5>, entropy_annealing_coeffs_init_state_policy = None, 
+  <init_policy_entropy_coeffs = 0.5 0.5>, entropy_annealing_coeffs_goal_policy = None,
+  r_difficulty rescale_factor = 0.2, trajectories_per_train_it=50, minibatch_size=125,
+  max_actions_init_state = 30, lr_initial_state_nlm=5e-4, lr_goal_nlm=5e-4, epsilon=0.1,
+  max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
+  <disc_factor_event_consistency=0.9>:
+	Aprende pero tarda mucho en aprender! La r_continuous converge a 0 rápidamente pero la r_eventual
+	tarda mucho (unas 10h de entrenamiento) en converger a 0!
 	
+
+
+
+> <init_policy_entropy_coeffs = 0 2>, entropy_annealing_coeffs_init_state_policy = None, 
+  <init_policy_entropy_coeffs = 0 2>, entropy_annealing_coeffs_goal_policy = None,
+  r_difficulty rescale_factor = 0.2, trajectories_per_train_it=50, minibatch_size=125,
+  max_actions_init_state = 30, lr_initial_state_nlm=5e-4, lr_goal_nlm=5e-4, epsilon=0.1,
+  max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
+  disc_factor_event_consistency=0.9:
+	La r_eventual converge a 0 pero la r_continuous converge a -0.6 (parece que solo
+	aprende las reglas de eventual consistency). La r_difficulty (de la goal_policy y
+	rescale_factor=0.2) alcanza 0.7.
+	La entropía de la init policy es muy alta y la de la goal_policy es tan alta como
+	al principio del entrenamiento!!
+	La termination condition probability también es muy alta (0.2 para la goal_policy
+	y 0.05 para la init policy).
+	Creo que hay que disminuir el entropy_reg_coeffs y usar un valor menor de entropía para
+	la goal policy!
+
+	# --- Resultados problem generation (model folder = both_policies_45)
+
+
+
+ 
 
 
 
 ------
 
+> Probar a bajar al entropía de la goal policy (usar un valor menor que para la init policy!)
+
+>>>> Probar a generar problemas pequeños al principio (para que aprenda a generar init states consistentes)
+    y después ir aumentando el tamaño de los problemas.
+
 >>> Probar a ir bajando el learning rate hasta 0
->>> Probar aún un mayor valor de entropía (quizás un valor diferente para la initial y goal policies)
 
 >>>> REDUCIR EL TAMAÑO DE LOS LOGS AL LOGEAR SOLO CADA X CURR_LOG_ITS!!
 
->>> Probar learning rate decay to 0
 >>> Aumentar la complejidad de las NLM
 
 # ------------------------------------------------------ TODO
@@ -870,5 +942,5 @@ if __name__ == "__main__":
 	#test_trajectory_goal_policy()
 	#test_train_goal_policy()
 
-	#test_load_models_and_generate_problems()
-	test_train_init_and_goal_policy()
+	test_load_models_and_generate_problems()
+	#test_train_init_and_goal_policy()

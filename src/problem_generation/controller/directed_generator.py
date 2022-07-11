@@ -25,6 +25,14 @@ class DirectedGenerator():
 	"""
 	Constructor for the directed generator.
 
+	@max_atoms_init_state The maximum number of atoms the initial state can have. If we reach this number and the termination condition hasn't
+	                      been executed, we end the initial state generation phase and check the eventual consistency rules.
+	@max_actions_init_state The maximum number of actions (atoms) (invalid or not) that can be tried in the current trajectory. 
+	                        If we reach this number of actions and the initial state hasn't been generated, we check the eventual consistency
+							rules and apply the penalization (if needed).
+	@max_actions_goal_state The maximum number of actions the goal policy can apply from @initial_state. If we reach this
+	                        number of actions and the goal policy hasn't chosen the termination condition, we assume
+							the current state corresponds to the completely-generated goal state.
 	@initial_state_info Information used to initialize the state s0 from which the initial state generation phase starts.
 	@num_preds_inner_layers_initial_state_nlm This corresponds to the number of predicates of the NLM layers EXCEPT FOR THE INPUT AND OUTPUT LAYERS,
 											  since the shapes of these two layers are calculated from the information about the predicates/actions in the domain.
@@ -39,6 +47,7 @@ class DirectedGenerator():
 	def __init__(self, parser, planner, 
 				 predicates_to_consider_for_goal=None, initial_state_info=None, consistency_validator=ValidatorPredOrderBW,
 				 penalization_continuous_consistency=-1, penalization_eventual_consistency=-1,
+				 max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
 				
 				 num_preds_inner_layers_initial_state_nlm=[[4,4,4,4]], mlp_hidden_layers_initial_state_nlm=[0,0], res_connections_initial_state_nlm=True,
 				 lr_initial_state_nlm=5e-4, lifted_action_entropy_coeff_init_state_policy = 0.05, ground_action_entropy_coeff_init_state_policy = 0.05,
@@ -55,6 +64,9 @@ class DirectedGenerator():
 		self._consistency_validator = consistency_validator
 		self._penalization_continuous_consistency = penalization_continuous_consistency
 		self._penalization_eventual_consistency = penalization_eventual_consistency
+		self._max_atoms_init_state = max_atoms_init_state
+		self._max_actions_init_state = max_actions_init_state
+		self._max_actions_goal_state = max_actions_goal_state
 
 
 		# <Relational State which contains the object types and actions in the domain>
@@ -139,6 +151,18 @@ class DirectedGenerator():
 	@property
 	def penalization_eventual_consistency(self):
 		return self._penalization_eventual_consistency
+
+	@property
+	def max_atoms_init_state(self):
+		return self._max_atoms_init_state
+
+	@property
+	def max_actions_init_state(self):
+		return self._max_actions_init_state
+
+	@property
+	def max_actions_goal_state(self):
+		return self._max_actions_goal_state
 
 	@property
 	def domain_name(self):
@@ -340,6 +364,9 @@ class DirectedGenerator():
 		# Get applicable ground actions at the current goal state s_gc
 		applicable_ground_actions = problem.applicable_ground_actions()
 
+		# QUITAR
+		print("> Applicable actions:", applicable_ground_actions)
+
 		# Convert from the relational encoding ( ['stack', [1, 2]] ) to the encoding
 		# used by the NLM ( [action_arity, obj_1_ind, obj_2_ind, ..., action_ind] -> [2, 1, 2, 0] )
 		action_name_to_ind_dict = self._dummy_rel_state_actions.pred_names_to_indices_dict_each_arity
@@ -421,7 +448,7 @@ class DirectedGenerator():
 
 	<Note>: this method is inplace (does not return the trajectory but transforms it inplace)
 	"""
-	def _sum_rewards_trajectory(self, trajectory, disc_factor_cont_consistency=0, disc_factor_event_consistency=0.8, disc_factor_difficulty=0.99):
+	def _sum_rewards_trajectory(self, trajectory, disc_factor_cont_consistency, disc_factor_event_consistency, disc_factor_difficulty):
 		
 		r_continuous_sum = 0
 		r_eventual_sum = 0
@@ -628,13 +655,15 @@ class DirectedGenerator():
 	This method returns a tuple (problem, trajectory), where "problem" contains the problem corresponding to the state in the last
 	trajectory sample.
 
-	@max_atoms_init_state The maximum number of atoms the initial state can have. If we reach this number and the termination condition hasn't
-	                      been executed, we end the initial state generation phase and check the eventual consistency rules.
-	@max_length_trajectory The maximum number of actions (atoms) (invalid or not) that can be tried in the current trajectory. 
-	                        If we reach this number of actions and the initial state hasn't been generated, we check the eventual consistency
-							rules and apply the penalization (if needed).
+	<Note>: if @max_atoms_init_state and @max_actions_init_state are -1, we use the default values (self._max_atomos_init_state and
+	        self._max_actions_init_state).
 	"""
-	def _obtain_trajectory_init_policy(self, max_atoms_init_state=10, max_length_trajectory=15):
+	def _obtain_trajectory_init_policy(self, max_atoms_init_state=-1, max_actions_init_state=-1):
+
+		if max_atoms_init_state == -1:
+			max_atoms_init_state = self._max_atoms_init_state
+		if max_actions_init_state == -1:
+			max_actions_init_state = self._max_actions_init_state
 
 		# Information about the NLM of the initial state policy
 		init_nlm_max_pred_arity = self._initial_state_policy.actor_nlm.max_arity # This value corresponds to the breadth of the NLM
@@ -703,7 +732,7 @@ class DirectedGenerator():
 				# in the trajectory)
 				# If so, stop generating the initial state and check if the eventual consistency rules are met
 		
-				if problem.initial_state.num_atoms >= max_atoms_init_state or actions_executed >= max_length_trajectory:
+				if problem.initial_state.num_atoms >= max_atoms_init_state or actions_executed >= max_actions_init_state:
 					initial_state_generated = True
 					problem.end_initial_state_generation_phase()
 
@@ -726,13 +755,15 @@ class DirectedGenerator():
 	Uses the goal policy to obtain a trajectory to train the goal policy's NLMs (or generate a problem at the test/production phase).
 	The goal generation phase starts from an initial state obtained with the initial generation policy.
 
+	<Note>: if @max_actions_goal_state is -1, we use the default value (self._max_actions_goal_state).
+
 	@problem A ProblemState instance containing the initial state to start the goal generation phase from.
 	         <Note>: we assume the initial state of @problem meets all the eventual consistency rules.
-	@max_actions_goal_state The maximum number of actions the goal policy can apply from @initial_state. If we reach this
-	                        number of actions and the goal policy hasn't chosen the termination condition, we assume
-							the current state corresponds to the completely-generated goal state.
 	"""
-	def _obtain_trajectory_goal_policy(self, problem, max_actions_goal_state=10):
+	def _obtain_trajectory_goal_policy(self, problem, max_actions_goal_state=-1):
+
+		if max_actions_goal_state == -1:
+			max_actions_goal_state = self._max_actions_goal_state
 
 		# Information about the NLM of the goal policy
 		goal_nlm_max_pred_arity = self._goal_policy.actor_nlm.max_arity # This value corresponds to the breadth of the NLM
@@ -815,8 +846,8 @@ class DirectedGenerator():
 
 	It returns a tuple (init_policy_trajectory, goal_policy_trajectory).
 	"""
-	def _obtain_trajectory_and_preprocess_for_PPO(self, max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10,
-											            disc_factor_cont_consistency=0, disc_factor_event_consistency=0.8, disc_factor_difficulty=0.99):
+	def _obtain_trajectory_and_preprocess_for_PPO(self, max_atoms_init_state=-1, max_actions_init_state=-1, max_actions_goal_state=-1,
+											   disc_factor_cont_consistency=0, disc_factor_event_consistency=0.9, disc_factor_difficulty=0.99):
 
 		# <Obtain a trajectory with the initial policy>
 
@@ -960,6 +991,8 @@ class DirectedGenerator():
 	"""
 	This method generates a single problem using the trained init and goal generation policies.
 
+	<Note>: if @max_atoms_init_state, @max_actions_init_state and @max_actions_goal_state are -1, we use the same value for these parameters
+	        as used during the training of the generative policies.
 	@max_atoms_init_state The maximum number of atoms the initial state can contain. If we reach this number, the initial state generation phase ends.
 	@max_actions_init_state The maximum number of actions that can be executed in the initial state before ending the initial state generation phase.
 							This parameter is different from @max_atoms_init_state since the number of actions executed in the initial state generation phase
@@ -970,10 +1003,7 @@ class DirectedGenerator():
 	@problem_name The name of the generated problem, which appears in the PDDL encoding.
 	@verbose If True, print information about the problem generation process.
 	"""
-	def generate_problem(self, max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10, problem_name = "problem", verbose=True):
-		
-		if max_atoms_init_state > max_actions_init_state:
-			return ValueError("max_actions_init_state must be greater or equal than max_atoms_init_state")
+	def generate_problem(self, max_atoms_init_state=-1, max_actions_init_state=-1, max_actions_goal_state=-1, problem_name = "problem", verbose=True):
 
 		if verbose:
 			print(f"\n\n---------- Problem {problem_name} ----------\n\n")
@@ -1028,7 +1058,7 @@ class DirectedGenerator():
 	@verbose If True, print information about the problem generation process.
 	"""
 	def generate_problems(self, num_problems_to_generate,
-								max_atoms_init_state=10, max_actions_init_state=15, max_actions_goal_state=10, 
+								max_atoms_init_state=-1, max_actions_init_state=-1, max_actions_goal_state=-1, 
 								problems_path = '../data/problems/problems_both_generative_policies/',
 								problems_name = 'bw_both_generative_policies',
 								metrics_file_path = '../data/problems/problems_both_generative_policies/problems_both_generative_policies_metrics.txt',
