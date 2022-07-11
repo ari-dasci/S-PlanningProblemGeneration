@@ -364,9 +364,6 @@ class DirectedGenerator():
 		# Get applicable ground actions at the current goal state s_gc
 		applicable_ground_actions = problem.applicable_ground_actions()
 
-		# QUITAR
-		print("> Applicable actions:", applicable_ground_actions)
-
 		# Convert from the relational encoding ( ['stack', [1, 2]] ) to the encoding
 		# used by the NLM ( [action_arity, obj_1_ind, obj_2_ind, ..., action_ind] -> [2, 1, 2, 0] )
 		action_name_to_ind_dict = self._dummy_rel_state_actions.pred_names_to_indices_dict_each_arity

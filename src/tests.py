@@ -595,8 +595,8 @@ def test_load_models_and_generate_problems():
 	planner = Planner(domain_file_path)
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_45/init_policy_its-410.ckpt"
-	goal_policy_path = "saved_models/both_policies_45/goal_policy_its-410.ckpt"
+	init_policy_path = "saved_models/both_policies_45/init_policy_its-300.ckpt"
+	goal_policy_path = "saved_models/both_policies_45/goal_policy_its-300.ckpt"
 
 	nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
@@ -621,6 +621,36 @@ def test_load_models_and_generate_problems():
 
 	directed_generator.generate_problems(num_problems, max_atoms_init_state=-1, max_actions_init_state=-1,
 									     max_actions_goal_state=-1, verbose=True)
+
+
+# Method used to debug ProblemState.applicable_ground_actions()
+def test_applicable_ground_actions():
+	from problem_generation.environment.problem_state import ProblemState
+	from problem_generation.environment.pddl_parser import Parser
+	from problem_generation.environment.planner import Planner
+	from problem_generation.environment.relational_state import RelationalState
+
+	domain_file_path = '../data/domains/blocks-domain.pddl'
+	parser = Parser()
+	parser.parse_domain(domain_file_path)
+	planner = Planner(domain_file_path)
+
+	init_state = RelationalState(['block'], 
+							    [ ['on', ['block', 'block']], ['ontable', ['block']], ['clear', ['block']], ['handempty', []], ['holding', ['block']] ],
+								objects=['block', 'block', 'block', 'block', 'block', 'block', 'block', 'block', 'block', 'block', 'block', 'block', 'block'],
+								atoms=[ ['ontable', [0]], ['ontable', [1]],
+			                            ['on', [2, 0]], ['on', [3, 1]], ['on', [4, 3]], ['on', [5, 4]], ['on', [6, 2]], ['on', [7, 5]],
+										['on', [8, 7]], ['on', [9, 6]], ['on', [10, 8]], ['on', [11, 9]],
+										['clear', [10]], ['clear', [11]], ['holding', [12]] ])
+
+	problem = ProblemState(parser, predicates_to_consider_for_goal=['on'], initial_state_info=init_state)
+
+	problem.end_initial_state_generation_phase()
+
+	print("> Applicable actions:", problem.applicable_ground_actions())
+
+
+
 
 
 """
@@ -892,6 +922,10 @@ Parece que el gradient_clip_val no ayuda a entrenar las políticas!!!
 	la goal policy!
 
 	# --- Resultados problem generation (model folder = both_policies_45)
+	Los problemas generados son muy sencillos de resolver (excepto unos pocos que de vez en cuando
+	salen muy difíciles).
+
+
 
 
 

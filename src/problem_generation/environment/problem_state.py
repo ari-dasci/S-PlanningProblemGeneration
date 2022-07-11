@@ -321,7 +321,7 @@ class ProblemState:
 		 a.negative_preconditions), ground_actions_no_rep_args))
 
 		# Encode ground actions in the RelationalState form, e.g., ['stack', [1, 2]]
-		applicable_ground_actions_rel_state_enc = [ [a.name, [int(p[0]) for p in a.parameters]] for a in applicable_ground_actions]
+		applicable_ground_actions_rel_state_enc = [ [a.name, [int(p) for p in a.parameters]] for a in applicable_ground_actions]
 
 		return applicable_ground_actions_rel_state_enc
 
