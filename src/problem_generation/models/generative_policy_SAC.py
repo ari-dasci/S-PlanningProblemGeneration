@@ -38,11 +38,11 @@ class GenerativePolicy(pl.LightningModule):
 		# Actor NLMs: each one outputs the Q-function Q(s,a) for each action a
 
 		# Use double Q-learning -> we need two Q-networks and another two to calculate the targets
-		self._critic_1_nlm = NLM(num_preds_layers_nlm_critic, mlp_hidden_sizes_nlm, residual_connections=nlm_residual_connections)
-		self._critic_2_nlm = NLM(num_preds_layers_nlm_critic, mlp_hidden_sizes_nlm, residual_connections=nlm_residual_connections)
+		self._critic_1_nlm = NLM(num_preds_layers_nlm, mlp_hidden_sizes_nlm, residual_connections=nlm_residual_connections)
+		self._critic_2_nlm = NLM(num_preds_layers_nlm, mlp_hidden_sizes_nlm, residual_connections=nlm_residual_connections)
 
-		self._critic_1_target_nlm = NLM(num_preds_layers_nlm_critic, mlp_hidden_sizes_nlm, residual_connections=nlm_residual_connections)
-		self._critic_2_target_nlm = NLM(num_preds_layers_nlm_critic, mlp_hidden_sizes_nlm, residual_connections=nlm_residual_connections)	
+		self._critic_1_target_nlm = NLM(num_preds_layers_nlm, mlp_hidden_sizes_nlm, residual_connections=nlm_residual_connections)
+		self._critic_2_target_nlm = NLM(num_preds_layers_nlm, mlp_hidden_sizes_nlm, residual_connections=nlm_residual_connections)	
 
 		# Initialize the target Q-network weights with those of the two Q-networks
 		self._soft_update_target_networks(tau=1.0)
@@ -175,9 +175,6 @@ class GenerativePolicy(pl.LightningModule):
 		return output_flattened
 
 
-
-	# COMPLETAR MÉTODOS AUXILIARES FALTANTES!
-
 	# ------- Main methods
 
 	def configure_optimizers(self):
@@ -279,13 +276,20 @@ class GenerativePolicy(pl.LightningModule):
 					# pi(next_s)
 					pi_next_s = self._flatten_nlm_output(self.forward(next_s_state_tensors, next_s_num_objs, next_s_mask_tensors))
 
-					# V(next_s) (with the target networks)
-					v_next_s_critic_1 = torch.matmul(pi_next_s, ( q_target_next_s - self._alpha*torch.log(pi_next_s) ))
-					v_next_s_critic_2 = torch.matmul(pi_next_s, ( q_target_next_s - self._alpha*torch.log(pi_next_s) ))
+					# > V(next_s) (with the target networks)
 
-				# Critic loss -> square difference between Q(s,a) and Q-target, i.e., r + gamma*V(next_s)
-				loss_critic_1 = ( q_s_a_critic_1 - ( curr_r + self._gamma*v_next_s_critic_1 ) )**2
-				loss_critic_2 = ( q_s_a_critic_2 - ( curr_r + self._gamma*v_next_s_critic_2 ) )**2
+					target_minus_entropy = q_target_next_s - (self._alpha*torch.log(pi_next_s) / np.log(len(pi_next_s))) # Scale entropy by the log-number of actions (len(pi_next_s))
+					target_minus_entropy[target_minus_entropy==float("inf")] = 1e10 # Convert from inf to 1e10, so that 0*inf = 0 in the line below
+
+					v_next_s_critic = torch.matmul(pi_next_s, target_minus_entropy)
+
+				# > Critic loss -> square difference between Q(s,a) and Q-target, i.e., r + gamma*V(next_s)
+
+				# Q-target
+				q_target = curr_r + self._gamma*v_next_s_critic
+
+				loss_critic_1 = ( q_s_a_critic_1 - q_target )**2
+				loss_critic_2 = ( q_s_a_critic_2 - q_target )**2
 
 			else: # There is no next state, as curr_s is terminal
 				loss_critic_1 = ( q_s_a_critic_1 - curr_r )**2
@@ -307,16 +311,24 @@ class GenerativePolicy(pl.LightningModule):
 			# alpha without grad
 			alpha_no_grad = self._alpha.detach()
 
-			# Actor loss
-			loss_actor = torch.matmul( pi_curr_s, (alpha_no_grad*torch.log(pi_curr_s) - q_curr_s) )
+			# > Actor loss
+
+			entropy_minus_q_val = (alpha_no_grad*torch.log(pi_curr_s) / np.log(len(pi_curr_s))) - q_curr_s
+			entropy_minus_q_val[entropy_minus_q_val==-float("inf")] = -1e10 # Convert from -inf to -1e10, so that 0*inf = 0 in the line below
+
+			loss_actor = torch.matmul( pi_curr_s, entropy_minus_q_val )
 
 			# < Update alpha >
 
 			# pi(curr_s)
 			pi_curr_s_no_grad = pi_curr_s.detach()
 
-			# alpha loss
-			loss_alpha = torch.matmul(pi_curr_s_no_grad, ( -self._alpha * ( torch.log(pi_curr_s_no_grad) + self._entropy_goal ) ) )
+			# > alpha loss
+
+			log_pi_curr_s_no_grad = torch.log(pi_curr_s_no_grad) / np.log(len(pi_curr_s_no_grad))
+			log_pi_curr_s_no_grad[log_pi_curr_s_no_grad==-float("inf")] = -1e10 # Convert from -inf to -1e10, so that 0*inf = 0 in the line below
+
+			loss_alpha = torch.matmul(pi_curr_s_no_grad, ( -self._alpha * ( log_pi_curr_s_no_grad + self._entropy_goal ) ) )
 
 
 			# < Accumulate losses and metrics >

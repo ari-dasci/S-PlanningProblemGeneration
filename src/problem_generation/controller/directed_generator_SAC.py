@@ -38,16 +38,15 @@ class DirectedGenerator():
 	"""
 	def __init__(self, parser, planner, 
 				 predicates_to_consider_for_goal=None, initial_state_info=None, consistency_validator=ValidatorPredOrderBW,
-				 penalization_continuous_consistency=-1, penalization_eventual_consistency=-1,
-				
+				 penalization_continuous_consistency=-1, penalization_eventual_consistency=-1, gamma=0.95, tau=0.01,
+				 init_alpha=0.1, 
+
 				 num_preds_inner_layers_initial_state_nlm=[[4,4,4,4]], mlp_hidden_layers_initial_state_nlm=[0,0], res_connections_initial_state_nlm=True,
-				 lr_initial_state_nlm=5e-4, lifted_action_entropy_coeff_init_state_policy = 0.05, ground_action_entropy_coeff_init_state_policy = 0.05,
-				 entropy_annealing_coeffs_init_state_policy = None, epsilon_init_state_policy=0.2, load_init_state_policy_checkpoint_name=None,
+				 lr_initial_state_nlm=5e-4, entropy_goal_init_state_policy=1, entropy_annealing_coeff_init_state_policy = None, load_init_state_policy_checkpoint_name=None,
 				 
 				 num_preds_inner_layers_goal_nlm=[[4,4,4,4]], mlp_hidden_layers_goal_nlm=[0,0], res_connections_goal_nlm=True,
-				 lr_goal_nlm=5e-4, lifted_action_entropy_coeff_goal_policy = 0.05, ground_action_entropy_coeff_goal_policy = 0.05,
-				 entropy_annealing_coeffs_goal_policy = None, epsilon_goal_policy=0.2, load_goal_policy_checkpoint_name=None):
-				 
+				 lr_goal_nlm=5e-4, entropy_goal_goal_policy=1, entropy_annealing_coeff_goal_policy = None, load_goal_policy_checkpoint_name=None):
+
 
 		self._parser = parser
 		self._planner = planner
@@ -55,6 +54,8 @@ class DirectedGenerator():
 		self._consistency_validator = consistency_validator
 		self._penalization_continuous_consistency = penalization_continuous_consistency
 		self._penalization_eventual_consistency = penalization_eventual_consistency
+		self._gamma = gamma
+		self._tau = tau
 
 
 		# <Relational State which contains the object types and actions in the domain>
@@ -67,19 +68,6 @@ class DirectedGenerator():
 		else:
 			self._predicates_to_consider_for_goal = predicates_to_consider_for_goal
 
-		# <Parameters used to normalize the rewards>
-
-		# Initial state policy
-		self._reward_moving_mean_init_policy = 0 # 0
-		self._reward_moving_std_init_policy  = 1 # 1
-		self._initialize_reward_moving_mean_and_std_init_policy  = True # As initialization, we set self._reward_moving_mean and std to the
-		                                                   # mean and std reward of the first group of trajectories
-
-		# Goal policy
-		self._reward_moving_mean_goal_policy = 0 # 0
-		self._reward_moving_std_goal_policy  = 1 # 1
-		self._initialize_reward_moving_mean_and_std_goal_policy  = True
-
 		# <Generative policies>
 
 		# Initial state generation policy
@@ -88,18 +76,16 @@ class DirectedGenerator():
 		if load_init_state_policy_checkpoint_name is None:
 			self._initial_state_policy = GenerativePolicy(num_preds_all_layers_initial_state_nlm, mlp_hidden_layers_initial_state_nlm, 
 												        res_connections_initial_state_nlm, lr_initial_state_nlm,
-													    lifted_action_entropy_coeff_init_state_policy, ground_action_entropy_coeff_init_state_policy,
-														entropy_annealing_coeffs_init_state_policy, epsilon_init_state_policy)
+													    gamma, init_alpha, entropy_goal_init_state_policy)
 		else: # Load initial state policy from checkpoint
 			self._initial_state_policy = GenerativePolicy.load_from_checkpoint(checkpoint_path=load_init_state_policy_checkpoint_name,
 																		         num_preds_layers_nlm=num_preds_all_layers_initial_state_nlm, 
 																				 mlp_hidden_sizes_nlm=mlp_hidden_layers_initial_state_nlm, 
 																				 nlm_residual_connections=res_connections_initial_state_nlm, 
 																				 lr=lr_initial_state_nlm,
-																				 lifted_action_entropy_coeff=lifted_action_entropy_coeff_init_state_policy, 
-																				 ground_action_entropy_coeff=ground_action_entropy_coeff_init_state_policy,
-																				 entropy_annealing_coeffs=entropy_annealing_coeffs_init_state_policy, 
-																				 epsilon=epsilon_init_state_policy)
+																				 gamma=gamma,
+																				 init_alpha=init_alpha,
+																				 entropy_goal=entropy_goal_init_state_policy)
 
 		# Goal generation policy
 		num_preds_all_layers_goal_nlm = self._num_preds_all_layers_goal_nlm(num_preds_inner_layers_goal_nlm)
@@ -107,18 +93,16 @@ class DirectedGenerator():
 		if load_goal_policy_checkpoint_name is None:
 			self._goal_policy = GenerativePolicy(num_preds_all_layers_goal_nlm, mlp_hidden_layers_goal_nlm, 
 												        res_connections_goal_nlm, lr_goal_nlm,
-													    lifted_action_entropy_coeff_goal_policy, ground_action_entropy_coeff_goal_policy,
-														entropy_annealing_coeffs_goal_policy, epsilon_goal_policy)
+													    gamma, init_alpha, entropy_goal_goal_policy)
 		else: # Load initial state policy from checkpoint
 			self._goal_policy = GenerativePolicy.load_from_checkpoint(checkpoint_path=load_goal_policy_checkpoint_name,
 																		         num_preds_layers_nlm=num_preds_all_layers_goal_nlm, 
 																				 mlp_hidden_sizes_nlm=mlp_hidden_layers_goal_nlm, 
 																				 nlm_residual_connections=res_connections_goal_nlm, 
 																				 lr=lr_goal_nlm,
-																				 lifted_action_entropy_coeff=lifted_action_entropy_coeff_goal_policy, 
-																				 ground_action_entropy_coeff=ground_action_entropy_coeff_goal_policy,
-																				 entropy_annealing_coeffs=entropy_annealing_coeffs_goal_policy, 
-																				 epsilon=epsilon_goal_policy)
+																				 gamma=gamma,
+																				 init_alpha=init_alpha,
+																				 entropy_goal=entropy_goal_goal_policy)
 
 
 	# ------- Getters and Setters --------
@@ -139,6 +123,14 @@ class DirectedGenerator():
 	@property
 	def penalization_eventual_consistency(self):
 		return self._penalization_eventual_consistency
+
+	@property
+	def gamma(self):
+		return self._gamma
+
+	@property
+	def tau(self):
+		return self._tau
 
 	@property
 	def domain_name(self):
@@ -422,6 +414,7 @@ class DirectedGenerator():
 	<Note>: this method is inplace (does not return the trajectory but transforms it inplace)
 	"""
 
+	# <<TODO>>
 	# >>> ESTE MÉTODO AHORA SOLO ES NECESARIO DE CARA A LOGEAR LAS RECOMPENSAS, PERO NO PARA ENTRENAR LAS POLICIES CON SAC!
 	def _sum_rewards_trajectory(self, trajectory, disc_factor_cont_consistency=0, disc_factor_event_consistency=0.8, disc_factor_difficulty=0.99):
 		
@@ -457,6 +450,8 @@ class DirectedGenerator():
 
 	Note: this method is in-place.
 	"""
+
+	# <<TODO>>
 	def _calculate_state_value_and_old_policy_probs_trajectory_init_policy(self, trajectory):
 		
 		for i in range(len(trajectory)):
@@ -492,6 +487,8 @@ class DirectedGenerator():
 
 	Note: this method is in-place.
 	"""
+
+	# <<TODO>>
 	def _calculate_state_value_and_old_policy_probs_trajectory_goal_policy(self, trajectory):
 		
 		for i in range(len(trajectory)):
@@ -553,6 +550,7 @@ class DirectedGenerator():
 
 		return log_problem_difficulty
 
+	
 	"""
 	This method normalizes the rewards in a trajectory (or set of trajectories) obtained by the initial policy so that they aproximately
     distribute normally (according to N(0,1)).
@@ -566,7 +564,7 @@ class DirectedGenerator():
 	         variables in parallel!)
 	"""
 
-	# CREO QUE AHORA NO ES NECESARIO NORMALIZAR LAS RECOMPENSAS!!
+	# We do not need to normalize rewards for discrete-SAC
 	"""
 	def _normalize_rewards_init_policy(self, trajectory, moving_avg_coeff=0.8, moving_std_coeff=0.8):
 
@@ -591,6 +589,7 @@ class DirectedGenerator():
 			trajectory[i] = trajectory[i][:-2] + [norm_reward] + trajectory[i][-2:] # Store the normalized reward in the trajectory[i][-3] position
 	"""
 
+
 	"""
 	This method normalizes the rewards in a trajectory (or set of trajectories) obtained by the goal policy so that they aproximately
     distribute normally (according to N(0,1)).
@@ -602,6 +601,9 @@ class DirectedGenerator():
 	<Note2>: this method modifies the trajectory in-place.
 	<Note3>: I think this method doesn't work if called in parallel! (as we would be accessing the self._reward_moving_mean and self._reward_moving_std
 	         variables in parallel!)
+	"""
+
+	# We do not need to normalize rewards for discrete-SAC
 	"""
 	def _normalize_rewards_goal_policy(self, trajectory, moving_avg_coeff=0.8, moving_std_coeff=0.8):
 
@@ -624,6 +626,7 @@ class DirectedGenerator():
 		for i in range(len(trajectory)):
 			norm_reward = (trajectory[i][-3] - self._reward_moving_mean_goal_policy) / (self._reward_moving_std_goal_policy + 1e-10) # z-score normalization
 			trajectory[i] = trajectory[i][:-2] + [norm_reward] + trajectory[i][-2:] # Store the normalized reward in the trajectory[i][-3] position
+	"""
 
 
 	# ------- Main Methods --------
@@ -687,8 +690,6 @@ class DirectedGenerator():
 				initial_state_generated = True
 				problem.end_initial_state_generation_phase()
 
-				# --- NEXT_S MUST BE NONE ---
-
 				r_continuous_consistency = 0
 				r_eventual_consistency = problem.get_eventual_consistency_reward_of_init_state()
 
@@ -715,19 +716,25 @@ class DirectedGenerator():
 					initial_state_generated = True
 					problem.end_initial_state_generation_phase()
 
-					# --- NEXT_S MUST BE NONE ---
-
 					r_eventual_consistency = problem.get_eventual_consistency_reward_of_init_state()
 				else:
 					r_eventual_consistency = 0
 
-			# Append sample to the trajectory
-			trajectory.append( [curr_state_tensors, num_objs_with_virtuals, mask_tensors,
-					            chosen_action_index, r_continuous_consistency, r_eventual_consistency, 0.0] ) # The '0.0' in the last position corresponds to the difficulty reward
 
-			# Quitar
-			#print("\nchosen_action_index:", chosen_action_index)
-			#print("r_continuous_consistency:", r_continuous_consistency)
+			# < Append sample to the trajectory >
+
+			# Complete the information about s' of the last trajectory_sample
+			if len(trajectory) > 0: # This is not the first sample of the trajectory
+				trajectory[-1][3] = [curr_state_tensors, num_objs_with_virtuals, mask_tensors]
+
+			# [s, a, r, s']
+			curr_sample = [ [curr_state_tensors, num_objs_with_virtuals, mask_tensors], 
+			                chosen_action_index, 
+			                [r_continuous_consistency, r_eventual_consistency, 0.0], 
+			                [None, None, None] ] # s' is [None, None, None] if this is the last sample of the trajectory
+
+			trajectory.append(curr_sample)
+
 
 		return problem, trajectory
 
@@ -784,8 +791,6 @@ class DirectedGenerator():
 				goal_state_generated = True
 				problem.end_goal_state_generation_phase()
 
-				# --- NEXT_S MUST BE NONE ---
-
 				# Call the planner to obtain the difficulty of the problem generated
 				# This method also selects the goal atoms corresponding to the goal predicates given by the user
 				r_difficulty = self.get_problem_difficulty(problem) # Difficulty scaled to real values between 0 and 1 (unless the problem difficulty surpasses the maximum difficulty)
@@ -809,19 +814,28 @@ class DirectedGenerator():
 					goal_state_generated = True
 					problem.end_goal_state_generation_phase()
 
-					# --- NEXT_S MUST BE NONE ---
-
 					# Call the planner to obtain the difficulty of the problem generated
 					# This method also selects the goal atoms corresponding to the goal predicates given by the user
 					r_difficulty = self.get_problem_difficulty(problem)
 				else:
 					r_difficulty = 0.0 # Before calculating the problem difficulty, it must be fully generated
 
-			# Append sample to the trajectory
-			trajectory.append( [curr_goal_and_init_state_tensors, num_objs, mask_tensors,
-					            chosen_action_index, 0.0, 0.0, r_difficulty] ) # The two '0.0' correspond to the continuous and eventual consistency rewards
+
+			# Complete the information about s' of the last trajectory_sample
+			if len(trajectory) > 0: # This is not the first sample of the trajectory
+				trajectory[-1][3] = [curr_goal_and_init_state_tensors, num_objs, mask_tensors]
+
+			# [s, a, r, s']
+			curr_sample = [ [curr_goal_and_init_state_tensors, num_objs, mask_tensors], 
+			                chosen_action_index, 
+			                [0.0, 0.0, r_difficulty], 
+			                [None, None, None] ] # s' is [None, None, None] if this is the last sample of the trajectory
+
+			trajectory.append(curr_sample)
+
 
 		return problem, trajectory
+
 
 	"""
 	This method uses _obtain_trajectory_init_policy() and _obtain_trajectory_goal_policy() to obtain a full trajectory
@@ -829,8 +843,17 @@ class DirectedGenerator():
 
 	It returns a tuple (init_policy_trajectory, goal_policy_trajectory).
 	"""
+
+	# <<TODO>>
 	def _obtain_trajectory_and_preprocess_for_PPO(self, max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10,
 											            disc_factor_cont_consistency=0, disc_factor_event_consistency=0.8, disc_factor_difficulty=0.99):
+
+		
+
+		# <PENSAR CÓMO HACER QUE LA INIT POLICY TAMBIÉN OPTIMICE LA DIFICULTAD, YA QUE EL Q-VAL DEL NEXT_STATE TIENE QUE TENER EN CUENTA
+		# LA DIFICULTAD> -> HAY QUE CONECTAR EL FINAL DE LA INIT POLICY AL PRINCIPIO DE LA GOAL POLICY
+
+
 
 		# <Obtain a trajectory with the initial policy>
 
@@ -845,6 +868,11 @@ class DirectedGenerator():
 			_, goal_policy_trajectory = self._obtain_trajectory_goal_policy(problem, max_actions_goal_state)
 		else:
 			goal_policy_trajectory = []
+
+		# <TODO>
+		# For the last sample of the init_policy_trajectory, obtain the q-values of the next-state Q(s') by
+		# using the goal policy to predict the value of the first state of the goal_policy_trajectory
+
 
 		# <Sum the rewards to obtain the return>
 		# For this operation, we need to append the init and goal policy trajectories
@@ -879,6 +907,8 @@ class DirectedGenerator():
 	Note: We add an index to the folder name given by @checkpoint_folder. Example: saved_models/both_policies_2
 	      (in case there are two other experiments ids=0, 1 before it).
 	"""
+
+	# <<TODO>>
 	def train_generative_policies(self, training_iterations, epochs_per_train_it=3, trajectories_per_train_it=50, minibatch_size=125,
 							      its_per_model_checkpoint=10, checkpoint_folder="saved_models/both_policies", logs_name="both_policies"):
 
@@ -984,6 +1014,8 @@ class DirectedGenerator():
 	@problem_name The name of the generated problem, which appears in the PDDL encoding.
 	@verbose If True, print information about the problem generation process.
 	"""
+
+	# <<TODO>>
 	def generate_problem(self, max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10, problem_name = "problem", verbose=True):
 		
 		if max_atoms_init_state > max_actions_init_state:
@@ -1041,6 +1073,8 @@ class DirectedGenerator():
 					         this situation can't occur.
 	@verbose If True, print information about the problem generation process.
 	"""
+
+	# <<TODO>>
 	def generate_problems(self, num_problems_to_generate,
 								max_atoms_init_state=10, max_actions_init_state=15, max_actions_goal_state=10, 
 								problems_path = '../data/problems/problems_both_generative_policies/',

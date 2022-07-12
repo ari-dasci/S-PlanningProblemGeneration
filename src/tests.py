@@ -563,7 +563,7 @@ def test_train_init_and_goal_policy():
 										   lr_initial_state_nlm = 5e-4,
 										   lifted_action_entropy_coeff_init_state_policy = 0,
 										   ground_action_entropy_coeff_init_state_policy = 2,
-										   entropy_annealing_coeffs_init_state_policy = None,
+										   entropy_annealing_coeffs_init_state_policy = (300, 0, 0.1),
 										   epsilon_init_state_policy=0.1,
 
 										   num_preds_inner_layers_goal_nlm=nlm_inner_layers,
@@ -571,8 +571,8 @@ def test_train_init_and_goal_policy():
 										   res_connections_goal_nlm=True,
 										   lr_goal_nlm = 5e-4,
 										   lifted_action_entropy_coeff_goal_policy = 0,
-										   ground_action_entropy_coeff_goal_policy = 2,
-										   entropy_annealing_coeffs_goal_policy = None,
+										   ground_action_entropy_coeff_goal_policy = 1,
+										   entropy_annealing_coeffs_goal_policy = (100, 0, 0.1),
 										   epsilon_goal_policy=0.1)
 
 
@@ -893,8 +893,8 @@ Parece que el gradient_clip_val no ayuda a entrenar las políticas!!!
 	GENERANDO PROBLEMAS PEQUEÑOS E IR AUMENTANDO EL TAMAÑO POCO A POCO! (como un automated curriculum)
 
 
-> <init_policy_entropy_coeffs = 0.5 0.5>, entropy_annealing_coeffs_init_state_policy = None, 
-  <init_policy_entropy_coeffs = 0.5 0.5>, entropy_annealing_coeffs_goal_policy = None,
+> <init_policy_entropy_coeffs = 0.5 0.5>, entropy_annealing_coeffs_init_state_policy = (300, 0.1, 0.1), 
+  <init_policy_entropy_coeffs = 0.5 0.5>, entropy_annealing_coeffs_goal_policy = (300, 0.1, 0.1),
   r_difficulty rescale_factor = 0.2, trajectories_per_train_it=50, minibatch_size=125,
   max_actions_init_state = 30, lr_initial_state_nlm=5e-4, lr_goal_nlm=5e-4, epsilon=0.1,
   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
@@ -902,8 +902,6 @@ Parece que el gradient_clip_val no ayuda a entrenar las políticas!!!
 	Aprende pero tarda mucho en aprender! La r_continuous converge a 0 rápidamente pero la r_eventual
 	tarda mucho (unas 10h de entrenamiento) en converger a 0!
 	
-
-
 
 > <init_policy_entropy_coeffs = 0 2>, entropy_annealing_coeffs_init_state_policy = None, 
   <init_policy_entropy_coeffs = 0 2>, entropy_annealing_coeffs_goal_policy = None,
@@ -927,6 +925,13 @@ Parece que el gradient_clip_val no ayuda a entrenar las políticas!!!
 
 
 
+> <init_policy_entropy_coeffs = 0 2>, <entropy_annealing_coeffs_init_state_policy = (300, 0, 0.1)>, 
+  <init_policy_entropy_coeffs = 0 1>, <entropy_annealing_coeffs_goal_policy = (100, 0, 0.1)>,
+  r_difficulty rescale_factor = 0.2, trajectories_per_train_it=50, minibatch_size=125,
+  max_actions_init_state = 30, lr_initial_state_nlm=5e-4, lr_goal_nlm=5e-4, epsilon=0.1,
+  max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
+  disc_factor_event_consistency=0.9:
+	
 
 
  
@@ -976,5 +981,5 @@ if __name__ == "__main__":
 	#test_trajectory_goal_policy()
 	#test_train_goal_policy()
 
-	test_load_models_and_generate_problems()
-	#test_train_init_and_goal_policy()
+	#test_load_models_and_generate_problems()
+	test_train_init_and_goal_policy()
