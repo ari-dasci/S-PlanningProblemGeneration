@@ -19,6 +19,7 @@ from problem_generation.models.nlm import NLM
 from problem_generation.models.reinforce import ReinforceDataset
 from problem_generation.models.generative_policy import GenerativePolicy
 from problem_generation.models.reinforce import TransformReinforceDatasetSample
+from problem_generation.models.experience_replay import ExperienceReplay
 
 class DirectedGenerator():
 
@@ -38,8 +39,9 @@ class DirectedGenerator():
 	"""
 	def __init__(self, parser, planner, 
 				 predicates_to_consider_for_goal=None, initial_state_info=None, consistency_validator=ValidatorPredOrderBW,
-				 penalization_continuous_consistency=-1, penalization_eventual_consistency=-1, gamma=0.95, tau=0.01,
-				 init_alpha=0.1, 
+				 penalization_continuous_consistency=-1, penalization_eventual_consistency=-1,
+				 max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
+				 gamma=0.95, tau=0.01, init_alpha=0.1, max_size_experience_replay=1e4,
 
 				 num_preds_inner_layers_initial_state_nlm=[[4,4,4,4]], mlp_hidden_layers_initial_state_nlm=[0,0], res_connections_initial_state_nlm=True,
 				 lr_initial_state_nlm=5e-4, entropy_goal_init_state_policy=1, entropy_annealing_coeff_init_state_policy = None, load_init_state_policy_checkpoint_name=None,
@@ -54,8 +56,12 @@ class DirectedGenerator():
 		self._consistency_validator = consistency_validator
 		self._penalization_continuous_consistency = penalization_continuous_consistency
 		self._penalization_eventual_consistency = penalization_eventual_consistency
+		self._max_atoms_init_state = max_atoms_init_state
+		self._max_actions_init_state = max_actions_init_state
+		self._max_actions_goal_state = max_actions_goal_state
 		self._gamma = gamma
 		self._tau = tau
+		self._max_size_experience_replay = max_size_experience_replay
 
 
 		# <Relational State which contains the object types and actions in the domain>
@@ -76,7 +82,7 @@ class DirectedGenerator():
 		if load_init_state_policy_checkpoint_name is None:
 			self._initial_state_policy = GenerativePolicy(num_preds_all_layers_initial_state_nlm, mlp_hidden_layers_initial_state_nlm, 
 												        res_connections_initial_state_nlm, lr_initial_state_nlm,
-													    gamma, init_alpha, entropy_goal_init_state_policy)
+													    gamma, init_alpha, entropy_goal_init_state_policy, entropy_annealing_coeff_init_state_policy)
 		else: # Load initial state policy from checkpoint
 			self._initial_state_policy = GenerativePolicy.load_from_checkpoint(checkpoint_path=load_init_state_policy_checkpoint_name,
 																		         num_preds_layers_nlm=num_preds_all_layers_initial_state_nlm, 
@@ -85,7 +91,8 @@ class DirectedGenerator():
 																				 lr=lr_initial_state_nlm,
 																				 gamma=gamma,
 																				 init_alpha=init_alpha,
-																				 entropy_goal=entropy_goal_init_state_policy)
+																				 entropy_goal=entropy_goal_init_state_policy,
+																				 entropy_annealing_coeff=entropy_annealing_coeff_init_state_policy)
 
 		# Goal generation policy
 		num_preds_all_layers_goal_nlm = self._num_preds_all_layers_goal_nlm(num_preds_inner_layers_goal_nlm)
@@ -93,7 +100,7 @@ class DirectedGenerator():
 		if load_goal_policy_checkpoint_name is None:
 			self._goal_policy = GenerativePolicy(num_preds_all_layers_goal_nlm, mlp_hidden_layers_goal_nlm, 
 												        res_connections_goal_nlm, lr_goal_nlm,
-													    gamma, init_alpha, entropy_goal_goal_policy)
+													    gamma, init_alpha, entropy_goal_goal_policy, entropy_annealing_coeff_goal_policy)
 		else: # Load initial state policy from checkpoint
 			self._goal_policy = GenerativePolicy.load_from_checkpoint(checkpoint_path=load_goal_policy_checkpoint_name,
 																		         num_preds_layers_nlm=num_preds_all_layers_goal_nlm, 
@@ -102,7 +109,8 @@ class DirectedGenerator():
 																				 lr=lr_goal_nlm,
 																				 gamma=gamma,
 																				 init_alpha=init_alpha,
-																				 entropy_goal=entropy_goal_goal_policy)
+																				 entropy_goal=entropy_goal_goal_policy,
+																				 entropy_annealing_coeff=entropy_annealing_coeff_goal_policy)
 
 
 	# ------- Getters and Setters --------
@@ -125,12 +133,28 @@ class DirectedGenerator():
 		return self._penalization_eventual_consistency
 
 	@property
+	def max_atoms_init_state(self):
+		return self._max_atoms_init_state
+
+	@property
+	def max_actions_init_state(self):
+		return self._max_actions_init_state
+
+	@property
+	def max_actions_goal_state(self):
+		return self._max_actions_goal_state
+
+	@property
 	def gamma(self):
 		return self._gamma
 
 	@property
 	def tau(self):
 		return self._tau
+
+	@property
+	def max_size_experience_replay(self):
+		return self._max_size_experience_replay
 
 	@property
 	def domain_name(self):
@@ -412,11 +436,9 @@ class DirectedGenerator():
 	@disc_factor_difficulty Discount factor to use for the difficulty rewards
 
 	<Note>: this method is inplace (does not return the trajectory but transforms it inplace)
+	<Note2>: With SAC, this method is only used for the logs, but not for training the generative policies.
 	"""
-
-	# <<TODO>>
-	# >>> ESTE MÉTODO AHORA SOLO ES NECESARIO DE CARA A LOGEAR LAS RECOMPENSAS, PERO NO PARA ENTRENAR LAS POLICIES CON SAC!
-	def _sum_rewards_trajectory(self, trajectory, disc_factor_cont_consistency=0, disc_factor_event_consistency=0.8, disc_factor_difficulty=0.99):
+	def _sum_rewards_trajectory(self, trajectory, disc_factor_cont_consistency, disc_factor_event_consistency, disc_factor_difficulty):
 		
 		r_continuous_sum = 0
 		r_eventual_sum = 0
@@ -424,16 +446,13 @@ class DirectedGenerator():
 
 		# Iterate over the trajectory in reverse (from the end to the beginning)
 		for i in range(len(trajectory)-1,-1,-1):
-			curr_r_continuous = trajectory[i][-3]
-			curr_r_eventual = trajectory[i][-2]
-			curr_r_difficulty = trajectory[i][-1]
+			curr_r_continuous, curr_r_eventual, curr_r_difficulty = trajectory[i][2]
 
 			sum_r_continuous = curr_r_continuous + r_continuous_sum
 			sum_r_eventual = curr_r_eventual + r_eventual_sum
 			sum_r_difficulty = curr_r_difficulty + r_difficulty_sum
-			sum_r_total = sum_r_continuous + sum_r_eventual + sum_r_difficulty
 
-			trajectory[i] = trajectory[i][:-3] + [sum_r_continuous, sum_r_eventual, sum_r_difficulty, sum_r_total]
+			trajectory[i][2] = [curr_r_continuous, curr_r_eventual, curr_r_difficulty, sum_r_continuous, sum_r_eventual, sum_r_difficulty]
 
 			r_continuous_sum += curr_r_continuous # Sum the current reward to the sum of disc rewards R
 			r_continuous_sum *= disc_factor_cont_consistency # Apply disc factor to all the rewards in the sum
@@ -442,80 +461,6 @@ class DirectedGenerator():
 			r_difficulty_sum += curr_r_difficulty
 			r_difficulty_sum *= disc_factor_difficulty
 			
-
-	"""
-	This method adds the state value and probability of the selected action for each element in the trajectory corresponding
-	to the initial state generation phase (i.e., to atoms selected by the initial state policy).
-	This is needed by the PPO algorithm to train the init state policy's NLMs.
-
-	Note: this method is in-place.
-	"""
-
-	# <<TODO>>
-	def _calculate_state_value_and_old_policy_probs_trajectory_init_policy(self, trajectory):
-		
-		for i in range(len(trajectory)):
-			state_tensors, num_objs_with_virtuals, mask_tensors, chosen_action_index, r_continuous, r_eventual, r_difficulty, r_total = trajectory[i]
-			
-			# < Obtain probability of the selected action >
-
-			# Use the Actor NLM of the initial state policy to obtain the action log_probs
-			action_log_probs = self._initial_state_policy(state_tensors, num_objs_with_virtuals, mask_tensors)
-		
-			# Choose the selected action
-			chosen_action_log_prob = action_log_probs[chosen_action_index[0]][tuple(chosen_action_index[1:])].detach().numpy()
-
-			# Convert from log_prob to prob
-			# Note: if the log_prob is NaN, then we assume the prob is 0 (1e-5 to avoid dividing by 0)
-			chosen_action_prob = np.exp(chosen_action_log_prob) if not np.isnan(chosen_action_log_prob) else 1e-5
-
-			# Append prob to the current element of the trajectory
-			trajectory[i].append(chosen_action_prob)
-
-			# < Estimate State Value V(s) >
-
-			# Estimate state-value V(s) with the Critic NLM of the initial state policy
-			state_value = self._initial_state_policy.critic_nlm(state_tensors, num_objs_with_virtuals)[0][0].detach().numpy() # [0][0] to select the first predicate of arity 0 (corresponding to V(s))
-
-			# Append advantage to the current element of the trajectory
-			trajectory[i].append(state_value)
-
-	"""
-	This method adds the state value and probability of the selected action for each element in the trajectory corresponding
-	to the goal generation phase (i.e., to actions selected by the goal policy).
-	This is needed by the PPO algorithm to train the goal policy's NLMs.
-
-	Note: this method is in-place.
-	"""
-
-	# <<TODO>>
-	def _calculate_state_value_and_old_policy_probs_trajectory_goal_policy(self, trajectory):
-		
-		for i in range(len(trajectory)):
-			state_tensors, num_objs_with_virtuals, mask_tensors, chosen_action_index, r_continuous, r_eventual, r_difficulty, r_total = trajectory[i]
-			
-			# < Obtain probability of the selected action >
-
-			# Use the Actor NLM of the goal state policy to obtain the action log_probs
-			action_log_probs = self._goal_policy(state_tensors, num_objs_with_virtuals, mask_tensors)
-		
-			# Choose the selected action
-			chosen_action_log_prob = action_log_probs[chosen_action_index[0]][tuple(chosen_action_index[1:])].detach().numpy()
-
-			# Convert from log_prob to prob
-			# Note: if the log_prob is NaN, then we assume the prob is 0 (1e-5 to avoid dividing by 0)
-			chosen_action_prob = np.exp(chosen_action_log_prob) if not np.isnan(chosen_action_log_prob) else 1e-5
-
-			# Append prob to the current element of the trajectory
-			trajectory[i].append(chosen_action_prob)
-
-			# < Estimate State Value V(s) >
-
-			# Estimate state-value V(s) with the Critic NLM of the goal state policy
-			state_value = self._goal_policy.critic_nlm(state_tensors, num_objs_with_virtuals)[0][0].detach().numpy() # [0][0] to select the first predicate of arity 0 (corresponding to V(s))
-
-			# Append advantage to the current element of the trajectory
-			trajectory[i].append(state_value)
 
 	"""
 	This method receives a completely-generated problem (s_i, s_g) and returns its difficulty.
@@ -628,6 +573,50 @@ class DirectedGenerator():
 			trajectory[i] = trajectory[i][:-2] + [norm_reward] + trajectory[i][-2:] # Store the normalized reward in the trajectory[i][-3] position
 	"""
 
+	"""
+	This method is used to calculate V(next_s) with the goal_policy for the init_policy training samples which correspond to:
+		1. Terminal samples (i.e., a completely-generated initial state) -> next_s is None
+		2. (Eventual) consistent init states (i.e., r_eventual_consistency = 0)
+
+	<Note>: This method is in-place.
+	"""
+	def _calculate_v_next_s_init_policy_samples(self, samples):
+
+		# <PENSAR CÓMO HACER QUE LA INIT POLICY TAMBIÉN OPTIMICE LA DIFICULTAD, YA QUE EL Q-VAL DEL NEXT_STATE TIENE QUE TENER EN CUENTA
+		# LA DIFICULTAD> -> HAY QUE CONECTAR EL FINAL DE LA INIT POLICY AL PRINCIPIO DE LA GOAL POLICY
+		# Tengo que usar la goal policy para obtener el valor del siguiente estado (v_next_s_critic en training_step() en generative_policy)
+		# para el último sample de la init policy. ESTO SE DEBE CALCULAR CON torch.no_grad() y usando las critic_target_nlms de la goal policy.
+
+		# Problema: si uso la goal policy para entrenar la init policy, entonces debo entrenar a la goal policy desde el principio!!! (incluso
+		# si hay muy pocos problemas consistentes para los que haya obtenido la dificultad)
+
+		# <<NOTA>>: el V(next_state) debe ser calculado con la goal policy ACTUAL -> NO PUEDO CALCULAR EL VALOR Y GUARDARLO EN EL EXPERIENCE
+		# REPLAY, SINO QUE TENGO QUE RE-CALCULARLO CADA VEZ QUE LO USO PARA EL ENTRENAMIENTO
+		# ---> Usar dos experience replay (una para las init trajectories y otro para las goal trajectories). Cuando se samplea un sample
+		# del init_state_exp_replay que tiene como next_state_tensors None, entonces uso la goal_policy_critic_target_NLM para predecir
+		# el V(next_state) y añado ese valor al sample antes de crear el dataset para el Trainer.fit
+
+
+		for i in range(len(samples)):
+
+			# Check if we need to calculate V(next_s) for the current sample
+			# samples[i][3][0]: next_s_state_tensors
+			# samples[i][2][1]: r_eventual
+			if samples[i][3][0] is None and samples[i][2][1] == 0:
+
+				# Obtain V(next_s) (withou gradients) for the current sample
+				v_next_s = self._goal_policy.get_v_next_s_init_policy_sample(samples[i])
+
+				# Store v_next_s in the position for "next_s_num_objs" of the current sample
+				samples[i][3][1] = v_next_s
+
+
+				"""
+				TENGO QUE GUARDAR COMO next_s_state_tensors el state_tensors (que contiene el nlm_encoding que usa la goal_policy) del primer estado de la goal policy trajectory
+				que va justo después del estado de la init_policy_trajectory
+				"""
+
+
 
 	# ------- Main Methods --------
 
@@ -639,11 +628,19 @@ class DirectedGenerator():
 
 	@max_atoms_init_state The maximum number of atoms the initial state can have. If we reach this number and the termination condition hasn't
 	                      been executed, we end the initial state generation phase and check the eventual consistency rules.
-	@max_length_trajectory The maximum number of actions (atoms) (invalid or not) that can be tried in the current trajectory. 
+	@max_actions_init_state The maximum number of actions (atoms) (invalid or not) that can be tried in the current trajectory. 
 	                        If we reach this number of actions and the initial state hasn't been generated, we check the eventual consistency
 							rules and apply the penalization (if needed).
+
+	<Note>: if @max_atoms_init_state and @max_actions_init_state are -1, we use the default values (self._max_atomos_init_state and
+        self._max_actions_init_state).
 	"""
-	def _obtain_trajectory_init_policy(self, max_atoms_init_state=10, max_length_trajectory=15):
+	def _obtain_trajectory_init_policy(self, max_atoms_init_state=-1, max_actions_init_state=-1):
+
+		if max_atoms_init_state == -1:
+			max_atoms_init_state = self._max_atoms_init_state
+		if max_actions_init_state == -1:
+			max_actions_init_state = self._max_actions_init_state
 
 		# Information about the NLM of the initial state policy
 		init_nlm_max_pred_arity = self._initial_state_policy.actor_nlm.max_arity # This value corresponds to the breadth of the NLM
@@ -712,7 +709,7 @@ class DirectedGenerator():
 				# in the trajectory)
 				# If so, stop generating the initial state and check if the eventual consistency rules are met
 		
-				if problem.initial_state.num_atoms >= max_atoms_init_state or actions_executed >= max_length_trajectory:
+				if problem.initial_state.num_atoms >= max_atoms_init_state or actions_executed >= max_actions_init_state:
 					initial_state_generated = True
 					problem.end_initial_state_generation_phase()
 
@@ -748,8 +745,13 @@ class DirectedGenerator():
 	@max_actions_goal_state The maximum number of actions the goal policy can apply from @initial_state. If we reach this
 	                        number of actions and the goal policy hasn't chosen the termination condition, we assume
 							the current state corresponds to the completely-generated goal state.
+
+	<Note>: if @max_actions_goal_state is -1, we use the default value (self._max_actions_goal_state).
 	"""
-	def _obtain_trajectory_goal_policy(self, problem, max_actions_goal_state=10):
+	def _obtain_trajectory_goal_policy(self, problem, max_actions_goal_state=-1):
+
+		if max_actions_goal_state == -1:
+			max_actions_goal_state = self._max_actions_goal_state
 
 		# Information about the NLM of the goal policy
 		goal_nlm_max_pred_arity = self._goal_policy.actor_nlm.max_arity # This value corresponds to the breadth of the NLM
@@ -843,17 +845,8 @@ class DirectedGenerator():
 
 	It returns a tuple (init_policy_trajectory, goal_policy_trajectory).
 	"""
-
-	# <<TODO>>
-	def _obtain_trajectory_and_preprocess_for_PPO(self, max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10,
-											            disc_factor_cont_consistency=0, disc_factor_event_consistency=0.8, disc_factor_difficulty=0.99):
-
-		
-
-		# <PENSAR CÓMO HACER QUE LA INIT POLICY TAMBIÉN OPTIMICE LA DIFICULTAD, YA QUE EL Q-VAL DEL NEXT_STATE TIENE QUE TENER EN CUENTA
-		# LA DIFICULTAD> -> HAY QUE CONECTAR EL FINAL DE LA INIT POLICY AL PRINCIPIO DE LA GOAL POLICY
-
-
+	def _obtain_trajectory_and_preprocess_for_PPO(self, max_atoms_init_state=-1, max_actions_init_state=-1, max_actions_goal_state=-1,
+											            disc_factor_cont_consistency=0, disc_factor_event_consistency=1, disc_factor_difficulty=1):
 
 		# <Obtain a trajectory with the initial policy>
 
@@ -869,10 +862,6 @@ class DirectedGenerator():
 		else:
 			goal_policy_trajectory = []
 
-		# <TODO>
-		# For the last sample of the init_policy_trajectory, obtain the q-values of the next-state Q(s') by
-		# using the goal policy to predict the value of the first state of the goal_policy_trajectory
-
 
 		# <Sum the rewards to obtain the return>
 		# For this operation, we need to append the init and goal policy trajectories
@@ -883,14 +872,10 @@ class DirectedGenerator():
 
 		self._sum_rewards_trajectory(init_and_goal_policy_trajectory, disc_factor_cont_consistency, disc_factor_event_consistency, disc_factor_difficulty)
 
-
-		# <Calculate the state value and selected action probability>
+		# <Return the init state and goal policy trajectories>
 
 		init_policy_trajectory = init_and_goal_policy_trajectory[:init_policy_trajectory_length]
 		goal_policy_trajectory = init_and_goal_policy_trajectory[init_policy_trajectory_length:]
-
-		self._calculate_state_value_and_old_policy_probs_trajectory_init_policy(init_policy_trajectory)
-		self._calculate_state_value_and_old_policy_probs_trajectory_goal_policy(goal_policy_trajectory)
 
 		return init_policy_trajectory, goal_policy_trajectory
 
@@ -898,19 +883,19 @@ class DirectedGenerator():
 	"""
 	This method trains both the initial and goal generation policies end-to-end.
 
-	@training_iterations The number of PPO iterations
-	@epochs_per_train_it For each PPO iteration, how many training epochs to use over the dataset of collected trajectories
-	@trajectories_per_train_it For each PPO iteration, how many trajectories to collect
-	@minibatch_size Minibatch size to use when training the model over the collected trajectories
+	@sac_iterations The number of SAC iterations
+	@initial_random_trajectories The initial number of trajectories collected by selecting actions with the untrained policies in order to
+								 initially populate the ERs.
+	@train_steps_per_trajectory_collected How many training steps to do for each trajectory collected. Each training_step corresponds to 
+	                                      a gradient descent on a batch (sampled from the ER) formed by @batch_size samples.
+	@batch_size The size of the batch used when training (with gradient descent) the generative policies.
 	@its_per_model_checkpoint Every this number of train its, the current model (Actor and Critic NLMs) weights are saved to the folder 
 	                          given by @checkpoint_folder. If it is -1, we do not save checkpoint.
 	Note: We add an index to the folder name given by @checkpoint_folder. Example: saved_models/both_policies_2
 	      (in case there are two other experiments ids=0, 1 before it).
 	"""
-
-	# <<TODO>>
-	def train_generative_policies(self, training_iterations, epochs_per_train_it=3, trajectories_per_train_it=50, minibatch_size=125,
-							      its_per_model_checkpoint=10, checkpoint_folder="saved_models/both_policies", logs_name="both_policies"):
+	def train_generative_policies(self, sac_iterations, initial_random_trajectories=200, train_steps_per_trajectory_collected=5,
+								  batch_size=64, its_per_model_checkpoint=10, checkpoint_folder="saved_models/both_policies", logs_name="both_policies"):
 
 		# Obtain folder name to save the model checkpoints in
 		folders = glob.glob(checkpoint_folder + r'_*')
@@ -923,80 +908,84 @@ class DirectedGenerator():
 		logger_init_policy = TensorBoardLogger("lightning_logs", name=logs_name+'/init_policy')
 		logger_goal_policy = TensorBoardLogger("lightning_logs", name=logs_name+'/goal_policy')
 
-		# Train the policies with PPO
-		for i in range(training_iterations):
+
+		# < Create the experience replays and initially populate them with random trajectories >
+		# Note: these "random" trajectories are obtained by selecting actions with the untrained generative policies
+
+		er_init_policy = ExperienceReplay(self._max_size_experience_replay) # Contains the samples for training the initial state policy
+		er_goal_policy = ExperienceReplay(self._max_size_experience_replay) # Contains the samples for training the goal policy
+
+		for _ in range(initial_random_trajectories):
+			init_policy_trajectory, goal_policy_trajectory = self._obtain_trajectory_and_preprocess_for_PPO()
+			er_init_policy.add_samples(init_policy_trajectory)
+			er_goal_policy.add_samples(goal_policy_trajectory) # goal_policy_trajectory might be an empty list
+
+
+		# < Train the policies with SAC >
+		for i in range(sac_iterations):
 			print("\n>> Curr train it:", i)
 
-			# < Obtain the trajectories for the current PPO iteration >
-			
-			init_policy_trajectories = []
-			goal_policy_trajectories = []
+			# < Obtain one init policy and goal policy trajectory and store it in the ER >
+			# Note: the goal_policy trajectory might be empty
 
-			print("\n> Collecting trajectories")
+			init_policy_trajectory, goal_policy_trajectory = self._obtain_trajectory_and_preprocess_for_PPO()
+			er_init_policy.add_samples(init_policy_trajectory)
+			er_goal_policy.add_samples(goal_policy_trajectory) 
 
-			# Collect the trajectories
-			for _ in range(trajectories_per_train_it):
-				init_policy_trajectory, goal_policy_trajectory = self._obtain_trajectory_and_preprocess_for_PPO()
-				init_policy_trajectories.extend(init_policy_trajectory)
-				goal_policy_trajectories.extend(goal_policy_trajectory)
-			
-			print(f"> Trajectories collected. Num samples:\n\t>Init policy trajectories: {len(init_policy_trajectories)} \
-					\n\t>Goal policy trajectories: {len(goal_policy_trajectories)}")
+			# <Train the generative policies on samples obtained from the ERs>
 
-			# Normalize the rewards
-			self._normalize_rewards_init_policy(init_policy_trajectories)
-			if len(goal_policy_trajectories) > 0:
-				self._normalize_rewards_goal_policy(goal_policy_trajectories)
+			# If the ERs don't contain enough samples (train_steps_per_trajectory_collected*batch_size), we train on fewer samples
+			num_train_samples_init_policy = train_steps_per_trajectory_collected*batch_size if er_init_policy.num_samples >= train_steps_per_trajectory_collected*batch_size else \
+			                                                                                   er_init_policy.num_samples
+			num_train_samples_goal_policy = train_steps_per_trajectory_collected*batch_size if er_goal_policy.num_samples >= train_steps_per_trajectory_collected*batch_size else \
+			                                                                                   er_goal_policy.num_samples
 
-			# < Train the generative policies >
+			# Obtain samples from the ERs
+			train_samples_init_policy = er_init_policy.get_samples(num_train_samples_init_policy)
+			train_samples_goal_policy = er_goal_policy.get_samples(num_train_samples_goal_policy)
 
-			# <TODO>: train both policies in parallel!
+			# Calculate V(next_state) for samples in train_samples_init_policy corresponding to:
+			#	1. Terminal samples (i.e., a completely-generated initial state)
+			#	2. (Eventual) consistent init states (i.e., r_eventual_consistency = 0)
+			self._calculate_v_next_s_init_policy_samples(train_samples_init_policy)
 
-			# -- Initial state policy
-
-			# Create training dataset and dataloader with the collected trajectories
-			trajectory_dataset_init_policy = ReinforceDataset(init_policy_trajectories)
-			trajectory_dataloader_init_policy = torch.utils.data.DataLoader(dataset=trajectory_dataset_init_policy, batch_size=minibatch_size,
+			# Create dataset and dataloader with the training samples
+			dataset_init_policy = ReinforceDataset(train_samples_init_policy)
+			dataloader_init_policy = torch.utils.data.DataLoader(dataset=dataset_init_policy, batch_size=batch_size,
 																collate_fn=TransformReinforceDatasetSample(), shuffle=True) # Change to shuffle=False if we need to keep the order in the transitions (s,a,s')
+			
+			if num_train_samples_goal_policy > 0: # Make sure the er_goal_policy contains at least one sample!
+				dataset_goal_policy = ReinforceDataset(train_samples_goal_policy)
+				dataloader_goal_policy = torch.utils.data.DataLoader(dataset=dataset_goal_policy, batch_size=batch_size,
+																	collate_fn=TransformReinforceDatasetSample(), shuffle=True) 
+			else:
+				dataset_goal_policy, dataloader_goal_policy = None, None
 
-			# Train the policy
 
-			trainer_init_policy = pl.Trainer(max_epochs=epochs_per_train_it, logger=logger_init_policy) # We need to reset the trainer, so we create a new one
-			trainer_init_policy.fit(self._initial_state_policy, trajectory_dataloader_init_policy)
+			# Train the generative policies
+			trainer_init_policy = pl.Trainer(max_epochs=1, logger=logger_init_policy)
+			trainer_init_policy.fit(self._initial_state_policy, dataloader_init_policy)
 
-			# Linearly anneal the entropy regularization of the policy
+			if num_train_samples_goal_policy > 0: # If the er_goal_policy contains no samples, we skip the training of the goal policy
+				trainer_goal_policy = pl.Trainer(max_epochs=1, logger=logger_goal_policy)
+				trainer_goal_policy.fit(self._goal_policy, dataloader_goal_policy)
+
+
+			# < Linearly anneal the entropy goal >
 			self._initial_state_policy.reduce_entropy()
-
-			# Save a checkpoint
-			if its_per_model_checkpoint != -1 and i > 0 and i % its_per_model_checkpoint == 0:
-				trainer_init_policy.save_checkpoint(checkpoints_folder + f'/init_policy_its-{i}.ckpt') # Both actor and critic NLMs are saved
-
-			# -- Goal state policy
-
-			if len(goal_policy_trajectories) > minibatch_size / 2: # If we have very few samples to train the goal policy on, we skip the training
-				# Create training dataset and dataloader with the collected trajectories
-				trajectory_dataset_goal_policy = ReinforceDataset(goal_policy_trajectories)
-				trajectory_dataloader_goal_policy= torch.utils.data.DataLoader(dataset=trajectory_dataset_goal_policy, batch_size=minibatch_size,
-																	collate_fn=TransformReinforceDatasetSample(), shuffle=True) # Change to shuffle=False if we need to keep the order in the transitions (s,a,s')
-
-				# Train the policy
-				goal_policy_train_epochs = 0
-
-				if len(goal_policy_trajectories) > minibatch_size / 2:
-					goal_policy_train_epochs += 1
-				if len(goal_policy_trajectories) > 2*10*trajectories_per_train_it / 4:
-					goal_policy_train_epochs += 1
-				if len(goal_policy_trajectories) > 3*10*trajectories_per_train_it / 4:
-					goal_policy_train_epochs += 1
-
-				trainer_goal_policy = pl.Trainer(max_epochs=goal_policy_train_epochs, logger=logger_goal_policy)
-				trainer_goal_policy.fit(self._goal_policy, trajectory_dataloader_goal_policy)
-
-				# Linearly anneal the entropy regularization of the policy
+			if num_train_samples_goal_policy > 0: # If we didn't train the goal policy, don't reduce the entropy goal
 				self._goal_policy.reduce_entropy()
 
-				# Save a checkpoint
-				if its_per_model_checkpoint != -1 and i > 0 and i % its_per_model_checkpoint == 0:
+			# < Update the critic_target NLM's weights>
+			self._initial_state_policy.soft_update_target_networks(self._tau)
+			if num_train_samples_goal_policy > 0: # If we didn't train the goal policy, don't update the target networks
+				self._goal_policy.soft_update_target_networks(self._tau)
+
+			# < Save a checkpoint >
+			if its_per_model_checkpoint != -1 and i > 0 and i % its_per_model_checkpoint == 0:
+				trainer_init_policy.save_checkpoint(checkpoints_folder + f'/init_policy_its-{i}.ckpt') # Both actor and critic NLMs are saved
+				
+				if num_train_samples_goal_policy > 0: # If we haven't trained the goal policy yet, don't save it
 					trainer_goal_policy.save_checkpoint(checkpoints_folder + f'/goal_policy_its-{i}.ckpt') # Both actor and critic NLMs are saved
 
 
@@ -1016,7 +1005,7 @@ class DirectedGenerator():
 	"""
 
 	# <<TODO>>
-	def generate_problem(self, max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10, problem_name = "problem", verbose=True):
+	def generate_problem(self, max_atoms_init_state=-1, max_actions_init_state=-1, max_actions_goal_state=-1, problem_name = "problem", verbose=True):
 		
 		if max_atoms_init_state > max_actions_init_state:
 			return ValueError("max_actions_init_state must be greater or equal than max_atoms_init_state")
@@ -1076,7 +1065,7 @@ class DirectedGenerator():
 
 	# <<TODO>>
 	def generate_problems(self, num_problems_to_generate,
-								max_atoms_init_state=10, max_actions_init_state=15, max_actions_goal_state=10, 
+								max_atoms_init_state=-1, max_actions_init_state=-1, max_actions_goal_state=-1,
 								problems_path = '../data/problems/problems_both_generative_policies/',
 								problems_name = 'bw_both_generative_policies',
 								metrics_file_path = '../data/problems/problems_both_generative_policies/problems_both_generative_policies_metrics.txt',

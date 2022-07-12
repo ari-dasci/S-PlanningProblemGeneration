@@ -18,11 +18,15 @@ class GenerativePolicy(pl.LightningModule):
 	@init_alpha Initial value for the temperature parameter used by SAC to control the balance between entropy and reward
 	@entropy_goal In SAC, the desired minimum entropy we want our policy to have on average. This parameter is used to automatically
 	              learn the best value for alpha (the temperature parameter).
+	@entropy_annealing_coeff If None we do not change the @entropy_goal during training. Else, it must be a tuple (i, final_entropy_goal).
+							 In this case, we linearly anneal (reduce) @entropy_goal so that it becomes final_entropy_goal after "i"
+							 training episodes.
+		<Note>: the method reduce_entropy() must be manually called after each training episode, in order to reduce @entropy_goal.
 
 	Note: @num_preds_layers_nlm needs to include the extra nullary predicate for the termination condition (in the output layer)
 	      and the number of atoms already added to the initial state (perc_actions_executed, a number between 0 and 1), in case these are needed.
 	"""
-	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_residual_connections, lr, gamma, init_alpha, entropy_goal):
+	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_residual_connections, lr, gamma, init_alpha, entropy_goal, entropy_annealing_coeff):
 		super().__init__()
 
 		self._lr = lr
@@ -31,6 +35,19 @@ class GenerativePolicy(pl.LightningModule):
 
 		init_alpha
 		self._entropy_goal = entropy_goal
+
+		# Calculate how much we need to reduce the entropy_goal at each training episode (in case we use linear annealing)
+		if entropy_annealing_coeff is None:
+			self._entropy_reduction_per_episode = 0
+			self._final_iteration_entropy_annealing = 0
+		else:
+			self._entropy_reduction_per_episode = (entropy_annealing_coeff[1] - entropy_goal) / entropy_annealing_coeff[0]
+			self._final_iteration_entropy_annealing = entropy_annealing_coeff[0]
+
+			if self._entropy_reduction_per_episode > 0:
+				raise ValueError("self._entropy_reduction_per_episode is positive, and it should be negative")
+
+		self._curr_entropy_annealing_it = 0
 
 		# Policy NLM: outputs a distribution probability over the actions
 		self._actor_nlm = NLM(num_preds_layers_nlm, mlp_hidden_sizes_nlm, residual_connections=nlm_residual_connections)
@@ -45,7 +62,7 @@ class GenerativePolicy(pl.LightningModule):
 		self._critic_2_target_nlm = NLM(num_preds_layers_nlm, mlp_hidden_sizes_nlm, residual_connections=nlm_residual_connections)	
 
 		# Initialize the target Q-network weights with those of the two Q-networks
-		self._soft_update_target_networks(tau=1.0)
+		self.soft_update_target_networks(tau=1.0)
 
 		self.curr_log_iteration = 0 # Used to track the current logging iteration in order to save the logs correctly
 
@@ -67,6 +84,14 @@ class GenerativePolicy(pl.LightningModule):
 	@property
 	def entropy_goal(self):
 		return self._entropy_goal
+
+	@property
+	def entropy_reduction_per_episode(self):
+		return self._entropy_reduction_per_episode
+
+	@property
+	def final_iteration_entropy_annealing(self):
+		return self._final_iteration_entropy_annealing
 
 	@property
 	def actor_nlm(self):
@@ -93,13 +118,23 @@ class GenerativePolicy(pl.LightningModule):
 	"""
 	Uses polyak averaging to update the weights of the target networks.
 	"""
-	def _soft_update_target_networks(self, tau):
+	def soft_update_target_networks(self, tau):
 
 		for target_param, local_param in zip(self._critic_1_target_nlm.parameters(), self._critic_1_nlm.parameters()):
         	target_param.data.copy_(tau * local_param.data + (1 - tau) * target_param.data)
 
         for target_param, local_param in zip(self._critic_2_target_nlm.parameters(), self._critic_2_nlm.parameters()):
         	target_param.data.copy_(tau * local_param.data + (1 - tau) * target_param.data)
+
+	"""
+	This method must be called after each trainer.fit(), in order to reduce the entropy goal.
+	"""
+	def reduce_entropy(self):
+
+		if self._curr_entropy_annealing_it < self._final_iteration_entropy_annealing:
+			self._entropy_goal += self._entropy_reduction_per_episode # Note, _entropy_reduction_per_episode is already negative
+
+		self._curr_entropy_annealing_it += 1
 
 	"""
 	Uses @mask_tensors to mask (i.e., set to -inf) those tensor values (@nlm_output) corresponding to invalid atoms/actions.
@@ -219,6 +254,28 @@ class GenerativePolicy(pl.LightningModule):
 		return chosen_action_index
 
 	"""
+	This method is only called if self is the goal_policy.
+
+	It returns v_next_s_critic (without gradients) for @init_policy_sample.
+	"""
+	def get_v_next_s_init_policy_sample(self, init_policy_sample):
+
+		with torch.no_grad():
+			curr_s_train_sample, chosen_action_index, r_train_sample, next_s_train_sample = init_policy_sample
+
+			curr_s_state_tensors, curr_s_num_objs, curr_s_mask_tensors = curr_s_train_sample
+			curr_r_continuous, curr_r_eventual, curr_r_difficulty, disc_sum_r_continuous, disc_sum_eventual, disc_sum_difficulty = r_train_sample
+			next_s_state_tensors, next_s_num_objs, next_s_mask_tensors = next_s_train_sample
+
+			curr_r = curr_r_continuous + curr_r_eventual + curr_r_difficulty
+
+
+			# <TODO>
+			# Cambiar también training_step
+
+
+
+	"""
 	Performs one training step on @train_batch.
 	The RL algorithm used to train the actor and critic(s) is discrete-SAC.
 
@@ -292,6 +349,13 @@ class GenerativePolicy(pl.LightningModule):
 				loss_critic_2 = ( q_s_a_critic_2 - q_target )**2
 
 			else: # There is no next state, as curr_s is terminal
+
+
+				# <<TODO>>
+				# CAMBIAR
+
+
+
 				loss_critic_1 = ( q_s_a_critic_1 - curr_r )**2
 				loss_critic_2 = ( q_s_a_critic_2 - curr_r )**2
 
@@ -374,5 +438,3 @@ class GenerativePolicy(pl.LightningModule):
 			self.curr_log_iteration += 1
 
 		return total_loss
-
-		# LLAMAR A self._soft_update_target_networks() DESPUÉS DE TRAINING STEP!

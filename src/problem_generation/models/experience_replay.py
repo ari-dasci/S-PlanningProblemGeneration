@@ -35,7 +35,6 @@ class ExperienceReplay():
 
 		return num_samples
 
-
 	"""
 	This method adds a single sample to the experience replay.
 	The sample is inserted in the list at the index given by self._index.
@@ -57,31 +56,35 @@ class ExperienceReplay():
 	def add_samples(self, samples):
 		num_samples = len(samples)
 
-		if self._index + num_samples <= self._max_size: # We don't get to the end of the list. We can insert normally.
-			self._experience_replay[self._index:self._index + num_samples] = samples
+		if num_samples > 0:
+			if self._index + num_samples <= self._max_size: # We don't get to the end of the list. We can insert normally.
+				self._experience_replay[self._index:self._index + num_samples] = samples
 
-			self._index += num_samples
+				self._index += num_samples
 
-			if self._index >= self._max_size:
-				self._index = self._index % self._max_size # If we get to the end, we start at 0 again.
+				if self._index >= self._max_size:
+					self._index = self._index % self._max_size # If we get to the end, we start at 0 again.
+					self._full = True
+
+			# We get to the end, so some samples must be inserted at the beginning of the list
+			else:
+				remaining_space = self._max_size - self._index
+
+				samples_1, samples_2 = samples[:remaining_space], samples[remaining_space:]
+
+				self._experience_replay[self._index:] = samples_1
+				self._experience_replay[:len(samples_2)] = samples_2
+
+				self._index = len(samples_2)
 				self._full = True
-
-		# We get to the end, so some samples must be inserted at the beginning of the list
-		else:
-			remaining_space = self._max_size - self._index
-
-			samples_1, samples_2 = samples[:remaining_space], samples[remaining_space:]
-
-			self._experience_replay[self._index:] = samples_1
-			self._experience_replay[:len(samples_2)] = samples_2
-
-			self._index = len(samples_2)
-			self._full = True
 
 	"""
 	This method is used to obtain @num_samples random samples from the experience replay.
 	"""
 	def get_samples(self, num_samples):
+
+		if num_samples == 0:
+			return []
 
 		# If the experience replay is full, we can sample as normal
 		if self._full:
