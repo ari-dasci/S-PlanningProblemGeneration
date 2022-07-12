@@ -261,18 +261,33 @@ class GenerativePolicy(pl.LightningModule):
 	def get_v_next_s_init_policy_sample(self, init_policy_sample):
 
 		with torch.no_grad():
-			curr_s_train_sample, chosen_action_index, r_train_sample, next_s_train_sample = init_policy_sample
+			curr_s_train_sample, chosen_action_index, r_train_sample, next_s_train_sample, is_terminal = init_policy_sample
 
-			curr_s_state_tensors, curr_s_num_objs, curr_s_mask_tensors = curr_s_train_sample
 			curr_r_continuous, curr_r_eventual, curr_r_difficulty, disc_sum_r_continuous, disc_sum_eventual, disc_sum_difficulty = r_train_sample
-			next_s_state_tensors, next_s_num_objs, next_s_mask_tensors = next_s_train_sample
+			next_s_state_tensors, next_s_num_objs, next_s_mask_tensors, next_s_state_value = next_s_train_sample
 
 			curr_r = curr_r_continuous + curr_r_eventual + curr_r_difficulty
 
+			# <Calculate v_next_s>
 
-			# <TODO>
-			# Cambiar también training_step
+			# Q(next_s) (calculated with the target networks)
+			q_next_s_target_1 = self._flatten_nlm_output(self._critic_1_target_nlm(next_s_state_tensors, next_s_num_objs))
+			q_next_s_target_2 = self._flatten_nlm_output(self._critic_2_target_nlm(next_s_state_tensors, next_s_num_objs))
 
+			# We calculate the min of the two q-targets in order to combat q-value overestimation
+			q_target_next_s = torch.min(q_next_s_target_1, q_next_s_target_2)
+
+			# pi(next_s)
+			pi_next_s = self._flatten_nlm_output(self.forward(next_s_state_tensors, next_s_num_objs, next_s_mask_tensors))
+
+			# > V(next_s) (with the target networks)
+
+			target_minus_entropy = q_target_next_s - (self._alpha*torch.log(pi_next_s) / np.log(len(pi_next_s))) # Scale entropy by the log-number of actions (len(pi_next_s))
+			target_minus_entropy[target_minus_entropy==float("inf")] = 1e10 # Convert from inf to 1e10, so that 0*inf = 0 in the line below
+
+			v_next_s_critic = torch.matmul(pi_next_s, target_minus_entropy)
+
+			return v_next_s_critic
 
 
 	"""
@@ -301,16 +316,17 @@ class GenerativePolicy(pl.LightningModule):
 
 		for train_sample in train_batch:
 			# Obtain elements of train_sample
-			# Train_sample: [curr_s,a,r,next_s]
+			# Train_sample: [curr_s,a,r,next_s,is_terminal]
 			# curr_s -> curr_s_state_tensors, curr_s_num_objs, curr_s_mask_tensors
 			# a -> chosen_action_index
 			# r -> curr_r_continuous, curr_r_eventual, curr_r_difficulty, disc_sum_r_continuous, disc_sum_eventual, disc_sum_difficulty
-			# next_s -> next_s_state_tensors, next_s_num_objs, next_s_mask_tensors
-			curr_s_train_sample, chosen_action_index, r_train_sample, next_s_train_sample = train_sample
+			# next_s -> next_s_state_tensors, next_s_num_objs, next_s_mask_tensors, next_s_state_value
+			# is_terminal -> whether this sample corresponds to the end of the (initial state/goal) trajectory or not
+			curr_s_train_sample, chosen_action_index, r_train_sample, next_s_train_sample, is_terminal = train_sample
 
 			curr_s_state_tensors, curr_s_num_objs, curr_s_mask_tensors = curr_s_train_sample
 			curr_r_continuous, curr_r_eventual, curr_r_difficulty, disc_sum_r_continuous, disc_sum_eventual, disc_sum_difficulty = r_train_sample
-			next_s_state_tensors, next_s_num_objs, next_s_mask_tensors = next_s_train_sample
+			next_s_state_tensors, next_s_num_objs, next_s_mask_tensors, next_s_state_value = next_s_train_sample
 
 			curr_r = curr_r_continuous + curr_r_eventual + curr_r_difficulty
 
@@ -320,7 +336,7 @@ class GenerativePolicy(pl.LightningModule):
 			q_s_a_critic_1 = self._critic_1_nlm(curr_s_state_tensors, curr_s_num_objs)[chosen_action_index[0]][tuple(chosen_action_index[1:])]
 			q_s_a_critic_2 = self._critic_2_nlm(curr_s_state_tensors, curr_s_num_objs)[chosen_action_index[0]][tuple(chosen_action_index[1:])]
 
-			if next_s_state_tensors is not None:
+			if not is_terminal: # This is not the last sample of the trajectory
 
 				with torch.no_grad(): # The gradients must only flow through Q(s,a) and not the Q-target
 					# Q(next_s) (calculated with the target networks)
@@ -348,16 +364,16 @@ class GenerativePolicy(pl.LightningModule):
 				loss_critic_1 = ( q_s_a_critic_1 - q_target )**2
 				loss_critic_2 = ( q_s_a_critic_2 - q_target )**2
 
-			else: # There is no next state, as curr_s is terminal
+			else: # This is the last sample of the trajectory
 
+				if next_s_state_value is not None: # This sample is the last sample of an initial state trajectory and the initial state is consistent
+					q_target = curr_r + self._gamma*next_s_state_value
+				else:
+					q_target = curr_r
 
-				# <<TODO>>
-				# CAMBIAR
+				loss_critic_1 = ( q_s_a_critic_1 - q_target )**2
+				loss_critic_2 = ( q_s_a_critic_2 - q_target )**2
 
-
-
-				loss_critic_1 = ( q_s_a_critic_1 - curr_r )**2
-				loss_critic_2 = ( q_s_a_critic_2 - curr_r )**2
 
 			# < Train the actor >
 

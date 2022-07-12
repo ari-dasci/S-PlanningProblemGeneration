@@ -465,6 +465,7 @@ class DirectedGenerator():
 	"""
 	This method receives a completely-generated problem (s_i, s_g) and returns its difficulty.
 	This difficulty corresponds to the number of nodes expanded by the planner.
+	It returns both the real difficulty and the scaled difficulty.
 	If the planner uses more than @max_planning_time seconds to solve the problem, we assume
 	the difficulty of the problem is equal to @max_difficulty.
 
@@ -474,6 +475,7 @@ class DirectedGenerator():
 	<Note>: This method also selects the goal atoms corresponding to the goal predicates given by the user
 	"""
 	def get_problem_difficulty(self, problem, max_difficulty=1e6, rescale_factor=0.2, max_planning_time=10):
+		
 		# Encode the problem in PDDL
 		# > This method also selects the goal atoms corresponding to the goal predicates given by the user
 		pddl_problem = problem.obtain_pddl_problem()
@@ -491,9 +493,10 @@ class DirectedGenerator():
 		log_problem_difficulty = np.log(scaled_problem_difficulty)
 
 		# rescale problem_difficulty
-		log_problem_difficulty *= rescale_factor
+		scaled_difficulty = log_problem_difficulty*rescale_factor
 
-		return log_problem_difficulty
+		# Return both the scaled and real difficulty
+		return problem_difficulty, scaled_difficulty
 
 	
 	"""
@@ -575,46 +578,24 @@ class DirectedGenerator():
 
 	"""
 	This method is used to calculate V(next_s) with the goal_policy for the init_policy training samples which correspond to:
-		1. Terminal samples (i.e., a completely-generated initial state) -> next_s is None
+		1. Terminal samples (i.e., a completely-generated initial state) -> is_terminal = True
 		2. (Eventual) consistent init states (i.e., r_eventual_consistency = 0)
 
 	<Note>: This method is in-place.
 	"""
 	def _calculate_v_next_s_init_policy_samples(self, samples):
 
-		# <PENSAR CÓMO HACER QUE LA INIT POLICY TAMBIÉN OPTIMICE LA DIFICULTAD, YA QUE EL Q-VAL DEL NEXT_STATE TIENE QUE TENER EN CUENTA
-		# LA DIFICULTAD> -> HAY QUE CONECTAR EL FINAL DE LA INIT POLICY AL PRINCIPIO DE LA GOAL POLICY
-		# Tengo que usar la goal policy para obtener el valor del siguiente estado (v_next_s_critic en training_step() en generative_policy)
-		# para el último sample de la init policy. ESTO SE DEBE CALCULAR CON torch.no_grad() y usando las critic_target_nlms de la goal policy.
-
-		# Problema: si uso la goal policy para entrenar la init policy, entonces debo entrenar a la goal policy desde el principio!!! (incluso
-		# si hay muy pocos problemas consistentes para los que haya obtenido la dificultad)
-
-		# <<NOTA>>: el V(next_state) debe ser calculado con la goal policy ACTUAL -> NO PUEDO CALCULAR EL VALOR Y GUARDARLO EN EL EXPERIENCE
-		# REPLAY, SINO QUE TENGO QUE RE-CALCULARLO CADA VEZ QUE LO USO PARA EL ENTRENAMIENTO
-		# ---> Usar dos experience replay (una para las init trajectories y otro para las goal trajectories). Cuando se samplea un sample
-		# del init_state_exp_replay que tiene como next_state_tensors None, entonces uso la goal_policy_critic_target_NLM para predecir
-		# el V(next_state) y añado ese valor al sample antes de crear el dataset para el Trainer.fit
-
-
 		for i in range(len(samples)):
 
 			# Check if we need to calculate V(next_s) for the current sample
-			# samples[i][3][0]: next_s_state_tensors
-			# samples[i][2][1]: r_eventual
-			if samples[i][3][0] is None and samples[i][2][1] == 0:
-
-				# Obtain V(next_s) (withou gradients) for the current sample
+			# samples[i][4]: is_terminal
+			# samples[i][2][1]: r_eventual		
+			if samples[i][4] and samples[i][2][1] == 0:
+				# Obtain V(next_s) (without gradients) for the current sample
 				v_next_s = self._goal_policy.get_v_next_s_init_policy_sample(samples[i])
 
-				# Store v_next_s in the position for "next_s_num_objs" of the current sample
-				samples[i][3][1] = v_next_s
-
-
-				"""
-				TENGO QUE GUARDAR COMO next_s_state_tensors el state_tensors (que contiene el nlm_encoding que usa la goal_policy) del primer estado de la goal policy trajectory
-				que va justo después del estado de la init_policy_trajectory
-				"""
+				# Store v_next_s in the sample
+				samples[i][3][3] = v_next_s
 
 
 
@@ -722,13 +703,14 @@ class DirectedGenerator():
 
 			# Complete the information about s' of the last trajectory_sample
 			if len(trajectory) > 0: # This is not the first sample of the trajectory
-				trajectory[-1][3] = [curr_state_tensors, num_objs_with_virtuals, mask_tensors]
+				trajectory[-1][3] = [curr_state_tensors, num_objs_with_virtuals, mask_tensors, None] # Last None is used to store V(next_s) only for consistent terminal init trajectory samples
 
-			# [s, a, r, s']
+			# [s, a, r, s', is_terminal]
 			curr_sample = [ [curr_state_tensors, num_objs_with_virtuals, mask_tensors], 
 			                chosen_action_index, 
 			                [r_continuous_consistency, r_eventual_consistency, 0.0], 
-			                [None, None, None] ] # s' is [None, None, None] if this is the last sample of the trajectory
+			                [None, None, None, None],
+			                initial_state_generated ] # s' is [None, None, None] if this is the last sample of the trajectory
 
 			trajectory.append(curr_sample)
 
@@ -795,7 +777,7 @@ class DirectedGenerator():
 
 				# Call the planner to obtain the difficulty of the problem generated
 				# This method also selects the goal atoms corresponding to the goal predicates given by the user
-				r_difficulty = self.get_problem_difficulty(problem) # Difficulty scaled to real values between 0 and 1 (unless the problem difficulty surpasses the maximum difficulty)
+				r_difficulty_real, r_difficulty = self.get_problem_difficulty(problem) # Difficulty scaled to real values between 0 and 1 (unless the problem difficulty surpasses the maximum difficulty)
 
 			# If the selected action is not the termination condition, execute it
 			else:		
@@ -818,25 +800,26 @@ class DirectedGenerator():
 
 					# Call the planner to obtain the difficulty of the problem generated
 					# This method also selects the goal atoms corresponding to the goal predicates given by the user
-					r_difficulty = self.get_problem_difficulty(problem)
+					r_difficulty_real, r_difficulty = self.get_problem_difficulty(problem)
 				else:
-					r_difficulty = 0.0 # Before calculating the problem difficulty, it must be fully generated
+					r_difficulty_real, r_difficulty = 0.0, 0.0 # Before calculating the problem difficulty, it must be fully generated
 
 
 			# Complete the information about s' of the last trajectory_sample
 			if len(trajectory) > 0: # This is not the first sample of the trajectory
-				trajectory[-1][3] = [curr_goal_and_init_state_tensors, num_objs, mask_tensors]
+				trajectory[-1][3] = [curr_goal_and_init_state_tensors, num_objs, mask_tensors, None]
 
-			# [s, a, r, s']
+			# [s, a, r, s', is_terminal]
 			curr_sample = [ [curr_goal_and_init_state_tensors, num_objs, mask_tensors], 
 			                chosen_action_index, 
 			                [0.0, 0.0, r_difficulty], 
-			                [None, None, None] ] # s' is [None, None, None] if this is the last sample of the trajectory
+			                [None, None, None, None],
+			                goal_state_generated ] # s' is [None, None, None] if this is the last sample of the trajectory
 
 			trajectory.append(curr_sample)
 
 
-		return problem, trajectory
+		return problem, r_difficulty_real, trajectory
 
 
 	"""
@@ -858,10 +841,13 @@ class DirectedGenerator():
 		# <Obtain a trajectory with the goal policy>
 		# If the initial policy trajectory is not consistent, then we don't generate a goal policy trajectory
 		if is_init_policy_trajectory_consistent:
-			_, goal_policy_trajectory = self._obtain_trajectory_goal_policy(problem, max_actions_goal_state)
+			_, _, goal_policy_trajectory = self._obtain_trajectory_goal_policy(problem, max_actions_goal_state)
+
+			# Add as the next_state of the last sample of the init_policy_trajectory the first state of the goal_policy_trajectory
+			# This is needed to calculate V(next_s) for the last sample of the init_policy_trajectory with the method _calculate_v_next_s_init_policy_samples()
+			init_policy_trajectory[-1][3] = goal_policy_trajectory[0][0] + [None] # The last "None" will be used to store V(next_s)
 		else:
 			goal_policy_trajectory = []
-
 
 		# <Sum the rewards to obtain the return>
 		# For this operation, we need to append the init and goal policy trajectories
@@ -1029,7 +1015,7 @@ class DirectedGenerator():
 			print("> Generating goal (:goal)")
 
 		# <Generate a goal state with the goal policy>
-		final_problem, _ = self._obtain_trajectory_goal_policy(init_problem, max_actions_goal_state)
+		final_problem, problem_difficulty, goal_policy_trajectory = self._obtain_trajectory_goal_policy(init_problem, max_actions_goal_state)
 
 		# <Obtain the PDDL encoding of the problem>
 		# Note: this method also selects at the goal state the predicates given by the user, in order to obtain the problem goal (:goal)
@@ -1038,7 +1024,7 @@ class DirectedGenerator():
 		if verbose:
 			print("> PDDL problem completely generated")
 
-		return pddl_problem
+		return pddl_problem, problem_difficulty
 
 
 	"""
@@ -1088,7 +1074,7 @@ class DirectedGenerator():
 			curr_problem_name = problems_name + '_' + str(ind)
 
 			# Generate problem
-			new_problem = self.generate_problem(max_atoms_init_state, max_actions_init_state, max_actions_goal_state, curr_problem_name, verbose)
+			new_problem, new_problem_difficulty = self.generate_problem(max_atoms_init_state, max_actions_init_state, max_actions_goal_state, curr_problem_name, verbose)
 
 			# Save it to disk
 			curr_prob_path = problems_path + curr_problem_name + '.pddl'
@@ -1099,14 +1085,11 @@ class DirectedGenerator():
 			if verbose:
 				print(f"> PDDL problem saved as {curr_prob_path}")
 
-			# Solve it with the planner and obtain difficulty
-			curr_prob_difficulty = self._planner.get_problem_difficulty(curr_prob_path, max_planning_time)
-
 			# Save the difficulty
-			f_metrics.write(f'Problem: {curr_problem_name} - difficulty (expanded nodes): {curr_prob_difficulty}\n')
+			f_metrics.write(f'Problem: {curr_problem_name} - difficulty (expanded nodes): {new_problem_difficulty}\n')
 
 			if verbose:
-				print(f"> Problem difficulty (num expanded nodes): {curr_prob_difficulty}")
+				print(f"> Problem difficulty (num expanded nodes): {new_problem_difficulty}")
 
 		f_metrics.close()
 
