@@ -688,7 +688,6 @@ def test_train_init_and_goal_policy_SAC():
 
 
 	# Train the goal generation policy
-	# HAY NANs en el nlm_output sin importar el valor del learning_rate!
 	directed_generator.train_generative_policies(sac_iterations=1e6, initial_random_trajectories=100, train_steps_per_trajectory_collected=5,
 											     batch_size=64)
 

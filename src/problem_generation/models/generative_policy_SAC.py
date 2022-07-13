@@ -31,7 +31,7 @@ class GenerativePolicy(pl.LightningModule):
 
 		self._lr = lr
 		self._gamma = gamma
-		self._alpha = torch.tensor(init_alpha, dtype=torch.float32)
+		self._alpha = torch.tensor(init_alpha, dtype=torch.float32, requires_grad=True)
 
 		self._entropy_goal = entropy_goal
 
@@ -219,13 +219,15 @@ class GenerativePolicy(pl.LightningModule):
 		return output_flattened
 
 
-	# QUITAR
+	# Method called after calculating the gradients. Used to check for NaN gradients.
+	"""
 	def on_after_backward(self):
 
 		for name, param in self._actor_nlm.named_parameters():
 
-			if param.requires_grad and torch.isnan(param.grad).any():
-				raise ValueError(f">> {name} parameter with value {param} has grad {param.grad}")
+			if param.requires_grad and param.grad is not None and torch.isnan(param.grad).any():
+				raise ValueError(f">> {name} parameter with value {param} has grad {param.grad}")ç
+	"""
 
 
 	# ------- Main methods
@@ -247,28 +249,6 @@ class GenerativePolicy(pl.LightningModule):
 		
 		# NLM forward pass
 		nlm_output = self._actor_nlm(state_tensors, num_objs_with_virtuals)
-
-		# A VECES NLM_OUTPUT TIENE NANs A PESAR DE QUE STATE_TENSORS Y NUM_OBJS_WITH_VIRTUALS SON CORRECTOS
-
-		# La _nlm_actor de la goal_policy se vuelven todos sus parametros a NaN despues de un solo training_episode
-		# a pesar de que el loss no vale NaN en ningun momento
-		# Los gradientes de los parametros de la _nlm_actor valen NaN!
-
-		# QUITAR
-		if nlm_output[0][0] != nlm_output[0][0]:
-			print("\n > State tensors:", state_tensors)
-			print("\n > num_objs_with_virtuals:", num_objs_with_virtuals)
-			print("\n > NLM output:", nlm_output)
-
-			nlm_output_critic = self._critic_1_nlm(state_tensors, num_objs_with_virtuals)
-			print("\n > NLM output critic:", nlm_output_critic)
-
-
-			raise ValueError("nlm_output[0][0] is NaN")
-
-			
-
-
 
 		# Mask NLM output (set to -inf values corresponding to invalid atoms)
 		if mask_tensors is not None:
@@ -339,8 +319,6 @@ class GenerativePolicy(pl.LightningModule):
 	def training_step(self, train_batch, batch_idx=0):
 		assert len(train_batch) > 0, "Train batch cannot have length 0"
 
-		# >> The REWARD IS THE IMMEDIATE REWARD (r) AND NOT THE DISCOUNTED SUM OF REWARDS (R)
-		
 		# Metrics and Losses
 		total_loss = 0
 
@@ -355,6 +333,7 @@ class GenerativePolicy(pl.LightningModule):
 		mean_term_cond_prob = 0
 
 		for train_sample in train_batch:
+
 			# Obtain elements of train_sample
 			# Train_sample: [curr_s,a,r,next_s,is_terminal]
 			# curr_s -> curr_s_state_tensors, curr_s_num_objs, curr_s_mask_tensors
@@ -369,6 +348,7 @@ class GenerativePolicy(pl.LightningModule):
 			next_s_state_tensors, next_s_num_objs, next_s_mask_tensors, next_s_state_value = next_s_train_sample
 
 			curr_r = curr_r_continuous + curr_r_eventual + curr_r_difficulty
+
 
 			# < Train the critic(s) >
 
@@ -433,10 +413,19 @@ class GenerativePolicy(pl.LightningModule):
 
 			# > Actor loss
 
+			# If we do it this way, the gradient becomes NaN (we need to avoid infinites in the calculations or
+			# otherwise the gradient is NaN and stays as NaN even after substituting infinites by another value)
+			"""
 			entropy_minus_q_val = (alpha_no_grad*torch.log(pi_curr_s) / np.log(len(pi_curr_s))) - q_curr_s
 			entropy_minus_q_val[entropy_minus_q_val==-float("inf")] = -1.0 # Convert from -inf to -1, so that 0*inf = 0 in the line below
+			"""
+
+			pi_curr_s_no_zeros = pi_curr_s.clone()
+			pi_curr_s_no_zeros[pi_curr_s_no_zeros==0] = 1e-1 # Substitute 0 by 0.1 since log(0) = -inf and gradient becomes NaN
+			entropy_minus_q_val = (alpha_no_grad*torch.log(pi_curr_s_no_zeros) / np.log(len(pi_curr_s))) - q_curr_s 
 
 			loss_actor = torch.matmul( pi_curr_s, entropy_minus_q_val )
+
 
 			# < Update alpha >
 
@@ -452,6 +441,7 @@ class GenerativePolicy(pl.LightningModule):
 
 
 			# < Accumulate losses and metrics >
+
 			total_loss += loss_critic_1 + loss_critic_2 + loss_actor + loss_alpha
 
 			total_loss_critics += (loss_critic_1 + loss_critic_2) / 2
@@ -464,11 +454,11 @@ class GenerativePolicy(pl.LightningModule):
 
 			# Calculate probability of termination condition
 			term_cond_prob = pi_curr_s_unflattened[0][-1].detach().numpy()
-
 			mean_term_cond_prob += term_cond_prob
 
 
 		# Scale losses and metrics by number of samples
+
 		total_loss /= len(train_batch)
 
 		total_loss_critics /= len(train_batch)
@@ -495,11 +485,5 @@ class GenerativePolicy(pl.LightningModule):
 
 			self.curr_log_iteration += 1
 
-
-		# QUITAR
-		print("\n--------- LOSSES")
-		print("> total_loss_critics", total_loss_critics)
-		print("> total_loss_actor", total_loss_actor)
-		print("> total_loss_alpha", total_loss_alpha)
 
 		return total_loss

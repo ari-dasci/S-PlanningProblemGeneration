@@ -957,18 +957,12 @@ class DirectedGenerator():
 
 
 			# Train the generative policies
-
-			# QUITAR
-			print("\n> Training init policy\n")
-
+			print("> Training init policy")
 			trainer_init_policy = pl.Trainer(max_epochs=1, logger=logger_init_policy)
 			trainer_init_policy.fit(self._initial_state_policy, dataloader_init_policy)
 
 			if num_train_samples_goal_policy > 0: # If the er_goal_policy contains no samples, we skip the training of the goal policy
-				
-				# QUITAR
-				print("\n> Training goal policy\n")
-
+				print("> Training goal policy\n")
 				trainer_goal_policy = pl.Trainer(max_epochs=1, logger=logger_goal_policy)
 				trainer_goal_policy.fit(self._goal_policy, dataloader_goal_policy)
 
