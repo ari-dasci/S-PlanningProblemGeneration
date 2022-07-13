@@ -1201,6 +1201,7 @@
     <Compile Include="main.py" />
     <Compile Include="problem_generation\controller\controller.py" />
     <Compile Include="problem_generation\controller\directed_generator.py" />
+    <Compile Include="problem_generation\controller\directed_generator_SAC.py" />
     <Compile Include="problem_generation\controller\random_generator.py">
       <SubType>Code</SubType>
     </Compile>
@@ -1212,9 +1213,11 @@
     <Compile Include="problem_generation\environment\state_validator.py" />
     <Compile Include="problem_generation\environment\__init__.py" />
     <Compile Include="problem_generation\models\acr_gnn.py" />
+    <Compile Include="problem_generation\models\experience_replay.py" />
     <Compile Include="problem_generation\models\generative_policy.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="problem_generation\models\generative_policy_SAC.py" />
     <Compile Include="problem_generation\models\reinforce.py">
       <SubType>Code</SubType>
     </Compile>

@@ -649,9 +649,48 @@ def test_applicable_ground_actions():
 
 	print("> Applicable actions:", problem.applicable_ground_actions())
 
+"""
+Tests the functionality of directed_generator_SAC.py used to train both the initial and goal generation policies.
+"""
+def test_train_init_and_goal_policy_SAC():
+	from problem_generation.controller.directed_generator_SAC import DirectedGenerator
+	from problem_generation.environment.pddl_parser import Parser
+	from problem_generation.environment.planner import Planner
+	from problem_generation.environment.state_validator import ValidatorPredOrderBW
+
+	domain_file_path = '../data/domains/blocks-domain.pddl'
+
+	parser = Parser()
+	parser.parse_domain(domain_file_path)
+	planner = Planner(domain_file_path)
+
+	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
+
+	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
+										   max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10,
+										   gamma=0.95, tau=0.01, init_alpha=0.1, max_size_experience_replay=1e4,
+
+										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
+										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
+										   res_connections_initial_state_nlm=True,
+										   lr_initial_state_nlm = 5e-4,
+										   entropy_goal_init_state_policy=1,
+										   entropy_annealing_coeff_init_state_policy = None,
+
+										   num_preds_inner_layers_goal_nlm=nlm_inner_layers,
+										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
+										   res_connections_goal_nlm=True,
+										   lr_goal_nlm = 5e-4,
+										   entropy_goal_goal_policy=1, 
+										   entropy_annealing_coeff_goal_policy = None)
 
 
-
+	# Train the goal generation policy
+	# HAY NANs en el nlm_output sin importar el valor del learning_rate!
+	directed_generator.train_generative_policies(sac_iterations=1e6, initial_random_trajectories=100, train_steps_per_trajectory_collected=5,
+											     batch_size=64)
 
 
 
@@ -660,6 +699,10 @@ def test_applicable_ground_actions():
 
 
 """
+
+------ Pruebas no r_difficulty -> QUITAR r_difficulty=0 en _obtain_trajectory_goal_policy()
+
+
 
 ------
 
@@ -701,4 +744,6 @@ if __name__ == "__main__":
 	#test_train_goal_policy()
 
 	#test_load_models_and_generate_problems()
-	test_train_init_and_goal_policy()
+	#test_train_init_and_goal_policy()
+
+	test_train_init_and_goal_policy_SAC()

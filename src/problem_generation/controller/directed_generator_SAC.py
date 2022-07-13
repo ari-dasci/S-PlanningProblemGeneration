@@ -1,7 +1,6 @@
 # --- This module implements the functionality used to generate planning problems with the generative policies, so that they are valid, diverse and of good quality ---
 # It also contains the functionality used to train the generative policies.
 
-import sys
 import numpy as np
 import torch
 import pytorch_lightning as pl
@@ -17,7 +16,7 @@ from problem_generation.environment.state_validator import ValidatorPredOrderBW
 from problem_generation.environment.relational_state import RelationalState
 from problem_generation.models.nlm import NLM
 from problem_generation.models.reinforce import ReinforceDataset
-from problem_generation.models.generative_policy import GenerativePolicy
+from problem_generation.models.generative_policy_SAC import GenerativePolicy
 from problem_generation.models.reinforce import TransformReinforceDatasetSample
 from problem_generation.models.experience_replay import ExperienceReplay
 
@@ -35,7 +34,7 @@ class DirectedGenerator():
 											the initial state policy (actor and critic NLMs) weights from scratch.
 
 	<Note>: when we load the init or goal policies, only the weights are restored, but the rest of the hyperparameters (e.g.: entropy coeffs, curr_log_it)
-	        are not loaded but initialized by the constructor!
+			are not loaded but initialized by the constructor!
 	"""
 	def __init__(self, parser, planner, 
 				 predicates_to_consider_for_goal=None, initial_state_info=None, consistency_validator=ValidatorPredOrderBW,
@@ -81,11 +80,11 @@ class DirectedGenerator():
 
 		if load_init_state_policy_checkpoint_name is None:
 			self._initial_state_policy = GenerativePolicy(num_preds_all_layers_initial_state_nlm, mlp_hidden_layers_initial_state_nlm, 
-												        res_connections_initial_state_nlm, lr_initial_state_nlm,
-													    gamma, init_alpha, entropy_goal_init_state_policy, entropy_annealing_coeff_init_state_policy)
+														res_connections_initial_state_nlm, lr_initial_state_nlm,
+														gamma, init_alpha, entropy_goal_init_state_policy, entropy_annealing_coeff_init_state_policy)
 		else: # Load initial state policy from checkpoint
 			self._initial_state_policy = GenerativePolicy.load_from_checkpoint(checkpoint_path=load_init_state_policy_checkpoint_name,
-																		         num_preds_layers_nlm=num_preds_all_layers_initial_state_nlm, 
+																				 num_preds_layers_nlm=num_preds_all_layers_initial_state_nlm, 
 																				 mlp_hidden_sizes_nlm=mlp_hidden_layers_initial_state_nlm, 
 																				 nlm_residual_connections=res_connections_initial_state_nlm, 
 																				 lr=lr_initial_state_nlm,
@@ -99,11 +98,11 @@ class DirectedGenerator():
 
 		if load_goal_policy_checkpoint_name is None:
 			self._goal_policy = GenerativePolicy(num_preds_all_layers_goal_nlm, mlp_hidden_layers_goal_nlm, 
-												        res_connections_goal_nlm, lr_goal_nlm,
-													    gamma, init_alpha, entropy_goal_goal_policy, entropy_annealing_coeff_goal_policy)
+														res_connections_goal_nlm, lr_goal_nlm,
+														gamma, init_alpha, entropy_goal_goal_policy, entropy_annealing_coeff_goal_policy)
 		else: # Load initial state policy from checkpoint
 			self._goal_policy = GenerativePolicy.load_from_checkpoint(checkpoint_path=load_goal_policy_checkpoint_name,
-																		         num_preds_layers_nlm=num_preds_all_layers_goal_nlm, 
+																				 num_preds_layers_nlm=num_preds_all_layers_goal_nlm, 
 																				 mlp_hidden_sizes_nlm=mlp_hidden_layers_goal_nlm, 
 																				 nlm_residual_connections=res_connections_goal_nlm, 
 																				 lr=lr_goal_nlm,
@@ -297,9 +296,9 @@ class DirectedGenerator():
 	In order to mask the NLM output, simply sum the mask tensor values with the output NLM tensors.
 
 	@nlm_output_shape Shape of the last NLM layer, as a list of num_preds, e.g., [1,2,3,0]. Note: @nlm_output_shape must
-	                  take into account the extra nullary predicate added for the termination condition (in case it is added).
+					  take into account the extra nullary predicate added for the termination condition (in case it is added).
 	@rel_state Instance of RelationalState representing the state the NLM is applied to. Used to obtain the state objects (with their types)
-	           and the domain predicates (with their variable types).
+			   and the domain predicates (with their variable types).
 	"""
 	def _get_mask_tensors_init_policy(self, nlm_output_shape, rel_state):  
 		# Get the types of the objects at the state, without virtual objects!
@@ -307,7 +306,7 @@ class DirectedGenerator():
 		obj_types = np.array(rel_state.objects) # Use np.array instead of list to use np.where()
 		predicates = rel_state.predicates # Get the state predicates
 		pred_to_index_dict = rel_state.pred_names_to_indices_dict_each_arity
-    
+	
 		# Initialize mask tensors full of zeros
 		mask_tensors = [torch.zeros( (num_objs_with_virtuals,)*r + (num_preds,), dtype=torch.float32) \
 						if num_preds != 0 else None for r, num_preds in enumerate(nlm_output_shape)]
@@ -331,12 +330,12 @@ class DirectedGenerator():
 					obj_inds_except_param_ind = list(range(pred_arity))
 					obj_inds_except_param_ind.remove(param_ind)
 					permute_inds = (param_ind, pred_arity) + tuple(obj_inds_except_param_ind)
-                
+				
 					curr_tensor = torch.permute(mask_tensors[pred_arity], permute_inds)
 
 					# Now we can easily set to -inf the corresponding elements
 					curr_tensor[incorrect_obj_inds, pred_ind] = -float("inf") # -inf
-            
+			
 		return mask_tensors
 
 	"""
@@ -345,10 +344,10 @@ class DirectedGenerator():
 	are not met.
 
 	@nlm_output_shape Shape of the last NLM layer, as a list of num_preds, e.g., [1,2,3,0]. Note: @nlm_output_shape must
-	                  take into account the extra nullary predicate added for the termination condition (in case it is added).
+					  take into account the extra nullary predicate added for the termination condition (in case it is added).
 	@problem The current problem (s_i, s_gc), used to obtain the applicable actions at the current goal state.
 	@termination_condition Whether the NLM output contains an extra nullary predicate representing the termination condition.
-	                       If True, we must also unmask that predicate (since the termination_condition can always be executed).
+						   If True, we must also unmask that predicate (since the termination_condition can always be executed).
 	"""
 	def _get_mask_tensors_goal_policy(self, nlm_output_shape, problem, termination_condition=True):
 		num_objs = problem.goal_state.num_objects # Number of objects in the goal state (and also in the initial state)
@@ -361,7 +360,7 @@ class DirectedGenerator():
 		action_name_to_ind_dict = self._dummy_rel_state_actions.pred_names_to_indices_dict_each_arity
 
 		applicable_ground_actions_nlm_format = [ [len(a[1])] + a[1] + [action_name_to_ind_dict[a[0]]] \
-										        for a in applicable_ground_actions ]
+												for a in applicable_ground_actions ]
 
 		# We mask all the NLM output positions except the ones corresponding to applicable_ground_actions_nlm_format
 		
@@ -470,7 +469,7 @@ class DirectedGenerator():
 	the difficulty of the problem is equal to @max_difficulty.
 
 	@rescale_factor We multiply the log_r_difficulty by this factor to rescale it, with respect to the other rewards
-	                (r_continuous_consistency and r_eventual_consistency)
+					(r_continuous_consistency and r_eventual_consistency)
 
 	<Note>: This method also selects the goal atoms corresponding to the goal predicates given by the user
 	"""
@@ -501,15 +500,15 @@ class DirectedGenerator():
 	
 	"""
 	This method normalizes the rewards in a trajectory (or set of trajectories) obtained by the initial policy so that they aproximately
-    distribute normally (according to N(0,1)).
+	distribute normally (according to N(0,1)).
 	Since the scale of rewards can vary a lot during training, we use a moving average to calculate the mean (\mu)
 	and std (\sigma) used to normalize the rewards.
 
 	<Note1>: we assume the rewards are in the position -3 of each trajectory sample. We insert in the -2 position
-	         the normalized reward.
+			 the normalized reward.
 	<Note2>: this method modifies the trajectory in-place.
 	<Note3>: I think this method doesn't work if called in parallel! (as we would be accessing the self._reward_moving_mean and self._reward_moving_std
-	         variables in parallel!)
+			 variables in parallel!)
 	"""
 
 	# We do not need to normalize rewards for discrete-SAC
@@ -540,15 +539,15 @@ class DirectedGenerator():
 
 	"""
 	This method normalizes the rewards in a trajectory (or set of trajectories) obtained by the goal policy so that they aproximately
-    distribute normally (according to N(0,1)).
+	distribute normally (according to N(0,1)).
 	Since the scale of rewards can vary a lot during training, we use a moving average to calculate the mean (\mu)
 	and std (\sigma) used to normalize the rewards.
 
 	<Note1>: we assume the rewards are in the 4-th position of each trajectory sample. We append to the 5-th position
-	         the normalized reward.
+			 the normalized reward.
 	<Note2>: this method modifies the trajectory in-place.
 	<Note3>: I think this method doesn't work if called in parallel! (as we would be accessing the self._reward_moving_mean and self._reward_moving_std
-	         variables in parallel!)
+			 variables in parallel!)
 	"""
 
 	# We do not need to normalize rewards for discrete-SAC
@@ -608,13 +607,13 @@ class DirectedGenerator():
 	trajectory sample.
 
 	@max_atoms_init_state The maximum number of atoms the initial state can have. If we reach this number and the termination condition hasn't
-	                      been executed, we end the initial state generation phase and check the eventual consistency rules.
+						  been executed, we end the initial state generation phase and check the eventual consistency rules.
 	@max_actions_init_state The maximum number of actions (atoms) (invalid or not) that can be tried in the current trajectory. 
-	                        If we reach this number of actions and the initial state hasn't been generated, we check the eventual consistency
+							If we reach this number of actions and the initial state hasn't been generated, we check the eventual consistency
 							rules and apply the penalization (if needed).
 
 	<Note>: if @max_atoms_init_state and @max_actions_init_state are -1, we use the default values (self._max_atomos_init_state and
-        self._max_actions_init_state).
+		self._max_actions_init_state).
 	"""
 	def _obtain_trajectory_init_policy(self, max_atoms_init_state=-1, max_actions_init_state=-1):
 
@@ -707,10 +706,10 @@ class DirectedGenerator():
 
 			# [s, a, r, s', is_terminal]
 			curr_sample = [ [curr_state_tensors, num_objs_with_virtuals, mask_tensors], 
-			                chosen_action_index, 
-			                [r_continuous_consistency, r_eventual_consistency, 0.0], 
-			                [None, None, None, None],
-			                initial_state_generated ] # s' is [None, None, None] if this is the last sample of the trajectory
+							chosen_action_index, 
+							[r_continuous_consistency, r_eventual_consistency, 0.0], 
+							[None, None, None, None],
+							initial_state_generated ] # s' is [None, None, None] if this is the last sample of the trajectory
 
 			trajectory.append(curr_sample)
 
@@ -723,9 +722,9 @@ class DirectedGenerator():
 	The goal generation phase starts from an initial state obtained with the initial generation policy.
 
 	@problem A ProblemState instance containing the initial state to start the goal generation phase from.
-	         <Note>: we assume the initial state of @problem meets all the eventual consistency rules.
+			 <Note>: we assume the initial state of @problem meets all the eventual consistency rules.
 	@max_actions_goal_state The maximum number of actions the goal policy can apply from @initial_state. If we reach this
-	                        number of actions and the goal policy hasn't chosen the termination condition, we assume
+							number of actions and the goal policy hasn't chosen the termination condition, we assume
 							the current state corresponds to the completely-generated goal state.
 
 	<Note>: if @max_actions_goal_state is -1, we use the default value (self._max_actions_goal_state).
@@ -784,7 +783,7 @@ class DirectedGenerator():
 				
 				# Transform the action index into a proper action
 				action_name = self._dummy_rel_state_actions.get_predicate_by_arity_and_ind(chosen_action_index[0], 
-																			               chosen_action_index[-1])[0] # [0] to get the name
+																						   chosen_action_index[-1])[0] # [0] to get the name
 				action_params = chosen_action_index[1:-1]
 
 				problem.apply_action_to_goal_state(action_name, action_params, check_action_applicability=False)
@@ -805,16 +804,24 @@ class DirectedGenerator():
 					r_difficulty_real, r_difficulty = 0.0, 0.0 # Before calculating the problem difficulty, it must be fully generated
 
 
+
+			# QUITAR
+			r_difficulty = 0.0
+
+
+
+
+
 			# Complete the information about s' of the last trajectory_sample
 			if len(trajectory) > 0: # This is not the first sample of the trajectory
 				trajectory[-1][3] = [curr_goal_and_init_state_tensors, num_objs, mask_tensors, None]
 
 			# [s, a, r, s', is_terminal]
 			curr_sample = [ [curr_goal_and_init_state_tensors, num_objs, mask_tensors], 
-			                chosen_action_index, 
-			                [0.0, 0.0, r_difficulty], 
-			                [None, None, None, None],
-			                goal_state_generated ] # s' is [None, None, None] if this is the last sample of the trajectory
+							chosen_action_index, 
+							[0.0, 0.0, r_difficulty], 
+							[None, None, None, None],
+							goal_state_generated ] # s' is [None, None, None] if this is the last sample of the trajectory
 
 			trajectory.append(curr_sample)
 
@@ -828,8 +835,8 @@ class DirectedGenerator():
 
 	It returns a tuple (init_policy_trajectory, goal_policy_trajectory).
 	"""
-	def _obtain_trajectory_and_preprocess_for_PPO(self, max_atoms_init_state=-1, max_actions_init_state=-1, max_actions_goal_state=-1,
-											            disc_factor_cont_consistency=0, disc_factor_event_consistency=1, disc_factor_difficulty=1):
+	def _obtain_trajectory_and_preprocess_for_SAC(self, max_atoms_init_state=-1, max_actions_init_state=-1, max_actions_goal_state=-1,
+														disc_factor_cont_consistency=0, disc_factor_event_consistency=1, disc_factor_difficulty=1):
 
 		# <Obtain a trajectory with the initial policy>
 
@@ -873,15 +880,15 @@ class DirectedGenerator():
 	@initial_random_trajectories The initial number of trajectories collected by selecting actions with the untrained policies in order to
 								 initially populate the ERs.
 	@train_steps_per_trajectory_collected How many training steps to do for each trajectory collected. Each training_step corresponds to 
-	                                      a gradient descent on a batch (sampled from the ER) formed by @batch_size samples.
+										  a gradient descent on a batch (sampled from the ER) formed by @batch_size samples.
 	@batch_size The size of the batch used when training (with gradient descent) the generative policies.
 	@its_per_model_checkpoint Every this number of train its, the current model (Actor and Critic NLMs) weights are saved to the folder 
-	                          given by @checkpoint_folder. If it is -1, we do not save checkpoint.
+							  given by @checkpoint_folder. If it is -1, we do not save checkpoint.
 	Note: We add an index to the folder name given by @checkpoint_folder. Example: saved_models/both_policies_2
-	      (in case there are two other experiments ids=0, 1 before it).
+		  (in case there are two other experiments ids=0, 1 before it).
 	"""
 	def train_generative_policies(self, sac_iterations, initial_random_trajectories=200, train_steps_per_trajectory_collected=5,
-								  batch_size=64, its_per_model_checkpoint=10, checkpoint_folder="saved_models/both_policies", logs_name="both_policies"):
+								  batch_size=64, its_per_model_checkpoint=10, checkpoint_folder="saved_models/both_policies", logs_name="both_policies_SAC"):
 
 		# Obtain folder name to save the model checkpoints in
 		folders = glob.glob(checkpoint_folder + r'_*')
@@ -901,20 +908,21 @@ class DirectedGenerator():
 		er_init_policy = ExperienceReplay(self._max_size_experience_replay) # Contains the samples for training the initial state policy
 		er_goal_policy = ExperienceReplay(self._max_size_experience_replay) # Contains the samples for training the goal policy
 
-		for _ in range(initial_random_trajectories):
-			init_policy_trajectory, goal_policy_trajectory = self._obtain_trajectory_and_preprocess_for_PPO()
-			er_init_policy.add_samples(init_policy_trajectory)
-			er_goal_policy.add_samples(goal_policy_trajectory) # goal_policy_trajectory might be an empty list
+		print("\n>> Collecting initial random trajectories")
 
+		for _ in range(initial_random_trajectories):
+			init_policy_trajectory, goal_policy_trajectory = self._obtain_trajectory_and_preprocess_for_SAC()
+			er_init_policy.add_samples(init_policy_trajectory)
+			er_goal_policy.add_samples(goal_policy_trajectory) # goal_policy_trajectory might be an empty list	
 
 		# < Train the policies with SAC >
-		for i in range(sac_iterations):
+		for i in range(int(sac_iterations)):
 			print("\n>> Curr train it:", i)
 
 			# < Obtain one init policy and goal policy trajectory and store it in the ER >
 			# Note: the goal_policy trajectory might be empty
 
-			init_policy_trajectory, goal_policy_trajectory = self._obtain_trajectory_and_preprocess_for_PPO()
+			init_policy_trajectory, goal_policy_trajectory = self._obtain_trajectory_and_preprocess_for_SAC()
 			er_init_policy.add_samples(init_policy_trajectory)
 			er_goal_policy.add_samples(goal_policy_trajectory) 
 
@@ -922,9 +930,9 @@ class DirectedGenerator():
 
 			# If the ERs don't contain enough samples (train_steps_per_trajectory_collected*batch_size), we train on fewer samples
 			num_train_samples_init_policy = train_steps_per_trajectory_collected*batch_size if er_init_policy.num_samples >= train_steps_per_trajectory_collected*batch_size else \
-			                                                                                   er_init_policy.num_samples
+																							   er_init_policy.num_samples
 			num_train_samples_goal_policy = train_steps_per_trajectory_collected*batch_size if er_goal_policy.num_samples >= train_steps_per_trajectory_collected*batch_size else \
-			                                                                                   er_goal_policy.num_samples
+																							   er_goal_policy.num_samples
 
 			# Obtain samples from the ERs
 			train_samples_init_policy = er_init_policy.get_samples(num_train_samples_init_policy)
@@ -949,13 +957,20 @@ class DirectedGenerator():
 
 
 			# Train the generative policies
+
+			# QUITAR
+			print("\n> Training init policy\n")
+
 			trainer_init_policy = pl.Trainer(max_epochs=1, logger=logger_init_policy)
 			trainer_init_policy.fit(self._initial_state_policy, dataloader_init_policy)
 
 			if num_train_samples_goal_policy > 0: # If the er_goal_policy contains no samples, we skip the training of the goal policy
+				
+				# QUITAR
+				print("\n> Training goal policy\n")
+
 				trainer_goal_policy = pl.Trainer(max_epochs=1, logger=logger_goal_policy)
 				trainer_goal_policy.fit(self._goal_policy, dataloader_goal_policy)
-
 
 			# < Linearly anneal the entropy goal >
 			self._initial_state_policy.reduce_entropy()
@@ -985,7 +1000,7 @@ class DirectedGenerator():
 							is always greater or equal to the number of atoms added, since an invalid action (one which does not meet the continuous
 							consistency rules) will add no atom and result in the same current state (next_state = curr_state).
 	@max_actions_goal_state The maximum number of actions we can execute from the initial state to arrive at a goal state. If we reach this number,
-	                        the goal generation phase ends.
+							the goal generation phase ends.
 	@problem_name The name of the generated problem, which appears in the PDDL encoding.
 	@verbose If True, print information about the problem generation process.
 	"""
@@ -1037,15 +1052,15 @@ class DirectedGenerator():
 							is always greater or equal to the number of atoms added, since an invalid action (one which does not meet the continuous
 							consistency rules) will add no atom and result in the same current state (next_state = curr_state).
 	@max_actions_goal_state The maximum number of actions we can execute from the initial state to arrive at a goal state. If we reach this number,
-	                        the goal generation phase ends.
+							the goal generation phase ends.
 	@problem_path Path where the generated PDDL problems are saved to. It must end with '/'.
 	@problems_name Name used to save each generated PDDL problem (they are saved to the path @problem_path with the name @problems_name).
-	               We append an index to the end of each problem name (to differentiate between them).
+				   We append an index to the end of each problem name (to differentiate between them).
 	@metrics_file_path Path (including name) of the file where we store the metrics (for now, only difficulty) of the problems generated.
 	@max_planning_time The maximum number of seconds we allow the planner to run when solving each generated PDDL problem. If there is a timeout,
-	                   we assume the problem is too difficult to be solved by the planner and assign a difficulty of -1 to it.
+					   we assume the problem is too difficult to be solved by the planner and assign a difficulty of -1 to it.
 					   Note: it could also be because the problem is unsolvable but, as the problems generated are always solvable by definition,
-					         this situation can't occur.
+							 this situation can't occur.
 	@verbose If True, print information about the problem generation process.
 	"""
 

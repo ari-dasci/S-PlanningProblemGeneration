@@ -17,14 +17,14 @@ class GenerativePolicy(pl.LightningModule):
 	@gamma Discount factor for the rewards
 	@init_alpha Initial value for the temperature parameter used by SAC to control the balance between entropy and reward
 	@entropy_goal In SAC, the desired minimum entropy we want our policy to have on average. This parameter is used to automatically
-	              learn the best value for alpha (the temperature parameter).
+				  learn the best value for alpha (the temperature parameter).
 	@entropy_annealing_coeff If None we do not change the @entropy_goal during training. Else, it must be a tuple (i, final_entropy_goal).
 							 In this case, we linearly anneal (reduce) @entropy_goal so that it becomes final_entropy_goal after "i"
 							 training episodes.
 		<Note>: the method reduce_entropy() must be manually called after each training episode, in order to reduce @entropy_goal.
 
 	Note: @num_preds_layers_nlm needs to include the extra nullary predicate for the termination condition (in the output layer)
-	      and the number of atoms already added to the initial state (perc_actions_executed, a number between 0 and 1), in case these are needed.
+		  and the number of atoms already added to the initial state (perc_actions_executed, a number between 0 and 1), in case these are needed.
 	"""
 	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_residual_connections, lr, gamma, init_alpha, entropy_goal, entropy_annealing_coeff):
 		super().__init__()
@@ -33,7 +33,6 @@ class GenerativePolicy(pl.LightningModule):
 		self._gamma = gamma
 		self._alpha = torch.tensor(init_alpha, dtype=torch.float32)
 
-		init_alpha
 		self._entropy_goal = entropy_goal
 
 		# Calculate how much we need to reduce the entropy_goal at each training episode (in case we use linear annealing)
@@ -121,10 +120,10 @@ class GenerativePolicy(pl.LightningModule):
 	def soft_update_target_networks(self, tau):
 
 		for target_param, local_param in zip(self._critic_1_target_nlm.parameters(), self._critic_1_nlm.parameters()):
-        	target_param.data.copy_(tau * local_param.data + (1 - tau) * target_param.data)
+			target_param.data.copy_(tau * local_param.data + (1 - tau) * target_param.data)
 
-        for target_param, local_param in zip(self._critic_2_target_nlm.parameters(), self._critic_2_nlm.parameters()):
-        	target_param.data.copy_(tau * local_param.data + (1 - tau) * target_param.data)
+		for target_param, local_param in zip(self._critic_2_target_nlm.parameters(), self._critic_2_nlm.parameters()):
+			target_param.data.copy_(tau * local_param.data + (1 - tau) * target_param.data)
 
 	"""
 	This method must be called after each trainer.fit(), in order to reduce the entropy goal.
@@ -154,10 +153,20 @@ class GenerativePolicy(pl.LightningModule):
 	<Note>: we do not return the new tensors. This operation is applied in-place. 
 	"""
 	def _softmax(self, pred_tensors):
+		# < In order to calculate softmax, we calculate the log_softmax and then take the exponentiation>
+		
+		# Calculate log_sum_exp of all the values in the tensors of the list
+		# 1) flatten each tensor in the list
+		# 2) concatenate them as a unique tensor
+		# 3) calculate log_sum_exp
+		log_sum_exp = torch.logsumexp(torch.cat([preds.flatten() if preds is not None else torch.empty(0, dtype=torch.float32) \
+											   for preds in pred_tensors]), dim=-1)
 
+		# Use log_sum_exp to calculate the log_softmax of the tensors in the list
 		for r in range(len(pred_tensors)):
 			if pred_tensors[r] is not None:
-				pred_tensors[r] = torch.nn.functional.softmax(pred_tensors[r]) 
+				pred_tensors[r] = torch.exp(pred_tensors[r] - log_sum_exp) # Exponentiate the result to convert from log_softmax to softmax
+				
 
 	""" 
 	Function to sample the output of the NLM. It CAN sample the "action" corresponding to the termination condition.
@@ -210,6 +219,15 @@ class GenerativePolicy(pl.LightningModule):
 		return output_flattened
 
 
+	# QUITAR
+	def on_after_backward(self):
+
+		for name, param in self._actor_nlm.named_parameters():
+
+			if param.requires_grad and torch.isnan(param.grad).any():
+				raise ValueError(f">> {name} parameter with value {param} has grad {param.grad}")
+
+
 	# ------- Main methods
 
 	def configure_optimizers(self):
@@ -229,6 +247,28 @@ class GenerativePolicy(pl.LightningModule):
 		
 		# NLM forward pass
 		nlm_output = self._actor_nlm(state_tensors, num_objs_with_virtuals)
+
+		# A VECES NLM_OUTPUT TIENE NANs A PESAR DE QUE STATE_TENSORS Y NUM_OBJS_WITH_VIRTUALS SON CORRECTOS
+
+		# La _nlm_actor de la goal_policy se vuelven todos sus parametros a NaN despues de un solo training_episode
+		# a pesar de que el loss no vale NaN en ningun momento
+		# Los gradientes de los parametros de la _nlm_actor valen NaN!
+
+		# QUITAR
+		if nlm_output[0][0] != nlm_output[0][0]:
+			print("\n > State tensors:", state_tensors)
+			print("\n > num_objs_with_virtuals:", num_objs_with_virtuals)
+			print("\n > NLM output:", nlm_output)
+
+			nlm_output_critic = self._critic_1_nlm(state_tensors, num_objs_with_virtuals)
+			print("\n > NLM output critic:", nlm_output_critic)
+
+
+			raise ValueError("nlm_output[0][0] is NaN")
+
+			
+
+
 
 		# Mask NLM output (set to -inf values corresponding to invalid atoms)
 		if mask_tensors is not None:
@@ -275,7 +315,7 @@ class GenerativePolicy(pl.LightningModule):
 			q_next_s_target_2 = self._flatten_nlm_output(self._critic_2_target_nlm(next_s_state_tensors, next_s_num_objs))
 
 			# We calculate the min of the two q-targets in order to combat q-value overestimation
-			q_target_next_s = torch.min(q_next_s_target_1, q_next_s_target_2)
+			q_target_next_s = torch.minimum(q_next_s_target_1, q_next_s_target_2)
 
 			# pi(next_s)
 			pi_next_s = self._flatten_nlm_output(self.forward(next_s_state_tensors, next_s_num_objs, next_s_mask_tensors))
@@ -283,7 +323,7 @@ class GenerativePolicy(pl.LightningModule):
 			# > V(next_s) (with the target networks)
 
 			target_minus_entropy = q_target_next_s - (self._alpha*torch.log(pi_next_s) / np.log(len(pi_next_s))) # Scale entropy by the log-number of actions (len(pi_next_s))
-			target_minus_entropy[target_minus_entropy==float("inf")] = 1e10 # Convert from inf to 1e10, so that 0*inf = 0 in the line below
+			target_minus_entropy[target_minus_entropy==float("inf")] = 1.0 # Convert from inf to 1e10, so that 0*inf = 0 in the line below
 
 			v_next_s_critic = torch.matmul(pi_next_s, target_minus_entropy)
 
@@ -325,7 +365,7 @@ class GenerativePolicy(pl.LightningModule):
 			curr_s_train_sample, chosen_action_index, r_train_sample, next_s_train_sample, is_terminal = train_sample
 
 			curr_s_state_tensors, curr_s_num_objs, curr_s_mask_tensors = curr_s_train_sample
-			curr_r_continuous, curr_r_eventual, curr_r_difficulty, disc_sum_r_continuous, disc_sum_eventual, disc_sum_difficulty = r_train_sample
+			curr_r_continuous, curr_r_eventual, curr_r_difficulty, disc_sum_r_continuous, disc_sum_r_eventual, disc_sum_r_difficulty = r_train_sample
 			next_s_state_tensors, next_s_num_objs, next_s_mask_tensors, next_s_state_value = next_s_train_sample
 
 			curr_r = curr_r_continuous + curr_r_eventual + curr_r_difficulty
@@ -344,7 +384,7 @@ class GenerativePolicy(pl.LightningModule):
 					q_next_s_target_2 = self._flatten_nlm_output(self._critic_2_target_nlm(next_s_state_tensors, next_s_num_objs))
 
 					# We calculate the min of the two q-targets in order to combat q-value overestimation
-					q_target_next_s = torch.min(q_next_s_target_1, q_next_s_target_2)
+					q_target_next_s = torch.minimum(q_next_s_target_1, q_next_s_target_2)
 
 					# pi(next_s)
 					pi_next_s = self._flatten_nlm_output(self.forward(next_s_state_tensors, next_s_num_objs, next_s_mask_tensors))
@@ -352,7 +392,7 @@ class GenerativePolicy(pl.LightningModule):
 					# > V(next_s) (with the target networks)
 
 					target_minus_entropy = q_target_next_s - (self._alpha*torch.log(pi_next_s) / np.log(len(pi_next_s))) # Scale entropy by the log-number of actions (len(pi_next_s))
-					target_minus_entropy[target_minus_entropy==float("inf")] = 1e10 # Convert from inf to 1e10, so that 0*inf = 0 in the line below
+					target_minus_entropy[target_minus_entropy==float("inf")] = 1.0 # Convert from inf to 1, so that 0*inf = 0 in the line below
 
 					v_next_s_critic = torch.matmul(pi_next_s, target_minus_entropy)
 
@@ -386,7 +426,7 @@ class GenerativePolicy(pl.LightningModule):
 				q_curr_s_critic_1 = self._flatten_nlm_output(self._critic_1_nlm(curr_s_state_tensors, curr_s_num_objs))
 				q_curr_s_critic_2 = self._flatten_nlm_output(self._critic_2_nlm(curr_s_state_tensors, curr_s_num_objs))
 
-				q_curr_s = torch.min(q_curr_s_critic_1, q_curr_s_critic_2)
+				q_curr_s = torch.minimum(q_curr_s_critic_1, q_curr_s_critic_2)
 
 			# alpha without grad
 			alpha_no_grad = self._alpha.detach()
@@ -394,7 +434,7 @@ class GenerativePolicy(pl.LightningModule):
 			# > Actor loss
 
 			entropy_minus_q_val = (alpha_no_grad*torch.log(pi_curr_s) / np.log(len(pi_curr_s))) - q_curr_s
-			entropy_minus_q_val[entropy_minus_q_val==-float("inf")] = -1e10 # Convert from -inf to -1e10, so that 0*inf = 0 in the line below
+			entropy_minus_q_val[entropy_minus_q_val==-float("inf")] = -1.0 # Convert from -inf to -1, so that 0*inf = 0 in the line below
 
 			loss_actor = torch.matmul( pi_curr_s, entropy_minus_q_val )
 
@@ -406,7 +446,7 @@ class GenerativePolicy(pl.LightningModule):
 			# > alpha loss
 
 			log_pi_curr_s_no_grad = torch.log(pi_curr_s_no_grad) / np.log(len(pi_curr_s_no_grad))
-			log_pi_curr_s_no_grad[log_pi_curr_s_no_grad==-float("inf")] = -1e10 # Convert from -inf to -1e10, so that 0*inf = 0 in the line below
+			log_pi_curr_s_no_grad[log_pi_curr_s_no_grad==-float("inf")] = -1.0 # Convert from -inf to -1, so that 0*inf = 0 in the line below
 
 			loss_alpha = torch.matmul(pi_curr_s_no_grad, ( -self._alpha * ( log_pi_curr_s_no_grad + self._entropy_goal ) ) )
 
@@ -423,7 +463,8 @@ class GenerativePolicy(pl.LightningModule):
 			total_r_difficulty += disc_sum_r_difficulty
 
 			# Calculate probability of termination condition
-			term_cond_prob = pi_curr_s_unflattened.detach().numpy()[0][-1]
+			term_cond_prob = pi_curr_s_unflattened[0][-1].detach().numpy()
+
 			mean_term_cond_prob += term_cond_prob
 
 
@@ -448,9 +489,17 @@ class GenerativePolicy(pl.LightningModule):
 											   global_step=self.curr_log_iteration)
 			self.logger.experiment.add_scalar("Critics Loss", total_loss_critics, global_step=self.curr_log_iteration)
 			self.logger.experiment.add_scalar("Actor Loss", total_loss_actor, global_step=self.curr_log_iteration)
-			self.logger.experiment.add_scalar("Alpha Loss", total_loss_alpha, global_step=self.curr_log_iteration)
+			self.logger.experiment.add_scalar("Alpha", total_loss_alpha, global_step=self.curr_log_iteration)
+			self.logger.experiment.add_scalar("Alpha Loss", self._alpha.item(), global_step=self.curr_log_iteration)
 			self.logger.experiment.add_scalar("Termination Condition Probability", mean_term_cond_prob, global_step=self.curr_log_iteration)
 
 			self.curr_log_iteration += 1
+
+
+		# QUITAR
+		print("\n--------- LOSSES")
+		print("> total_loss_critics", total_loss_critics)
+		print("> total_loss_actor", total_loss_actor)
+		print("> total_loss_alpha", total_loss_alpha)
 
 		return total_loss
