@@ -657,6 +657,7 @@ def test_train_init_and_goal_policy_SAC():
 	from problem_generation.environment.pddl_parser import Parser
 	from problem_generation.environment.planner import Planner
 	from problem_generation.environment.state_validator import ValidatorPredOrderBW
+	from problem_generation.environment.state_validator import DummyValidatorBW
 
 	domain_file_path = '../data/domains/blocks-domain.pddl'
 
@@ -668,31 +669,31 @@ def test_train_init_and_goal_policy_SAC():
 	nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
 
+	# QUITAR
+	# CAMBIAR DummyValidatorBW por ValidatorPredOrderBW
 	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
 										   max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10,
-										   gamma=0.95, tau=0.01, init_alpha=0.1, max_size_experience_replay=1e4,
+										   gamma=0.95, tau=0.005, init_alpha=0.8, max_size_experience_replay=1e4,
 
 										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
 										   res_connections_initial_state_nlm=True,
-										   lr_initial_state_nlm = 5e-4,
-										   entropy_goal_init_state_policy=1,
+										   lr_initial_state_nlm = 1e-3,
+										   entropy_goal_init_state_policy=0.8,
 										   entropy_annealing_coeff_init_state_policy = None,
 
 										   num_preds_inner_layers_goal_nlm=nlm_inner_layers,
 										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
 										   res_connections_goal_nlm=True,
-										   lr_goal_nlm = 5e-4,
-										   entropy_goal_goal_policy=1, 
+										   lr_goal_nlm = 1e-3,
+										   entropy_goal_goal_policy=0.8, 
 										   entropy_annealing_coeff_goal_policy = None)
 
 
 	# Train the goal generation policy
+	# >>>>> Quitar r_difficulty=0, cambiar dummy_validator por real_validator, cambiar _calculate_v_next_s_init_policy_samples (v_next_s vale 0 siempre)
 	directed_generator.train_generative_policies(sac_iterations=1e6, initial_random_trajectories=100, train_steps_per_trajectory_collected=5,
 											     batch_size=64)
-
-
-
 
 
 
@@ -701,31 +702,96 @@ def test_train_init_and_goal_policy_SAC():
 
 ------ Pruebas no r_difficulty -> QUITAR r_difficulty=0 en _obtain_trajectory_goal_policy()
 
+-- lr = 5e-4 -> se aprende muy lento
+
+-- lr = 5e-3 -> el lr es demasiado alto
+
+-- lr = 1e-3, tau = 0.1, init_alpha = 1 -> creo que el lr sigue siendo demasiado alto, la alpha no deja de aumentar
+
+-- lr = 5e-4, tau = 0.05, init_alpha = 0.1 -> Tras 3h, la r_continuous solo aumenta un poco (de -0.8 a -0.6)
+                                              El alpha no deja tampoco de aumentar y el entrenamiento parece inestable.
+
+-- lr = 5e-5, tau = 0.05, init_alpha = 0.1 -> No aprende (la termination condition probability converge a 1 para la init policy)
 
 
-------
+----- Pruebas no r_difficulty, dummy_validator = always select on_table and 10 atoms in init_state
 
->>>> Probar a generar problemas pequeños al principio (para que aprenda a generar init states consistentes)
-    y después ir aumentando el tamaño de los problemas.
+>>>>> Quitar alpha_loss=0, cambiar dummy_validator por real_validator, cambiar _calculate_v_next_s_init_policy_samples (v_next_s vale 0 siempre)
 
->>> Probar a ir bajando el learning rate hasta 0
 
->>>> REDUCIR EL TAMAÑO DE LOS LOGS AL LOGEAR SOLO CADA X CURR_LOG_ITS!!
+> no_train_alpha, lr=5e-4, init_alpha=1, tau=0.1: 
+	La r_continuous y r_eventual aumentan, aunque muy lentamente. La policy entropy es muy alta y el critic loss muy inestable.
 
->>> Aumentar la complejidad de las NLM
+> no_train_alpha, lr=5e-4, init_alpha=1, <tau=0.01>:
+	Aprende igual (incluso más) rápido que con tau=0.1 y el critic loss es menor.
 
-# ------------------------------------------------------ TODO
+> no_train_alpha, lr=5e-4, init_alpha=1, <tau=0.001>:
+	Aprende igual de rápido y las gráficas son un poco más estables.
 
-# MIRAR LINK: https://vitalab.github.io/article/2020/01/14/Implementation_Matters.html
-# HAY MUCHOS "CODE-LEVEL OPTIMIZATIONS" QUE PUEDEN SER IMPORTANTES DE CARA A TRABAJAR CON PPO!!!
+> no_train_alpha, <lr=1e-4>, init_alpha=1, tau=0.001:
+	Funciona peor y aprende más lento que con lr=5e-4.
 
-> Ver cómo mejorar el rendimiento (quizás permitiendo ejecutar el planner en paralelo para así poder
-					               obtener trayectorias en paralelo)
+> no_train_alpha, <lr=1e-3>, init_alpha=1, tau=0.001:
+	Funciona bien (las gráficas no son inestables) y aprende más rápido que con lr=5e-4.
+
+> no_train_alpha, <lr=2e-3>, init_alpha=1, tau=0.001:
+	El lr es demasiado alto! (Las gráficas oscilan)
+
+> no_train_alpha, <lr=1e-3>, <init_alpha=0.1>, tau=0.001:
+	Aprende más rápido que con init_alpha=1, pero aún así sigue siendo muy lento.
+
+> no_train_alpha, lr=1e-3, <init_alpha=0.01>, tau=0.001:
+	Casi idéntico a init_alpha=0.1.
+
+> no_train_alpha, lr=1e-3, <init_alpha=0.001>, tau=0.001:
+	Idéntico a alpha=0.01 y alpha=0.1.
+
+> no_train_alpha, lr=1e-3, <init_alpha=0>, tau=0.001:
+	Casi idéntico, aunque la r_continuous no aumenta.
+
+------------ Pruebas no r_difficulty, ValidatorPredOrderBW
+
+> no_train_alpha, lr=1e-3, init_alpha=0.1, <tau=0.005>:
+	r_continuous converge a 0 (aunque tarda 6h) pero
+	r_eventual no aprende! (converge a -1).
+
+> no_train_alpha, lr=1e-3, init_alpha=1, tau=0.005:
+	r_continuous y r_eventual aumentan, pero muy lentamente.
+	La entropía de la política es demasiado alta!
+
+> no_train_alpha, lr=1e-3, init_alpha=0.5, tau=0.005:
+	r_continuous aumenta más rápido que en el experimento anterior
+	pero r_eventual no aprende (converge a -1).
+
+> <train_alpha>, lr=1e-3, init_alpha=1, tau=0.005, entropy_goal=0.1:
+	El alpha disminuye hasta por debajo de 0! -> no funciona bien
+
+> train_alpha, lr=1e-3, init_alpha=1, tau=0.005, entropy_goal=0.1, <no divide by log(len(pi_curr_s))>:
+	Funciona igual de mal (el alpha disminuye por debajo de 0).
+
+> train_alpha, <lr=5e-4>, <init_alpha=0.1>, tau=0.005, entropy_goal=0.1:
+  (intento bajar el lr para ver si el valor de alpha converge en vez de volverse negativo)
+	Baja y después aumenta sin parar (no funciona).
+
+> train_alpha, <lr=1e-3>, <init_alpha=0.5>, tau=0.005, <entropy_goal=0.5>, <alpha_loss * 0.1>:
+	Alpha aprende correctamente!! El valor de alpha va variando durante el entrenamiento y 
+	termina convergiendo a 0.6. De igual forma, la policy_entropy termina convergiendo al valor
+	0.5, que coincide con el entropy_goal!
+	No obstante, la r_continuous converge a 0 pero la r_eventual no.
+
+> train_alpha, lr=1e-3, init_alpha=0.5, tau=0.005, entropy_goal=0.5, <alpha_loss * 1>:
+	Funciona mejor (el alpha aprende más rápido).
+
+> train_alpha, lr=1e-3, init_alpha=0.5, tau=0.005, entropy_goal=0.5, <alpha_loss * 10>:
+	Peor (el alpha aprende más lento) -> mejor no modificar el alpha_loss!
+
+> train_alpha, lr=1e-3, <init_alpha=1>, tau=0.005, <entropy_goal=1>:
+	El entropy_goal es demasiado alto.
+
+> train_alpha, lr=1e-3, <init_alpha=0.8>, tau=0.005, <entropy_goal=0.8>:
+	Solo aprende el r_continuous, y muy lento.
 
 """
-
-# ---------------------------------------------------
-
 
 # Do tests
 if __name__ == "__main__":

@@ -81,7 +81,7 @@ class DirectedGenerator():
 		if load_init_state_policy_checkpoint_name is None:
 			self._initial_state_policy = GenerativePolicy(num_preds_all_layers_initial_state_nlm, mlp_hidden_layers_initial_state_nlm, 
 														res_connections_initial_state_nlm, lr_initial_state_nlm,
-														gamma, init_alpha, entropy_goal_init_state_policy, entropy_annealing_coeff_init_state_policy)
+														gamma, tau, init_alpha, entropy_goal_init_state_policy, entropy_annealing_coeff_init_state_policy)
 		else: # Load initial state policy from checkpoint
 			self._initial_state_policy = GenerativePolicy.load_from_checkpoint(checkpoint_path=load_init_state_policy_checkpoint_name,
 																				 num_preds_layers_nlm=num_preds_all_layers_initial_state_nlm, 
@@ -89,6 +89,7 @@ class DirectedGenerator():
 																				 nlm_residual_connections=res_connections_initial_state_nlm, 
 																				 lr=lr_initial_state_nlm,
 																				 gamma=gamma,
+																				 tau=tau,
 																				 init_alpha=init_alpha,
 																				 entropy_goal=entropy_goal_init_state_policy,
 																				 entropy_annealing_coeff=entropy_annealing_coeff_init_state_policy)
@@ -99,7 +100,7 @@ class DirectedGenerator():
 		if load_goal_policy_checkpoint_name is None:
 			self._goal_policy = GenerativePolicy(num_preds_all_layers_goal_nlm, mlp_hidden_layers_goal_nlm, 
 														res_connections_goal_nlm, lr_goal_nlm,
-														gamma, init_alpha, entropy_goal_goal_policy, entropy_annealing_coeff_goal_policy)
+														gamma, tau, init_alpha, entropy_goal_goal_policy, entropy_annealing_coeff_goal_policy)
 		else: # Load initial state policy from checkpoint
 			self._goal_policy = GenerativePolicy.load_from_checkpoint(checkpoint_path=load_goal_policy_checkpoint_name,
 																				 num_preds_layers_nlm=num_preds_all_layers_goal_nlm, 
@@ -107,6 +108,7 @@ class DirectedGenerator():
 																				 nlm_residual_connections=res_connections_goal_nlm, 
 																				 lr=lr_goal_nlm,
 																				 gamma=gamma,
+																				 tau=tau,
 																				 init_alpha=init_alpha,
 																				 entropy_goal=entropy_goal_goal_policy,
 																				 entropy_annealing_coeff=entropy_annealing_coeff_goal_policy)
@@ -591,7 +593,11 @@ class DirectedGenerator():
 			# samples[i][2][1]: r_eventual		
 			if samples[i][4] and samples[i][2][1] == 0:
 				# Obtain V(next_s) (without gradients) for the current sample
-				v_next_s = self._goal_policy.get_v_next_s_init_policy_sample(samples[i])
+
+				# QUITAR
+				v_next_s = 0
+
+				# v_next_s = self._goal_policy.get_v_next_s_init_policy_sample(samples[i])
 
 				# Store v_next_s in the sample
 				samples[i][3][3] = v_next_s
@@ -888,7 +894,7 @@ class DirectedGenerator():
 		  (in case there are two other experiments ids=0, 1 before it).
 	"""
 	def train_generative_policies(self, sac_iterations, initial_random_trajectories=200, train_steps_per_trajectory_collected=5,
-								  batch_size=64, its_per_model_checkpoint=10, checkpoint_folder="saved_models/both_policies", logs_name="both_policies_SAC"):
+								  batch_size=64, its_per_model_checkpoint=100, checkpoint_folder="saved_models/both_policies", logs_name="both_policies_SAC"):
 
 		# Obtain folder name to save the model checkpoints in
 		folders = glob.glob(checkpoint_folder + r'_*')
@@ -971,10 +977,15 @@ class DirectedGenerator():
 			if num_train_samples_goal_policy > 0: # If we didn't train the goal policy, don't reduce the entropy goal
 				self._goal_policy.reduce_entropy()
 
+
 			# < Update the critic_target NLM's weights>
+			# The target networks are now updated inside the training_step() method of the policies themselves
+			"""
 			self._initial_state_policy.soft_update_target_networks(self._tau)
 			if num_train_samples_goal_policy > 0: # If we didn't train the goal policy, don't update the target networks
 				self._goal_policy.soft_update_target_networks(self._tau)
+			"""
+
 
 			# < Save a checkpoint >
 			if its_per_model_checkpoint != -1 and i > 0 and i % its_per_model_checkpoint == 0:

@@ -4,9 +4,11 @@
 
 import torch
 import numpy as np
+from torch import nn
 import pytorch_lightning as pl
 
 from problem_generation.models.nlm import NLM
+
 
 class GenerativePolicy(pl.LightningModule):
 
@@ -15,6 +17,7 @@ class GenerativePolicy(pl.LightningModule):
 
 	@nlm_residual_connections Whether the NLM must use residual connections
 	@gamma Discount factor for the rewards
+	@tau Value that controls how quickly the target networks' weights "follow" the main networks' weights.
 	@init_alpha Initial value for the temperature parameter used by SAC to control the balance between entropy and reward
 	@entropy_goal In SAC, the desired minimum entropy we want our policy to have on average. This parameter is used to automatically
 				  learn the best value for alpha (the temperature parameter).
@@ -26,12 +29,13 @@ class GenerativePolicy(pl.LightningModule):
 	Note: @num_preds_layers_nlm needs to include the extra nullary predicate for the termination condition (in the output layer)
 		  and the number of atoms already added to the initial state (perc_actions_executed, a number between 0 and 1), in case these are needed.
 	"""
-	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_residual_connections, lr, gamma, init_alpha, entropy_goal, entropy_annealing_coeff):
+	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_residual_connections, lr, gamma, tau, init_alpha, entropy_goal, entropy_annealing_coeff):
 		super().__init__()
 
 		self._lr = lr
 		self._gamma = gamma
-		self._alpha = torch.tensor(init_alpha, dtype=torch.float32, requires_grad=True)
+		self._tau = tau
+		self._alpha = nn.Parameter(torch.tensor(init_alpha, dtype=torch.float32))
 
 		self._entropy_goal = entropy_goal
 
@@ -75,6 +79,10 @@ class GenerativePolicy(pl.LightningModule):
 	@property
 	def gamma(self):
 		return self._gamma
+
+	@property
+	def tau(self):
+		return self._tau
 
 	@property
 	def alpha(self):
@@ -226,8 +234,24 @@ class GenerativePolicy(pl.LightningModule):
 		for name, param in self._actor_nlm.named_parameters():
 
 			if param.requires_grad and param.grad is not None and torch.isnan(param.grad).any():
-				raise ValueError(f">> {name} parameter with value {param} has grad {param.grad}")ç
+				raise ValueError(f">> {name} parameter with value {param} has grad {param.grad}")
 	"""
+
+	"""
+	Calculates the entropy associated with the policy.
+
+	@pred_tensors The output of the NLM <after the masking>.
+	"""
+	def _policy_entropy(self, pred_tensors):
+		# Ignore probabilities of 0, corresponding to masked values (with mask_nlm_output())
+		prob_tensors = pred_tensors[pred_tensors.nonzero()].flatten()
+
+		# Calculate entropy of the ground action distribution
+		policy_entropy = torch.distributions.Categorical(probs = prob_tensors).entropy() / np.log(len(prob_tensors))
+
+		return policy_entropy
+
+
 
 
 	# ------- Main methods
@@ -331,6 +355,8 @@ class GenerativePolicy(pl.LightningModule):
 		total_r_difficulty = 0
 
 		mean_term_cond_prob = 0
+		entropy = 0
+
 
 		for train_sample in train_batch:
 
@@ -370,7 +396,6 @@ class GenerativePolicy(pl.LightningModule):
 					pi_next_s = self._flatten_nlm_output(self.forward(next_s_state_tensors, next_s_num_objs, next_s_mask_tensors))
 
 					# > V(next_s) (with the target networks)
-
 					target_minus_entropy = q_target_next_s - (self._alpha*torch.log(pi_next_s) / np.log(len(pi_next_s))) # Scale entropy by the log-number of actions (len(pi_next_s))
 					target_minus_entropy[target_minus_entropy==float("inf")] = 1.0 # Convert from inf to 1, so that 0*inf = 0 in the line below
 
@@ -401,6 +426,9 @@ class GenerativePolicy(pl.LightningModule):
 			pi_curr_s_unflattened = self.forward(curr_s_state_tensors, curr_s_num_objs, curr_s_mask_tensors)
 			pi_curr_s = self._flatten_nlm_output(pi_curr_s_unflattened)
 
+			# Calculate policy_entropy
+			entropy += self._policy_entropy(pi_curr_s)
+
 			# q(curr_s)
 			with torch.no_grad():
 				q_curr_s_critic_1 = self._flatten_nlm_output(self._critic_1_nlm(curr_s_state_tensors, curr_s_num_objs))
@@ -422,8 +450,9 @@ class GenerativePolicy(pl.LightningModule):
 
 			pi_curr_s_no_zeros = pi_curr_s.clone()
 			pi_curr_s_no_zeros[pi_curr_s_no_zeros==0] = 1e-1 # Substitute 0 by 0.1 since log(0) = -inf and gradient becomes NaN
+			
 			entropy_minus_q_val = (alpha_no_grad*torch.log(pi_curr_s_no_zeros) / np.log(len(pi_curr_s))) - q_curr_s 
-
+			
 			loss_actor = torch.matmul( pi_curr_s, entropy_minus_q_val )
 
 
@@ -438,7 +467,6 @@ class GenerativePolicy(pl.LightningModule):
 			log_pi_curr_s_no_grad[log_pi_curr_s_no_grad==-float("inf")] = -1.0 # Convert from -inf to -1, so that 0*inf = 0 in the line below
 
 			loss_alpha = torch.matmul(pi_curr_s_no_grad, ( -self._alpha * ( log_pi_curr_s_no_grad + self._entropy_goal ) ) )
-
 
 			# < Accumulate losses and metrics >
 
@@ -470,6 +498,8 @@ class GenerativePolicy(pl.LightningModule):
 		total_r_difficulty /= len(train_batch)
 
 		mean_term_cond_prob /= len(train_batch)
+		entropy /= len(train_batch)
+
 
 		# < Logs >
 
@@ -479,11 +509,17 @@ class GenerativePolicy(pl.LightningModule):
 											   global_step=self.curr_log_iteration)
 			self.logger.experiment.add_scalar("Critics Loss", total_loss_critics, global_step=self.curr_log_iteration)
 			self.logger.experiment.add_scalar("Actor Loss", total_loss_actor, global_step=self.curr_log_iteration)
-			self.logger.experiment.add_scalar("Alpha", total_loss_alpha, global_step=self.curr_log_iteration)
-			self.logger.experiment.add_scalar("Alpha Loss", self._alpha.item(), global_step=self.curr_log_iteration)
+			self.logger.experiment.add_scalar("Alpha", self._alpha, global_step=self.curr_log_iteration)
+			self.logger.experiment.add_scalar("Alpha Loss", total_loss_alpha, global_step=self.curr_log_iteration)
 			self.logger.experiment.add_scalar("Termination Condition Probability", mean_term_cond_prob, global_step=self.curr_log_iteration)
+			self.logger.experiment.add_scalar("Actor policy entropy", entropy, global_step=self.curr_log_iteration)
 
 			self.curr_log_iteration += 1
+
+
+		# < Update target networks >
+		self.soft_update_target_networks(self._tau)
+
 
 
 		return total_loss

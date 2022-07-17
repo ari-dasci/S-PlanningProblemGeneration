@@ -8,8 +8,8 @@ class ExperienceReplay():
 	Constructor. Initialize empty list containing no samples.
 	"""
 	def __init__(self, max_size=1e4):
-		self._max_size = max_size
-		self._experience_replay = [None] * int(self._max_size)
+		self._max_size = int(max_size) # We need to convert from float to int
+		self._experience_replay = [None] * self._max_size
 		self._index = 0 # Index containing the position of the next element to insert. If we get to the end, we start at 0 again.
 		self._full = False # If True, the experience replay is full of samples (has reached max_size)
 
