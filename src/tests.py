@@ -728,6 +728,9 @@ def test_load_models_and_generate_problems():
 	de problemas!! (aunque creo que esto pasa porque el entrenamiento se ralentiza cuando los problemas empiezan a ser muy grandes)).
 
 
+> lr = 1e-3, <max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20>,
+  <planner_search_options = 'astar(lmcut())'>:
+	
 
 
 
@@ -768,7 +771,7 @@ if __name__ == "__main__":
 
 	#test_train_init_and_goal_policy_SAC()
 
-	test_load_models_and_generate_problems()
-	#test_train_init_and_goal_policy()
+	#test_load_models_and_generate_problems()
+	test_train_init_and_goal_policy()
 
 	

@@ -20,9 +20,11 @@ class Planner():
 	@planner_path Path to the executable of the planner
 	@search_options Search options used by the planner (e.g., A*, greedy bfs, type of heuristic...)
 					'astar(blind())' -> A* with "blind heuristic"
+					'astar(lmcut())' -> A* with LM-cut heuristic
+	Information about search_options can be found in: https://www.fast-downward.org/PlannerUsage
 	"""
 	def __init__(self, domain_file_path, python_call='python', planner_path='./fast-downward/fast-downward.py', 
-				 search_options='astar(blind())'):
+				 search_options='astar(lmcut())'):
 
 		self._domain_file_path = domain_file_path
 		self._python_call = python_call
