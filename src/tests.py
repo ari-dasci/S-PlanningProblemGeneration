@@ -325,6 +325,32 @@ def test_generate_random_problems():
 									verbose=True)
 
 
+# Method used to debug ProblemState.applicable_ground_actions()
+def test_applicable_ground_actions():
+	from problem_generation.environment.problem_state import ProblemState
+	from problem_generation.environment.pddl_parser import Parser
+	from problem_generation.environment.planner import Planner
+	from problem_generation.environment.relational_state import RelationalState
+
+	domain_file_path = '../data/domains/blocks-domain.pddl'
+	parser = Parser()
+	parser.parse_domain(domain_file_path)
+	planner = Planner(domain_file_path)
+
+	init_state = RelationalState(['block'], 
+							    [ ['on', ['block', 'block']], ['ontable', ['block']], ['clear', ['block']], ['handempty', []], ['holding', ['block']] ],
+								objects=['block', 'block', 'block', 'block', 'block', 'block', 'block', 'block', 'block', 'block', 'block', 'block', 'block'],
+								atoms=[ ['ontable', [0]], ['ontable', [1]],
+			                            ['on', [2, 0]], ['on', [3, 1]], ['on', [4, 3]], ['on', [5, 4]], ['on', [6, 2]], ['on', [7, 5]],
+										['on', [8, 7]], ['on', [9, 6]], ['on', [10, 8]], ['on', [11, 9]],
+										['clear', [10]], ['clear', [11]], ['holding', [12]] ])
+
+	problem = ProblemState(parser, predicates_to_consider_for_goal=['on'], initial_state_info=init_state)
+
+	problem.end_initial_state_generation_phase()
+
+	print("> Applicable actions:", problem.applicable_ground_actions())
+
 """
 Uses the NLM (without training) to obtain a trajectory, i.e., select actions according to the initial state policy.
 """
@@ -536,120 +562,6 @@ def test_train_goal_policy():
 
 
 """
-Tests the functionality of directed_generator.py used to train both the initial and goal generation policies.
-"""
-def test_train_init_and_goal_policy():
-	from problem_generation.controller.directed_generator import DirectedGenerator
-	from problem_generation.environment.pddl_parser import Parser
-	from problem_generation.environment.planner import Planner
-	from problem_generation.environment.state_validator import ValidatorPredOrderBW
-
-	domain_file_path = '../data/domains/blocks-domain.pddl'
-
-	parser = Parser()
-	parser.parse_domain(domain_file_path)
-	planner = Planner(domain_file_path)
-
-	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
-	nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
-	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
-
-	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
-										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
-
-										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
-										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
-										   res_connections_initial_state_nlm=True,
-										   lr_initial_state_nlm = 5e-4,
-										   lifted_action_entropy_coeff_init_state_policy = 0,
-										   ground_action_entropy_coeff_init_state_policy = 2,
-										   entropy_annealing_coeffs_init_state_policy = (300, 0, 0.1),
-										   epsilon_init_state_policy=0.1,
-
-										   num_preds_inner_layers_goal_nlm=nlm_inner_layers,
-										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
-										   res_connections_goal_nlm=True,
-										   lr_goal_nlm = 5e-4,
-										   lifted_action_entropy_coeff_goal_policy = 0,
-										   ground_action_entropy_coeff_goal_policy = 1,
-										   entropy_annealing_coeffs_goal_policy = (100, 0, 0.1),
-										   epsilon_goal_policy=0.1)
-
-
-	# Train the goal generation policy
-	directed_generator.train_generative_policies(training_iterations = 10000)
-
-"""
-We load the trained init and goal policies and use them to generate problems.
-"""
-def test_load_models_and_generate_problems():
-	from problem_generation.controller.directed_generator import DirectedGenerator
-	from problem_generation.environment.pddl_parser import Parser
-	from problem_generation.environment.planner import Planner
-	from problem_generation.environment.state_validator import ValidatorPredOrderBW
-
-	domain_file_path = '../data/domains/blocks-domain.pddl'
-
-	parser = Parser()
-	parser.parse_domain(domain_file_path)
-	planner = Planner(domain_file_path)
-
-	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_47/init_policy_its-270.ckpt"
-	goal_policy_path = "saved_models/both_policies_47/goal_policy_its-270.ckpt"
-
-	nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
-	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
-
-	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
-										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
-										  
-										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
-										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
-										   res_connections_initial_state_nlm=True,
-										   load_init_state_policy_checkpoint_name=init_policy_path,
-
-										   num_preds_inner_layers_goal_nlm=nlm_inner_layers,
-										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
-										   res_connections_goal_nlm=True,
-										   load_goal_policy_checkpoint_name=goal_policy_path)
-
-	print(f">> Init model {init_policy_path} and goal model {goal_policy_path} loaded")
-
-	# Generate the set of problems with the trained initial policy
-	num_problems = 10
-
-	directed_generator.generate_problems(num_problems, max_atoms_init_state=-1, max_actions_init_state=-1,
-									     max_actions_goal_state=-1, verbose=True)
-
-
-# Method used to debug ProblemState.applicable_ground_actions()
-def test_applicable_ground_actions():
-	from problem_generation.environment.problem_state import ProblemState
-	from problem_generation.environment.pddl_parser import Parser
-	from problem_generation.environment.planner import Planner
-	from problem_generation.environment.relational_state import RelationalState
-
-	domain_file_path = '../data/domains/blocks-domain.pddl'
-	parser = Parser()
-	parser.parse_domain(domain_file_path)
-	planner = Planner(domain_file_path)
-
-	init_state = RelationalState(['block'], 
-							    [ ['on', ['block', 'block']], ['ontable', ['block']], ['clear', ['block']], ['handempty', []], ['holding', ['block']] ],
-								objects=['block', 'block', 'block', 'block', 'block', 'block', 'block', 'block', 'block', 'block', 'block', 'block', 'block'],
-								atoms=[ ['ontable', [0]], ['ontable', [1]],
-			                            ['on', [2, 0]], ['on', [3, 1]], ['on', [4, 3]], ['on', [5, 4]], ['on', [6, 2]], ['on', [7, 5]],
-										['on', [8, 7]], ['on', [9, 6]], ['on', [10, 8]], ['on', [11, 9]],
-										['clear', [10]], ['clear', [11]], ['holding', [12]] ])
-
-	problem = ProblemState(parser, predicates_to_consider_for_goal=['on'], initial_state_info=init_state)
-
-	problem.end_initial_state_generation_phase()
-
-	print("> Applicable actions:", problem.applicable_ground_actions())
-
-"""
 Tests the functionality of directed_generator_SAC.py used to train both the initial and goal generation policies.
 """
 def test_train_init_and_goal_policy_SAC():
@@ -696,100 +608,146 @@ def test_train_init_and_goal_policy_SAC():
 											     batch_size=64)
 
 
+"""
+Tests the functionality of directed_generator.py used to train both the initial and goal generation policies.
+"""
+def test_train_init_and_goal_policy():
+	from problem_generation.controller.directed_generator import DirectedGenerator
+	from problem_generation.environment.pddl_parser import Parser
+	from problem_generation.environment.planner import Planner
+	from problem_generation.environment.state_validator import ValidatorPredOrderBW
 
+	domain_file_path = '../data/domains/blocks-domain.pddl'
+
+	parser = Parser()
+	parser.parse_domain(domain_file_path)
+	planner = Planner(domain_file_path)
+
+	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
+
+	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
+										   max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10,
+
+										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
+										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
+										   res_connections_initial_state_nlm=True,
+										   lr_initial_state_nlm = 1e-3,
+										   lifted_action_entropy_coeff_init_state_policy = 0,
+										   ground_action_entropy_coeff_init_state_policy = 2,
+										   entropy_annealing_coeffs_init_state_policy = (300, 0, 0.1),
+										   epsilon_init_state_policy=0.1,
+
+										   num_preds_inner_layers_goal_nlm=nlm_inner_layers,
+										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
+										   res_connections_goal_nlm=True,
+										   lr_goal_nlm = 1e-3,
+										   lifted_action_entropy_coeff_goal_policy = 0,
+										   ground_action_entropy_coeff_goal_policy = 1,
+										   entropy_annealing_coeffs_goal_policy = (100, 0, 0.1),
+										   epsilon_goal_policy=0.1)
+
+
+	# Train the goal generation policy
+	directed_generator.train_generative_policies(training_iterations = 10000)
+
+"""
+We load the trained init and goal policies and use them to generate problems.
+"""
+def test_load_models_and_generate_problems():
+	from problem_generation.controller.directed_generator import DirectedGenerator
+	from problem_generation.environment.pddl_parser import Parser
+	from problem_generation.environment.planner import Planner
+	from problem_generation.environment.state_validator import ValidatorPredOrderBW
+
+	domain_file_path = '../data/domains/blocks-domain.pddl'
+
+	parser = Parser()
+	parser.parse_domain(domain_file_path)
+	planner = Planner(domain_file_path)
+
+	# Create the generator and load the trained models
+	init_policy_path = "saved_models/both_policies_50/init_policy_its-450.ckpt"
+	goal_policy_path = "saved_models/both_policies_50/goal_policy_its-450.ckpt"
+
+	nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
+
+	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
+										   max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10,
+										  
+										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
+										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
+										   res_connections_initial_state_nlm=True,
+										   load_init_state_policy_checkpoint_name=init_policy_path,
+
+										   num_preds_inner_layers_goal_nlm=nlm_inner_layers,
+										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
+										   res_connections_goal_nlm=True,
+										   load_goal_policy_checkpoint_name=goal_policy_path)
+
+	print(f">> Init model {init_policy_path} and goal model {goal_policy_path} loaded")
+
+	# Generate the set of problems with the trained initial policy
+	num_problems = 10
+
+	directed_generator.generate_problems(num_problems, max_atoms_init_state=-1, max_actions_init_state=-1,
+									     max_actions_goal_state=-1, max_planning_time=60, verbose=True)
 
 """
 
------- Pruebas no r_difficulty -> QUITAR r_difficulty=0 en _obtain_trajectory_goal_policy()
+> <lr = 1e-3> (antes usaba lr=5e-4), max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20:
+	Aprende bien (el entrenamiento no es inestable por aumentar el lr).
+	La r_continuous y r_eventual convergen a 0, mientras que la r_difficulty (de la goal_policy y rescale_coeff=0.2)
+	llega a 2.5. La r_difficulty sigue aumentando, pero el entrenamiento se ralentiza muchísimo debido
+	a que calcular la dificultad de los problemas (con el planner), se vuelve muy lento.
+	La entropía de la init_policy es alta (los problemas deberían ser diversos).
 
--- lr = 5e-4 -> se aprende muy lento
-
--- lr = 5e-3 -> el lr es demasiado alto
-
--- lr = 1e-3, tau = 0.1, init_alpha = 1 -> creo que el lr sigue siendo demasiado alto, la alpha no deja de aumentar
-
--- lr = 5e-4, tau = 0.05, init_alpha = 0.1 -> Tras 3h, la r_continuous solo aumenta un poco (de -0.8 a -0.6)
-                                              El alpha no deja tampoco de aumentar y el entrenamiento parece inestable.
-
--- lr = 5e-5, tau = 0.05, init_alpha = 0.1 -> No aprende (la termination condition probability converge a 1 para la init policy)
+	------ Problemas generados (both_policies_49):
+		> its=240 -> avg_diff = <1.063.733> (los problemas son muy difíciles) y la diversidad es media
 
 
------ Pruebas no r_difficulty, dummy_validator = always select on_table and 10 atoms in init_state
+> lr=1e-3, <max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10>:
+	Aprende bien (r_continuous y r_eventual convergen a 0). R_difficulty (goal_policy, rescale_factor=0.2)
+	llega hasta 1.5. La entropía de la política está bien aunque quizás disminuye un poco demasiado rápido.
+	
+	------ Problemas generados (both_policies_50):
 
->>>>> Quitar alpha_loss=0, cambiar dummy_validator por real_validator, cambiar _calculate_v_next_s_init_policy_samples (v_next_s vale 0 siempre)
+		>>> max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10:
+			> its=450 -> avg. diff = 718, los problemas son muy diversos
 
 
-> no_train_alpha, lr=5e-4, init_alpha=1, tau=0.1: 
-	La r_continuous y r_eventual aumentan, aunque muy lentamente. La policy entropy es muy alta y el critic loss muy inestable.
+		>>> max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20:
+			> its=450 -> avg. diff = <2.292.061>, los problemas son bastante diversos
 
-> no_train_alpha, lr=5e-4, init_alpha=1, <tau=0.01>:
-	Aprende igual (incluso más) rápido que con tau=0.1 y el critic loss es menor.
+	> PARECE QUE ES CAPAZ DE GENERALIZAR A UN NÚMERO DE ÁTOMOS Y GOAL_ACTIONS DISTINTO DEL USADO DURANTE
+	EL ENTRENAMIENTO!! Aunque haya entrenado el modelo con max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10,
+	al generar problemas con max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
+	la dificultad es muy alta!!! (de hecho es el doble que cuando entreno al modelo directamente sobre este tamaño
+	de problemas!! (aunque creo que esto pasa porque el entrenamiento se ralentiza cuando los problemas empiezan a ser muy grandes)).
 
-> no_train_alpha, lr=5e-4, init_alpha=1, <tau=0.001>:
-	Aprende igual de rápido y las gráficas son un poco más estables.
 
-> no_train_alpha, <lr=1e-4>, init_alpha=1, tau=0.001:
-	Funciona peor y aprende más lento que con lr=5e-4.
 
-> no_train_alpha, <lr=1e-3>, init_alpha=1, tau=0.001:
-	Funciona bien (las gráficas no son inestables) y aprende más rápido que con lr=5e-4.
 
-> no_train_alpha, <lr=2e-3>, init_alpha=1, tau=0.001:
-	El lr es demasiado alto! (Las gráficas oscilan)
 
-> no_train_alpha, <lr=1e-3>, <init_alpha=0.1>, tau=0.001:
-	Aprende más rápido que con init_alpha=1, pero aún así sigue siendo muy lento.
+	
+	
 
-> no_train_alpha, lr=1e-3, <init_alpha=0.01>, tau=0.001:
-	Casi idéntico a init_alpha=0.1.
 
-> no_train_alpha, lr=1e-3, <init_alpha=0.001>, tau=0.001:
-	Idéntico a alpha=0.01 y alpha=0.1.
+------
 
-> no_train_alpha, lr=1e-3, <init_alpha=0>, tau=0.001:
-	Casi idéntico, aunque la r_continuous no aumenta.
+>>> Solucionar bug timeout a la hora de llamar al planificador (a veces no da timeout) -> 
+      Ver https://stackoverflow.com/questions/73024049/timeout-for-subprocess-run-not-working-for-python-3-8-13-on-windows
 
------------- Pruebas no r_difficulty, ValidatorPredOrderBW
 
-> no_train_alpha, lr=1e-3, init_alpha=0.1, <tau=0.005>:
-	r_continuous converge a 0 (aunque tarda 6h) pero
-	r_eventual no aprende! (converge a -1).
+# ------------------------------------------------------ TODO
 
-> no_train_alpha, lr=1e-3, init_alpha=1, tau=0.005:
-	r_continuous y r_eventual aumentan, pero muy lentamente.
-	La entropía de la política es demasiado alta!
 
-> no_train_alpha, lr=1e-3, init_alpha=0.5, tau=0.005:
-	r_continuous aumenta más rápido que en el experimento anterior
-	pero r_eventual no aprende (converge a -1).
-
-> <train_alpha>, lr=1e-3, init_alpha=1, tau=0.005, entropy_goal=0.1:
-	El alpha disminuye hasta por debajo de 0! -> no funciona bien
-
-> train_alpha, lr=1e-3, init_alpha=1, tau=0.005, entropy_goal=0.1, <no divide by log(len(pi_curr_s))>:
-	Funciona igual de mal (el alpha disminuye por debajo de 0).
-
-> train_alpha, <lr=5e-4>, <init_alpha=0.1>, tau=0.005, entropy_goal=0.1:
-  (intento bajar el lr para ver si el valor de alpha converge en vez de volverse negativo)
-	Baja y después aumenta sin parar (no funciona).
-
-> train_alpha, <lr=1e-3>, <init_alpha=0.5>, tau=0.005, <entropy_goal=0.5>, <alpha_loss * 0.1>:
-	Alpha aprende correctamente!! El valor de alpha va variando durante el entrenamiento y 
-	termina convergiendo a 0.6. De igual forma, la policy_entropy termina convergiendo al valor
-	0.5, que coincide con el entropy_goal!
-	No obstante, la r_continuous converge a 0 pero la r_eventual no.
-
-> train_alpha, lr=1e-3, init_alpha=0.5, tau=0.005, entropy_goal=0.5, <alpha_loss * 1>:
-	Funciona mejor (el alpha aprende más rápido).
-
-> train_alpha, lr=1e-3, init_alpha=0.5, tau=0.005, entropy_goal=0.5, <alpha_loss * 10>:
-	Peor (el alpha aprende más lento) -> mejor no modificar el alpha_loss!
-
-> train_alpha, lr=1e-3, <init_alpha=1>, tau=0.005, <entropy_goal=1>:
-	El entropy_goal es demasiado alto.
-
-> train_alpha, lr=1e-3, <init_alpha=0.8>, tau=0.005, <entropy_goal=0.8>:
-	Solo aprende el r_continuous, y muy lento.
+# MIRAR LINK: https://vitalab.github.io/article/2020/01/14/Implementation_Matters.html
+# HAY MUCHOS "CODE-LEVEL OPTIMIZATIONS" QUE PUEDEN SER IMPORTANTES DE CARA A TRABAJAR CON PPO!!!
+> Ver cómo mejorar el rendimiento (quizás permitiendo ejecutar el planner en paralelo para así poder
+					               obtener trayectorias en paralelo)
 
 """
 
@@ -808,7 +766,9 @@ if __name__ == "__main__":
 	#test_trajectory_goal_policy()
 	#test_train_goal_policy()
 
-	#test_load_models_and_generate_problems()
+	#test_train_init_and_goal_policy_SAC()
+
+	test_load_models_and_generate_problems()
 	#test_train_init_and_goal_policy()
 
-	test_train_init_and_goal_policy_SAC()
+	

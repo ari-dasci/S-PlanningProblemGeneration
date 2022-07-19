@@ -7,6 +7,9 @@ import re
 import os
 import tempfile
 
+import sys
+import shlex
+
 class Planner():
 
 	"""
@@ -47,12 +50,15 @@ class Planner():
 		                   '--search', self._search_options]
 
 		# Call the planner and detect timeouts
+		# <TODO>
+		# Solve timeout bug (timeout option sometimes does not work)
 		try:
-			planner_output = subprocess.run(planner_command, timeout=max_planning_time,
+			planner_output = subprocess.run(planner_command, timeout=max_planning_time, shell=False,
 										   stdout=subprocess.PIPE).stdout.decode('utf-8')
 
 		except TimeoutExpired as e:
 			planner_output = 'timeout'
+
 
 		return planner_output
 

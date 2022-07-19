@@ -760,7 +760,7 @@ class DirectedGenerator():
 	@problem A ProblemState instance containing the initial state to start the goal generation phase from.
 	         <Note>: we assume the initial state of @problem meets all the eventual consistency rules.
 	"""
-	def _obtain_trajectory_goal_policy(self, problem, max_actions_goal_state=-1):
+	def _obtain_trajectory_goal_policy(self, problem, max_actions_goal_state=-1, max_planning_time=10):
 
 		if max_actions_goal_state == -1:
 			max_actions_goal_state = self._max_actions_goal_state
@@ -807,7 +807,7 @@ class DirectedGenerator():
 
 				# Call the planner to obtain the difficulty of the problem generated
 				# This method also selects the goal atoms corresponding to the goal predicates given by the user
-				r_difficulty_real, r_difficulty = self.get_problem_difficulty(problem) # Difficulty scaled to real values between 0 and 1 (unless the problem difficulty surpasses the maximum difficulty)
+				r_difficulty_real, r_difficulty = self.get_problem_difficulty(problem, max_planning_time=max_planning_time) # Difficulty scaled to real values between 0 and 1 (unless the problem difficulty surpasses the maximum difficulty)
 
 			# If the selected action is not the termination condition, execute it
 			else:		
@@ -830,7 +830,7 @@ class DirectedGenerator():
 
 					# Call the planner to obtain the difficulty of the problem generated
 					# This method also selects the goal atoms corresponding to the goal predicates given by the user
-					r_difficulty_real, r_difficulty = self.get_problem_difficulty(problem)
+					r_difficulty_real, r_difficulty = self.get_problem_difficulty(problem, max_planning_time=max_planning_time)
 				else:
 					r_difficulty_real, r_difficulty = 0.0, 0.0 # Before calculating the problem difficulty, it must be fully generated
 
@@ -1005,7 +1005,7 @@ class DirectedGenerator():
 	@problem_name The name of the generated problem, which appears in the PDDL encoding.
 	@verbose If True, print information about the problem generation process.
 	"""
-	def generate_problem(self, max_atoms_init_state=-1, max_actions_init_state=-1, max_actions_goal_state=-1, problem_name = "problem", verbose=True):
+	def generate_problem(self, max_atoms_init_state=-1, max_actions_init_state=-1, max_actions_goal_state=-1, problem_name = "problem", max_planning_time=60, verbose=True):
 
 		if verbose:
 			print(f"\n\n---------- Problem {problem_name} ----------\n\n")
@@ -1026,7 +1026,7 @@ class DirectedGenerator():
 			print("> Generating goal (:goal)")
 
 		# <Generate a goal state with the goal policy>
-		final_problem, problem_difficulty, goal_policy_trajectory = self._obtain_trajectory_goal_policy(init_problem, max_actions_goal_state)
+		final_problem, problem_difficulty, goal_policy_trajectory = self._obtain_trajectory_goal_policy(init_problem, max_actions_goal_state, max_planning_time=max_planning_time)
 
 		# <Obtain the PDDL encoding of the problem>
 		# Note: this method also selects at the goal state the predicates given by the user, in order to obtain the problem goal (:goal)
@@ -1083,7 +1083,7 @@ class DirectedGenerator():
 			curr_problem_name = problems_name + '_' + str(ind)
 
 			# Generate problem
-			new_problem, new_problem_difficulty = self.generate_problem(max_atoms_init_state, max_actions_init_state, max_actions_goal_state, curr_problem_name, verbose)
+			new_problem, new_problem_difficulty = self.generate_problem(max_atoms_init_state, max_actions_init_state, max_actions_goal_state, curr_problem_name, max_planning_time, verbose)
 
 			# Save it to disk
 			curr_prob_path = problems_path + curr_problem_name + '.pddl'

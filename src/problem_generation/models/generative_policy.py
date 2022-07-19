@@ -431,10 +431,10 @@ class GenerativePolicy(pl.LightningModule):
 		# < Logs >
 
 		# Store the logs
-		if self.current_epoch == 0: # self.current_epoch == 0 -> only store the logs for the first training epoch of PPO
+		# self.current_epoch == 0 and self.global_step == 0 -> only store the logs for the first training iteration of PPO
+		if self.current_epoch == 0 and self.global_step == 0: 
 			self.logger.experiment.add_scalar("Total Reward Normalized", reward_total_norm, global_step=self.curr_log_iteration)
-			self.logger.experiment.add_scalars('Rewards', {'Reward Continuous': reward_continuous, 'Reward Eventual': reward_eventual, 'Reward Difficulty': reward_difficulty, 
-												           'Total Reward': reward_total},
+			self.logger.experiment.add_scalars('Rewards', {'Reward Continuous': reward_continuous, 'Reward Eventual': reward_eventual, 'Reward Difficulty': reward_difficulty},
 											   global_step=self.curr_log_iteration)
 			self.logger.experiment.add_scalar("Actor Policy Entropy", entropy, global_step=self.curr_log_iteration)
 			self.logger.experiment.add_scalars('Actor Losses', {'Total Loss': actor_loss, 'PPO Loss': PPO_loss, 'Entropy Loss': entropy_loss},
