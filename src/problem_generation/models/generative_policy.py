@@ -6,6 +6,8 @@ import torch
 import numpy as np
 import pytorch_lightning as pl
 
+import sys
+
 from problem_generation.models.nlm import NLM
 
 class GenerativePolicy(pl.LightningModule):
@@ -99,9 +101,10 @@ class GenerativePolicy(pl.LightningModule):
 	def _mask_nlm_output(self, list_nlm_output, list_mask_tensors):
 		num_arities = len(list_nlm_output)
 		num_samples = len(list_nlm_output[0])
-		
 
-		list_nlm_output_masked = [ [list_nlm_output[r][i] + list_mask_tensors[r][i]  for i in range(num_samples)] \
+		# Whereas in list_nlm_output the first dimension is the arity and the second one the sample-index,
+		# in the case of list_mask_tensors the dimensions are reversed
+		list_nlm_output_masked = [ [list_nlm_output[r][i] + list_mask_tensors[i][r]  for i in range(num_samples)] \
 								   if list_nlm_output[r][0] is not None else list_nlm_output[r]    for r in range(num_arities) ]
 
 		return list_nlm_output_masked
@@ -269,8 +272,7 @@ class GenerativePolicy(pl.LightningModule):
 		
 		# NLM forward pass
 		list_nlm_output = self._actor_nlm(list_state_tensors, list_num_objs)
-
-
+		
 		# Mask NLM output (set to -inf values corresponding to invalid atoms)
 		if list_mask_tensors is not None and list_mask_tensors[0] is not None:
 			list_nlm_output_masked = self._mask_nlm_output(list_nlm_output, list_mask_tensors)
@@ -424,4 +426,5 @@ class GenerativePolicy(pl.LightningModule):
 
 			self.curr_log_iteration += 1
 
+		
 		return loss

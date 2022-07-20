@@ -9,6 +9,7 @@ from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from joblib import Parallel, delayed
 from itertools import chain 
 import glob
+import warnings
 
 from problem_generation.environment.problem_state import ProblemState
 from problem_generation.environment.pddl_parser import Parser
@@ -57,6 +58,10 @@ class DirectedGenerator():
 				 lr_goal_nlm=5e-4, entropy_coeff_goal_policy = 1.0,
 				 entropy_annealing_coeffs_goal_policy = None, epsilon_goal_policy=0.2, load_goal_policy_checkpoint_name=None):
 				 
+
+		# Ignore numpy warnings
+		warnings.filterwarnings('ignore', category=FutureWarning)
+
 
 		self._parser = parser
 		self._planner = planner
@@ -477,7 +482,60 @@ class DirectedGenerator():
 	Note: this method is in-place.
 	"""
 	def _calculate_state_value_and_old_policy_probs_trajectory_init_policy(self, trajectory):
-		
+		trajectory_len = len(trajectory)
+
+		# < Represent the data in a suitable form for the calculations >
+
+		# Represent the trajectory as a numpy array. The row are the samples and the columns the different elements of each sample.
+		trajectory_np = np.array(trajectory, dtype=object) 
+
+		list_num_objs_with_virtuals = trajectory_np[:, 1].tolist()
+		list_mask_tensors = trajectory_np[:, 2].tolist()
+		list_chosen_action_index = trajectory_np[:,3].tolist()
+
+		# Represent the state tensors in a suitable encoding for the NLMs
+		num_preds_state_tensors = len(trajectory[0][0]) # The number of elements in state_tensors (equal to the max predicate arity - 1)
+		list_state_tensors_nlm_encoding = [[sample[0][r] for sample in trajectory] for r in range(num_preds_state_tensors)]
+
+
+		# < Obtain probability of the selected action >
+
+		# Use the Actor NLM of the initial state policy to obtain the action log_probs
+		action_log_probs_list = self._initial_state_policy(list_state_tensors_nlm_encoding, list_num_objs_with_virtuals, list_mask_tensors)
+
+
+		# Choose the selected action
+		# The result is a list where chosen_action_log_prob_list[i] contains the log_prob of the chosen_action for sample i
+		# list_chosen_action_index[i][0] -> arity r
+		# i -> sample i
+		# tuple(list_chosen_action_index[i][1:]) -> tensor position corresponding to chosen_action
+		chosen_action_log_prob_list = [ action_log_probs_list[list_chosen_action_index[i][0]][i][tuple(list_chosen_action_index[i][1:])].detach().numpy()   \
+								        for i in range(trajectory_len) ]
+
+
+		# Convert from log_probs to probs
+		# Note: if the log_prob is NaN, then we assume the prob is 0 
+		chosen_action_prob_list = [ np.exp(log_prob) if not np.isnan(log_prob) else 1e-5 \
+							        for log_prob in chosen_action_log_prob_list ]
+
+
+		# < Estimate State Value V(s) >
+
+		# Estimate state-value V(s) with the Critic NLM of the initial state policy
+		critic_output = self._initial_state_policy.critic_nlm(list_state_tensors_nlm_encoding, \
+													          list_num_objs_with_virtuals)[0] # [0] to obtain the tensors for the nullary predicates
+		state_values = [tensor[0].detach().numpy() for tensor in critic_output] # [0] to obtain the first predicate of the nullary predicates (corresponding to the state_value)
+
+
+		# < Add new information to the trajectory >
+
+		for i in range(trajectory_len):
+			trajectory[i].append(chosen_action_prob_list[i])
+			trajectory[i].append(state_values[i])
+
+
+		# ---- Old method
+		"""
 		for i in range(len(trajectory)):
 			state_tensors, num_objs_with_virtuals, mask_tensors, chosen_action_index, r_continuous, r_eventual, r_difficulty, r_total = trajectory[i]
 			
@@ -503,6 +561,8 @@ class DirectedGenerator():
 
 			# Append advantage to the current element of the trajectory
 			trajectory[i].append(state_value)
+		"""
+
 
 	"""
 	This method adds the state value and probability of the selected action for each element in the trajectory corresponding
@@ -512,7 +572,59 @@ class DirectedGenerator():
 	Note: this method is in-place.
 	"""
 	def _calculate_state_value_and_old_policy_probs_trajectory_goal_policy(self, trajectory):
-		
+		trajectory_len = len(trajectory)
+
+		# < Represent the data in a suitable form for the calculations >
+
+		# Represent the trajectory as a numpy array. The row are the samples and the columns the different elements of each sample.
+		trajectory_np = np.array(trajectory, dtype=object) 
+
+		list_num_objs_with_virtuals = trajectory_np[:, 1].tolist()
+		list_mask_tensors = trajectory_np[:, 2].tolist()
+		list_chosen_action_index = trajectory_np[:,3].tolist()
+
+		# Represent the state tensors in a suitable encoding for the NLMs
+		num_preds_state_tensors = len(trajectory[0][0]) # The number of elements in state_tensors (equal to the max predicate arity - 1)
+		list_state_tensors_nlm_encoding = [[sample[0][r] for sample in trajectory] for r in range(num_preds_state_tensors)]
+
+
+		# < Obtain probability of the selected action >
+
+		# Use the Actor NLM of the initial state policy to obtain the action log_probs
+		action_log_probs_list = self._goal_policy(list_state_tensors_nlm_encoding, list_num_objs_with_virtuals, list_mask_tensors)
+
+		# Choose the selected action
+		# The result is a list where chosen_action_log_prob_list[i] contains the log_prob of the chosen_action for sample i
+		# list_chosen_action_index[i][0] -> arity r
+		# i -> sample i
+		# tuple(list_chosen_action_index[i][1:]) -> tensor position corresponding to chosen_action
+		chosen_action_log_prob_list = [ action_log_probs_list[list_chosen_action_index[i][0]][i][tuple(list_chosen_action_index[i][1:])].detach().numpy()   \
+								        for i in range(trajectory_len) ]
+
+		# Convert from log_probs to probs
+		# Note: if the log_prob is NaN, then we assume the prob is 0 
+		chosen_action_prob_list = [ np.exp(log_prob) if not np.isnan(log_prob) else 1e-5 \
+							        for log_prob in chosen_action_log_prob_list ]
+
+
+		# < Estimate State Value V(s) >
+
+		# Estimate state-value V(s) with the Critic NLM of the initial state policy
+		critic_output = self._goal_policy.critic_nlm(list_state_tensors_nlm_encoding, \
+													          list_num_objs_with_virtuals)[0] # [0] to obtain the tensors for the nullary predicates
+		state_values = [tensor[0].detach().numpy() for tensor in critic_output] # [0] to obtain the first predicate of the nullary predicates (corresponding to the state_value)
+
+
+		# < Add new information to the trajectory >
+
+		for i in range(trajectory_len):
+			trajectory[i].append(chosen_action_prob_list[i])
+			trajectory[i].append(state_values[i])
+
+
+		# --- Old method 
+
+		"""
 		for i in range(len(trajectory)):
 			state_tensors, num_objs_with_virtuals, mask_tensors, chosen_action_index, r_continuous, r_eventual, r_difficulty, r_total = trajectory[i]
 			
@@ -538,6 +650,8 @@ class DirectedGenerator():
 
 			# Append advantage to the current element of the trajectory
 			trajectory[i].append(state_value)
+		"""
+
 
 	"""
 	This method receives a completely-generated problem (s_i, s_g) and returns its difficulty.
@@ -877,7 +991,9 @@ class DirectedGenerator():
 		goal_policy_trajectory = init_and_goal_policy_trajectory[init_policy_trajectory_length:]
 
 		self._calculate_state_value_and_old_policy_probs_trajectory_init_policy(init_policy_trajectory)
-		self._calculate_state_value_and_old_policy_probs_trajectory_goal_policy(goal_policy_trajectory)
+
+		if len(goal_policy_trajectory) > 0: # Don't call the method if there is no goal_policy trajectory
+			self._calculate_state_value_and_old_policy_probs_trajectory_goal_policy(goal_policy_trajectory)
 
 		return init_policy_trajectory, goal_policy_trajectory
 
@@ -925,6 +1041,11 @@ class DirectedGenerator():
 				init_policy_trajectories.extend(init_policy_trajectory)
 				goal_policy_trajectories.extend(goal_policy_trajectory)
 			
+
+
+			print("HERE") # ---------> FUNCIONA HASTA ESTE PUNTO
+			sys.exit()
+
 			print(f"> Trajectories collected. Num samples:\n\t>Init policy trajectories: {len(init_policy_trajectories)} \
 					\n\t>Goal policy trajectories: {len(goal_policy_trajectories)}")
 

@@ -628,7 +628,7 @@ def test_train_init_and_goal_policy():
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
 
 	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
-										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
+										   max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10,
 
 										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -743,6 +743,8 @@ def test_load_models_and_generate_problems():
 	
 
 
+<<TODO>>: ver si en _calculate_state_value_and_old_policy_probs_trajectory_init_policy()
+          puedo quitar el .detach().numpy() al calcular el chosen_action_log_prob_list
 ------
 
 >>> VER POR QUÉ TODOS LOS PROBLEMAS GENERADOS TIENEN HOLDING(X) EN VEZ DE HANDEMPTY() EN EL ESTADO INICIAL Y FINAL!
