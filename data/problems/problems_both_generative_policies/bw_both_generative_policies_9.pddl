@@ -1,0 +1,26 @@
+(define (problem bw_both_generative_policies_9)
+
+(:domain blocks)
+
+(:objects
+	obj0 obj1 obj2 obj3 - block
+)
+
+(:init
+	(ontable obj0)
+	(ontable obj1)
+	(on obj2 obj0)
+	(clear obj2)
+	(clear obj1)
+	(holding obj3)
+)
+
+(:goal (and
+	(on obj3 obj1)
+	(ontable obj0)
+	(on obj2 obj3)
+	(on obj1 obj0)
+	(clear obj2)
+	(handempty)
+))
+)

@@ -6,7 +6,7 @@ import torch
 import numpy as np
 import pytorch_lightning as pl
 
-from problem_generation.models.nlm_new import NLM
+from problem_generation.models.nlm import NLM
 
 class GenerativePolicy(pl.LightningModule):
 
@@ -103,57 +103,42 @@ class GenerativePolicy(pl.LightningModule):
 	# ------- Auxiliar methods
 
 	"""
-	Uses @list_mask_tensors to mask (i.e., set to -inf) those tensor values (@list_nlm_output) corresponding to invalid atoms, i.e.,
+	Uses @mask_tensors to mask (i.e., set to -inf) those tensor values (@nlm_output) corresponding to invalid atoms, i.e.,
 	those instantiated on objects of the incorrect type.
-	This method now receives a batch of nlm_outputs and mask_tensors.
 
-	It returns the list with the masked tensors for the whole batch.
+	Note: this method does not return the new tensors, but transforms them in-place.
 	"""
-	def _mask_nlm_output(self, list_nlm_output, list_mask_tensors):
-		num_arities = len(list_nlm_output)
-		num_samples = len(list_nlm_output[0])
-		
+	def _mask_nlm_output(self, nlm_output, mask_tensors):
 
-		list_nlm_output_masked = [ [list_nlm_output[r][i] + list_mask_tensors[r][i]  for i in range(num_samples)] \
-								   if list_nlm_output[r][0] is not None else list_nlm_output[r]    for r in range(num_arities) ]
-
-		return list_nlm_output_masked
+		for r in range(len(nlm_output)):
+			if nlm_output[r] is not None:
+				nlm_output[r] = nlm_output[r] + mask_tensors[r]
 
 
 	"""
-	Applies log_softmax to the tensors in list_nlm_output. Applied to the output of the NLM in order to obtain
+	Applies log_softmax to the tensors @pred_tensors. Applied to the output of the NLM in order to obtain
 	a list of tensors corresponding to probabilities.
 
 	The log_softmax of the nlm output is used to obtain a log_probability (since softmax corresponds to probabilities, log_softmax is for log_probabilities)
 	for every atom/action. This value is used for PPO (which calculates the gradient of the log_probability of the action selected).
 
-	<Note>: we use the log-sum-exp trick (https://blog.feedly.com/tricks-of-the-trade-logsumexp/)
+	Note 1: we do not return the new tensors. This operation is applied in-place. 
+	Note 2: we use the log-sum-exp trick (https://blog.feedly.com/tricks-of-the-trade-logsumexp/)
 		  to calculate this function quickly and in a stable manner.
 	"""
-	def _log_softmax(self, list_nlm_output):
-		
-		# [[s0_nullary, s1_nullary], [s0_unary, s1_unary], [s0_binary, s0_binary], [s0_tertiary, s1_tertiary]]
+	def _log_softmax(self, pred_tensors):
+		# Calculate log_sum_exp of all the values in the tensors of the list
+		# 1) flatten each tensor in the list
+		# 2) concatenate them as a unique tensor
+		# 3) calculate log_sum_exp
+		log_sum_exp = torch.logsumexp(torch.cat([preds.flatten() if preds is not None else torch.empty(0, dtype=torch.float32) \
+											   for preds in pred_tensors]), dim=-1)
 
-		num_arities = len(list_nlm_output)
-		num_samples = len(list_nlm_output[0])
-
-
-		# Calculate log_sum_exp for each sample in the batch
-
-		# for i in range(num_samples) -> iterate over each sample in the batch
-		# for r in range(num_arities) -> for each batch sample, iterate over its tensors list_nlm_output[r][i]
-		# flatten() if list_nlm_output[r][i] is not None else torch.empty(0, dtype=torch.float32) -> flatten it. If it is None, simply add an empty tensor (torch.empty())
-		# torch.cat() -> concatenate all the flattened tensors for each sample
-		# torch.logsumexp() -> calculate logsumexp for all the concatenated flattened tensors of each sample
-		log_sum_exp_list = [ torch.logsumexp(torch.cat( [list_nlm_output[r][i].flatten() if list_nlm_output[r][i] is not None \
-			                                               else torch.empty(0, dtype=torch.float32) for r in range(num_arities)] ), dim=-1) \
-		                     for i in range(num_samples) ]
-
-		# Calculate log_softmax of each sample [i] in the batch by substracting log_sum_exp_list[i]
-		list_nlm_output_log_softmax = [ [list_nlm_output[r][i] - log_sum_exp_list[i] for i in range(num_samples)] \
-		                                if list_nlm_output[r][0] is not None else list_nlm_output[r] for r in range(num_arities)]
-
-		return list_nlm_output_log_softmax
+		# Use log_sum_exp to calculate the log_softmax of the tensors in the list
+		for r in range(len(pred_tensors)):
+			if pred_tensors[r] is not None:
+				# pred_tensors[r] -= log_sum_exp <-- This operation modifies the tensor inplaces and breaks autograd!
+				pred_tensors[r] = pred_tensors[r] - log_sum_exp
 
 
 	"""
@@ -166,7 +151,6 @@ class GenerativePolicy(pl.LightningModule):
 
 	@pred_tensors The output of the NLM <after the masking>.
 	"""
-	# <TODO>
 	def _policy_entropy(self, pred_tensors):
 		# Transform log_probs to probs and flatten the tensors
 		prob_tensors = [torch.exp(tensor).flatten() for tensor in pred_tensors if tensor is not None] # We ignore None tensors, as they correspond to non-existent actions
@@ -195,7 +179,6 @@ class GenerativePolicy(pl.LightningModule):
 
 	Note: the values of the tensors do not need to sum 1 but they cannot be negative.
 	"""
-	# <TODO>
 	def _sample_action(self, pred_tensors):
 		# <Convert from torch to numpy>
 		# Use torch.exp to transform from log_softmax to softmax (i.e., from log_probs to probs)
@@ -278,30 +261,27 @@ class GenerativePolicy(pl.LightningModule):
 
 
 	"""
-	Computes the forward pass of the policy for a batch of samples.
-	For each sample, it receives as inputs the pred_tensors associated with the state s, the number of objects (including virtuals) at s and the tensor_mask used to mask
+	Computes the forward pass of the policy.
+	Receives as inputs the pred_tensors associated with the state s, the number of objects (including virtuals) at s and the tensor_mask used to mask
 	those output values corresponding to invalid atoms.
-	Outputs a list of probabilities (as tensors) for each sample in the batch, where invalid actions (atoms) have a probability of -inf.
+	Outputs a tensor list of probabilities, where invalid actions (atoms) have a probability of -inf. This list of tensors has the same shape
+	as @state_tensors.
 
-	@list_mask_tensors If None or [None, ...], we do not mask the nlm_output
+	@mask_tensors If None, we do not mask the nlm_output
 	"""
-	def forward(self, list_state_tensors, list_num_objs, list_mask_tensors=None):
+	def forward(self, state_tensors, num_objs_with_virtuals, mask_tensors=None):
 		
 		# NLM forward pass
-		list_nlm_output = self._actor_nlm(list_state_tensors, list_num_objs)
-
+		nlm_output = self._actor_nlm(state_tensors, num_objs_with_virtuals)
 
 		# Mask NLM output (set to -inf values corresponding to invalid atoms)
-		if mask_tensors is not None and mask_tensors[0] is not None:
-			list_nlm_output_masked = self._mask_nlm_output(list_nlm_output, list_mask_tensors)
-		else:
-			list_nlm_output_masked = list_nlm_output
-
+		if mask_tensors is not None:
+			self._mask_nlm_output(nlm_output, mask_tensors)
 
 		# Apply log_softmax to the masked NLM output to obtain log_probabilities for the atoms
-		list_nlm_output_log_softmax = self._log_softmax(list_nlm_output_masked)
+		self._log_softmax(nlm_output)
 
-		return list_nlm_output_log_softmax
+		return nlm_output
 
 
 	"""
@@ -312,7 +292,6 @@ class GenerativePolicy(pl.LightningModule):
 
 	@mask_tensors If None, we do not mask the nlm_output
 	"""
-	# <TODO>
 	def select_action(self, state_tensors, num_objs_with_virtuals, mask_tensors=None):
 		# Obtain (masked) log probabilities for each action (atom)
 		action_log_probs = self.forward(state_tensors, num_objs_with_virtuals, mask_tensors)
@@ -337,8 +316,7 @@ class GenerativePolicy(pl.LightningModule):
 	@train_batch Batch of training samples, where each one is a tuple (state_tensors, num_objs_with_virtuals, chosen_action_index, disc_reward_sum)
 	"""
 	def training_step(self, train_batch, batch_idx=0):
-		train_batch_len = len(train_batch)
-		assert train_batch_len > 0, "Train batch cannot have length 0"
+		assert len(train_batch) > 0, "Train batch cannot have length 0"
 
 		# Metrics and Losses
 		loss = 0
@@ -354,47 +332,116 @@ class GenerativePolicy(pl.LightningModule):
 		reward_total = 0
 		reward_total_norm = 0
 
+		mean_term_cond_prob = 0 # Mean probability of the termination condition across the batch
 
-		# < Represent the data in a suitable form for the calculations >
+		for train_sample in train_batch:
+			state_tensors, num_objs_with_virtuals, mask_tensors, chosen_action_index, \
+		    curr_r_continuous, curr_r_eventual, curr_r_difficulty, curr_r_total, curr_r_total_norm, \
+		    action_prob_old_policy, state_value = train_sample
 
-		# Represent the batch as a numpy array. The row are the samples and the columns the different elements of each sample.
-		train_batch_np = np.array(train_batch, dtype=object) 
+			# < Critic >
 
-		# Obtain a list (or tensor) with the sample information
-		list_num_objs = train_batch_np[:,1].tolist()
-		list_mask_tensors = train_batch_np[:,2].tolist()
-		list_chosen_action_index = train_batch_np[:,3].tolist()
+			# Obtain critic loss -> Only train the critic for the first epoch
+			# This is worse than training for every epoch!
+			"""
+			if self.current_epoch == 0:
+				state_value_with_gradient = self._critic_nlm(state_tensors, num_objs_with_virtuals)[0][0]
+				curr_critic_loss = (state_value_with_gradient - curr_r_total_norm)**2
+			else:
+				curr_critic_loss = 0
+			"""
 
-		tensor_r_total_norm = torch.tensor(train_batch_np[:,8], dtype=torch.float32, requires_grad=False)
+			# Train the critic every epoch (just as we do with the actor)
+			state_value_with_gradient = self._critic_nlm(state_tensors, num_objs_with_virtuals)[0][0]
+			curr_critic_loss = (state_value_with_gradient - curr_r_total_norm)**2
 
-		list_action_prob_old_policy = train_batch_np[:,9].tolist()
-		list_state_values = train_batch_np[:,10].tolist()
+			# < Actor >
 
-		# Represent the state tensors in a suitable encoding for the NLMs
-		num_preds_state_tensors = len(train_batch[0][0]) # The number of elements in state_tensors (equal to the max predicate arity - 1)
-		list_state_tensors_nlm_encoding = [[sample[0][r] for sample in train_batch] for r in range(num_preds_state_tensors)]
-
-
-		# < Obtain the average rewards for the logs >
-		reward_continuous = np.mean(train_batch_np[:,4])
-		reward_eventual = np.mean(train_batch_np[:,5])
-		reward_difficulty = np.mean(train_batch_np[:,6])
-		reward_total = np.mean(train_batch_np[:,7])
-		reward_total_norm = np.mean(train_batch_np[:,8])
-
-
-		# < Critic >
-
-		critic_output = self._critic_nlm(list_state_tensors_nlm_encoding, list_num_objs)[0] # [0] to obtain the tensors for the nullary predicates
-		state_values_with_gradient = [tensor[0] for tensor in critic_output] # [0] to obtain the first predicate of the nullary predicates (corresponding to the state_value)
+			# Obtain the log_probs of the current policy
+			action_log_probs = self.forward(state_tensors, num_objs_with_virtuals, mask_tensors)
 		
-		critic_loss = torch.mean((state_values_with_gradient - tensor_r_total_norm)**2)
+			# Choose the selected action
+			chosen_action_log_prob = action_log_probs[chosen_action_index[0]][tuple(chosen_action_index[1:])]
 
-		# < Actor >
+			# Convert from log_prob to prob
+			# Note: if the log_prob is NaN, then we assume the prob is 0 
+			chosen_action_prob = torch.exp(chosen_action_log_prob) if not torch.isnan(chosen_action_log_prob) else \
+								 torch.tensor([1e-5], dtype=torch.float32)
 
-		# Obtain the log_probs of the current policy
-		action_log_probs = self.forward(list_state_tensors_nlm_encoding, list_num_objs, list_mask_tensors)
+			# > Calculate the probability ratio r_t
+			prob_ratio = chosen_action_prob / action_prob_old_policy
 
-		# POR AQUI
-		# CAMBIAR TAMBIÉN LOS MÉTODOS select_action(), _sample_action() y _policy_entropy()
+			# Calculate the advantage
+			advantage = curr_r_total_norm - state_value # A(s,a) = R(s,a) - V(s)
 
+			# Calculate the PPO loss
+			curr_PPO_loss = -torch.min(prob_ratio * advantage, torch.clip(prob_ratio, 1-self._epsilon, 1+self._epsilon) * advantage)
+
+			# Calculate the entropy loss
+			lifted_action_entropy, grounded_action_entropy = self._policy_entropy(action_log_probs)
+			curr_entropy_loss = -(lifted_action_entropy*self._lifted_action_entropy_coeff + \
+					grounded_action_entropy*self._ground_action_entropy_coeff)
+
+			# Calculate the actor loss
+			curr_actor_loss = curr_PPO_loss + curr_entropy_loss
+
+			# Calculate probability of termination condition
+			with torch.no_grad():
+				term_cond_prob = action_log_probs[0][-1].clone()
+				term_cond_prob = np.exp(term_cond_prob.numpy())
+				mean_term_cond_prob += term_cond_prob
+
+			# < Accumulate losses and metrics >
+			PPO_loss += curr_PPO_loss
+			entropy_loss += curr_entropy_loss
+			actor_loss += curr_actor_loss
+
+			critic_loss += curr_critic_loss
+
+			loss += curr_actor_loss + curr_critic_loss # Loss combines Actor and Critic losses
+			
+			entropy += lifted_action_entropy + grounded_action_entropy
+			
+			reward_continuous += curr_r_continuous
+			reward_eventual += curr_r_eventual
+			reward_difficulty += curr_r_difficulty
+			reward_total += curr_r_total
+			reward_total_norm += curr_r_total_norm		
+			
+
+		# Scale losses and metrics by number of samples
+
+		PPO_loss /= len(train_batch)
+		entropy_loss /= len(train_batch)
+		actor_loss /= len(train_batch)
+
+		critic_loss /= len(train_batch)
+
+		loss /= len(train_batch)
+
+		mean_term_cond_prob /= len(train_batch)
+		entropy /= len(train_batch)
+
+		reward_continuous /= len(train_batch)
+		reward_eventual /= len(train_batch)
+		reward_difficulty /= len(train_batch)
+		reward_total /= len(train_batch)
+		reward_total_norm /= len(train_batch)
+
+		# < Logs >
+
+		# Store the logs
+		# self.current_epoch == 0 and self.global_step == 0 -> only store the logs for the first training iteration of PPO
+		if self.current_epoch == 0 and self.global_step == 0: 
+			self.logger.experiment.add_scalar("Total Reward Normalized", reward_total_norm, global_step=self.curr_log_iteration)
+			self.logger.experiment.add_scalars('Rewards', {'Reward Continuous': reward_continuous, 'Reward Eventual': reward_eventual, 'Reward Difficulty': reward_difficulty},
+											   global_step=self.curr_log_iteration)
+			self.logger.experiment.add_scalar("Actor Policy Entropy", entropy, global_step=self.curr_log_iteration)
+			self.logger.experiment.add_scalars('Actor Losses', {'Total Loss': actor_loss, 'PPO Loss': PPO_loss, 'Entropy Loss': entropy_loss},
+											   global_step=self.curr_log_iteration)
+			self.logger.experiment.add_scalar("Critic Loss", critic_loss, global_step=self.curr_log_iteration)
+			self.logger.experiment.add_scalar("Termination Condition Probability", mean_term_cond_prob, global_step=self.curr_log_iteration)
+
+			self.curr_log_iteration += 1
+
+		return loss

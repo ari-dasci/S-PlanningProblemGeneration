@@ -628,24 +628,22 @@ def test_train_init_and_goal_policy():
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
 
 	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
-										   max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10,
+										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
 
 										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
 										   res_connections_initial_state_nlm=True,
 										   lr_initial_state_nlm = 1e-3,
-										   lifted_action_entropy_coeff_init_state_policy = 0,
-										   ground_action_entropy_coeff_init_state_policy = 2,
-										   entropy_annealing_coeffs_init_state_policy = (300, 0, 0.1),
+										   entropy_coeff_init_state_policy = 2,
+										   entropy_annealing_coeffs_init_state_policy = (300, 0.1),
 										   epsilon_init_state_policy=0.1,
 
 										   num_preds_inner_layers_goal_nlm=nlm_inner_layers,
 										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
 										   res_connections_goal_nlm=True,
 										   lr_goal_nlm = 1e-3,
-										   lifted_action_entropy_coeff_goal_policy = 0,
-										   ground_action_entropy_coeff_goal_policy = 1,
-										   entropy_annealing_coeffs_goal_policy = (100, 0, 0.1),
+										   entropy_coeff_goal_policy = 1,
+										   entropy_annealing_coeffs_goal_policy = (100, 0.1),
 										   epsilon_goal_policy=0.1)
 
 
@@ -668,8 +666,8 @@ def test_load_models_and_generate_problems():
 	planner = Planner(domain_file_path)
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_50/init_policy_its-450.ckpt"
-	goal_policy_path = "saved_models/both_policies_50/goal_policy_its-450.ckpt"
+	init_policy_path = "saved_models/both_policies_51/init_policy_its-500.ckpt"
+	goal_policy_path = "saved_models/both_policies_51/goal_policy_its-500.ckpt"
 
 	nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
@@ -717,7 +715,6 @@ def test_load_models_and_generate_problems():
 		>>> max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10:
 			> its=450 -> avg. diff = 718, los problemas son muy diversos
 
-
 		>>> max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20:
 			> its=450 -> avg. diff = <2.292.061>, los problemas son bastante diversos
 
@@ -728,9 +725,17 @@ def test_load_models_and_generate_problems():
 	de problemas!! (aunque creo que esto pasa porque el entrenamiento se ralentiza cuando los problemas empiezan a ser muy grandes)).
 
 
-> lr = 1e-3, <max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20>,
+> lr = 1e-3, max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10,
   <planner_search_options = 'astar(lmcut())'>:
-	
+	Aprende bien (la r_continuous y r_eventual convergen a 0) y la r_difficulty (de la goal_policy, con
+	rescale_factor=0.2 y usando search_options='astar(lmcut())') llega a 0.7. La gráfica de la policy_entropy
+	es igual que usando planner_search_options = 'astar(blind())'.
+
+	------ Problemas generados (both_policies_51):
+		> its=400 -> 19, la diversidad es bastante baja
+		> its=500 -> 28, la diversidad es bastante baja
+
+	Parece que puede generar problemas más o menos difíciles, pero la diversidad es baja.
 
 
 
@@ -739,6 +744,8 @@ def test_load_models_and_generate_problems():
 
 
 ------
+
+>>> VER POR QUÉ TODOS LOS PROBLEMAS GENERADOS TIENEN HOLDING(X) EN VEZ DE HANDEMPTY() EN EL ESTADO INICIAL Y FINAL!
 
 >>> Solucionar bug timeout a la hora de llamar al planificador (a veces no da timeout) -> 
       Ver https://stackoverflow.com/questions/73024049/timeout-for-subprocess-run-not-working-for-python-3-8-13-on-windows
