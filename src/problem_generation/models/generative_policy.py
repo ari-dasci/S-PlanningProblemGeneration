@@ -173,7 +173,7 @@ class GenerativePolicy(pl.LightningModule):
 		# < Calculate entropy of the grounded action distribution (i.e., list_prob_tensors) >
 		list_probs_flattened = [torch.cat(prob_tensors) for prob_tensors in list_prob_tensors] # Put all the probabilities into a single flattened tensor
 
-		tensor_action_entropy = torch.tensor([ torch.distributions.Categorical(probs = probs_flattened).entropy() / np.log(probs_flattened.shape[0]) \
+		tensor_action_entropy = torch.cat([ (torch.distributions.Categorical(probs = probs_flattened).entropy() / np.log(probs_flattened.shape[0])).view(1) \
 			                                   for probs_flattened in list_probs_flattened ])
 
 		return tensor_action_entropy
@@ -338,8 +338,7 @@ class GenerativePolicy(pl.LightningModule):
 		list_mask_tensors = train_batch_np[:,2].tolist()
 		list_chosen_action_index = train_batch_np[:,3].tolist()
 
-		tensor_r_total_norm = torch.tensor(train_batch_np[:,8], dtype=torch.float32, requires_grad=False)
-
+		tensor_r_total_norm = torch.tensor(train_batch_np[:,8].tolist(), dtype=torch.float32, requires_grad=False)
 		tensor_action_prob_old_policy = torch.tensor(train_batch_np[:,9].tolist(), dtype=torch.float32, requires_grad=False)
 		tensor_state_values = torch.tensor(train_batch_np[:,10].tolist(), dtype=torch.float32, requires_grad=False)
 
@@ -358,9 +357,10 @@ class GenerativePolicy(pl.LightningModule):
 
 		# < Critic >
 
-		critic_output = self._critic_nlm(list_state_tensors_nlm_encoding, list_num_objs)[0] # [0] to obtain the tensors for the nullary predicates
-		state_values_with_gradient = torch.tensor([tensor[0] for tensor in critic_output]) # [0] to obtain the first predicate of the nullary predicates (corresponding to the state_value)
-		
+		critic_output = self._critic_nlm(list_state_tensors_nlm_encoding, list_num_objs)[0] # [0] to obtain the tensors for the nullary predicates	
+		#state_values_with_gradient = torch.tensor([tensor[0] for tensor in critic_output]) # If I create the tensor like this (tensor from list of tensors), the gradient can't flow
+		state_values_with_gradient = torch.cat([tensor[0].view(1) for tensor in critic_output]) # [0] to obtain the first predicate of the nullary predicates (corresponding to the state_value)
+
 		critic_loss = torch.mean( (state_values_with_gradient - tensor_r_total_norm)**2 )
 
 
@@ -379,7 +379,7 @@ class GenerativePolicy(pl.LightningModule):
 
 		# Convert from log_probs to probs
 		# Note: if the log_prob is NaN, then we assume the prob is 0 
-		chosen_action_prob_tensor = torch.tensor([ torch.exp(log_prob) if not torch.isnan(log_prob) else \
+		chosen_action_prob_tensor = torch.cat([ torch.exp(log_prob).view(1) if not torch.isnan(log_prob) else \
 								                   torch.tensor([1e-5], dtype=torch.float32) \
 							                       for log_prob in chosen_action_log_prob_list ])
 
@@ -406,7 +406,7 @@ class GenerativePolicy(pl.LightningModule):
 			term_cond_prob_tensor = torch.tensor([ np.exp(action_log_probs_list[0][i][-1].detach().numpy()) for i in range(train_batch_len) ])
 			mean_term_cond_prob = torch.mean(term_cond_prob_tensor)
 
-		
+
 		# < Actor + Critic loss >
 		loss = actor_loss + critic_loss
 

@@ -648,6 +648,7 @@ def test_train_init_and_goal_policy():
 
 
 	# Train the goal generation policy
+	# Note: right now, we are using 'astar(lmcut())' as the planner search options
 	directed_generator.train_generative_policies(training_iterations = 10000)
 
 """
@@ -724,7 +725,6 @@ def test_load_models_and_generate_problems():
 	la dificultad es muy alta!!! (de hecho es el doble que cuando entreno al modelo directamente sobre este tamaño
 	de problemas!! (aunque creo que esto pasa porque el entrenamiento se ralentiza cuando los problemas empiezan a ser muy grandes)).
 
-
 > lr = 1e-3, max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10,
   <planner_search_options = 'astar(lmcut())'>:
 	Aprende bien (la r_continuous y r_eventual convergen a 0) y la r_difficulty (de la goal_policy, con
@@ -738,6 +738,9 @@ def test_load_models_and_generate_problems():
 	Parece que puede generar problemas más o menos difíciles, pero la diversidad es baja.
 
 
+> lr = 1e-3, max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10,
+  planner_search_options = 'astar(lmcut())', parallel_NLM:
+	
 
 	
 	

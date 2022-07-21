@@ -59,8 +59,9 @@ class DirectedGenerator():
 				 entropy_annealing_coeffs_goal_policy = None, epsilon_goal_policy=0.2, load_goal_policy_checkpoint_name=None):
 				 
 
-		# Ignore numpy warnings
-		warnings.filterwarnings('ignore', category=FutureWarning)
+		# Ignore warnings
+		warnings.filterwarnings('ignore', category=FutureWarning) # Numpy warning
+		warnings.filterwarnings("ignore", ".*Consider increasing the value of the `num_workers` argument*") # Pytorch warning about increasing number of workers for dataloader
 
 
 		self._parser = parser
@@ -524,7 +525,7 @@ class DirectedGenerator():
 		# Estimate state-value V(s) with the Critic NLM of the initial state policy
 		critic_output = self._initial_state_policy.critic_nlm(list_state_tensors_nlm_encoding, \
 													          list_num_objs_with_virtuals)[0] # [0] to obtain the tensors for the nullary predicates
-		state_values = [tensor[0].detach().numpy() for tensor in critic_output] # [0] to obtain the first predicate of the nullary predicates (corresponding to the state_value)
+		state_values = [tensor[0].detach().item() for tensor in critic_output] # [0] to obtain the first predicate of the nullary predicates (corresponding to the state_value)
 
 
 		# < Add new information to the trajectory >
@@ -612,7 +613,7 @@ class DirectedGenerator():
 		# Estimate state-value V(s) with the Critic NLM of the initial state policy
 		critic_output = self._goal_policy.critic_nlm(list_state_tensors_nlm_encoding, \
 													          list_num_objs_with_virtuals)[0] # [0] to obtain the tensors for the nullary predicates
-		state_values = [tensor[0].detach().numpy() for tensor in critic_output] # [0] to obtain the first predicate of the nullary predicates (corresponding to the state_value)
+		state_values = [tensor[0].detach().item() for tensor in critic_output] # [0] to obtain the first predicate of the nullary predicates (corresponding to the state_value)
 
 
 		# < Add new information to the trajectory >
@@ -1040,11 +1041,6 @@ class DirectedGenerator():
 				init_policy_trajectory, goal_policy_trajectory = self._obtain_trajectory_and_preprocess_for_PPO()
 				init_policy_trajectories.extend(init_policy_trajectory)
 				goal_policy_trajectories.extend(goal_policy_trajectory)
-			
-
-
-			print("HERE") # ---------> FUNCIONA HASTA ESTE PUNTO
-			sys.exit()
 
 			print(f"> Trajectories collected. Num samples:\n\t>Init policy trajectories: {len(init_policy_trajectories)} \
 					\n\t>Goal policy trajectories: {len(goal_policy_trajectories)}")
@@ -1055,7 +1051,6 @@ class DirectedGenerator():
 				self._normalize_rewards_goal_policy(goal_policy_trajectories)
 
 			# < Train the generative policies >
-
 			# <TODO>: train both policies in parallel!
 
 			# -- Initial state policy
@@ -1063,7 +1058,8 @@ class DirectedGenerator():
 			# Create training dataset and dataloader with the collected trajectories
 			trajectory_dataset_init_policy = ReinforceDataset(init_policy_trajectories)
 			trajectory_dataloader_init_policy = torch.utils.data.DataLoader(dataset=trajectory_dataset_init_policy, batch_size=minibatch_size,
-																collate_fn=TransformReinforceDatasetSample(), shuffle=True) # Change to shuffle=False if we need to keep the order in the transitions (s,a,s')
+																collate_fn=TransformReinforceDatasetSample(), shuffle=True,
+																num_workers=0) # Change to shuffle=False if we need to keep the order in the transitions (s,a,s')
 
 			# Train the policy
 
@@ -1083,7 +1079,8 @@ class DirectedGenerator():
 				# Create training dataset and dataloader with the collected trajectories
 				trajectory_dataset_goal_policy = ReinforceDataset(goal_policy_trajectories)
 				trajectory_dataloader_goal_policy= torch.utils.data.DataLoader(dataset=trajectory_dataset_goal_policy, batch_size=minibatch_size,
-																	collate_fn=TransformReinforceDatasetSample(), shuffle=True) # Change to shuffle=False if we need to keep the order in the transitions (s,a,s')
+																	collate_fn=TransformReinforceDatasetSample(), shuffle=True,
+																	num_workers=0) # Change to shuffle=False if we need to keep the order in the transitions (s,a,s')
 
 				# Train the policy
 				goal_policy_train_epochs = 0
