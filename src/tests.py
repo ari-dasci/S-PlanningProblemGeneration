@@ -667,8 +667,8 @@ def test_load_models_and_generate_problems():
 	planner = Planner(domain_file_path)
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_51/init_policy_its-500.ckpt"
-	goal_policy_path = "saved_models/both_policies_51/goal_policy_its-500.ckpt"
+	init_policy_path = "saved_models/both_policies_52/init_policy_its-400.ckpt"
+	goal_policy_path = "saved_models/both_policies_52/goal_policy_its-400.ckpt"
 
 	nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
@@ -732,22 +732,33 @@ def test_load_models_and_generate_problems():
 	es igual que usando planner_search_options = 'astar(blind())'.
 
 	------ Problemas generados (both_policies_51):
-		> its=400 -> 19, la diversidad es bastante baja
-		> its=500 -> 28, la diversidad es bastante baja
+		> its=400 -> avg diff. 19, la diversidad es bastante baja
+		> its=500 -> avg diff. 28, la diversidad es bastante baja
 
 	Parece que puede generar problemas más o menos difíciles, pero la diversidad es baja.
 
 
 > lr = 1e-3, max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10,
-  planner_search_options = 'astar(lmcut())', parallel_NLM:
+  planner_search_options = 'astar(lmcut())', <parallel_NLM>:
+	Mismos resultados que con la NLM que recibía cada sample por separado en vez del batch entero.
+	Reduce los tiempos de ejecución respecto a la NLM secuencial!
+	No obstante, conforme aumenta el núm de its se reduce la diferencia (creo que es porque,
+	al generar problemas grandes, el planificador tarda más en resolverlos). -> <el bottleneck
+    es el método para calcular la dificultad de los problemas!!!!>
+
+	------ Problemas generados (both_policies_52):
+		> its=400 -> avg diff. 35.5, la diversidad es media
+	
 	
 
-	
-	
 
 
 <<TODO>>: ver si en _calculate_state_value_and_old_policy_probs_trajectory_init_policy()
-          puedo quitar el .detach().numpy() al calcular el chosen_action_log_prob_list
+          puedo quitar el .detach().numpy() al calcular el chosen_action_log_prob_list -> Creo que sí puedo hacerlo ya que, en training_step, creo un nuevo
+		  tensor a partir de estos valores y pongo requires_grad = False, por lo que el gradient no se conserva.
+
+<<TODO>>: Intentar ejecutar la NLM sobre gpu en vez de cpu (básicamente mover todos los datos a gpu)
+
 ------
 
 >>> VER POR QUÉ TODOS LOS PROBLEMAS GENERADOS TIENEN HOLDING(X) EN VEZ DE HANDEMPTY() EN EL ESTADO INICIAL Y FINAL!
@@ -783,7 +794,7 @@ if __name__ == "__main__":
 
 	#test_train_init_and_goal_policy_SAC()
 
-	#test_load_models_and_generate_problems()
-	test_train_init_and_goal_policy()
+	test_load_models_and_generate_problems()
+	#test_train_init_and_goal_policy()
 
 	

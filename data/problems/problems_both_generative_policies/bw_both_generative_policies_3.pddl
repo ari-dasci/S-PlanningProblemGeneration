@@ -3,26 +3,22 @@
 (:domain blocks)
 
 (:objects
-	obj0 obj1 obj2 obj3 obj4 - block
+	obj0 obj1 obj2 obj3 - block
 )
 
 (:init
 	(ontable obj0)
-	(ontable obj1)
-	(ontable obj2)
-	(on obj3 obj1)
-	(clear obj0)
+	(on obj1 obj0)
+	(on obj2 obj1)
 	(clear obj2)
-	(clear obj3)
-	(holding obj4)
+	(holding obj3)
 )
 
 (:goal (and
-	(ontable obj1)
-	(on obj4 obj2)
-	(holding obj3)
-	(clear obj4)
-	(on obj0 obj1)
+	(on obj0 obj3)
 	(on obj2 obj0)
+	(clear obj2)
+	(ontable obj3)
+	(holding obj1)
 ))
 )
