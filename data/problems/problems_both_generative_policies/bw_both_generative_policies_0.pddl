@@ -17,9 +17,10 @@
 
 (:goal (and
 	(on obj3 obj0)
+	(handempty)
+	(clear obj2)
+	(on obj2 obj3)
 	(ontable obj1)
-	(clear obj3)
 	(on obj0 obj1)
-	(holding obj2)
 ))
 )

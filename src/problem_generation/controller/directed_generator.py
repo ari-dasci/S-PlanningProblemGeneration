@@ -1063,7 +1063,8 @@ class DirectedGenerator():
 
 			# Train the policy
 
-			trainer_init_policy = pl.Trainer(max_epochs=epochs_per_train_it, logger=logger_init_policy) # We need to reset the trainer, so we create a new one
+			trainer_init_policy = pl.Trainer(max_epochs=epochs_per_train_it, logger=logger_init_policy,
+									         accelerator="gpu", devices=1) # We need to reset the trainer, so we create a new one
 			trainer_init_policy.fit(self._initial_state_policy, trajectory_dataloader_init_policy)
 
 			# Linearly anneal the entropy regularization of the policy
@@ -1092,7 +1093,8 @@ class DirectedGenerator():
 				if len(goal_policy_trajectories) > 3*10*trajectories_per_train_it / 4:
 					goal_policy_train_epochs += 1
 
-				trainer_goal_policy = pl.Trainer(max_epochs=goal_policy_train_epochs, logger=logger_goal_policy)
+				trainer_goal_policy = pl.Trainer(max_epochs=goal_policy_train_epochs, logger=logger_goal_policy,
+									             accelerator="gpu", devices=1)
 				trainer_goal_policy.fit(self._goal_policy, trajectory_dataloader_goal_policy)
 
 				# Linearly anneal the entropy regularization of the policy

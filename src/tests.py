@@ -794,7 +794,7 @@ if __name__ == "__main__":
 
 	#test_train_init_and_goal_policy_SAC()
 
-	test_load_models_and_generate_problems()
-	#test_train_init_and_goal_policy()
+	#test_load_models_and_generate_problems()
+	test_train_init_and_goal_policy()
 
 	
