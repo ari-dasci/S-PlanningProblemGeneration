@@ -284,11 +284,12 @@ class ValidatorPredOrderBW(ValidatorPredOrder):
 			return False
 
 		# <Check if, in case there are no atoms of type 'holding' in the state, there is an atom of type 'handempty'>
-		holding_in_state = len(list(filter(lambda a: a[0] == 'holding', state_atoms))) > 0
 
+		holding_in_state = len(list(filter(lambda a: a[0] == 'holding', state_atoms))) > 0
 		handempty_in_state = len(list(filter(lambda a: a[0] == 'handempty', state_atoms))) > 0
 
 		return holding_in_state or handempty_in_state
+		
 
 	"""
 	Receives a totally-generated initial state (@curr_state) and, if it does not meet the eventual consistency rules, it is modified so it does.

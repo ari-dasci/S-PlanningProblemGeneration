@@ -484,7 +484,7 @@ class DirectedGenerator():
 	"""
 	def _calculate_state_value_and_old_policy_probs_trajectory_init_policy(self, trajectory):
 		trajectory_len = len(trajectory)
-
+		
 		# < Represent the data in a suitable form for the calculations >
 
 		# Represent the trajectory as a numpy array. The row are the samples and the columns the different elements of each sample.
@@ -510,7 +510,7 @@ class DirectedGenerator():
 		# list_chosen_action_index[i][0] -> arity r
 		# i -> sample i
 		# tuple(list_chosen_action_index[i][1:]) -> tensor position corresponding to chosen_action
-		chosen_action_log_prob_list = [ action_log_probs_list[list_chosen_action_index[i][0]][i][tuple(list_chosen_action_index[i][1:])].detach().numpy()   \
+		chosen_action_log_prob_list = [ action_log_probs_list[list_chosen_action_index[i][0]][i][tuple(list_chosen_action_index[i][1:])].detach().numpy()  \
 								        for i in range(trajectory_len) ]
 
 
@@ -1063,8 +1063,7 @@ class DirectedGenerator():
 
 			# Train the policy
 
-			trainer_init_policy = pl.Trainer(max_epochs=epochs_per_train_it, logger=logger_init_policy,
-									         accelerator="gpu", devices=1) # We need to reset the trainer, so we create a new one
+			trainer_init_policy = pl.Trainer(max_epochs=epochs_per_train_it, logger=logger_init_policy) # We need to reset the trainer, so we create a new one
 			trainer_init_policy.fit(self._initial_state_policy, trajectory_dataloader_init_policy)
 
 			# Linearly anneal the entropy regularization of the policy
@@ -1093,8 +1092,7 @@ class DirectedGenerator():
 				if len(goal_policy_trajectories) > 3*10*trajectories_per_train_it / 4:
 					goal_policy_train_epochs += 1
 
-				trainer_goal_policy = pl.Trainer(max_epochs=goal_policy_train_epochs, logger=logger_goal_policy,
-									             accelerator="gpu", devices=1)
+				trainer_goal_policy = pl.Trainer(max_epochs=goal_policy_train_epochs, logger=logger_goal_policy)
 				trainer_goal_policy.fit(self._goal_policy, trajectory_dataloader_goal_policy)
 
 				# Linearly anneal the entropy regularization of the policy

@@ -628,7 +628,7 @@ def test_train_init_and_goal_policy():
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
 
 	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
-										   max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10,
+										   max_atoms_init_state=30, max_actions_init_state=90, max_actions_goal_state=30,
 
 										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -667,14 +667,14 @@ def test_load_models_and_generate_problems():
 	planner = Planner(domain_file_path)
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_52/init_policy_its-400.ckpt"
-	goal_policy_path = "saved_models/both_policies_52/goal_policy_its-400.ckpt"
+	init_policy_path = "saved_models/both_policies_54/init_policy_its-260.ckpt"
+	goal_policy_path = "saved_models/both_policies_54/goal_policy_its-260.ckpt"
 
 	nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
 
 	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
-										   max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10,
+										   max_atoms_init_state=30, max_actions_init_state=90, max_actions_goal_state=30,
 										  
 										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -691,8 +691,8 @@ def test_load_models_and_generate_problems():
 	# Generate the set of problems with the trained initial policy
 	num_problems = 10
 
-	directed_generator.generate_problems(num_problems, max_atoms_init_state=-1, max_actions_init_state=-1,
-									     max_actions_goal_state=-1, max_planning_time=60, verbose=True)
+	directed_generator.generate_problems(num_problems, max_atoms_init_state=50, max_actions_init_state=150,
+									     max_actions_goal_state=50, max_planning_time=60, verbose=True)
 
 """
 
@@ -749,23 +749,75 @@ def test_load_models_and_generate_problems():
 	------ Problemas generados (both_policies_52):
 		> its=400 -> avg diff. 35.5, la diversidad es media
 	
+
+> lr = 1e-3, max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10,
+  planner_search_options = 'astar(lmcut())', parallel_NLM,
+  <state_validator with handempty in state>:
+	Las gráficas de entrenamiento son muy parecidas a cuando permito (en el state_validator)
+	que el estado inicial tenga un átomo de tipo handempty() o holding(X).
+	
+	------ Problemas generados (both_policies_53):
+		> its=260 -> avg diff. 9.8, la diversidad es media tirando a baja
+		<Nota>: paré el entrenamiento a mitad (si el entrenamiento continua, la dificultad sigue aumentando)
+
+	Es capaz de generar problemas con el átomo handempty() en el estado inicial! Creo que cuando se le da
+	la posibilidad de generar problemas con handempty() o holding(X) prefiere generar problemas con holding(X)
+	ya que eso permite que el estado inicial tenga un objeto más (X), lo que permite generar problemas más complejos.
+
+	<Quizás debería cambiar cómo calculo la entropía de la política para que la política seleccione átomos de distintos
+	tipos (en este caso, que algunas veces escoja handempty() y otras holding(X)). Para ello, debería usar una fórmula
+	parecida a la lifted_action_entropy, pero esta vez calculando las probabilidades por cada acción (y no cada ariedad)
+	por separado.>
+
+
+> lr = 1e-3, <max_atoms_init_state=30, max_actions_init_state=90, max_actions_goal_state=30>,
+  planner_search_options = 'astar(lmcut())', parallel_NLM,
+  <state_validator normal>:
+	Las gráficas de recompensa son idénticas a cuando uso max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10.
+	La dificultad va aumentando pero, conforme aumenta, el entrenamiento es cada vez más lento (al tardar el planner cada vez más
+	en resolver los problemas para calcular su dificultad).
+
+	------ Problemas generados (both_policies_54, its=260):
+	Evalúo la diversidad y dificultad de los problemas de distinto tamaño.
+
+	> max_atoms_init_state=30, max_actions_init_state=90, max_actions_goal_state=30:
+		Avg. diff = 4453, diversidad muy alta
+
+	> max_atoms_init_state=50, max_actions_init_state=150, max_actions_goal_state=50:
+		Avg. diff = 44344, diversidad alta
+
+	Es capaz de generar problemas con un mayor número de objetos/átomos sobre los que fue entrenado!!!!
+	No obstante, parece que nunca suele generar problemas con el máximo número de átomos posibles (ejecuta la condición
+	de parada antes). Creo que esto es porque el entrenamiento no terminó (la dificultad seguía aumentando pero tuve que pararlo
+	porque ya tardaba mucho en obtener la dificultad y el entrenamiento se ralentizó). Si no, podría probar a quitar
+	la condición de parada.
+
+
+
+
 	
 
 
 
-<<TODO>>: ver si en _calculate_state_value_and_old_policy_probs_trajectory_init_policy()
-          puedo quitar el .detach().numpy() al calcular el chosen_action_log_prob_list -> Creo que sí puedo hacerlo ya que, en training_step, creo un nuevo
-		  tensor a partir de estos valores y pongo requires_grad = False, por lo que el gradient no se conserva.
 
-<<TODO>>: Intentar ejecutar la NLM sobre gpu en vez de cpu (básicamente mover todos los datos a gpu)
+------  TODO  ------
+
+> Mejorar random generator (hacer que el goal_generation evite bucles) y comparar la dificultad de los problemas generados con mi método
+  vs random generation
+
+> Cambiar método cálculo dificultad
+	> Ver cómo calcular heurísticas sobre el problema generado
+
+ 
+
 
 ------
-
->>> VER POR QUÉ TODOS LOS PROBLEMAS GENERADOS TIENEN HOLDING(X) EN VEZ DE HANDEMPTY() EN EL ESTADO INICIAL Y FINAL!
 
 >>> Solucionar bug timeout a la hora de llamar al planificador (a veces no da timeout) -> 
       Ver https://stackoverflow.com/questions/73024049/timeout-for-subprocess-run-not-working-for-python-3-8-13-on-windows
 
+<TODO>: Intentar ejecutar la NLM sobre gpu en vez de cpu (básicamente mover todos los datos a gpu) -> Dejarlo para más adelante (probablemente no haga
+          que mi código sea más eficiente y hay que cambiar mucho código para que se pueda entrenar en gpu)
 
 # ------------------------------------------------------ TODO
 
@@ -794,7 +846,7 @@ if __name__ == "__main__":
 
 	#test_train_init_and_goal_policy_SAC()
 
-	#test_load_models_and_generate_problems()
-	test_train_init_and_goal_policy()
+	test_load_models_and_generate_problems()
+	#test_train_init_and_goal_policy()
 
 	

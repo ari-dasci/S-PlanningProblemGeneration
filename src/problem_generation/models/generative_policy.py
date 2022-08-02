@@ -322,7 +322,8 @@ class GenerativePolicy(pl.LightningModule):
 
 	Note: we add an entropy bonus to the loss, in order to prefer policies with high entropy.
 
-	@train_batch Batch of training samples, where each one is a tuple (state_tensors, num_objs_with_virtuals, chosen_action_index, disc_reward_sum)
+	@train_batch Batch of training samples, where each one is a tuple (state_tensors, num_objs, mask_tensors, chosen_action_index, r_continuous,
+	             r_eventual, r_difficulty, r_total, r_total_norm, action_prob_old_policy, state_values)
 	"""
 	def training_step(self, train_batch, batch_idx=0):
 		train_batch_len = len(train_batch)
