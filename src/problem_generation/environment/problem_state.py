@@ -432,7 +432,7 @@ class ProblemState:
 		else: # If the action is not applicable, we don't change the goal state
 			action_reward = self._penalization_non_applicable_action
 		
-		return self._goal_state, action_reward
+		return self._goal_state.copy(), action_reward
 
 
 	"""

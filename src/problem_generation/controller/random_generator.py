@@ -85,6 +85,21 @@ class RandomGenerator():
 
 	# ------------------------------ 
 
+	"""
+	This method receives a relational state and calculates its hash. The hash depends on the objects and atoms in the state.
+
+	@state The relational state instance to calculate the hash of.
+	"""
+	def _get_state_hash(self, state):
+		# Convert from list to tuple
+		objects = tuple(state.objects)
+		atoms = tuple(tuple(atom[0], tuple(atom[1])) for atom in state.atoms) # Convert nested list to tuple
+
+		# Get the hash of the state
+		state_hash = hash((objects, atoms))
+
+		return state_hash
+
 
 	"""
 	This method generates a single random problem by randomly picking the actions in the initial state and goal generation phases, instead of using
@@ -291,7 +306,7 @@ class RandomGenerator():
 
 		# <BEFORE LOOP DETECTION>
 
-
+		"""
 		for _ in range(num_actions_for_goal_state):
 
 			# Get applicable ground actions
@@ -313,22 +328,87 @@ class RandomGenerator():
 						print(f"<Valid> - Action {[chosen_ground_action[0], chosen_ground_action[1]]}")
 					else: # This should never happen! (we have already checked the action is valid)
 						print(f"<Invalid> - Action {[chosen_ground_action[0], chosen_ground_action[1]]}") 
-
+		"""
 
 
 
 
 		# <AFTER LOOP DETECTION>
 
+		# POR AQUÍ
+
+		# Initialize goal_search_list
+
+		# It is a list of tuples where:
+		#	> The first element is the goal_state at each step of the search
+		#	> The second element is the hash of the goal state at that step
+		#	> The third element is the index of the next action to execute
+
+		curr_goal_state = problem.goal_state.copy()
+		applicable_ground_actions = problem.applicable_ground_actions()
+		random.shuffle(applicable_ground_actions) # Applicable actions must be executed in a random order
+
+		goal_search_list = [(curr_goal_state, 
+					         self._get_state_hash(curr_goal_state), 
+							 applicable_ground_actions)]
+
+		# Goal_search_list contains an element (plus one) for each action executed in the goal state
+		while len(goal_search_list) <= num_actions_for_goal_state:
+
+			# <If the last node in goal_search_list contains no applicable actions, backtrack recursively
+			#  until we find a node (goal_state) for which there exists at least one applicable action>
+			while len(goal_search_list) > 0 and len(goal_search_list[-1][2]) == 0:
+				del goal_search_list[-1] # Delete the last node in the list
+				problem.goal_state = goal_search_list[-1][0] # Update goal_state in the problem to the last goal_state in the list
+
+			if len(goal_search_list) == 0: # We have already executed every possible action (we have run out of nodes to explore)
+				if verbose:
+					print("<<Error in goal generation. State space of goal states has been exhausted.>>")
+				break
 
 
-		# Guardar una lista con los goal_states por los que hemos pasado, ya que siempre se puede asignar
-		# problem.goal_state = old_goal_state
+			# <Expand the last search node (i.e., execute the next applicable action)>
+			next_action = goal_search_list[-1][2].pop(0) # Obtain the first action and remove it from the list
 
-		# Guardar:
-		#		> Lista con el goal state previo a ejecutar cada acción (empezando en init_state)
-		#		> Para cada goal state, su hash (en función de los átomos que contiene)
-		#		> Índice de la siguiente acción a probar (empezando en 0)
+			# <Execute the action to obtain the next goal_state>
+			next_goal_state, r = problem.apply_action_to_goal_state(next_action[0], next_action[1]) # The goal_state contained in problem is also changed
+
+			# <Print information to the user>
+			if verbose:
+				if r >= 0: # Valid action
+					print(f"<Valid> - Action {[next_action[0], next_action[1]]}")
+				else: # This should never happen! (we have already checked the action is valid)
+					print(f"<Invalid> - Action {[next_action[0], next_action[1]]}") 
+
+
+			# <Check next_goal_state isn't already in goal_search_list>
+
+			# Obtain its hash
+			hash_next_goal_state = self._get_state_hash(next_goal_state)
+
+			# Check if the hash is already in the list
+			
+			# <TODO>
+			# USE A SEPARATE LIST FOR THE HASHES
+			hash_list = [node[1] for node in goal_search_list]
+
+			# If the hash is in the list, next_goal_state is new so we don't add it to the list
+			if hash_next_goal_state in hash_list:
+				problem.goal_state = goal_search_list[-1][0] # Update goal_state in the problem to the last goal_state in the list
+
+			else: # If next_goal_state is new, we add it to the list
+				# Obtain applicable actions at next_goal_state and shuffle them
+				applicable_ground_actions = problem.applicable_ground_actions()
+				random.shuffle(applicable_ground_actions) # Applicable actions must be executed in a random order
+
+				# Add a new node to the goal_search_list (containing the information about next_goal_state)
+				goal_search_list.append([next_goal_state,
+										 hash_next_goal_state,
+										 applicable_ground_actions])
+
+
+
+
 
 
 
