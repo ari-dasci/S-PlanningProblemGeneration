@@ -276,6 +276,8 @@ class RandomGenerator():
 
 		# <Generate goal state>
 
+
+
 		problem.end_initial_state_generation_phase()
 
 		# Decide how many actions will be used to generate the goal state
@@ -284,6 +286,11 @@ class RandomGenerator():
 
 		if verbose:
 			print(f"> Starting goal state generation phase - num_actions={num_actions_for_goal_state}")
+
+
+
+		# <BEFORE LOOP DETECTION>
+
 
 		for _ in range(num_actions_for_goal_state):
 
@@ -306,6 +313,25 @@ class RandomGenerator():
 						print(f"<Valid> - Action {[chosen_ground_action[0], chosen_ground_action[1]]}")
 					else: # This should never happen! (we have already checked the action is valid)
 						print(f"<Invalid> - Action {[chosen_ground_action[0], chosen_ground_action[1]]}") 
+
+
+
+
+
+		# <AFTER LOOP DETECTION>
+
+
+
+		# Guardar una lista con los goal_states por los que hemos pasado, ya que siempre se puede asignar
+		# problem.goal_state = old_goal_state
+
+		# Guardar:
+		#		> Lista con el goal state previo a ejecutar cada acción (empezando en init_state)
+		#		> Para cada goal state, su hash (en función de los átomos que contiene)
+		#		> Índice de la siguiente acción a probar (empezando en 0)
+
+
+
 
 
 		# OLD GOAL STATE GENERATION

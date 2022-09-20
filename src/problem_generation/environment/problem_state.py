@@ -71,6 +71,11 @@ class ProblemState:
 	def goal_state(self):
 		return self._goal_state
 
+	# Goal state setter, only used at random_generator.py
+	@goal_state.setter
+	def goal_state(self, new_goal_state):
+		self._goal_state = new_goal_state
+
 	@property
 	def is_goal_state_generated(self):
 		return self._is_goal_state_generated

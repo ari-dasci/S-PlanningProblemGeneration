@@ -811,6 +811,8 @@ def test_load_models_and_generate_problems():
  
 
 
+
+
 ------
 
 >>> Solucionar bug timeout a la hora de llamar al planificador (a veces no da timeout) -> 
@@ -846,7 +848,11 @@ if __name__ == "__main__":
 
 	#test_train_init_and_goal_policy_SAC()
 
-	test_load_models_and_generate_problems()
+	#test_load_models_and_generate_problems()
 	#test_train_init_and_goal_policy()
+
+
+
+	test_generate_random_problems()
 
 	
