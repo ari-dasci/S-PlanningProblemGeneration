@@ -95,8 +95,8 @@ class RandomGenerator():
 	def _get_state_hash(self, state):
 		# Convert from list to tuple
 		objects = tuple(state.objects)
-		atoms = tuple( [(atom[0], tuple(atom[1])) for atom in state.atoms] ) # Convert nested list to tuple
-
+		atoms = frozenset(tuple( [(atom[0], tuple(atom[1])) for atom in state.atoms] )) # Convert nested list to tuple
+		                                                                                # We convert objects into a set because we do not care about the order in which objects are stored in the list
 		# Get the hash of the state
 		state_hash = hash((objects, atoms))
 
@@ -293,20 +293,20 @@ class RandomGenerator():
 
 		# <Generate goal state>
 
-
-
 		problem.end_initial_state_generation_phase()
 
 		# Decide how many actions will be used to generate the goal state
 		if type(num_actions_for_goal_state) == list or type(num_actions_for_goal_state) == tuple:
 			num_actions_for_goal_state = random.randint(num_actions_for_goal_state[0], num_actions_for_goal_state[1])
 
+
 		if verbose:
 			print(f"> Starting goal state generation phase - num_actions={num_actions_for_goal_state}")
 
 
 
-		# <BEFORE LOOP DETECTION>
+
+		# <Goal generation before using loop detection>
 
 		"""
 		for _ in range(num_actions_for_goal_state):
@@ -335,7 +335,7 @@ class RandomGenerator():
 
 
 
-		# <AFTER LOOP DETECTION>
+		# <Goal generation after using loop detection>
 
 		# Initialize goal_search_list
 
@@ -355,11 +355,6 @@ class RandomGenerator():
 
 		goal_search_list = [(curr_goal_state, 
 							 applicable_ground_actions)]
-
-
-
-		print("Initial goal state:", curr_goal_state)
-
 
 		# List which stores at each position i, the hash of the state goal_search_list[i][0]
 		state_hash_list = [self._get_state_hash(curr_goal_state)]
@@ -387,19 +382,8 @@ class RandomGenerator():
 			# <Expand the last search node (i.e., execute the next applicable action)>
 			next_action = goal_search_list[-1][1].pop(0) # Obtain the first action and remove it from the list
 
-
-			# Quitar
-			print("\n----------------------------\n")
-			print("> Next action:", next_action)
-
-
 			# <Execute the action to obtain the next goal_state>
 			next_goal_state, r = problem.apply_action_to_goal_state(next_action[0], next_action[1]) # The goal_state contained in problem is also changed
-
-
-
-			print("> Next goal state:", next_goal_state)
-
 
 			# <Print information to the user>
 			if verbose:
@@ -414,22 +398,13 @@ class RandomGenerator():
 			# Obtain its hash
 			hash_next_goal_state = self._get_state_hash(next_goal_state)
 
-
-			print("> Hash:", hash_next_goal_state)
-
 			# Check if the hash is already in the list
 			
 			# If the hash is in the list, next_goal_state is new so we don't add it to the list
 			if hash_next_goal_state in state_hash_list:
 				problem.goal_state = goal_search_list[-1][0] # Update goal_state in the problem to the last goal_state in the list
 
-				print(">> Hash in list")
-
 			else: # If next_goal_state is new, we add it to the list
-
-
-				print(">> Hash not in list")
-
 				# Obtain applicable actions at next_goal_state and shuffle them
 				applicable_ground_actions = problem.applicable_ground_actions()
 				random.shuffle(applicable_ground_actions) # Applicable actions must be executed in a random order
@@ -439,72 +414,13 @@ class RandomGenerator():
 										 applicable_ground_actions))
 				state_hash_list.append(hash_next_goal_state)
 
-				print("New node:", goal_search_list[1])
-
 				# If next_goal_state is the best goal state so far (the farthest from the initial state)
 				# we store it in best_goal_state
 
 				if len(goal_search_list) - 1 > num_actions_best_goal_state:
-					num_actions_best_goal_state = len(goal_search_list) - 1
+					num_actions_best_goal_state = len(goal_search_list) - 1 # len(goal_search_list) - 1  is equal to the number of actions executed from the initial state to next_goal_state
 					best_goal_state = next_goal_state
 
-
-
-
-
-
-
-
-		# OLD GOAL STATE GENERATION
-		"""
-		domain_actions = self.domain_actions_and_parameters
-
-		for _ in range(num_actions_for_goal_state):
-			# Select a random action
-			action = random.choice(domain_actions)
-
-			# Get action type ('pick-up')
-			action_type = action[0]
-
-			# Obtain objects in the initial state
-			state_objs = problem.initial_state.objects
-
-			# Instantiate the action on objects
-			action_objs_indices = [] # [1, 3]
-			action_can_be_instantiated = True # If False, the selected action cannot be instantiated on the current state (and thus it's not applicable)
-			
-			for obj_type in action[1]:
-				# Select objects (represented as indices) in the state with the correct type
-				# Example: ['block', 'circle', 'block', 'block'] -> [0, 2, 3] (if obj_type is 'block')
-				obj_inds_correct_type = [ind for ind, t in list(filter(lambda x: x[1] == obj_type, enumerate(state_objs)))]
-					
-				# Remove objects already instantiated in the action (an object can only appear once per action)
-				obj_inds_correct_type_and_not_instantiated = list(filter(lambda x: x not in action_objs_indices, obj_inds_correct_type))
-					
-				# If no object fulfills the requisites, simply choose another action (in the next iteration of the loop)
-				if len(obj_inds_correct_type_and_not_instantiated) == 0:
-					action_can_be_instantiated = False
-					
-				else: # Instantiate the action on a random object that fulfills the requisites
-					random_obj_ind = random.choice(obj_inds_correct_type_and_not_instantiated)
-					action_objs_indices.append(random_obj_ind)
-
-
-			# Apply the action to the goal state
-			if action_can_be_instantiated:
-				_, r = problem.apply_action_to_goal_state(action_type, action_objs_indices)
-			
-				if verbose:
-					if r >= 0: # Valid action
-						print(f"<Valid> - Action {[action_type, action_objs_indices]}")
-					else:
-						print(f"<Invalid> - Action {[action_type, action_objs_indices]}")
-
-			else:
-				if verbose:
-					print(f"<Invalid> - The action {action_type} can't be instantiated")
-
-		"""
 
 
 		# <Obtain PDDL problem>
@@ -554,10 +470,13 @@ class RandomGenerator():
 
 			# Generate problem
 			new_problem = self._generate_random_problem(num_actions_for_init_state, num_actions_for_goal_state, pred_probabilities,
-											  curr_problem_name, verbose=False)
+											  curr_problem_name, verbose=verbose)
 
 			# Save it to disk
 			curr_prob_path = problems_path + curr_problem_name + '.pddl'
+
+
+			print("curr_prob_path", curr_prob_path)
 
 			with open(curr_prob_path, 'w+') as f:
 				f.write(new_problem)

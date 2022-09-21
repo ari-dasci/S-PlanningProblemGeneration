@@ -306,13 +306,20 @@ def test_planner():
 Test generate_random_problems() in Controller class.
 """
 def test_generate_random_problems():
-	from problem_generation.controller.controller import Controller
+	from problem_generation.controller.controller import RandomGenerator
+	from problem_generation.environment.pddl_parser import Parser
+	from problem_generation.environment.planner import Planner
 
-	num_problems_to_generate = 1
 
 	domain_file_path = '../data/domains/blocks-domain.pddl'
 
-	controller = Controller(domain_file_path)
+	parser = Parser()
+	parser.parse_domain(domain_file_path)
+	planner = Planner(domain_file_path)
+
+	random_generator = RandomGenerator(parser, planner)
+
+	num_problems_to_generate = 10
 
 	# Assign a higher probability to the 'on' predicate, so that there are more atoms (on _ _) in the problems generated
 	# pred_probs = dict([('ontable', 100), ('on', 40), ('clear', 1), ('holding', 1), ('handempty', 3)])
@@ -320,12 +327,8 @@ def test_generate_random_problems():
 
 	print(">> Calling generate_random_problems()")
 
-	"""controller.generate_random_problems(num_problems_to_generate, num_actions_for_init_state=(10, 30),
+	random_generator.generate_random_problems(num_problems_to_generate, num_actions_for_init_state=(10, 30),
 									num_actions_for_goal_state=(5, 8), pred_probabilities=pred_probs,
-									verbose=True)"""
-
-	controller.generate_random_problems(num_problems_to_generate, num_actions_for_init_state=5,
-									num_actions_for_goal_state=1, pred_probabilities=pred_probs,
 									verbose=True)
 
 
