@@ -320,8 +320,12 @@ def test_generate_random_problems():
 
 	print(">> Calling generate_random_problems()")
 
-	controller.generate_random_problems(num_problems_to_generate, num_actions_for_init_state=(10, 30),
+	"""controller.generate_random_problems(num_problems_to_generate, num_actions_for_init_state=(10, 30),
 									num_actions_for_goal_state=(5, 8), pred_probabilities=pred_probs,
+									verbose=True)"""
+
+	controller.generate_random_problems(num_problems_to_generate, num_actions_for_init_state=5,
+									num_actions_for_goal_state=1, pred_probabilities=pred_probs,
 									verbose=True)
 
 
