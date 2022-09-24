@@ -117,7 +117,7 @@ class RandomGenerator():
 	def _generate_random_problem(self, num_actions_for_init_state, num_actions_for_goal_state, pred_probabilities=None,
 								problem_name = "problem", seed=None, verbose=False):
 
-		# Choose a random seed based on system time
+		# Choose a seed
 		random.seed(seed)
 
 		domain_predicates = self.domain_predicates
@@ -156,6 +156,7 @@ class RandomGenerator():
 				if verbose:
 					print("There are no more actions to add. Finishing initial state generation phase...")
 
+				available_actions = False
 				break # Finish while loop
 
 			# Obtain the index of the last object in the state
@@ -227,6 +228,9 @@ class RandomGenerator():
 						print(f"<<Invalid>> - Atom {chosen_atom} and objs {objs_to_add}")
 
 				ind_action += 1
+
+
+
 
 
 
@@ -433,6 +437,7 @@ class RandomGenerator():
 		pddl_problem = problem.obtain_pddl_problem(problem_name)
 
 		return pddl_problem
+
 
 	"""
 	This method repeatedly calls self.generate_random_problem() to create a set of random problems, saving them to 
