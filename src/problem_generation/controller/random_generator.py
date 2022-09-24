@@ -246,9 +246,7 @@ class RandomGenerator():
 
 
 		# Decide how many atoms of each predicate type will be added to the initial state
-		num_atoms_each_pred_to_add =  
-
-
+		dict_num_atoms_each_pred = self._get_atoms_to_add_init_state(num_actions_for_init_state, num_atoms_each_pred_for_init_state)
 
 
 		# Decide how many actions will be used to generate the initial state
@@ -261,10 +259,165 @@ class RandomGenerator():
 		if verbose:
 			print(f"> Starting initial state generation phase - num_actions={num_actions_for_init_state}")
 
+
+
+
+		# <NEW>
+		# After self._get_atoms_to_add_init_state
+
+		init_state_generated = False
+
+		while not init_state_generated:
+			# Obtain the possible actions (atoms) that can be applied to the current state
+			# Note: these atoms only correspond to correct predicates according to the predicate order
+			possible_atoms = problem.get_possible_init_state_actions()
+			random.shuffle(possible_atoms) # Shuffle the atoms
+
+			# Get the existing predicate types in possible_atoms (e.g.: ['on', 'ontable'])
+			possible_predicates = list(set([a[0] for a in possible_atoms]))
+			
+			# If there are no possible actions, we stop the generation
+			if len(possible_atoms) == 0:
+				if verbose:
+					print("There are no more actions to add. Finishing initial state generation phase...")
+
+				init_state_generated = True
+			else:
+
+				# Obtain the predicate names ordered according to the predicate order
+				if self._consistency_validator is None:
+					pred_names_ordered = [p[0] for p in self.domain_predicates]
+				else:
+					pred_names_ordered = self._consistency_validator.predicate_order
+
+				# Get the first predicate so that 
+				# 1) it is contained in possible_atoms and
+				# 2) we can add it according to dict_num_atoms_each_pred
+				chosen_pred = None
+
+				for p in pred_names_ordered:
+
+					if p in possible_predicates and dict_num_atoms_each_pred[p] > 0:
+						chosen_pred = p
+
+
+						# <TODO>
+						# Añadir fragmento de código que intenta seleccionar un átomo en possible_atoms
+						# cuyo predicado sea chosen_pred y que sea consistente
+						# Si esto no es posible, "avanzamos" al siguiente predicado en pred_names_ordered (siguiente iteración del bucle)
+
+
+
+
+
+
+				# <TODO>
+				# <CAMBIAR LO DE ABAJO>
+				# Si chosen_pred no vale None, debo intentar seleccionar un átomo de ese predicado de manera que sea consistente.
+				# Si no es posible, cambio chosen_pred al siguiente predicado según el predicate_order y lo vuelvo a intentar.
+				# Esto lo repito hasta que me quedo sin predicados.
+				# Si aún no he podido seleccionar un átomo consistente, termino el initial state generation a no ser que el estado no sea consistente aún.
+				# (esto último se corresponde con el bloque de código debajo de "if chosen_pred is None:" (ver unas líneas abajo))
+
+
+
+
+				# If this condition is met, one of the following is true:
+				# 1) We need to add more atoms of a certain predicate (according to dict_num_atoms_each_pred) but we can't according to the consistency rules
+				# 2) We have already added all the atoms needed according to dict_num_atoms_each_pred
+				# In both situations, we finish the initial state generation unless they initial state is not consistent yet
+				if chosen_pred is None:
+
+					# If the initial state is consistent, we finish initial state generation
+					if problem.get_eventual_consistency_reward_of_init_state() == 0:
+						init_state_generated = True
+
+					# If the initial state is not consistent yet, we add a random possible atom to the initial state
+					else:
+
+						selected_consistent_action = False
+
+						# Select a consistent action
+						while not selected_consistent_action and len(possible_atoms) > 0:
+							# Obtain the index of the last object in the state
+							ind_last_state_obj = problem.initial_state.num_objects - 1
+
+							# Select a random possible action (atom)
+							chosen_atom = possible_atoms.pop(0)
+							chosen_pred = list(filter(lambda x: x[0] == chosen_atom[0], domain_predicates))[0] # Obtain the predicate (not only the name, but also the object types) associated with chosen_atom
+
+							# Transform -1 indexes for indexes of new objects and see objects to add
+							# E.g.: ['on', [-1, 0]] -> ['on', [3, 0]] (if there are three blocks in the state)
+							curr_obj_ind = ind_last_state_obj + 1
+							objs_to_add = []
+			
+							for i in range(len(chosen_atom[1])):
+								if chosen_atom[1][i] == -1:
+									chosen_atom[1][i] = curr_obj_ind
+									curr_obj_ind += 1
+
+									objs_to_add.append(chosen_pred[1][i]) # Append a new object to add of the type given by the corresponding predicate
+
+							# Check the consistency of the selected action
+							selected_consistent_action = problem.is_init_state_action_consistent(chosen_atom)
+
+
+						# Add the selected atom to the initial state
+						if selected_consistent_action:
+							# Apply the action to the state
+							_, r = problem.apply_action_to_initial_state(objs_to_add, chosen_atom)
+
+							if verbose:
+								if r >= 0: # Valid action
+									print(f"<Valid> - Atom {chosen_atom} and objs {objs_to_add}")
+								else:
+									print(f"<<Invalid>> - Atom {chosen_atom} and objs {objs_to_add}")
+
+							# Substract 1 from the atoms to add to the init state for the corresponding predicate type
+							dict_num_atoms_each_pred[chosen_atom[0]] -= 1
+						
+						# If possible_atoms did not contain a single consistent action, we finish state generation
+						else:
+							init_state_generated = True
+
+							if verbose:
+								print("<<We were not able to generate a consistent initial state!!>>")
+
+
+				# chosen_pred is not None -> try to select an atom in possible_atoms of predicate chosen_pred so that it is consistent
+				# Else, we need to change chosen_pred to the next predicate according to the predicat order.
+				# We repeat this process until we are able to select a consistent atom of chosen_pred
+				# If we cannot, we finish initial state generation (unless the initial state is not consistent yet)
+				else:
+					pass
+
+					# <TODO>
+			
+
+
+
+
+
+
+				# SI LA ACCIÓN NO ES CONSISTENTE, NO PUEDO QUITAR 1 AL NÚMERO DE ACCIONES!
+
+
+				
+
+
+
+
+
+
+
+		# <Before self._get_atoms_to_add_init_state> 
+
+
 		# We execute actions (i.e., add atoms) until:
 		# 1. We have executed at least num_actions_for_init_state actions and the problem is totally consistent
 		# OR
 		# 2. There are no more available consistent actions (atoms)
+		"""
 		ind_action = 0
 		available_actions = True
 
@@ -350,71 +503,9 @@ class RandomGenerator():
 						print(f"<<Invalid>> - Atom {chosen_atom} and objs {objs_to_add}")
 
 				ind_action += 1
-
-
-
-
-
-
-		# OLD INITIAL STATE GENERATION
 		"""
-		for _ in range(num_actions_for_init_state):
-			# Select a random predicate
-			pred = random.choice(domain_predicates)
 
-			# Get predicate type ('on')
-			pred_type = pred[0]
-
-			# Obtain objects in the initial state
-			state_objs = problem.initial_state.objects
-
-			# Instantiate the predicate and add new objects
-			objs_to_add = [] # ['block']
-			pred_objs_indices = [] # [1, 3]
-			ind_next_new_obj = len(state_objs) # In case a new object is added, the index that corresponds to it
-			
-			for obj_type in pred[1]:
-				if random.uniform(0.0, 1.0) < prob_adding_new_obj: # Instantiate on a new object
-					objs_to_add.append(obj_type) # Add an object to the state with the correct type
-					pred_objs_indices.append(ind_next_new_obj) # Instantiate the predicate on such object
-					ind_next_new_obj += 1
-
-				else: # Instantiate on an existing object
-					
-					# Select objects (represented as indices) in the state with the correct type
-					# Example: ['block', 'circle', 'block', 'block'] -> [0, 2, 3] (if obj_type is 'block')
-					obj_inds_correct_type = [ind for ind, t in list(filter(lambda x: x[1] == obj_type, enumerate(state_objs)))]
-					
-					# Remove objects already instantiated in the predicate (an object can only appear once per predicate)
-					obj_inds_correct_type_and_not_instantiated = list(filter(lambda x: x not in pred_objs_indices, obj_inds_correct_type))
-					
-					# If no object fulfills the requisites, instantiate the predicate on a new object
-					if len(obj_inds_correct_type_and_not_instantiated) == 0:
-						objs_to_add.append(obj_type) # Add an object to the state with the correct type
-						pred_objs_indices.append(ind_next_new_obj) # Instantiate the predicate on such object
-						ind_next_new_obj += 1
-					
-					else: # Instantiate the predicate on a random object that fulfills the requisites
-						random_obj_ind = random.choice(obj_inds_correct_type_and_not_instantiated)
-						pred_objs_indices.append(random_obj_ind)
-
-			# Add the instantiated predicate (i.e., the atom) to the initial state
-			new_atom = [pred_type, pred_objs_indices]
-
-			# Make sure the atom was not already in the initial state
-			if new_atom in problem.initial_state.atoms:
-				if verbose:
-					print(f"<The atom already existed in the initial state>")
-			
-			else:
-				_, r = problem.apply_action_to_initial_state(objs_to_add, new_atom)
-
-				if verbose:
-					if r >= 0: # Valid action
-						print(f"<Valid> - Atom {new_atom} and objs {objs_to_add}")
-					else:
-						print(f"<Invalid> - Atom {new_atom} and objs {objs_to_add}")
-		"""
+		
 		
 
 		# <Generate goal state>
