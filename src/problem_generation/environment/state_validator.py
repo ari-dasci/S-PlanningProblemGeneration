@@ -55,6 +55,7 @@ class ValidatorPredOrderBW(ValidatorPredOrder):
 	Returns a list with the predicates (atom types) in the current generation phase, i.e., those that can be added
 	to the state in the next action. These predicates are those whose order is the same or higher as the highest-order
 	predicate currently in the state.
+	The list of predicates is ordered according to their order.
 	Example: if the highest order predicate in the current state is 'clear', the we can add predicates of type 'clear', 'holding' or 'handempty'
 
 	@curr_state Instance of RelationalState

@@ -102,19 +102,124 @@ class RandomGenerator():
 
 		return state_hash
 
+	"""
+	Returns a dictionary containing the number of atoms of each predicate type which must be added to the initial state.
+	"""
+	def _get_atoms_to_add_init_state(self, num_actions_for_init_state, num_atoms_each_pred_for_init_state):
+
+		# Obtain number of minimum and maximum total atoms which must be in the init state
+		if type(num_actions_for_init_state) == list or type(num_actions_for_init_state) == tuple:
+			min_num_atoms_init_state = num_actions_for_init_state[0]
+			max_num_atoms_init_state = num_actions_for_init_state[1]
+		else:
+			min_num_atoms_init_state = max_num_atoms_init_state = num_actions_for_init_state
+
+		num_atoms_added = 0
+
+		# Initialize the dictionary containing the number of atoms of each predicate
+		predicate_names = [p[0] for p in self.domain_predicates]
+		dict_num_atoms_each_pred = dict(zip(predicate_names,[0]*len(predicate_names)))
+
+		# Check if some predicates are required in the init state (i.e., there must be at least one atom of them)
+		if self._consistency_validator is not None: 
+			required_preds = self._consistency_validator.required_pred_names()
+
+			# We already add one atom to the init state for each required pred
+			for p in required_preds:
+				dict_num_atoms_each_pred[p] = 1
+				num_atoms_added += 1
+
+
+		# <Choose the number of atoms to add to the init state for each predicate>
+		# These conditions must be met:
+		# 1. For each predicate, the number of atoms is within the interval given by num_atoms_each_pred_for_init_state
+		# 2. The total number of atoms is within the interval given by num_actions_for_init_state
+
+
+		# For each predicate, add the minimum number of required atoms according to num_atoms_each_pred_for_init_state
+		if num_atoms_each_pred_for_init_state is not None:
+
+			for pred_name, num_atoms_pred in num_atoms_each_pred_for_init_state.items():
+
+				if num_atoms_pred is not None:
+					# Obtain the minimum number of atoms of type "pred_name" we need to add to the init state
+					if type(num_atoms_pred) == list or type(num_atoms_pred) == tuple:
+						min_num_atoms = num_atoms_pred[0]
+					else:
+						min_num_atoms = num_atoms_pred
+
+					# Add as many atoms are needed of type "pred_name" so that the minimum is met
+					if min_num_atoms > dict_num_atoms_each_pred[pred_name]:
+						num_atoms_added += min_num_atoms - dict_num_atoms_each_pred[pred_name] # See how many new atoms need to be added of type "pred_name"
+
+						dict_num_atoms_each_pred[pred_name] = min_num_atoms
+
+		
+		# Condition 1 is met.
+		# Keep adding atoms to meet condition 2, while still satisfying condition 1.			
+
+		if num_atoms_added < max_num_atoms_init_state:
+
+			# Add some more atoms, so that the total number of atoms is within min_num_atoms_init_state and max_num_atoms_init_state		
+			a = max(0, min_num_atoms_init_state-num_atoms_added) # Minimum number of new atoms to add -> we need to at least reach min_num_atoms_init_state
+			b = max_num_atoms_init_state-num_atoms_added # Maximum number of new atoms to add -> we can't exceed max_num_atoms_init_state	
+			num_atoms_left_to_add = random.randint(a, b)
+
+			# Obtain the maximum number of atoms we can add for each predicate
+			max_num_atoms_each_pred = dict()
+
+			for pred_name, num_atoms_pred in num_atoms_each_pred_for_init_state.items():
+
+				if num_atoms_pred is None:
+					max_num_atoms_each_pred[pred_name] = 1000000 # The maximum number of atoms of this pred is +inf
+				elif type(num_atoms_pred) == list or type(num_atoms_pred) == tuple:
+					max_num_atoms_each_pred[pred_name] = num_atoms_pred[1]
+				else:
+					max_num_atoms_each_pred[pred_name] = num_atoms_pred
+
+			# Add atoms to the initial state until:
+			# 1. We have added num_atoms_left_to_add
+			# 2. Or we cannot add more atoms without exceeding the maximum number of atoms for some predicate according to num_atoms_each_pred_for_init_state
+
+			for _ in range(num_atoms_left_to_add):
+
+				# Obtain predicates for which we can still add new atoms (according to num_atoms_each_pred_for_init_state)
+				if num_atoms_each_pred_for_init_state is None:
+					available_preds = predicate_names
+				else:
+					available_preds = [p for p in predicate_names if dict_num_atoms_each_pred[p] < max_num_atoms_each_pred[p]]
+
+				# if we cannot add more atoms of any predicate, we finish
+				if len(available_preds) == 0:
+					break
+
+				# Else, we add an atom of a random available predicate
+				chosen_pred = random.choice(available_preds)
+				dict_num_atoms_each_pred[chosen_pred] += 1
+				num_atoms_added += 1
+
+
+		return dict_num_atoms_each_pred
+
+
 
 	"""
 	This method generates a single random problem by randomly picking the actions in the initial state and goal generation phases, instead of using
 	the generative policies.
 
 	@num_actions_for_init_state How many (random) actions to execute to generate the initial state. It can be given as an interval [min_num_actions, max_num_actions].
+	@num_atoms_each_pred_for_init_state How many atoms of each predicate type to add to the initial state. If None, they are chosen at random so that the total number
+	                                    of atoms is whithin the interval given by @num_actions_for_init_state. Else, it must be a dictionary where keys are predicates
+										and values are either None, numbers or intervals representing the number of atoms of that predicate to add to the init state.
+										If num_atoms_each_pred_for_init_state['predname'] == None, we assume we can add any number of atoms of predicate 'predname'
+										to the init state.
 	@num_actions_for_goal_state How many (random) actions to execute to generate the goal state. It can be given as an interval [min_num_actions, max_num_actions].
 	@pred_probabilities A dictionary containing, for each predicate name, the probability of it being added to the state (in case it can be added according to the predicate_order).
 	@problem_name If not None, name of the generated problem.
 	@seed Seed used to initialize the rng (with random.seed()). If None, the system time is used as the seed.
 	@verbose If True, prints information about the process (e.g., the actions applied to generate the problem).
 	"""
-	def _generate_random_problem(self, num_actions_for_init_state, num_actions_for_goal_state, pred_probabilities=None,
+	def _generate_random_problem(self, num_actions_for_init_state, num_actions_for_goal_state, num_atoms_each_pred_for_init_state=None, pred_probabilities=None,
 								problem_name = "problem", seed=None, verbose=False):
 
 		# Choose a seed
@@ -122,9 +227,16 @@ class RandomGenerator():
 
 		domain_predicates = self.domain_predicates
 
+
+
+		# OLD
+		"""
 		if pred_probabilities is None: # Assign the same probability to each predicate
 			prob = 1.0 / len(domain_predicates)
 			pred_probabilities = dict([ (p[0], prob) for p in domain_predicates])
+		"""
+
+
 
 		# <Initialize ProblemState instance>
 		problem = ProblemState(self._parser, self._predicates_to_consider_for_goal, self._initial_state_info,
@@ -132,9 +244,19 @@ class RandomGenerator():
 
 		# <Generate initial state>
 
+
+		# Decide how many atoms of each predicate type will be added to the initial state
+		num_atoms_each_pred_to_add =  
+
+
+
+
 		# Decide how many actions will be used to generate the initial state
-		if type(num_actions_for_init_state) == list or type(num_actions_for_init_state) == tuple:
+		# OLD
+		"""if type(num_actions_for_init_state) == list or type(num_actions_for_init_state) == tuple:
 			num_actions_for_init_state = random.randint(num_actions_for_init_state[0], num_actions_for_init_state[1])
+		"""
+
 
 		if verbose:
 			print(f"> Starting initial state generation phase - num_actions={num_actions_for_init_state}")
