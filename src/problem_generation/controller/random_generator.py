@@ -275,6 +275,9 @@ class RandomGenerator():
 
 			# Get the existing predicate types in possible_atoms (e.g.: ['on', 'ontable'])
 			possible_predicates = list(set([a[0] for a in possible_atoms]))
+
+			# Obtain the index of the last object in the state
+			ind_last_state_obj = problem.initial_state.num_objects - 1
 			
 			# If there are no possible actions, we stop the generation
 			if len(possible_atoms) == 0:
@@ -290,43 +293,65 @@ class RandomGenerator():
 				else:
 					pred_names_ordered = self._consistency_validator.predicate_order
 
-				# Get the first predicate so that 
-				# 1) it is contained in possible_atoms and
+				# Get the first predicate so that every condition is met:
+				# 1) it is contained in possible_atoms
 				# 2) we can add it according to dict_num_atoms_each_pred
-				chosen_pred = None
+				# 3) there exists some atom of that predicate in possible_atoms so that it is consistent
+				selected_consistent_action = False
 
-				for p in pred_names_ordered:
+				for chosen_pred in pred_names_ordered:
 
-					if p in possible_predicates and dict_num_atoms_each_pred[p] > 0:
-						chosen_pred = p
+					# Conditions 1) and 2) are met -> Try to sample a consistent atom of that predicate
+					if chosen_pred in possible_predicates and dict_num_atoms_each_pred[chosen_pred] > 0:
+						
+						# Select those atoms with predicate==chosen_pred
+						possible_atoms_chosen_pred = list(filter(lambda atom: atom[0] == chosen_pred, possible_atoms))
+
+						# Sample a consistent atom
+						while not selected_consistent_action and len(possible_atoms_chosen_pred) > 0:
+							# Select a random atom
+							chosen_atom = possible_atoms_chosen_pred.pop(0)
+
+							# Transform -1 indexes for indexes of new objects and see objects to add
+							# E.g.: ['on', [-1, 0]] -> ['on', [3, 0]] (if there are three blocks in the state)
+							curr_obj_ind = ind_last_state_obj + 1
+							objs_to_add = []
+			
+							for i in range(len(chosen_atom[1])):
+								if chosen_atom[1][i] == -1:
+									chosen_atom[1][i] = curr_obj_ind
+									curr_obj_ind += 1
+
+									objs_to_add.append(chosen_pred[1][i]) # Append a new object to add of the type given by the corresponding predicate
+
+							# Check the consistency of the selected action
+							selected_consistent_action = problem.is_init_state_action_consistent(chosen_atom)
 
 
-						# <TODO>
-						# Añadir fragmento de código que intenta seleccionar un átomo en possible_atoms
-						# cuyo predicado sea chosen_pred y que sea consistente
-						# Si esto no es posible, "avanzamos" al siguiente predicado en pred_names_ordered (siguiente iteración del bucle)
+						# If we have been able to sample a consistent atom, we add it to the initial state
+						# Otherwise, we try with the next predicate according to predicate order
+						if selected_consistent_action:
+							# Apply the action to the state
+							_, r = problem.apply_action_to_initial_state(objs_to_add, chosen_atom)
 
+							if verbose:
+								if r >= 0: # Valid action
+									print(f"<Valid> - Atom {chosen_atom} and objs {objs_to_add}")
+								else:
+									print(f"<<Invalid>> - Atom {chosen_atom} and objs {objs_to_add}")
 
+							# Substract 1 from the atoms to add to the init state for the corresponding predicate type
+							dict_num_atoms_each_pred[chosen_atom[0]] -= 1
 
-
-
-
-				# <TODO>
-				# <CAMBIAR LO DE ABAJO>
-				# Si chosen_pred no vale None, debo intentar seleccionar un átomo de ese predicado de manera que sea consistente.
-				# Si no es posible, cambio chosen_pred al siguiente predicado según el predicate_order y lo vuelvo a intentar.
-				# Esto lo repito hasta que me quedo sin predicados.
-				# Si aún no he podido seleccionar un átomo consistente, termino el initial state generation a no ser que el estado no sea consistente aún.
-				# (esto último se corresponde con el bloque de código debajo de "if chosen_pred is None:" (ver unas líneas abajo))
-
-
+							# Exit the for loop (since we have already executed an action)
+							break
 
 
 				# If this condition is met, one of the following is true:
 				# 1) We need to add more atoms of a certain predicate (according to dict_num_atoms_each_pred) but we can't according to the consistency rules
 				# 2) We have already added all the atoms needed according to dict_num_atoms_each_pred
 				# In both situations, we finish the initial state generation unless they initial state is not consistent yet
-				if chosen_pred is None:
+				if not selected_consistent_action:
 
 					# If the initial state is consistent, we finish initial state generation
 					if problem.get_eventual_consistency_reward_of_init_state() == 0:
@@ -334,14 +359,10 @@ class RandomGenerator():
 
 					# If the initial state is not consistent yet, we add a random possible atom to the initial state
 					else:
-
 						selected_consistent_action = False
 
 						# Select a consistent action
 						while not selected_consistent_action and len(possible_atoms) > 0:
-							# Obtain the index of the last object in the state
-							ind_last_state_obj = problem.initial_state.num_objects - 1
-
 							# Select a random possible action (atom)
 							chosen_atom = possible_atoms.pop(0)
 							chosen_pred = list(filter(lambda x: x[0] == chosen_atom[0], domain_predicates))[0] # Obtain the predicate (not only the name, but also the object types) associated with chosen_atom
@@ -382,29 +403,6 @@ class RandomGenerator():
 
 							if verbose:
 								print("<<We were not able to generate a consistent initial state!!>>")
-
-
-				# chosen_pred is not None -> try to select an atom in possible_atoms of predicate chosen_pred so that it is consistent
-				# Else, we need to change chosen_pred to the next predicate according to the predicat order.
-				# We repeat this process until we are able to select a consistent atom of chosen_pred
-				# If we cannot, we finish initial state generation (unless the initial state is not consistent yet)
-				else:
-					pass
-
-					# <TODO>
-			
-
-
-
-
-
-
-				# SI LA ACCIÓN NO ES CONSISTENTE, NO PUEDO QUITAR 1 AL NÚMERO DE ACCIONES!
-
-
-				
-
-
 
 
 
