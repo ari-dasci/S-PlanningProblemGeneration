@@ -323,12 +323,15 @@ def test_generate_random_problems():
 
 	# Assign a higher probability to the 'on' predicate, so that there are more atoms (on _ _) in the problems generated
 	# pred_probs = dict([('ontable', 100), ('on', 40), ('clear', 1), ('holding', 1), ('handempty', 3)])
-	pred_probs = dict([('ontable', 30), ('on', 5), ('clear', 1), ('holding', 1), ('handempty', 1)])
+	#pred_probs = dict([('ontable', 30), ('on', 5), ('clear', 1), ('holding', 1), ('handempty', 1)])
+
+	# Choose the number of atoms for each predicate type
+	num_atoms_each_pred_for_init_state = dict([('ontable', (1,5)), ('on', (0,10)), ('clear', (1,5)), ('holding', (0,1)), ('handempty', (0,1))])
 
 	print(">> Calling generate_random_problems()")
 
-	random_generator.generate_random_problems(num_problems_to_generate, num_actions_for_init_state=(10, 30),
-									num_actions_for_goal_state=(5, 8), pred_probabilities=pred_probs,
+	random_generator.generate_random_problems(num_problems_to_generate, num_actions_for_init_state=(3, 20),
+									num_actions_for_goal_state=(5, 8), num_atoms_each_pred_for_init_state=num_atoms_each_pred_for_init_state,
 									verbose=True)
 
 

@@ -166,16 +166,17 @@ class RandomGenerator():
 			num_atoms_left_to_add = random.randint(a, b)
 
 			# Obtain the maximum number of atoms we can add for each predicate
-			max_num_atoms_each_pred = dict()
+			if num_atoms_each_pred_for_init_state is not None:
+				max_num_atoms_each_pred = dict()
 
-			for pred_name, num_atoms_pred in num_atoms_each_pred_for_init_state.items():
+				for pred_name, num_atoms_pred in num_atoms_each_pred_for_init_state.items():
 
-				if num_atoms_pred is None:
-					max_num_atoms_each_pred[pred_name] = 1000000 # The maximum number of atoms of this pred is +inf
-				elif type(num_atoms_pred) == list or type(num_atoms_pred) == tuple:
-					max_num_atoms_each_pred[pred_name] = num_atoms_pred[1]
-				else:
-					max_num_atoms_each_pred[pred_name] = num_atoms_pred
+					if num_atoms_pred is None:
+						max_num_atoms_each_pred[pred_name] = 1000000 # The maximum number of atoms of this pred is +inf
+					elif type(num_atoms_pred) == list or type(num_atoms_pred) == tuple:
+						max_num_atoms_each_pred[pred_name] = num_atoms_pred[1]
+					else:
+						max_num_atoms_each_pred[pred_name] = num_atoms_pred
 
 			# Add atoms to the initial state until:
 			# 1. We have added num_atoms_left_to_add
@@ -214,20 +215,17 @@ class RandomGenerator():
 										If num_atoms_each_pred_for_init_state['predname'] == None, we assume we can add any number of atoms of predicate 'predname'
 										to the init state.
 	@num_actions_for_goal_state How many (random) actions to execute to generate the goal state. It can be given as an interval [min_num_actions, max_num_actions].
-	@pred_probabilities A dictionary containing, for each predicate name, the probability of it being added to the state (in case it can be added according to the predicate_order).
 	@problem_name If not None, name of the generated problem.
 	@seed Seed used to initialize the rng (with random.seed()). If None, the system time is used as the seed.
 	@verbose If True, prints information about the process (e.g., the actions applied to generate the problem).
 	"""
-	def _generate_random_problem(self, num_actions_for_init_state, num_actions_for_goal_state, num_atoms_each_pred_for_init_state=None, pred_probabilities=None,
-								problem_name = "problem", seed=None, verbose=False):
+	def _generate_random_problem(self, num_actions_for_init_state, num_actions_for_goal_state, num_atoms_each_pred_for_init_state=None,
+								 problem_name = "problem", seed=None, verbose=False):
 
 		# Choose a seed
 		random.seed(seed)
 
 		domain_predicates = self.domain_predicates
-
-
 
 		# OLD
 		"""
@@ -235,8 +233,6 @@ class RandomGenerator():
 			prob = 1.0 / len(domain_predicates)
 			pred_probabilities = dict([ (p[0], prob) for p in domain_predicates])
 		"""
-
-
 
 		# <Initialize ProblemState instance>
 		problem = ProblemState(self._parser, self._predicates_to_consider_for_goal, self._initial_state_info,
@@ -248,17 +244,14 @@ class RandomGenerator():
 		# Decide how many atoms of each predicate type will be added to the initial state
 		dict_num_atoms_each_pred = self._get_atoms_to_add_init_state(num_actions_for_init_state, num_atoms_each_pred_for_init_state)
 
-
 		# Decide how many actions will be used to generate the initial state
 		# OLD
 		"""if type(num_actions_for_init_state) == list or type(num_actions_for_init_state) == tuple:
 			num_actions_for_init_state = random.randint(num_actions_for_init_state[0], num_actions_for_init_state[1])
 		"""
 
-
 		if verbose:
-			print(f"> Starting initial state generation phase - num_actions={num_actions_for_init_state}")
-
+			print(f"\n> Starting initial state generation phase - num_actions={num_actions_for_init_state}")
 
 
 
@@ -278,7 +271,7 @@ class RandomGenerator():
 
 			# Obtain the index of the last object in the state
 			ind_last_state_obj = problem.initial_state.num_objects - 1
-			
+
 			# If there are no possible actions, we stop the generation
 			if len(possible_atoms) == 0:
 				if verbose:
@@ -291,7 +284,7 @@ class RandomGenerator():
 				if self._consistency_validator is None:
 					pred_names_ordered = [p[0] for p in self.domain_predicates]
 				else:
-					pred_names_ordered = self._consistency_validator.predicate_order
+					pred_names_ordered = self._consistency_validator.predicate_order	
 
 				# Get the first predicate so that every condition is met:
 				# 1) it is contained in possible_atoms
@@ -299,13 +292,15 @@ class RandomGenerator():
 				# 3) there exists some atom of that predicate in possible_atoms so that it is consistent
 				selected_consistent_action = False
 
-				for chosen_pred in pred_names_ordered:
+				for p in pred_names_ordered:
+					# Obtain the predicate (name and parameters) corresponding to p
+					chosen_pred = list(filter(lambda x: x[0] == p, domain_predicates))[0]
 
 					# Conditions 1) and 2) are met -> Try to sample a consistent atom of that predicate
-					if chosen_pred in possible_predicates and dict_num_atoms_each_pred[chosen_pred] > 0:
+					if chosen_pred[0] in possible_predicates and dict_num_atoms_each_pred[chosen_pred[0]] > 0:
 						
 						# Select those atoms with predicate==chosen_pred
-						possible_atoms_chosen_pred = list(filter(lambda atom: atom[0] == chosen_pred, possible_atoms))
+						possible_atoms_chosen_pred = list(filter(lambda atom: atom[0] == chosen_pred[0], possible_atoms))
 
 						# Sample a consistent atom
 						while not selected_consistent_action and len(possible_atoms_chosen_pred) > 0:
@@ -326,7 +321,6 @@ class RandomGenerator():
 
 							# Check the consistency of the selected action
 							selected_consistent_action = problem.is_init_state_action_consistent(chosen_atom)
-
 
 						# If we have been able to sample a consistent atom, we add it to the initial state
 						# Otherwise, we try with the next predicate according to predicate order
@@ -403,8 +397,6 @@ class RandomGenerator():
 
 							if verbose:
 								print("<<We were not able to generate a consistent initial state!!>>")
-
-
 
 
 
@@ -662,7 +654,7 @@ class RandomGenerator():
 			 self.generate_random_problem())
 	"""
 	def generate_random_problems(self, num_problems_to_generate,
-								num_actions_for_init_state=(3, 15), num_actions_for_goal_state=(3, 20), pred_probabilities=None,
+								num_actions_for_init_state=(3, 15), num_actions_for_goal_state=(3, 20), num_atoms_each_pred_for_init_state=None,
 								problems_path = '../data/problems/random_problems/',
 								problems_name = 'bw_random_problem',
 								metrics_file_path = '../data/problems/random_problems/random_problems_metrics.txt',
@@ -685,7 +677,7 @@ class RandomGenerator():
 			curr_problem_name = problems_name + '_' + str(ind)
 
 			# Generate problem
-			new_problem = self._generate_random_problem(num_actions_for_init_state, num_actions_for_goal_state, pred_probabilities,
+			new_problem = self._generate_random_problem(num_actions_for_init_state, num_actions_for_goal_state, num_atoms_each_pred_for_init_state,
 											  curr_problem_name, verbose=verbose)
 
 			# Save it to disk
