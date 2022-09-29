@@ -29,7 +29,7 @@ class DirectedGenerator():
 	@max_atoms_init_state The maximum number of atoms the initial state can have. If we reach this number and the termination condition hasn't
 	                      been executed, we end the initial state generation phase and check the eventual consistency rules.
 	@max_actions_init_state The maximum number of actions (atoms) (invalid or not) that can be tried in the current trajectory. 
-	                        If we reach this number of actions and the initial state hasn't been generated, we check the eventual consistency
+	                        If we reach this number of actions and the initial state hasn't been generated yet, we check the eventual consistency
 							rules and apply the penalization (if needed).
 	@max_actions_goal_state The maximum number of actions the goal policy can apply from @initial_state. If we reach this
 	                        number of actions and the goal policy hasn't chosen the termination condition, we assume

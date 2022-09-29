@@ -319,19 +319,19 @@ def test_generate_random_problems():
 
 	random_generator = RandomGenerator(parser, planner)
 
-	num_problems_to_generate = 10
+	num_problems_to_generate = 1
 
 	# Assign a higher probability to the 'on' predicate, so that there are more atoms (on _ _) in the problems generated
 	# pred_probs = dict([('ontable', 100), ('on', 40), ('clear', 1), ('holding', 1), ('handempty', 3)])
 	#pred_probs = dict([('ontable', 30), ('on', 5), ('clear', 1), ('holding', 1), ('handempty', 1)])
 
 	# Choose the number of atoms for each predicate type
-	num_atoms_each_pred_for_init_state = dict([('ontable', (1,5)), ('on', (0,10)), ('clear', (1,5)), ('holding', (0,1)), ('handempty', (0,1))])
+	num_atoms_each_pred_for_init_state = dict([('ontable', (1,50)), ('on', (1,50)), ('clear', (1,50)), ('holding', (0,1)), ('handempty', (0,1))])
 
 	print(">> Calling generate_random_problems()")
 
-	random_generator.generate_random_problems(num_problems_to_generate, num_actions_for_init_state=(3, 20),
-									num_actions_for_goal_state=(5, 8), num_atoms_each_pred_for_init_state=num_atoms_each_pred_for_init_state,
+	random_generator.generate_random_problems(num_problems_to_generate, num_actions_for_init_state=50,
+									num_actions_for_goal_state=50, num_atoms_each_pred_for_init_state=num_atoms_each_pred_for_init_state,
 									verbose=True)
 
 
@@ -811,9 +811,6 @@ def test_load_models_and_generate_problems():
 
 
 ------  TODO  ------
-
-> Mejorar random generator (hacer que el goal_generation evite bucles) y comparar la dificultad de los problemas generados con mi método
-  vs random generation
 
 > Cambiar método cálculo dificultad
 	> Ver cómo calcular heurísticas sobre el problema generado

@@ -1,0 +1,28 @@
+--------------- Dificultad problemas blocksworld random vs directed generator
+
+Dificultad: num nodos expandidos usando FD con opción 'astar(lmcut())'
+
+
+--- Directed generator (entrenado con PPO)
+
+> Num actions init state & num actions goal state - difficulty - diversity
+
+> 10 - diff=35.5 - medium diversity
+> 30 - diff=4453* - very high diversity
+> 50 - diff=44344* - high diversity
+
+*Note: se paró el entrenamiento a mitad porque se ralentizaba debido al tiempo necesario para evaluar la dificultad
+       de los problemas generados.
+
+
+--- Random generator
+
+> Num actions init state & num actions goal state - difficulty
+
+> 10 - diff=18.7
+> 30 - diff=490.5
+> 50 - diff=21320
+
+Note: la dificultad de los problemas con 50 átomos (obtenidos con ambos generadores) no es fiable (porque el directed
+      generator se paró a mitad de entrenamiento y porque no podemos obtener la dificultad de algunos problemas
+      (su diff es -1))
