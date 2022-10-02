@@ -5,6 +5,7 @@
 import torch
 import numpy as np
 import pytorch_lightning as pl
+from itertools import chain
 
 import sys
 
@@ -154,13 +155,64 @@ class GenerativePolicy(pl.LightningModule):
 		num_arities = len(list_nlm_output)
 		num_samples = len(list_nlm_output[0])
 
+
+		# <Ground action entropy>
+		# Entropy across every ground action, regardless of its predicate type
+
 		# Transform list_nlm_output from a list where the first dimension is the arity and the second one the sample index
 		# to a list where the first dimension is the sample index and the second one the arity
 		# list[r][i] -> list[i][r]
 		list_nlm_output_samples = [ [list_nlm_output[r][i] for r in range(num_arities)] for i in range(num_samples)]
 
+		# Transform log_probs to probs
+		# We ignore None tensors, as they correspond to non-existent actions
+		#list_prob_tensors = [ [torch.exp(tensor) for tensor in sample_output if tensor is not None] \
+        #                       for sample_output in list_nlm_output_samples ]
+
+		# Transform log_probs to probs (by using torch.exp)
+		# Ignore None tensors, as they correspond to non-existent actions
+		# Ignore the last predicate of arity 0, corresponding to the termination condition
+		list_prob_tensors = [ [torch.exp(sample_output[r][:-1])  if r==0 else  torch.exp(sample_output[r]) \
+						       for r in range(len(sample_output)) if sample_output[r] is not None] \
+                               for sample_output in list_nlm_output_samples ]
+
+		# For each sample, obtain a list of tensors corresponding to the different predicates (instead of the different arities)
+		# Example: a tensor for on, a tensor for ontable...
+		list_prob_tensors_each_pred = [ list(chain.from_iterable([torch.unbind(tensor,dim=-1) for tensor in sample_output])) \
+                                        for sample_output in list_prob_tensors ]
+ 
+		# Flatten the tensors
+		list_prob_tensors_each_pred_flat = [ [torch.flatten(tensor) for tensor in sample_output] \
+                                              for sample_output in list_prob_tensors_each_pred ]
+
+		# <Ground action entropy>
+		# Calculate entropy of the prob distribution of all the ground actions
+
+		list_prob_tensors_ground = [ torch.cat(sample_output) for sample_output in list_prob_tensors_each_pred_flat ]
+
+		tensor_ground_entropy = torch.cat([ (torch.distributions.Categorical(probs = probs_flattened).entropy() / np.log(probs_flattened.shape[0])).view(1) \
+			                               for probs_flattened in list_prob_tensors_ground ])
+
+
+		# <Lifted action entropy>
+		# Entropy of the probability distribution of the different predicates (lifted actions)
+		# (i.e., adding ontable, on, clear, handempty or holding regardless of the objects the predicate is instantiated on)
+
+		list_probs_each_pred = [ torch.cat([torch.sum(tensor) for tensor in sample_output]) 
+						         for sample_output in list_prob_tensors_each_pred_flat ]
+
+		tensor_lifted_entropy = torch.cat([ (torch.distributions.Categorical(probs = probs_preds).entropy() / np.log(probs_preds.shape[0])).view(1) \
+			                               for probs_preds in list_probs_each_pred ])
+
+
+		return tensor_ground_entropy + tensor_lifted_entropy
+
+
+		# ------- OLD
+
 		# Transform log_probs to probs and flatten the tensors
 		# We ignore None tensors, as they correspond to non-existent actions
+		"""
 		list_prob_tensors = [ [torch.exp(tensor).flatten() for tensor in sample_output if tensor is not None] \
                               for sample_output in list_nlm_output_samples ]
 
@@ -177,6 +229,7 @@ class GenerativePolicy(pl.LightningModule):
 			                                   for probs_flattened in list_probs_flattened ])
 
 		return tensor_action_entropy
+		"""
 
 
 	""" 
