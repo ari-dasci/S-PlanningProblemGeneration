@@ -303,7 +303,7 @@ class DirectedGenerator():
 
 
 	"""
-	Returns the mask tensors used to mask (i.e., set to -inf) the probabilities of inconsistent atoms
+	Returns the mask tensors used to mask (i.e., set to -inf) the probabilities of invalid atoms (those grounded on objects of invalid type)
 	predicted by the NLM. The mask tensors are returned as a list of tensors (or None, if there are no tensors to mask
 	for that arity), with the same shape as the NLM output.
 	In order to mask the NLM output, simply sum the mask tensor values with the output NLM tensors.

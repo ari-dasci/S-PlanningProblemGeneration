@@ -429,7 +429,7 @@ class ProblemState:
 		if is_applicable: 
 			self._goal_state = self._apply_ground_action_and_get_next_state(action_name, action_objs, state_objs, state_atoms, self._goal_state)
 			action_reward = 0
-		else: # If the action is not applicable, we don't change the goal state
+		else: # If the action is not applicable, we don't change the goal state -> THIS SHOULD NOT HAPPEN (we mask goal policy's output so that it only samples applicable actions)
 			action_reward = self._penalization_non_applicable_action
 		
 		return self._goal_state.copy(), action_reward

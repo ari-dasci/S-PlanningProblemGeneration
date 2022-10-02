@@ -108,7 +108,7 @@ class ValidatorPredOrderBW(ValidatorPredOrder):
 
 	"""
 	Checks if the continuous consistency rules are met at the next_state, obtained by applying @action to @curr_state.
-	<Note1>: this method does NOT check that the atom (@action) to add has no repeated parameters and is not already present in the state.
+	<Note1>: this method does NOT check that the atom is not already present in the state.
 	<Note2>: this method assumes that curr_state meets all the continuous consistency rules.
 	<Note3>: this method assumes that new objects (those present in @action but not in @curr_state) will be added AFTER this method
 			 to the state @curr_state -> Don't call this method after having already added the new objects to the state!!!
