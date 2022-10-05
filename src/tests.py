@@ -638,7 +638,7 @@ def test_train_init_and_goal_policy():
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
 
 	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
-										   max_atoms_init_state=30, max_actions_init_state=90, max_actions_goal_state=30,
+										   max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10,
 
 										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -677,14 +677,14 @@ def test_load_models_and_generate_problems():
 	planner = Planner(domain_file_path)
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_54/init_policy_its-260.ckpt"
-	goal_policy_path = "saved_models/both_policies_54/goal_policy_its-260.ckpt"
+	init_policy_path = "saved_models/both_policies_76/init_policy_its-240.ckpt"
+	goal_policy_path = "saved_models/both_policies_76/goal_policy_its-240.ckpt"
 
 	nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
 
 	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
-										   max_atoms_init_state=30, max_actions_init_state=90, max_actions_goal_state=30,
+										   max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10,
 										  
 										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -701,8 +701,8 @@ def test_load_models_and_generate_problems():
 	# Generate the set of problems with the trained initial policy
 	num_problems = 10
 
-	directed_generator.generate_problems(num_problems, max_atoms_init_state=50, max_actions_init_state=150,
-									     max_actions_goal_state=50, max_planning_time=60, verbose=True)
+	directed_generator.generate_problems(num_problems, max_atoms_init_state=10, max_actions_init_state=30,
+									     max_actions_goal_state=10, max_planning_time=60, verbose=True)
 
 """
 
@@ -805,7 +805,125 @@ def test_load_models_and_generate_problems():
 
 
 
+
+> ---- Pruebas lifted action entropy
+
+# CAMBIAR EN _policy_entropy "return tensor_lifted_entropy" POR "return tensor_ground_entropy + tensor_lifted_entropy"
+
+
+
+> lr = 1e-3, <max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10>,
+  planner_search_options = 'astar(lmcut())', parallel_NLM: 
+
+
 	
+# LA ÚLTIMA EJECUCIÓN ES TENIENDO EN CUENTA LA TERMINATION CONDITION PARA CALCULAR LA GROUND ENTROPY
+# PROBAR AHORA A REPETIR LA EJECUCIÓN PERO SIN TENER EN CUENTA LA TERMINATION CONDITION PARA CALCULAR LA GROUND ENTROPY -> Deja de funcionar
+
+# Ejecución -> solo tensor lifted entropy -> La consistencia continua aumenta pero la eventual no (la termination condition prob es demasiado alta)
+
+# Ejecución -> ignoramos la termination condition prob para calcular la lifted action entropy
+  
+# Ejecución -> solo ignoramos la termination condition para la lifted action entropy. Usamos lifted+ground action entropy
+  Logs: \init_policy\version_9
+  La termination condition prob es del 15% aprox. con lo que se generan problemas muy fáciles!!!
+
+# Ejecución -> solo ground action entropy, sin ignorar termination condition
+  La reward_consistency aumenta y la termination condition prob. se mantiene alrededor de 0.04.
+
+# Ejecución -> return 0.9*tensor_ground_entropy + 0.1*tensor_lifted_entropy
+	La termination condition probability primero sube a 0.12 y después termina bajando a 0.08, pero tarda 9 horas!
+	Problemas generados de alta dificultad! (66.6 de media mientras que el modelo anterior con 10 átomos era de 35.5)
+	No obstante, tienen muy poca diversidad y nunca generan un problema con handempty() en el estado inicial!
+	Al principio del entrenamiento (100 its) sí genera problemas con handempty() (aunque de muy poca dificultad), pero
+	parece que aprende a solo generar problemas con holding.
+
+# Ejecución -> 0.5*lifted+0.5*action ground entropy sin ignorar termination condition para ninguna de las dos entropías.
+	Termination cond prob alrededor del 15%, los problemas generados son muy sencillos y todos usan handempty() en vez de holding()!!
+	La diversidad de los problemas es también muy baja.
+
+# Ejecución -> 0.9*tensor_ground_entropy + 0.1*tensor_lifted_entropy sin ignorar term condition prob.
+	Mismas gráficas que cuando se ignora el term condition prob.
+
+# Ejecución -> 0.99*tensor_ground_entropy + 0.01*tensor_lifted_entropy sin ignorar term condition prob.
+	Mismas gráficas que con 0.9*ground + 0.1*lifted
+
+# Ejecución -> 0.999*tensor_ground_entropy + 0.001*tensor_lifted_entropy sin ignorar term condition prob.
+	Mismas gráficas que con 0.99*ground + 0.01*lifted
+
+# Ejecución -> 1*tensor_ground_entropy + 0*tensor_lifted_entropy sin ignorar term condition prob.
+	Mismas gráficas que con 0.999*ground + 0.011*lifted! (la term cond prob sube a 0.14 y después baja a 0.1)
+
+# Ejecución -> solo tensor_ground_entropy sin ignorar term cond prob.
+	Mismas gráficas que con 1*tensor_ground_entropy + 0*tensor_lifted_entropy
+
+# Ejecución -> <IMPLEMENTACIÓN PREVIA> solo tensor_ground_entropy sin ignorar term cond prob.
+	La term cond prob llega hasta 0.14 tras 5h de ejecución y después va disminuyendo
+
+	Diff (its=420) - avg. diff 28.9 - diversidad media -> Funciona! (la avg. diff random es 18.7)
+	<<Probar a generar problemas de distinto tamaño>> -> both_policies_75
+	>>> Problemas generados
+	<max_atoms_init_state, max_actions_init_state, max_actions_goal_state>
+	
+	- <10,30,10> -> avg. diff 42 - diversidad media
+	- <20,60,20> -> avg. diff 516.3 -> NOTA: LOS PROBLEMAS SON MUY SENCILLOS (esto es porque la mayoría tienen mucho menos de 20 átomos -> deja de generar el problema demasiado rápido!!!)
+
+# Ejecución -> <NUEVA IMPLEMENTACIÓN> solo tensor_ground_entropy sin ignorar term cond prob., 20 atoms&actions
+	El entrenamiento tarda 3 veces más que usando 10atoms (tuvimos que pararlo a mitad)	
+	
+	>>> Problemas generados -> both_policies_76
+	<max_atoms_init_state, max_actions_init_state, max_actions_goal_state>
+
+	- <10, 30, 10> -> avg. diff 20 - diversidad muy alta
+	- <20, 60, 20> -> avg. diff 1151.8 - diversidad media
+	- <30, 90, 30> -> avg. diff 6460.4 - diversidad alta -> NOTA: PARA MUCHOS PROBLEMAS DEJA DE GENERAR EL ESTADO INICIAL ANTES DE LA CUENTA (USA MUCHOS MENOS DE 30 ÁTOMOS)
+
+
+# Ejecución -> <NUEVA IMPLEMENTACIÓN> solo tensor_ground_entropy sin ignorar term cond prob.
+  <entropy_coeff_init_state_policy = 2, entropy_annealing_coeffs_init_state_policy = (<150>, 0.1)>
+	La recompensa tarda lo mismo en empezar a aumentar y la r_difficulty no pasa de 0.4 (es menor
+	que cuando uso entropy_annealing_coeffs_init_state_policy = (300, 0.1)).
+	BAJAR LA ENTROPÍA NO AYUDA A ENTRENAR MÁS RÁPIDO!!!
+
+	Si genero problemas, la dificultad media es 10 -> Tienen muy poca dificultad!
+
+
+
+
+
+
+
+
+
+-----
+
+PROBAR A CAMBIAR LAS OPCIONES DEL PLANNER PARA QUE LOS PROBLEMAS SE HAN RESUELTOS NO CON A*
+    SINO CON OTRO ALGORITMO DE BÚSQUEDA MÁS RÁPIDO Y COMPARAR LA DIFICULTAD DE LOS PROBLEMAS GENERADOS
+
+SI QUITO LA TERMIANTION CONDITION QUIZÁS APRENDERÍA A NO AÑADIR HOLDING/HANDEMPTY DEMASIADO PRONTO AL ESTADO INICIAL!!!
+
+
+>>> DEBERÍA PRIMERO OBTENER UN ENTRENAMIENTO RÁPIDO CON EL CÁLCULO PREVIO DE LA ENTROPÍA
+
+Ej: entrenar un modelo con max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20
+    y cambiar los parámetros de la entropía para que aprenda más rápido -> Usar 10,30,10
+
+Ya entonces puedo ver cómo cambio el cálculo de la entropía para que se generen problemas
+con handempty()
+
+Ej.: puedo quitar la termination condition, hacer que se calcule de manera separada su prob. al del resto de acciones, etc.
+
+CREO QUE NO PUEDO QUITAR LA TERMINATION CONDITION -> Si la policy ha añadido handempty() o holding(X) al estado inicial, usar la term cond
+es la única opción que tiene para acabar de generar el estado y no tener que añadir un átomo inconsistente (no hay átomos consistentes)
+También puede pasar que no haya ninguna acción/átomo válido (la mask ponga a 0 la probabilidad de todas las acciones del NLM output)
+
+>>> SI QUITO LA TERMIANTION CONDITION QUIZÁS APRENDERÍA A NO AÑADIR HOLDING/HANDEMPTY DEMASIADO PRONTO AL ESTADO INICIAL!!!
+
+-----
+
+SIGUIENTE PRUEBA -> PROBAR A EJECUTAR SIN POLICY_ENTROPY (para ver si term cond prob también se va a 1 o no) -> Si no se va a 1, calcular la term cond prob de manera separada al resto
+       de acciones
+- Probar a ejecutar sin term cond prob (hacer term_cond_prob = 0 para que nunca se escoja la term cond)
 
 
 
@@ -852,14 +970,10 @@ if __name__ == "__main__":
 	#test_generate_random_problems()
 	#test_trajectory_goal_policy()
 	#test_train_goal_policy()
-
 	#test_train_init_and_goal_policy_SAC()
 
 	#test_load_models_and_generate_problems()
+
+	#test_generate_random_problems()
 	#test_train_init_and_goal_policy()
-
-
-
-	test_generate_random_problems()
-
-	
+	test_load_models_and_generate_problems()

@@ -704,7 +704,7 @@ class DirectedGenerator():
 	"""
 	def _normalize_rewards_init_policy(self, trajectory, moving_avg_coeff=0.8, moving_std_coeff=0.8):
 
-		# <Calculate the mean and std of the trajectory rewards>
+		# <Calculate the mean and std of the trajectory rewards (the discounted sum of total rewards)>
 		trajectory_rewards_np = np.array([sample[-3] for sample in trajectory], dtype=np.float32)
 		trajectory_rewards_mean = np.mean(trajectory_rewards_np)
 		trajectory_rewards_std = np.std(trajectory_rewards_np)
