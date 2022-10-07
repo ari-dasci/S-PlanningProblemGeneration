@@ -18,17 +18,21 @@ class Planner():
 	@domain_file_path Path of the PDDL domain
 	@python_call Console command to call python (e.g., python3, python or py)
 	@planner_path Path to the executable of the planner
+	@alias An alias for calling one of the predefined planners. If not None, we use the alias and ignore @search_options.
 	@search_options Search options used by the planner (e.g., A*, greedy bfs, type of heuristic...)
 					'astar(blind())' -> A* with "blind heuristic"
 					'astar(lmcut())' -> A* with LM-cut heuristic
 	Information about search_options can be found in: https://www.fast-downward.org/PlannerUsage
 	"""
 	def __init__(self, domain_file_path, python_call='python', planner_path='./fast-downward/fast-downward.py', 
-				 search_options='astar(lmcut())'):
+				 alias='lama-first',search_options=''):
+
+		# search_options='astar(lmcut())'
 
 		self._domain_file_path = domain_file_path
 		self._python_call = python_call
 		self._planner_path = planner_path
+		self._alias=alias
 		self._search_options = search_options
 
 	@property
@@ -48,8 +52,17 @@ class Planner():
 	"""
 	def solve_problem(self, pddl_problem_path, max_planning_time = 60):
 		# Create the command to call the planner
-		planner_command = [self._python_call, self._planner_path, self._domain_file_path, pddl_problem_path,
-		                   '--search', self._search_options]
+		
+		if self._alias is None:
+			planner_command = [self._python_call, self._planner_path, self._domain_file_path, pddl_problem_path,
+					'--search', self._search_options]
+		else:
+			planner_command = [self._python_call, self._planner_path, '--alias', self._alias, self._domain_file_path, 
+					  pddl_problem_path]
+
+
+
+
 
 		# Call the planner and detect timeouts
 		# <TODO>
@@ -83,6 +96,7 @@ class Planner():
 		if re.search("Solution found.", planner_output):
 			# Search for number of expanded nodes
 			expanded_nodes = int(re.search(r"Expanded ([0-9]+) state\(s\)\.", planner_output).group(1))
+			expanded_nodes += 1 # Add 1 in case the planner has expanded 0 nodes (in such case, we obtain NaN when we perform the logarithm)
 
 			# Search for plan length
 			# expanded_nodes = int(re.search(r"Plan length: ([0-9]+) step\(s\)\.", planner_output).group(1))

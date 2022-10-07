@@ -319,19 +319,19 @@ def test_generate_random_problems():
 
 	random_generator = RandomGenerator(parser, planner)
 
-	num_problems_to_generate = 1
+	num_problems_to_generate = 10
 
 	# Assign a higher probability to the 'on' predicate, so that there are more atoms (on _ _) in the problems generated
 	# pred_probs = dict([('ontable', 100), ('on', 40), ('clear', 1), ('holding', 1), ('handempty', 3)])
 	#pred_probs = dict([('ontable', 30), ('on', 5), ('clear', 1), ('holding', 1), ('handempty', 1)])
 
 	# Choose the number of atoms for each predicate type
-	num_atoms_each_pred_for_init_state = dict([('ontable', (1,50)), ('on', (1,50)), ('clear', (1,50)), ('holding', (0,1)), ('handempty', (0,1))])
+	num_atoms_each_pred_for_init_state = dict([('ontable', (1,20)), ('on', (1,20)), ('clear', (1,20)), ('holding', (0,1)), ('handempty', (0,1))])
 
 	print(">> Calling generate_random_problems()")
 
-	random_generator.generate_random_problems(num_problems_to_generate, num_actions_for_init_state=50,
-									num_actions_for_goal_state=50, num_atoms_each_pred_for_init_state=num_atoms_each_pred_for_init_state,
+	random_generator.generate_random_problems(num_problems_to_generate, num_actions_for_init_state=20,
+									num_actions_for_goal_state=20, num_atoms_each_pred_for_init_state=num_atoms_each_pred_for_init_state,
 									verbose=True)
 
 
@@ -638,7 +638,7 @@ def test_train_init_and_goal_policy():
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
 
 	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
-										   max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10,
+										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
 
 										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -658,7 +658,7 @@ def test_train_init_and_goal_policy():
 
 
 	# Train the goal generation policy
-	# Note: right now, we are using 'astar(lmcut())' as the planner search options
+	# Note: right now, we are using 'ehc(ff())' as the planner search options
 	directed_generator.train_generative_policies(training_iterations = 10000)
 
 """
@@ -677,14 +677,14 @@ def test_load_models_and_generate_problems():
 	planner = Planner(domain_file_path)
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_76/init_policy_its-240.ckpt"
-	goal_policy_path = "saved_models/both_policies_76/goal_policy_its-240.ckpt"
+	init_policy_path = "saved_models/both_policies_82/init_policy_its-300.ckpt"
+	goal_policy_path = "saved_models/both_policies_82/goal_policy_its-300.ckpt"
 
 	nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
 
 	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
-										   max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=10,
+										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
 										  
 										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -701,8 +701,8 @@ def test_load_models_and_generate_problems():
 	# Generate the set of problems with the trained initial policy
 	num_problems = 10
 
-	directed_generator.generate_problems(num_problems, max_atoms_init_state=10, max_actions_init_state=30,
-									     max_actions_goal_state=10, max_planning_time=60, verbose=True)
+	directed_generator.generate_problems(num_problems, max_atoms_init_state=30, max_actions_init_state=90,
+									     max_actions_goal_state=30, max_planning_time=60, verbose=True)
 
 """
 
@@ -887,45 +887,101 @@ def test_load_models_and_generate_problems():
 
 	Si genero problemas, la dificultad media es 10 -> Tienen muy poca dificultad!
 
+# Ejecución -> <NUEVA IMPLEMENTACIÓN> solo tensor_ground_entropy sin ignorar term cond prob.
+	Valores previous de entropía (2, 300, 0.1)
+	10 átomos y goal actions
+	<planner_search_options='ehc(ff())'>
+	
+	Tarda más, al menos al principio del entrenamiento (paré el entrenamiento cuando llevaba 30 steps porque tardaba más que con astar(lmcut()))
+
+# Ejecución -> <NUEVA IMPLEMENTACIÓN> solo tensor_ground_entropy sin ignorar term cond prob.
+	10 átomos y goal actions
+	<planner_search_options='lazy_greedy([lmcut()])'>
+
+	Tarda más, al menos al principio del entrenamiento (paré el entrenamiento cuando llevaba 10 steps porque tardaba más que con astar(lmcut()))
+
+# Ejecución -> <NUEVA IMPLEMENTACIÓN> solo tensor_ground_entropy sin ignorar term cond prob.
+	10 átomos y goal actions
+	<planner_search_options='eager(single(lmcut()))'>
+
+	<El entrenamiento tarda lo mismo que usando astar(lmcut())!!>
+	Paré el entrenamiento antes de que terminara (la recompensa aún seguía aumentando)
+
+	>> Generación de problemas con el modelo entrenado -> diff calculada con eager(single(lmcut())
+		- 10 atoms&actions - avg. diff - 19.4 -> los problemas son pequeños (la term cond se ejecuta antes de tiempo) y todos tienen holding!
+												 <Paré el entrenamiento antes de tiempo -> 5h no son suficientes>
+	
+	>> Generación de problemas con el random generator -> diff calculada con eager(single(lmcut())
+		- 10 atoms&actions - avg. diff - 17.2
+
+# Ejecución -> <NUEVA IMPLEMENTACIÓN> solo tensor_ground_entropy sin ignorar term cond prob.
+	10 átomos y goal actions
+	<planner_search_options= --alias lama-first>
+
+	> Entrenamiento:
+		- No es más rápido que usando planner=astar(lmcut())! -> creo que al ser los problemas pequeños da igual el algoritmo de búsqueda
+		- La recompensa tarda unas 11h en llegar a su punto más alto
+		- La term cond prob se estabiliza a 0.1 (sube al principio del entrenamiento y después baja)
+
+	> Problemas (diff medida con planner_search_options=--alias lama-first)
+		> directed generator (modelo entrenado) -> its=620 (aunque use un modelo con its menor la diversidad de los problema sigue siendo baja)
+			- 10 atoms&actions - avg. diff = 40.6 - diversidad muy baja
+			- 30 atoms&actions - avg. diff = 154.8 - diversidad media -> genera problemas con más de 10 átomos, pero lo máximo son 16 (no genera con 30 átomos en ningún momento)
+
+		> random generator
+			- 10 atoms&actions - avg. diff = 12.2
+			- 30 atoms&actions - avg. diff = 55.8
+
+# Ejecución -> <NUEVA IMPLEMENTACIÓN> solo tensor_ground_entropy sin ignorar term cond prob.
+	<20 átomos y goal actions>
+	<planner_search_options= --alias lama-first>
+
+	> Entrenamiento:
+		- Conforme se van generando problemas de mayor dificultad, <el entrenamiento se va ralentizando, pero no tanto como cuando usaba astar(lmcut())>!
+		  -> de la it 0 a 100 se tardan 210 min, de 100-200 unos 250 min y de 200-300 unos 388 min -> el entrenamiento se ralentiza casi a la mitad, pero no más
+		- La term cond prob sube hasta alcanzar un pico en 0.11 y después baja poco a poco hasta 0.06
+		- Las gráficas de recompensa (r_eventual, r_continous y r_difficulty) van subiendo progresivamente desde el inicio del entrenamiento!!!
+		  -> son unas buenas gráficas, que muestran que la NLM aprende sin problemas
+		- La init_state_ policy entropy disminuye hasta 0.2, mientras que la goal_policy_entropy disminuye hasta 0.2!!! -> Creo que
+		  <la policy entropy termina siendo demasiado baja, con lo que debería aumentar los entropy_coeffs!!>
+
+	> Problemas (diff medida con planner_search_options=--alias lama-first)
+		> directed generator (modelo entrenado) -> its=300 (si uso 360 its los problemas son casi todos idénticos!!)
+			- 10 atoms&actions - diff = 29.1 - diversidad media-baja
+			- 20 atoms&actions - diff = 135.7 - diversidad media
+			- 30 atoms&actions - diff = 414.6 - diversidad media-baja -> NINGÚN PROBLEMA TIENE MÁS DE 20 ÁTOMOS (a pesar de que pueden tener hasta 30!)
+
+		> random generator
+			- 10 atoms&actions - diff = 12.2
+			- 20 atoms&actions - diff = 36.1
+			- 30 atoms&actions - diff = 55.8 
+
+
+
+
+1. Antes de hacer la siguiente ejecución del modelo, hacer pruebas con el planner para ver si puedo
+obtener los valores de varias heurísticas (eager_greedy([ff(), lmcut()], bound=0))
+	- Escoger heurísticas que después pueda implementar yo mismo de manera sencilla
+	- 1. Alguna basada en delete relaxation -> FF heuristic
+	- 2. Critical path -> h^m
+	- 3. Landmark heuristic -> h^LM, h^lm-cut, Landmark-count (inadmissible)
+
+2. HACER PROFILING PARA VER QUÉ TENGO QUE OPTIMIZAR PARA REDUCIR EL TIEMPO DE EJECUCIÓN
+
+3. Si el planner es lo que va lento, cambiar planner por cálculo heurísticas -> (eager_greedy([ff(), lmcut()], bound=0))
+   para calcular la dificultad de los problemas generados.
+	- Según lo que vaya lento también probar otras cosas (bajar el número de trayectorias por it, el número de capas y predicados de ariedad 3 de la NLM...)
 
 
 
 
 
-
-
-
------
-
-PROBAR A CAMBIAR LAS OPCIONES DEL PLANNER PARA QUE LOS PROBLEMAS SE HAN RESUELTOS NO CON A*
-    SINO CON OTRO ALGORITMO DE BÚSQUEDA MÁS RÁPIDO Y COMPARAR LA DIFICULTAD DE LOS PROBLEMAS GENERADOS
-
-SI QUITO LA TERMIANTION CONDITION QUIZÁS APRENDERÍA A NO AÑADIR HOLDING/HANDEMPTY DEMASIADO PRONTO AL ESTADO INICIAL!!!
-
-
->>> DEBERÍA PRIMERO OBTENER UN ENTRENAMIENTO RÁPIDO CON EL CÁLCULO PREVIO DE LA ENTROPÍA
-
-Ej: entrenar un modelo con max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20
-    y cambiar los parámetros de la entropía para que aprenda más rápido -> Usar 10,30,10
-
-Ya entonces puedo ver cómo cambio el cálculo de la entropía para que se generen problemas
-con handempty()
-
-Ej.: puedo quitar la termination condition, hacer que se calcule de manera separada su prob. al del resto de acciones, etc.
-
-CREO QUE NO PUEDO QUITAR LA TERMINATION CONDITION -> Si la policy ha añadido handempty() o holding(X) al estado inicial, usar la term cond
-es la única opción que tiene para acabar de generar el estado y no tener que añadir un átomo inconsistente (no hay átomos consistentes)
-También puede pasar que no haya ninguna acción/átomo válido (la mask ponga a 0 la probabilidad de todas las acciones del NLM output)
-
->>> SI QUITO LA TERMIANTION CONDITION QUIZÁS APRENDERÍA A NO AÑADIR HOLDING/HANDEMPTY DEMASIADO PRONTO AL ESTADO INICIAL!!!
-
------
-
-SIGUIENTE PRUEBA -> PROBAR A EJECUTAR SIN POLICY_ENTROPY (para ver si term cond prob también se va a 1 o no) -> Si no se va a 1, calcular la term cond prob de manera separada al resto
-       de acciones
-- Probar a ejecutar sin term cond prob (hacer term_cond_prob = 0 para que nunca se escoja la term cond)
-
-
+- Siguientes pruebas:
+	- Probar a ejecutar sin entropía (para ver si term cond prob se va a 1 o no)
+		- Si no se va a 1, eso significa que puedo calcular la term cond prob de manera separada al resto de acciones y
+		  no necesito meterla en el cálculo de la entropía -> Creo que esto no mejoraría mucho los resultados!!
+	- Probar a ejecutar con 0.5*ground_entropy + 0.5*lifted_entropy (ignorando term cond en lifted)
+		- El método debe automáticamente ver cuál es la posición del predicado de la term cond!
 
 
 ------  TODO  ------
@@ -974,6 +1030,6 @@ if __name__ == "__main__":
 
 	#test_load_models_and_generate_problems()
 
-	#test_generate_random_problems()
+	test_generate_random_problems()
 	#test_train_init_and_goal_policy()
-	test_load_models_and_generate_problems()
+	#test_load_models_and_generate_problems()
