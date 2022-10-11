@@ -10,6 +10,7 @@ from joblib import Parallel, delayed
 from itertools import chain 
 import glob
 import warnings
+from pathlib import Path
 
 from problem_generation.environment.problem_state import ProblemState
 from problem_generation.environment.pddl_parser import Parser
@@ -135,6 +136,7 @@ class DirectedGenerator():
 																				 action_entropy_coeff=entropy_coeff_goal_policy,
 																				 entropy_annealing_coeffs=entropy_annealing_coeffs_goal_policy, 
 																				 epsilon=epsilon_goal_policy)
+
 
 
 	# ------- Getters and Setters --------
@@ -672,13 +674,19 @@ class DirectedGenerator():
 		# > This method also selects the goal atoms corresponding to the goal predicates given by the user
 		pddl_problem = problem.obtain_pddl_problem()
 
-		# Obtain its difficulty (number of nodes expanded by the planner o -1 if couldn't solve it under
+		# Write the problem to the temporary file
+		self._fd_temp_problem.seek(0)
+		self._fd_temp_problem.write(pddl_problem)
+		self._fd_temp_problem.truncate()
+
+		# Obtain its difficulty (number of nodes expanded by the planner or -1 if it couldn't solve it under
 		# max_planning_time)
 		# Note: if the planner does not find a solution, it also returns -1, but this situation should not happen
 		#       as every problem is solvable.
-		problem_difficulty = self._planner.get_problem_difficulty_temp_file(pddl_problem, max_planning_time)
+		# problem_difficulty = self._planner.get_problem_difficulty_temp_file(pddl_problem, max_planning_time)
+		problem_difficulty = self._planner.get_problem_difficulty(self._temp_problem_path, max_planning_time)
 
-		# scaled_problem_difficulty = 10 if problem_difficulty == -1 else problem_difficulty # We do not scale rewards here, as we use moving mean and std to normalize returns
+		# We do not scale rewards here, as we use moving mean and std to normalize returns
 		scaled_problem_difficulty = max_difficulty if problem_difficulty == -1 else problem_difficulty
 
 		# use log of rewards
@@ -1021,6 +1029,17 @@ class DirectedGenerator():
 		next_folder_ind = max(folder_inds)+1 if len(folder_inds) > 0 else 0
 		checkpoints_folder = checkpoint_folder + f'_{next_folder_ind}'
 
+		# Create a file used to store the problems generated during training
+
+		# Create file if it doesn't exist
+		# self._temp_problem_path = r'R:\RamDisk\problems\temp_problem.pddl'
+		self._temp_problem_path = 'temp_problem.pddl'
+		pth_object = Path(self._temp_problem_path)
+		pth_object.touch(exist_ok=True)
+
+		self._fd_temp_problem = open(pth_object, 'r+') # Open in read and write mode
+
+
 		# Logger
 		logger_init_policy = TensorBoardLogger("lightning_logs", name=logs_name+'/init_policy')
 		logger_goal_policy = TensorBoardLogger("lightning_logs", name=logs_name+'/goal_policy')
@@ -1066,6 +1085,7 @@ class DirectedGenerator():
 			trainer_init_policy = pl.Trainer(max_epochs=epochs_per_train_it, logger=logger_init_policy) # We need to reset the trainer, so we create a new one
 			trainer_init_policy.fit(self._initial_state_policy, trajectory_dataloader_init_policy)
 
+
 			# Linearly anneal the entropy regularization of the policy
 			self._initial_state_policy.reduce_entropy()
 
@@ -1101,6 +1121,10 @@ class DirectedGenerator():
 				# Save a checkpoint
 				if its_per_model_checkpoint != -1 and i > 0 and i % its_per_model_checkpoint == 0:
 					trainer_goal_policy.save_checkpoint(checkpoints_folder + f'/goal_policy_its-{i}.ckpt') # Both actor and critic NLMs are saved
+
+
+		# Close temporary file used for storing the problems generated during training
+		self._fd_temp_problem.close()
 
 
 

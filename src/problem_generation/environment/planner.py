@@ -8,7 +8,7 @@ import os
 import tempfile
 
 import sys
-import shlex
+import time
 
 class Planner():
 
@@ -27,6 +27,7 @@ class Planner():
 	def __init__(self, domain_file_path, python_call='python', planner_path='./fast-downward/fast-downward.py', 
 				 alias='lama-first',search_options=''):
 
+		# planner_path=r'R:\RamDisk\fast-downward\fast-downward.py'
 		# search_options='astar(lmcut())'
 
 		self._domain_file_path = domain_file_path
@@ -60,9 +61,9 @@ class Planner():
 			planner_command = [self._python_call, self._planner_path, '--alias', self._alias, self._domain_file_path, 
 					  pddl_problem_path]
 
-
-
-
+		# Use a heuristic in the initial state as the problem difficulty
+		# planner_command = [self._python_call, self._planner_path, self._domain_file_path, pddl_problem_path, 
+		#			       '--search', 'eager_greedy([ff(), lmcut(), hm(m=1)], bound=0)'] -> Works for obtaining the value of several heuristics!
 
 		# Call the planner and detect timeouts
 		# <TODO>
@@ -70,10 +71,8 @@ class Planner():
 		try:
 			planner_output = subprocess.run(planner_command, timeout=max_planning_time, shell=False,
 										   stdout=subprocess.PIPE).stdout.decode('utf-8')
-
 		except TimeoutExpired as e:
 			planner_output = 'timeout'
-
 
 		return planner_output
 
@@ -91,6 +90,10 @@ class Planner():
 		# Check if there was a timeout -> we consider this case the same as when the planner does not find a solution
 		if planner_output == 'timeout':
 			return -1
+
+		# Use one/several heuristic(s) evaluated on the initial problem state to calculate its difficulty
+		# h_val = int(re.search(r"Initial heuristic value for .+: ([0-9]+)", planner_output).group(1))
+		# return h_val
 
 		# Check if the planner found a solution
 		if re.search("Solution found.", planner_output):
@@ -147,4 +150,3 @@ class Planner():
 		os.remove(file_path)
 
 		return difficulty
-		

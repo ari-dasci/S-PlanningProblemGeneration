@@ -228,7 +228,7 @@ class GenerativePolicy(pl.LightningModule):
 
 		# Ignore termination condition prob when calculating lifted action entropy
 		# for i in range(len(list_probs_each_pred)):
-		#	 list_probs_each_pred[i][1] = 0
+		#	list_probs_each_pred[i][1] = 0
 
 		tensor_lifted_entropy = torch.cat([ (torch.distributions.Categorical(probs = probs_preds).entropy() / np.log(probs_preds.shape[0])).view(1) \
 			                               for probs_preds in list_probs_each_pred ])
@@ -238,8 +238,8 @@ class GenerativePolicy(pl.LightningModule):
 		#print("\ntensor_ground_entropy + tensor_lifted_entropy", tensor_ground_entropy + tensor_lifted_entropy)
 
 		# CAMBIAR
-		# return 1*tensor_ground_entropy + 0*tensor_lifted_entropy
-		return tensor_ground_entropy
+		return 0.5*tensor_ground_entropy + 0.5*tensor_lifted_entropy
+		# return tensor_ground_entropy
 	    
 		#return torch.Tensor([0])
 		
@@ -504,7 +504,7 @@ class GenerativePolicy(pl.LightningModule):
 		# < Logs >
 		# Store the logs
 		# self.current_epoch == 0 and self.global_step == 0 -> only store the logs for the first training iteration of PPO
-		if self.current_epoch == 0 and self.global_step == 0: 
+		if self.current_epoch == 0 and self.global_step == 0:
 			self.logger.experiment.add_scalar("Total Reward Normalized", reward_total_norm, global_step=self.curr_log_iteration)
 			self.logger.experiment.add_scalars('Rewards', {'Reward Continuous': reward_continuous, 'Reward Eventual': reward_eventual, 'Reward Difficulty': reward_difficulty},
 											   global_step=self.curr_log_iteration)

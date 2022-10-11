@@ -634,7 +634,9 @@ def test_train_init_and_goal_policy():
 	planner = Planner(domain_file_path)
 
 	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
-	nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]] # -> Preds arity 3
+	nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]] # -> No preds arity 3
+
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
 
 	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
@@ -658,7 +660,6 @@ def test_train_init_and_goal_policy():
 
 
 	# Train the goal generation policy
-	# Note: right now, we are using 'ehc(ff())' as the planner search options
 	directed_generator.train_generative_policies(training_iterations = 10000)
 
 """
@@ -677,10 +678,10 @@ def test_load_models_and_generate_problems():
 	planner = Planner(domain_file_path)
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_82/init_policy_its-300.ckpt"
-	goal_policy_path = "saved_models/both_policies_82/goal_policy_its-300.ckpt"
+	init_policy_path = "saved_models/both_policies_84/init_policy_its-380.ckpt"
+	goal_policy_path = "saved_models/both_policies_84/goal_policy_its-380.ckpt"
 
-	nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
 
 	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
@@ -701,8 +702,8 @@ def test_load_models_and_generate_problems():
 	# Generate the set of problems with the trained initial policy
 	num_problems = 10
 
-	directed_generator.generate_problems(num_problems, max_atoms_init_state=30, max_actions_init_state=90,
-									     max_actions_goal_state=30, max_planning_time=60, verbose=True)
+	directed_generator.generate_problems(num_problems, max_atoms_init_state=20, max_actions_init_state=60,
+									     max_actions_goal_state=20, max_planning_time=60, verbose=True)
 
 """
 
@@ -956,40 +957,113 @@ def test_load_models_and_generate_problems():
 			- 20 atoms&actions - diff = 36.1
 			- 30 atoms&actions - diff = 55.8 
 
+# Ejecución -> ground_entropy*0.5 + lifted_entropy*0.5, sin ignorar term cond prob
+	20 átomos y goal actions
+	planner_search_options= --alias lama-first
+
+	- Carpeta: both_policies_83 - logs: init_policy\ version_33, goal_policy\ version_16
+
+	> Entrenamiento:
+		Le cuesta aprender al principio, ya que la term cond prob aumenta hasta 0.2. No obstante, en poco tiempo empieza disminuir
+		y aprende a generar problemas con r_eventual=0 y r_consistency=0. Al final del entrenamiento la term cond prob
+		es 0.05, menor que cuando solo uso ground_entropy (en el experimento anterior termina en 0.07)!
+
+	> Problemas
+		<Genera problemas más difíciles y diversos que cuando solo uso ground_entropy!!! También generaliza mejor a problemas más grandes!
+		(los problemas tienen más átomos)>
+		> directed generator -> its=600
+			- 10 atoms&actions - diff = 25.5 - diversidad media-alta
+			- 20 atoms&actions - diff = 217.4 - diversidad media-alta -> Genera problemas con un número alto de átomos!!
+			- 30 atoms&actions - diff = 810.2 - diversidad media-alta -> Genera problemas con hasta 27 átomos, aunque la mayoría rondan los 20.
+		<AHORA LOS PROBLEMAS SOLO TIENEN HANDEMPTY, Y NINGUNO TIENE HOLDING!!>
+
+	<ES MEJOR USAR LIFTED Y GROUND ENTROPY QUE SOLO GROUND ENTROPY!!>
+
+
+# Ejecución -> ground_entropy*0.5 + lifted_entropy*0.5, sin ignorar term cond prob
+	20 átomos y goal actions
+	planner_search_options= --alias lama-first
+	<NLM without preds arity 3>
+
+	- Logs: los eliminé, así como los modelos guardados
+
+	> Entrenamiento:
+		- << El tiempo de entrenamiento es la mitad que usando predicados de ariedad 3!!! >>
+		- La term cond prob primero sube, después cae en picado y después vuelve a subir y se estabiliza en 0.07
+		- La r_difficulty llega hasta casi la misma que al usar NLM con predicados de ariedad 3
+		- La init_policy_entropy cae demasiado rápido y se estabiliza en un valor demasiado bajo, 0.15!
+
+
+# Ejecución -> ground_entropy*0.5 + lifted_entropy*0.5, sin ignorar term cond prob
+	20 átomos y goal actions
+	<difficulty = initial heuristic value for ff()>
+	NLM without preds arity 3
+
+	- Logs: init_policy/ version_34
+
+	> Entrenamiento:
+		- Alcanza el pico en r_difficulty tras 5h de entrenamiento, y a partir de ahí se mantiene constante
+		- <<Respecto al tiempo de entrenamiento, parece que casi no hay diferencia entre usar lama-first y calcular la heurística ff()!!!>>
+
+	> Problemas
+		<Los problemas generados son muy sencillos!!! (aún más que siendo generados al azar) ->
+		 Solo medir la dificultad con la heurística ff() no es un buen método!!!>
+		> directed generator -> its=380 
+			- 20 atoms&actions - diff = 17.8
+
+
+# Ejecución -> ground_entropy*0.5 + lifted_entropy*0.5, sin ignorar term cond prob
+	20 átomos y goal actions
+	difficulty = initial heuristic value for ff()
+	NLM without preds arity 3
+	write_logs every 10 training its (calls to trainer.fit())
+
+	El tiempo de entrenamiento es el mismo.
+	<Escribir los logs en cada train it no es el bottleneck!>
+
+
+# Ejecución ->ground_entropy*0.5 + lifted_entropy*0.5, sin ignorar term cond prob
+	20 átomos y goal actions
+	difficulty = initial heuristic value for ff()
+	NLM without preds arity 3
+	<planner on RAM disk and don't open PDDL problem each time>
+
+	Los tiempos de entrenamiento mejoran, aunque es difícil decir cuánto exactamente.
+
+
+# Ejecución -> ground_entropy*0.5 + lifted_entropy*0.5, sin ignorar term cond prob
+	20 átomos y goal actions
+	difficulty = initial heuristic value for ff()
+	NLM without preds arity 3
+	<planner on SDD and don't open PDDL problem each time>
+	(same as last experiment, but now we don't use the RAM disk)
+
+	Creo que los tiempos son muy parecidos, use un RAM disk o no. -> no es necesario usar RAM disk
+
+# Ejecución -> ground_entropy*0.5 + lifted_entropy*0.5, sin ignorar term cond prob
+	20 átomos y goal actions
+	difficulty = initial heuristic value for ff()
+	NLM without preds arity 3
+	planner on SDD and don't open PDDL problem each time
+	<evaluate three heuristics for each problem -> planner_search_options='eager_greedy([ff(), lmcut(), hm(m=1)], bound=0)'>
+
+	Se ralentiza un poco el entrenamiento. En problemas difíciles, se pasa de tardar 4h en realizar 100 train its,
+	a tardar 4h 40 min en hacer 100 train its. El entrenamiento se vuelve un 15% más lento aprox.
+	
 
 
 
-1. Antes de hacer la siguiente ejecución del modelo, hacer pruebas con el planner para ver si puedo
-obtener los valores de varias heurísticas (eager_greedy([ff(), lmcut()], bound=0))
-	- Escoger heurísticas que después pueda implementar yo mismo de manera sencilla
-	- 1. Alguna basada en delete relaxation -> FF heuristic
-	- 2. Critical path -> h^m
-	- 3. Landmark heuristic -> h^LM, h^lm-cut, Landmark-count (inadmissible)
-
-2. HACER PROFILING PARA VER QUÉ TENGO QUE OPTIMIZAR PARA REDUCIR EL TIEMPO DE EJECUCIÓN
-
-3. Si el planner es lo que va lento, cambiar planner por cálculo heurísticas -> (eager_greedy([ff(), lmcut()], bound=0))
-   para calcular la dificultad de los problemas generados.
-	- Según lo que vaya lento también probar otras cosas (bajar el número de trayectorias por it, el número de capas y predicados de ariedad 3 de la NLM...)
 
 
+>> CAMBIOS PARA AUMENTAR EFICIENCIA NLM:
+	> Cambiar _calculate_state_value_and_old_policy_probs_trajectory_init_policy (y del goal) para que sea mas eficiente
+	  (no hace falta volver a llamar a la NLM, sino que la probabilidad puede devolverla el metodo select_action() de las generative policies)
+	> Añadir opción para que, si no se usan residual_connections, los predicados extras perc_actions_executed y de los object types
+	  se añadan adicionalmente como inputs a cada NLM layer
+	> Probar a usar menos trajectories_per_train_it
 
+>> Preguntar en el discord de FD si es posible llamar una sola vez al planner para que resuelva un conjunto de problemas
 
-
-- Siguientes pruebas:
-	- Probar a ejecutar sin entropía (para ver si term cond prob se va a 1 o no)
-		- Si no se va a 1, eso significa que puedo calcular la term cond prob de manera separada al resto de acciones y
-		  no necesito meterla en el cálculo de la entropía -> Creo que esto no mejoraría mucho los resultados!!
-	- Probar a ejecutar con 0.5*ground_entropy + 0.5*lifted_entropy (ignorando term cond en lifted)
-		- El método debe automáticamente ver cuál es la posición del predicado de la term cond!
-
-
-------  TODO  ------
-
-> Cambiar método cálculo dificultad
-	> Ver cómo calcular heurísticas sobre el problema generado
-
- 
 
 
 
@@ -1030,6 +1104,6 @@ if __name__ == "__main__":
 
 	#test_load_models_and_generate_problems()
 
-	test_generate_random_problems()
-	#test_train_init_and_goal_policy()
+	#test_generate_random_problems()
+	test_train_init_and_goal_policy()
 	#test_load_models_and_generate_problems()
