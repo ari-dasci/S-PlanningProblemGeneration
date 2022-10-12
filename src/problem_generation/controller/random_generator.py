@@ -2,6 +2,7 @@
 
 import random
 import itertools
+import copy
 
 from problem_generation.environment.problem_state import ProblemState
 from problem_generation.environment.pddl_parser import Parser
@@ -201,6 +202,11 @@ class RandomGenerator():
 			possible_atoms = problem.get_possible_init_state_actions()
 			random.shuffle(possible_atoms) # Shuffle the atoms
 
+			# QUITAR
+			print("\n\n-----------")
+			print("possible_atoms:", possible_atoms)
+
+
 			# Get the existing predicate types in possible_atoms (e.g.: ['on', 'ontable'])
 			possible_predicates = list(set([a[0] for a in possible_atoms]))
 
@@ -235,7 +241,8 @@ class RandomGenerator():
 					if chosen_pred[0] in possible_predicates and dict_num_atoms_each_pred[chosen_pred[0]] > 0:
 						
 						# Select those atoms with predicate==chosen_pred
-						possible_atoms_chosen_pred = list(filter(lambda atom: atom[0] == chosen_pred[0], possible_atoms))
+						# possible_atoms_chosen_pred = list(filter(lambda atom: atom[0] == chosen_pred[0], possible_atoms))
+						possible_atoms_chosen_pred = [copy.deepcopy(atom) for atom in possible_atoms if atom[0]==chosen_pred[0]] # Deepcopy atom so that, if we modify it, we don't modify the same atom in possible_atoms list
 
 						# Sample a consistent atom
 						while not selected_consistent_action and len(possible_atoms_chosen_pred) > 0:
@@ -319,6 +326,9 @@ class RandomGenerator():
 					# If the initial state is not consistent yet, we add a random possible atom to the initial state
 					else:
 						selected_consistent_action = False
+
+						# QUITAR
+						print("\npossible_atoms after:", possible_atoms)
 
 						# Select a consistent action
 						while not selected_consistent_action and len(possible_atoms) > 0:
@@ -476,6 +486,9 @@ class RandomGenerator():
 			# If the hash is in the list, next_goal_state is new so we don't add it to the list
 			if hash_next_goal_state in state_hash_list:
 				problem.goal_state = goal_search_list[-1][0] # Update goal_state in the problem to the last goal_state in the list
+				
+				if verbose:
+					print("<Backtrack>")
 
 			else: # If next_goal_state is new, we add it to the list
 				# Obtain applicable actions at next_goal_state and shuffle them

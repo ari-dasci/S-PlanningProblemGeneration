@@ -319,7 +319,7 @@ def test_generate_random_problems():
 
 	random_generator = RandomGenerator(parser, planner)
 
-	num_problems_to_generate = 10
+	num_problems_to_generate = 100
 
 	# Assign a higher probability to the 'on' predicate, so that there are more atoms (on _ _) in the problems generated
 	# pred_probs = dict([('ontable', 100), ('on', 40), ('clear', 1), ('holding', 1), ('handempty', 3)])
@@ -1149,6 +1149,6 @@ if __name__ == "__main__":
 
 	#test_load_models_and_generate_problems()
 
-	#test_generate_random_problems()
+	test_generate_random_problems()
 	#test_train_init_and_goal_policy()
-	test_load_models_and_generate_problems()
+	#test_load_models_and_generate_problems()

@@ -142,7 +142,7 @@ class ProblemState:
 	def _get_s0(self, initial_state_info=None):
 
 		if initial_state_info is None: # Empty state
-			s0 = RelationalState(self._parser.domain_types, self._parser.domain_predicates, [], [])
+			s0 = RelationalState(self._parser.domain_types, self._parser.type_hierarchy, self._parser.domain_predicates, [], [])
 
 		elif type(initial_state_info) == str: # Type given by the user
 			if initial_state_info not in self._parser.domain_types:

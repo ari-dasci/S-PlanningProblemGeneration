@@ -1,0 +1,44 @@
+(define (problem bw_random_problem_21)
+
+(:domain blocks)
+
+(:objects
+	obj0 obj1 obj2 obj3 obj4 obj5 obj6 obj7 obj8 obj9 obj10 obj11 - block
+)
+
+(:init
+	(ontable obj0)
+	(ontable obj1)
+	(ontable obj2)
+	(ontable obj3)
+	(on obj4 obj0)
+	(on obj5 obj4)
+	(on obj6 obj3)
+	(on obj7 obj5)
+	(on obj8 obj6)
+	(on obj9 obj2)
+	(on obj10 obj9)
+	(clear obj7)
+	(clear obj8)
+	(clear obj1)
+	(clear obj10)
+	(holding obj11)
+)
+
+(:goal (and
+	(on obj5 obj4)
+	(holding obj9)
+	(on obj1 obj6)
+	(on obj10 obj8)
+	(ontable obj3)
+	(on obj8 obj7)
+	(ontable obj0)
+	(on obj4 obj0)
+	(on obj2 obj10)
+	(on obj7 obj5)
+	(on obj6 obj3)
+	(clear obj2)
+	(on obj11 obj1)
+	(clear obj11)
+))
+)
