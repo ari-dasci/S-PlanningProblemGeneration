@@ -27,6 +27,7 @@ class GenerativePolicy(pl.LightningModule):
 	
 	Note: @num_preds_layers_nlm needs to include the extra nullary predicate for the termination condition (in the output layer)
 	      and the number of atoms already added to the initial state (perc_actions_executed, a number between 0 and 1), in case these are needed.
+	      Also, it needs to include the extra unary predicates representing object types, if needed.
 	"""
 	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_residual_connections, lr,
 			     action_entropy_coeff, entropy_annealing_coeffs, epsilon):

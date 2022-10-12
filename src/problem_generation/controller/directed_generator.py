@@ -7,7 +7,7 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from joblib import Parallel, delayed
-from itertools import chain 
+import itertools
 import glob
 import warnings
 from pathlib import Path
@@ -76,13 +76,14 @@ class DirectedGenerator():
 		self._max_actions_goal_state = max_actions_goal_state
 
 
-		# <Relational State which contains the object types and actions in the domain>
+		# <Relational State which contains the object types, type_hierarchy and actions in the domain>
 		# Used to convert from action name to index and vice versa (e.g.: "stack" <-> 1)
-		self._dummy_rel_state_actions = RelationalState(self.domain_types, self.domain_actions_and_parameters) 
+		self._dummy_rel_state_actions = RelationalState(self._parser.domain_types, self._parser.type_hierarchy,
+		                                                self._parser.domain_actions_and_parameters) 
 
 		# <Goal predicates (list of predicates names -> ['on', 'ontable'])>
 		if predicates_to_consider_for_goal is None: # Consider every predicate for the goal
-			self._predicates_to_consider_for_goal = [pred[0] for pred in self.domain_predicates]
+			self._predicates_to_consider_for_goal = [pred[0] for pred in self._parser.domain_predicates]
 		else:
 			self._predicates_to_consider_for_goal = predicates_to_consider_for_goal
 
@@ -138,7 +139,6 @@ class DirectedGenerator():
 																				 epsilon=epsilon_goal_policy)
 
 
-
 	# ------- Getters and Setters --------
 		
 
@@ -170,58 +170,6 @@ class DirectedGenerator():
 	def max_actions_goal_state(self):
 		return self._max_actions_goal_state
 
-	@property
-	def domain_name(self):
-		name = self._parser.domain_name
-
-		return name
-
-	# Does not work with type hierarchies!
-	@property
-	def domain_types(self):
-		types = self._parser.types
-
-		type_list = list(types.values())[0] # Convert to a list of strings representing types (['block', 'circle'])
-
-		return type_list
-	
-	@property
-	def domain_predicates(self):
-		predicates = self._parser.predicates
-		predicates = list(predicates.items())
-
-		predicate_list = [[pred[0], list(pred[1].values())] for pred in predicates] # Convert to a list where each element is a predicate in the form
-																					# ['on', ['block', 'block']]
-		return predicate_list
-
-	# <TODO>
-	# Add support for domain constants -> the functionality has not been implemented yet
-	# Return the domain constants, as a list of objects (e.g.: ['block', 'block])
-	# If there are no constants, it returns an empty list -> []
-	@property
-	def domain_constants(self):
-		raise NotImplementedError()
-
-		"""
-		constants = self._parser.objects # {'block': ['obj1', 'obj2', 'obj3']}
-		constants_encoded = [x for c in constants.items() for x in [c[0]]*len(c[1])] # ['block', 'block', 'block']
-
-		return constants_encoded
-		"""
-		
-	"""
-	Only returns information about the name of each action and the types of its parameters.
-	"""
-	@property
-	def domain_actions_and_parameters(self):
-		actions = self._parser.actions
-	
-		action_list = [[a.name, [p[1] for p in a.parameters]] for a in actions] # Convert to a list where each element is an action in the form
-																				# ['stack', ['block', 'block']]
-
-		return action_list
-
-
 
 	# ------- Auxiliary Methods --------
 
@@ -230,33 +178,48 @@ class DirectedGenerator():
 	Receives @num_preds_inner_layers_initial_state_nlm and returns the number of predicates of ALL the layers in the NLM 
 	(it adds the shapes corresponding to the input and output layers).
 
-	This function also adds the extra input nullary predicate corresponding to the number of atoms already added to the initial state
-	and the extra output nullary predicate (in the last position) corresponding to the termination condition.
+	This function also adds the extra input nullary predicate corresponding to the number of atoms already added to the initial state,
+	the extra input unary predicates encoding object types and the extra output nullary predicate (in the last position) corresponding 
+	to the termination condition.
 	"""
 	def _num_preds_all_layers_init_nlm(self, num_preds_inner_layers_initial_state_nlm):
 		num_preds_inner_layers_initial_state_nlm = np.array(num_preds_inner_layers_initial_state_nlm, dtype=np.int) # Convert to np array in case it was a list
 		
 		# Get domain predicates
-		domain_types = self.domain_types
-		domain_preds = self.domain_predicates
+		domain_types = self._parser.domain_types
+		domain_type_hierarchy = self._parser.type_hierarchy
+		domain_preds = self._parser.domain_predicates
 		
-		dummy_rel_state = RelationalState(domain_types, domain_preds)
+		dummy_rel_state = RelationalState(domain_types, domain_type_hierarchy, domain_preds)
 
 		if len(num_preds_inner_layers_initial_state_nlm) == 0: # Don't use inner layers
-			input_and_output_nlm_layer_shape = np.array(dummy_rel_state.num_preds_each_arity_for_nlm(-1)).reshape(1,-1)
+			input_nlm_layer_shape = np.array(dummy_rel_state.num_preds_each_arity_for_nlm(-1)).reshape(1,-1)
+			output_nlm_layer_shape = np.array(dummy_rel_state.num_preds_each_arity_for_nlm(-1)).reshape(1,-1)
 
-			input_and_output_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate for both the input and output layers
+			# Input predicates
+			input_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate for perc_actions_executed
+			input_nlm_layer_shape[0][1] += len(domain_types) # Add extra unary predicates to represent the object types
 
-			num_preds_all_layers_initial_state_nlm = np.concatenate((input_and_output_nlm_layer_shape, input_and_output_nlm_layer_shape))
+			# Output predicates
+			output_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate for the termination condition probability
+
+			num_preds_all_layers_initial_state_nlm = np.concatenate((input_nlm_layer_shape, output_nlm_layer_shape))
 
 		else: # Use inner layers, as given by @num_preds_inner_layers_initial_state_nlm
 			max_nlm_arity = len(num_preds_inner_layers_initial_state_nlm[0])-1
-			input_and_output_nlm_layer_shape = np.array(dummy_rel_state.num_preds_each_arity_for_nlm(max_nlm_arity)).reshape(1,-1)
 
-			input_and_output_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate for both the input and output layers
+			# Input predicates
+			input_nlm_layer_shape = np.array(dummy_rel_state.num_preds_each_arity_for_nlm(max_nlm_arity)).reshape(1,-1)
+			output_nlm_layer_shape = np.array(dummy_rel_state.num_preds_each_arity_for_nlm(max_nlm_arity)).reshape(1,-1)
 
-			num_preds_all_layers_initial_state_nlm = np.concatenate((input_and_output_nlm_layer_shape, num_preds_inner_layers_initial_state_nlm,
-																	 input_and_output_nlm_layer_shape))
+			# Output predicates
+			input_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate for perc_actions_executed
+			input_nlm_layer_shape[0][1] += len(domain_types) # Add extra unary predicates to represent the object types
+
+			output_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate for the termination condition probability
+
+			num_preds_all_layers_initial_state_nlm = np.concatenate((input_nlm_layer_shape, num_preds_inner_layers_initial_state_nlm,
+																	 output_nlm_layer_shape))
 
 		return num_preds_all_layers_initial_state_nlm
 
@@ -264,24 +227,26 @@ class DirectedGenerator():
 	Receives @num_preds_inner_layers_goal_nlm and returns the number of predicates of ALL the layers in the NLM 
 	(it adds the shapes corresponding to the input and output layers).
 
-	This function also adds the extra input nullary predicate corresponding to the number of actions already executed to obtain the current goal state
-	and the extra output nullary predicate (in the last position) corresponding to the termination condition.
+	This function also adds the extra input nullary predicate corresponding to the number of actions already executed to obtain
+	the current goal state, the extra input unary predicates encoding object types and the extra output nullary predicate 
+	(in the last position) corresponding to the termination condition.
 	"""
 	def _num_preds_all_layers_goal_nlm(self, num_preds_inner_layers_goal_nlm):
 		num_preds_inner_layers_goal_nlm = np.array(num_preds_inner_layers_goal_nlm, dtype=np.int) # Convert to np array in case it was a list
 		
 		# Get domain types and actions (with their parameters types) -> e.g.: ['stack', ['block', 'block']]
-		domain_types = self.domain_types
-		domain_preds = self.domain_predicates
+		domain_types = self._parser.domain_types
+		domain_type_hierarchy = self._parser.type_hierarchy
+		domain_preds = self._parser.domain_predicates
 		
-		dummy_rel_state_input = RelationalState(domain_types, domain_preds) 
-		# dummy_rel_state_output = RelationalState(domain_types, domain_actions)
+		dummy_rel_state_input = RelationalState(domain_types, domain_type_hierarchy, domain_preds)
 		dummy_rel_state_output = self._dummy_rel_state_actions
 
 		if len(num_preds_inner_layers_goal_nlm) == 0: # Don't use inner layers
 			input_nlm_layer_shape = np.array(dummy_rel_state_input.num_preds_each_arity_for_nlm(-1)).reshape(1,-1)
 			input_nlm_layer_shape *= 2 # The number of input predicates is actually twice, as it corresponds to both the predicates of the initial and goal states	
 			input_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate representing the percentage of actions executed
+			input_nlm_layer_shape[0][1] += len(domain_types) # Add extra unary predicates to represent the object types
 
 			output_nlm_layer_shape = np.array(dummy_rel_state_output.num_preds_each_arity_for_nlm(-1)).reshape(1,-1)
 			output_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate representing the termination condition
@@ -294,6 +259,7 @@ class DirectedGenerator():
 			input_nlm_layer_shape = np.array(dummy_rel_state_input.num_preds_each_arity_for_nlm(max_nlm_arity)).reshape(1,-1)
 			input_nlm_layer_shape *= 2 # The number of input predicates is actually twice, as it corresponds to both the predicates of the initial and goal states	
 			input_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate representing the percentage of actions executed
+			input_nlm_layer_shape[0][1] += len(domain_types) # Add extra unary predicates to represent the object types
 
 			output_nlm_layer_shape = np.array(dummy_rel_state_output.num_preds_each_arity_for_nlm(max_nlm_arity)).reshape(1,-1)
 			output_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate representing the termination condition
@@ -316,47 +282,48 @@ class DirectedGenerator():
 	           and the domain predicates (with their variable types).
 	"""
 	def _get_mask_tensors_init_policy(self, nlm_output_shape, rel_state):  
-		# Get the types of the objects at the state, without virtual objects!
-		num_objs_with_virtuals = rel_state.num_objects + rel_state.max_predicate_arity # Number of objects in the state, also considering virtual objects
-		obj_types = np.array(rel_state.objects) # Use np.array instead of list to use np.where()
+		# Get the objects (including virtuals)
+		# Example: ['truck', 'airplane', 'package']
+		objs_with_virtuals = rel_state.objects + rel_state.virtual_objs_with_type
+		num_objs_with_virtuals = len(objs_with_virtuals)
 		predicates = rel_state.predicates # Get the state predicates
 		pred_to_index_dict = rel_state.pred_names_to_indices_dict_each_arity
-    
+
 		# Initialize mask tensors full of zeros
 		mask_tensors = [torch.zeros( (num_objs_with_virtuals,)*r + (num_preds,), dtype=torch.float32) \
 						if num_preds != 0 else None for r, num_preds in enumerate(nlm_output_shape)]
 
-		# If there are only virtual objects in the state, we do not need to mask anything (virtual objects can be instantiated
-		# as any predicate parameter)
-		if len(obj_types) != 0:
-			# For each predicate, mask (put to 0) tensor values corresponding to atoms with invalid object types
-			for pred in predicates:
-				pred_ind = pred_to_index_dict[pred[0]]
-				pred_arity = len(pred[1])
-				pred_params = pred[1]
+		# For each predicate, mask (put to 0) tensor values corresponding to atoms with invalid object types
+		for pred in predicates:
+			pred_ind = pred_to_index_dict[pred[0]]
+			pred_arity = len(pred[1])
+			pred_params = pred[1]
 
-				# Iterate over the parameters of the predicate
-				for param_ind, param_type in enumerate(pred_params):
-					# Get object indices of different type to the current param type
-					incorrect_obj_inds = np.where(obj_types != param_type)
+			# Iterate over the parameters of the predicate
+			for param_ind, param_type in enumerate(pred_params):
+				# Get object indices of incorrect type, i.e., those which do not inherit from the param type
+				incorrect_obj_inds = [obj_ind for obj_ind, obj_type in enumerate(objs_with_virtuals) \
+				                      if not self._parser.is_type_child_of(obj_type, param_type)]	
 
-					# Permute the tensor so that the first dimension is the one corresponding to param_ind and the second
-					# dimension corresponds to the predicate types
-					obj_inds_except_param_ind = list(range(pred_arity))
-					obj_inds_except_param_ind.remove(param_ind)
-					permute_inds = (param_ind, pred_arity) + tuple(obj_inds_except_param_ind)
-                
-					curr_tensor = torch.permute(mask_tensors[pred_arity], permute_inds)
-
-					# Now we can easily set to -inf the corresponding elements
-					curr_tensor[incorrect_obj_inds, pred_ind] = -float("inf") # -inf
+				# Permute the tensor so that the first dimension is the one corresponding to param_ind and the second
+				# dimension corresponds to the predicate types
+				obj_inds_except_param_ind = list(range(pred_arity))
+				obj_inds_except_param_ind.remove(param_ind)
+				permute_inds = (param_ind, pred_arity) + tuple(obj_inds_except_param_ind)
             
+				curr_tensor = torch.permute(mask_tensors[pred_arity], permute_inds)
+
+				# Now we can easily set to -inf the corresponding elements
+				curr_tensor[incorrect_obj_inds, pred_ind] = -float("inf") # -inf
+
+
 		return mask_tensors
+
 
 	"""
 	Returns the mask tensors used to mask the goal policy's NLM output. It masks (sets to -inf) the tensor positions
-	corresponding to invalid actions, i.e., those with parameters of invalid type or those for which their preconditions
-	are not met.
+	corresponding to invalid actions, i.e., those with parameters of invalid type (according to type hierarchy) 
+	or those for which their preconditions are not met.
 
 	@nlm_output_shape Shape of the last NLM layer, as a list of num_preds, e.g., [1,2,3,0]. Note: @nlm_output_shape must
 	                  take into account the extra nullary predicate added for the termination condition (in case it is added).
@@ -367,7 +334,7 @@ class DirectedGenerator():
 	def _get_mask_tensors_goal_policy(self, nlm_output_shape, problem, termination_condition=True):
 		num_objs = problem.goal_state.num_objects # Number of objects in the goal state (and also in the initial state)
 		
-		# Get applicable ground actions at the current goal state s_gc
+		# Get applicable ground actions at the current goal state
 		applicable_ground_actions = problem.applicable_ground_actions()
 
 		# Convert from the relational encoding ( ['stack', [1, 2]] ) to the encoding
@@ -406,22 +373,35 @@ class DirectedGenerator():
 	"""
 	def _get_objs_to_add_and_atom_with_correct_indexes(self, rel_state, atom_to_add):
 		state_preds = rel_state.predicates
-		num_objs = rel_state.num_objects
+		objs_without_virtuals = rel_state.objects
+		num_objs_without_virtuals = len(objs_without_virtuals)
+		objs_with_virtuals = objs_without_virtuals + rel_state.virtual_objs_with_type
+		num_objs_with_virtuals = len(objs_with_virtuals)
 
-		# Get predicate corresponding to atom_to_add
-		atom_pred = [p for p in state_preds if p[0] == atom_to_add[0]][0]
-		
+		# Obtain the predicate (name and parameters) corresponding to atom_to_add
+		# atom_pred = list(filter(lambda x: x[0] == atom_to_add[0], state_preds))[0]
+
+		# <Obtain the types of the objects atom_to_add is instantiated on>
+		# To do so, we use the object indexes returned by the NLM, which can index both
+		# objects in rel_state and virtual objects
+
+		obj_types = [objs_with_virtuals[obj_ind] for obj_ind in atom_to_add[1]]
+
+		# <Obtain the new objects to add to rel_state (corresponding to the virtual objs
+		# atom_to_add is instantiated on) and change the obj inds of atom_to_add[1] so that
+		# they index objects in the state after these new objects are added to it>
+
 		objs_to_add = []
-		ind_next_state_obj = num_objs # Index associated with the next object to add to the state (Example: if there are 2 objs in the state, ind_next_state_obj = 2)
+		ind_next_state_obj = num_objs_without_virtuals # Index associated with the next object to add to the state (Example: if there are 2 objs in the state, ind_next_state_obj = 2)
 		dict_old_inds_to_new_inds = dict() # This dictionary is used to transform the obj inds of atom_to_add
 										   # Example: (on 3 1) -> (on 2 1), (on 3 3) -> (on 2 2)
 		virtual_obj_indexes_used = set() # Contains the indexes corresponding to virtual objects that we have already processed (so that we don't process them again)
 										 # For example, for the atom (on 1 1) (on a state with a single object) we only need to add an object of type "block", and not two
 
-		for param_position, obj_ind in enumerate(atom_to_add[1]):
-			if obj_ind >= num_objs and obj_ind not in virtual_obj_indexes_used: # the obj given by obj_ind is a virtual object (i.e., it is not in the state, so it must be added)
-				# Add an object of type given by the corresponding parameter
-				objs_to_add.append(atom_pred[1][param_position])
+		for obj_ind in atom_to_add[1]:
+			if obj_ind >= num_objs_without_virtuals and obj_ind not in virtual_obj_indexes_used: # the obj given by obj_ind is a virtual object (i.e., it is not in the state, so it must be added)
+				# Add an object of type given by the corresponding virtual object in rel_state
+				objs_to_add.append(objs_with_virtuals[obj_ind])
 
 				# Change atom index corresponding to virtual object
 				dict_old_inds_to_new_inds[obj_ind] = ind_next_state_obj
@@ -429,15 +409,13 @@ class DirectedGenerator():
 
 				virtual_obj_indexes_used.add(obj_ind)
 
-				#atom_to_add[1][param_position] = ind_next_state_obj
-				#ind_next_state_obj += 1
-
 		# Change virtual obj indexes according to the values stored in the dict
 		for param_position, obj_ind in enumerate(atom_to_add[1]):
-			if obj_ind in dict_old_inds_to_new_inds: # The index does not need to be changed
+			if obj_ind in dict_old_inds_to_new_inds: # If the index is not in the dictionary, it does not need to be changed
 				atom_to_add[1][param_position] = dict_old_inds_to_new_inds[obj_ind]
 		
-		return atom_to_add, objs_to_add
+		return atom_to_add, objs_to_add, obj_types
+
 
 	"""
 	This method receives a trajectory as input and, for each element, it obtains the discounted sum of rewards, accounting
@@ -476,6 +454,12 @@ class DirectedGenerator():
 			r_eventual_sum *= disc_factor_event_consistency
 			r_difficulty_sum += curr_r_difficulty
 			r_difficulty_sum *= disc_factor_difficulty
+
+
+
+	# TODO
+	# VER SI CAMBIO EL METODO PARA QUE NO HAYA QUE VOLVER A LLAMAR A self._initial_state_policy.forward()
+	# y lo mismo para _calculate_state_value_and_old_policy_probs_trajectory_goal_policy
 
 	"""
 	This method adds the state value and probability of the selected action for each element in the trajectory corresponding
@@ -689,9 +673,9 @@ class DirectedGenerator():
 		# We do not scale rewards here, as we use moving mean and std to normalize returns
 		scaled_problem_difficulty = max_difficulty if problem_difficulty == -1 else problem_difficulty
 
-		# use log of rewards
+		# use log of rewards -> don't
 		# log_problem_difficulty = np.log(scaled_problem_difficulty)
-		log_problem_difficulty = scaled_problem_difficulty # QUITAR
+		log_problem_difficulty = scaled_problem_difficulty
 
 		# rescale problem_difficulty
 		scaled_difficulty = log_problem_difficulty*rescale_factor
@@ -811,8 +795,8 @@ class DirectedGenerator():
 			perc_actions_executed = curr_state.num_atoms / max_atoms_init_state # Obtain percentage of actions executed/atoms added (with respect to the max number of actions/atoms)
 			curr_state_tensors = curr_state.atoms_nlm_encoding(max_arity=init_nlm_max_pred_arity, perc_actions_executed=perc_actions_executed)
 
-			# The number of virtual objects is equal to the maximum predicate arity of the <state>, not the max_pred_arity (breadth) of the <nlm>!!
-			num_objs_with_virtuals = curr_state.num_objects + curr_state.max_predicate_arity 
+			# Calculate the number of objects in the state plus the number of virtual objects
+			num_objs_with_virtuals = curr_state.num_objects + curr_state.num_virtual_objects
 
 			# Mask tensors
 			mask_tensors = self._get_mask_tensors_init_policy(init_nlm_output_layer_shape, curr_state)
@@ -843,11 +827,13 @@ class DirectedGenerator():
 				# The indexes in between correspond to the object indeces the action/pred is instantiated on (if arity >= 1)
 				chosen_action_name = curr_state.get_predicate_by_arity_and_ind(chosen_action_index[0], chosen_action_index[-1])[0] # [0] to get the name
 				chosen_action = [chosen_action_name, chosen_action_index[1:-1]] # To form the chosen action, we add the action name and obj indexes like ['on', [1, 0]]
-				# See if we add new objects as part of the chosen action
-				chosen_action, objs_to_add = self._get_objs_to_add_and_atom_with_correct_indexes(curr_state, chosen_action)		
+				
+				# Obtain the object types and objects to add as part of the chosen action. Also change the obj indexes of chosen_action
+				chosen_action, objs_to_add, obj_types = self._get_objs_to_add_and_atom_with_correct_indexes(curr_state, chosen_action)			
 
 				# Execute the action to obtain the reward (associated with the continuous consistency rules) and next state
-				_, r_continuous_consistency = problem.apply_action_to_initial_state(objs_to_add, chosen_action)
+				_, r_continuous_consistency = problem.apply_action_to_initial_state(objs_to_add, chosen_action, obj_types)
+
 				actions_executed += 1
 
 				# Check if we have reached the maximum number of atoms allowed in the initial state (or the maximum number of actions
@@ -1128,7 +1114,6 @@ class DirectedGenerator():
 		self._fd_temp_problem.close()
 
 
-
 	"""
 	This method generates a single problem using the trained init and goal generation policies.
 	It returns both the problem generated and its difficulty, corresponding to the number of expanded nodes
@@ -1210,7 +1195,7 @@ class DirectedGenerator():
 		
 		if verbose:
 			print("\n\n\n================= Directed Problem Generation Started =================\n")
-			print("Domain name:", self.domain_name)
+			print("Domain name:", self._parser.domain_name)
 			print("Problems path and name:", problems_path)
 			print("Metrics file path:", metrics_file_path)
 			print("\n")
@@ -1253,8 +1238,9 @@ class DirectedGenerator():
 
 		f_metrics.close()
 
+		# Close temporary file
+		self._fd_temp_problem.close()
+
 		if verbose:
 			print("\n\n================= Directed Problem Generation Finished =================\n")
 
-		# Close temporary file
-		self._fd_temp_problem.close()

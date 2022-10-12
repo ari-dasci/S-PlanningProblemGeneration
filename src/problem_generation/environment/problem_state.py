@@ -96,53 +96,6 @@ class ProblemState:
 	def penalization_non_applicable_action(self):
 		return self._penalization_non_applicable_action
 
-	@property
-	def domain_name(self):
-		name = self._parser.domain_name
-
-		return name
-
-	# Does not work with type hierarchies!
-	@property
-	def domain_types(self):
-		types = self._parser.types
-
-		type_list = list(types.values())[0] # Convert to a list of strings representing types (['block', 'circle'])
-
-		return type_list
-	
-	@property
-	def domain_predicates(self):
-		predicates = self._parser.predicates
-		predicates = list(predicates.items())
-
-		predicate_list = [[pred[0], list(pred[1].values())] for pred in predicates] # Convert to a list where each element is a predicate in the form
-																					# ['on', ['block', 'block']]
-		return predicate_list
-
-	"""
-	Only returns information about the name of each action and the types of its parameters.
-	"""
-	@property
-	def domain_actions_and_parameters(self):
-		actions = self._parser.actions
-	
-		action_list = [[a.name, [p[1] for p in a.parameters]] for a in actions] # Convert to a list where each element is an action in the form
-																				# ['stack', ['block', 'block']]
-
-		return action_list
-
-	# <TODO>
-	# Add support for domain constants -> the functionality has not been implemented yet
-	# Return the domain constants, as a list of objects (e.g.: ['block', 'block])
-	# If there are no constants, it returns an empty list -> []
-	@property
-	def domain_constants(self):
-		constants = self._parser.objects # {'block': ['obj1', 'obj2', 'obj3']}
-		constants_encoded = [x for c in constants.items() for x in [c[0]]*len(c[1])] # ['block', 'block', 'block']
-
-		return constants_encoded
-
 	"""
 	Checks if the ProblemState instance checks the consistency of the initial state or not.
 	"""
@@ -189,13 +142,13 @@ class ProblemState:
 	def _get_s0(self, initial_state_info=None):
 
 		if initial_state_info is None: # Empty state
-			s0 = RelationalState(self.domain_types, self.domain_predicates, [], [])
+			s0 = RelationalState(self._parser.domain_types, self._parser.domain_predicates, [], [])
 
 		elif type(initial_state_info) == str: # Type given by the user
-			if initial_state_info not in self.domain_types:
+			if initial_state_info not in self._parser.domain_types:
 				raise ValueError("Incorrect object type")
 
-			s0 = RelationalState(self.domain_types, self.domain_predicates, [initial_state_info], [])
+			s0 = RelationalState(self._parser.domain_types, self._parser.domain_predicates, [initial_state_info], [])
 
 		elif isinstance(initial_state_info, RelationalState):
 			s0 = initial_state_info.copy()
@@ -204,7 +157,7 @@ class ProblemState:
 		# <TODO>
 		# Add support for domain constants
 		"""
-		constants = self.domain_constants
+		constants = self._parser.domain_constants
 
 		print(">> Constants:", constants)
 
@@ -251,7 +204,7 @@ class ProblemState:
 		# Delete actions with repeated arguments (e.g.: stack('a', 'a') is invalid)
 		ground_actions_no_rep_args = list(filter(lambda a: len(a.parameters) == len(set(a.parameters)), ground_actions))
 
-		# If there are not actions, then the lifted action is not applicable
+		# If there are no actions, then the lifted action is not applicable
 		if len(ground_actions_no_rep_args) == 0:
 			return False
 
@@ -334,6 +287,7 @@ class ProblemState:
 	# Function used to obtain the grounded action, as an instance of Action class, corresponding to an action name and objects
 	# (represented as a list of indexes of a RelationalState instance) 
 	# @state_objs Objects in the state, obtained by calling the method self._encode_relational_state_for_parser()
+	# It returns None if action_objs are of the incorrect type according to the action parameters.
 	def _obtain_ground_action_from_name_and_params(self, action_name, action_objs, state_objs):
 		# Transform action_objs from List[int] to List[str]
 		action_objs = [str(o) for o in action_objs]
@@ -344,25 +298,38 @@ class ProblemState:
 		lifted_action = actions[action_names.index(action_name)] # Object of class Action representing the lifted action to apply to @state
 
 		# Ground it
+		# The action is only grounded on objects of the correct type
 		ground_actions = lifted_action.groundify(state_objs, self._parser.types)
 
 		# Among all the ground actions, select the one corresponding to @action_name and @action_objs
-		ground_action = list(filter(lambda a: a.name == action_name and tuple(a.parameters) == tuple(action_objs), ground_actions))[0]
+
+		# See if there is some action corresponding to action_name and action_objs
+		# If there is none, then action_objs are of the incorrect type! (and we return None)
+		l = list(filter(lambda a: a.name == action_name and tuple(a.parameters) == tuple(action_objs), ground_actions))
+		if len(l) > 0:
+			ground_action = l[0]
+		else:
+			ground_action = None
 
 		return ground_action
 
 	"""
 	Checks if a ground action is applicable at the current state or not.
+	We also check if the action is instantiated on objects of the correct type.
 	@action_name Name of the action (e.g., "pick-up")
 	@action_objs The instantiated parameters of the action, as a list of indices corresponding to objects in @state (e.g., [0,1])
 	@state_objs Objects in the state, obtained by calling the method self._encode_relational_state_for_parser()
 	@state_atoms Atoms in the state, obtained by calling the method self._encode_relational_state_for_parser()
 	"""
 	def _is_ground_action_applicable(self, action_name, action_objs, state_objs, state_atoms):
-		# Obtain ground actions
+		# Obtain ground action
 		ground_action = self._obtain_ground_action_from_name_and_params(action_name, action_objs, state_objs)
 
-		return self._planner.applicable(state_atoms, ground_action.positive_preconditions, ground_action.negative_preconditions)
+		# If ground_action is None, then action_objs are of the incorrect type -> Therefore, the action is not applicable
+		if ground_action is None:
+			return False
+		else:
+			return self._planner.applicable(state_atoms, ground_action.positive_preconditions, ground_action.negative_preconditions)
 
 	"""
 	Like the method above, but receives no state as parameter (it checks applicability on self._goal_state).
@@ -371,10 +338,14 @@ class ProblemState:
 		# Get state objects and atoms in the encoding self._parser uses
 		state_objs, state_atoms = self._encode_relational_state_for_parser(self._goal_state) 
 		
-		# Obtain ground actions
+		# Obtain ground action
 		ground_action = self._obtain_ground_action_from_name_and_params(action_name, action_objs, state_objs)
 
-		return self._planner.applicable(state_atoms, ground_action.positive_preconditions, ground_action.negative_preconditions)
+		# If ground_action is None, then action_objs are of the incorrect type -> Therefore, the action is not applicable
+		if ground_action is None:
+			return False
+		else:
+			return self._planner.applicable(state_atoms, ground_action.positive_preconditions, ground_action.negative_preconditions)
 
 	"""
 	Obtains the next state resulting from applying a ground action at the current state.
@@ -395,11 +366,10 @@ class ProblemState:
 		# Transform next_state to the format used by RelationalState
 		new_state_atoms = [[atom[0], list(map(int, atom[1:]))] for atom in next_state]
 
-		# Create a new RelationalState instance
-		new_rel_state = state.copy()
-		new_rel_state.atoms = new_state_atoms
+		# Change the atoms of the state according to the action effects
+		state.atoms = new_state_atoms
 
-		return new_rel_state
+		return state
 
 	"""
 	Applies a domain (ground) action to the goal state in order to obtain the next goal state.
@@ -432,57 +402,33 @@ class ProblemState:
 		else: # If the action is not applicable, we don't change the goal state -> THIS SHOULD NOT HAPPEN (we mask goal policy's output so that it only samples applicable actions)
 			action_reward = self._penalization_non_applicable_action
 		
-		return self._goal_state.copy(), action_reward
+		return self._goal_state, action_reward # <Note> the returned goal state shares the reference with self._goal_state!
 
 
 	"""
 	Checks if the initial state resulting from applying @action to self._initial_state is consistent or not.
 	This method only checks the continuous consistency rules (as eventual consistency is only checked for the totally generated initial state).
 	<Note>: this method has to be called BEFORE adding the new objects (present in @action but not in the current_state) to the current_state.
+	<Note 2>: we assume that the types of the objects in the atom are correct, i.e., the type of each object in @action (given by @obj_types)
+			  inherits from the corresponding object type of the predicate associated with action.
+			  Example: ['on'[1,0]] -> objects 1 and 0 must be of type "block", due to the predicate ['on', ['block', 'block']]
 
 	@action A new atom to add to the initial state, represented as ['on', [1, 0]]
+	@obj_types The type of each object in @action[1], regardless of whether it is in the state or corresponds to a virtual object.
 	"""
-	def is_init_state_action_consistent(self, action):
+	def is_init_state_action_consistent(self, action, obj_types):
 		state_atoms = self._initial_state.atoms
 
 		# Check that the atom to add (@action) is not already present in the current state
 		if action in state_atoms:
 			return False
 
-		# Check that the atom to add (@action) has no repeated parameters (e.g.: ['on', [0, 0]])
-		# This condition is now checked by the state validator!
-		"""if len(action[1]) != len(set(action[1])):
-			return False
-		"""
-
 		# Check the continuous consistency rules by calling the consistency validator
 		if self._consistency_validator is None: # If there is no consistency validator, we assume the action is consistent
 			return True
 		else:
-			return self._consistency_validator.check_continuous_consistency_state_and_action(self._initial_state, action)
+			return self._consistency_validator.check_continuous_consistency_state_and_action(self._initial_state, action, obj_types)
 
-
-	"""
-	Returns if the current initial_state (self._initial_state) contains at least one atom of each predicate type required in the state.
-	For example, in blocksworld, it needs to contain at least one atom (ontable _) and one (clear _).
-	If there is no consistency validator, it returns True.
-	"""
-	# This method is no longer needed, as this is now checked by the state validator
-	"""
-	def init_state_contains_all_required_predicates(self):
-		if self._consistency_validator is None:
-			return True
-		else:
-			state_atoms = self._initial_state.atoms
-			preds_in_state = set([a[0] for a in state_atoms])
-			required_preds = self._consistency_validator.required_pred_names()
-
-			for pred in required_preds:
-				if pred not in preds_in_state:
-					return False
-
-			return True
-	"""
 
 	"""
 	Checks if the initial state (self._initial_state) meets the eventual consistency rules and returns
@@ -505,33 +451,26 @@ class ProblemState:
 
 
 	"""
-	Uses the consistency validator to repair the totally-generated initial state so that it meets the eventual consistency requirements.
-	"""
-	# NOT NEEDED
-	"""
-	def repair_totally_generated_init_state(self):
-		if self._consistency_validator is not None:
-			self._initial_state = self._consistency_validator.repair_state_for_eventual_consistency(self._initial_state)
-	"""
-
-	"""
 	Obtains a list with all the actions that can be applied to the initial state.
 	Example: [['on', [1, 0]], ['on', [1, -1]], ['handempty', []]]
 	         An index of -1 corresponds to a new object/non-existing object in the current state
 	This method does NOT check the consistency (as it is very expensive to do for every existing init_state action).
-	>> However, it filters out those atoms whose predicate does not correspond to the current validation phase 
-	   (according to the predicate order of the consistency validator).
+	However, it does check some things:
+		> The atoms returned only correspond to predicates of the current phase 
+		  (according to the predicate order of the consistency validator)
+		> The object indexes the atoms are instantiated on are of the correct type
+		  Example: if ['on', [1, 0]] is returned as a possible action, the objects 1 and 0 must be of type block.
 	"""
 	def get_possible_init_state_actions(self):
 		state_objs = self._initial_state.objects
 
 		# If there is a consistency validator, only return atoms with the predicates of the current phase
 		if self._consistency_validator is None:
-			preds_in_curr_phase = [pred[0] for pred in self.domain_predicates]
+			preds_in_curr_phase = [pred[0] for pred in self._parser.domain_predicates]
 		else:
 			preds_in_curr_phase = self._consistency_validator.predicates_in_current_phase(self._initial_state)
 
-		domain_preds = self.domain_predicates
+		domain_preds = self._parser.domain_predicates
 		available_predicates = list(filter(lambda pred: pred[0] in preds_in_curr_phase, domain_preds))
 
 		possible_actions = []
@@ -551,7 +490,12 @@ class ProblemState:
 				# need to be added
 
 				# [[0, 1, 2, -1], [0, 1, 2, -1]]
-				possible_instantiations = [list(map(lambda y: y[0], (filter(lambda x: x[1] == t, enumerate(state_objs))))) + [-1] for t in pred_types]
+
+				# possible_instantiations = [list(map(lambda y: y[0], (filter(lambda x: x[1] == t, enumerate(state_objs))))) + [-1] for t in pred_types]
+				# We instantiate on objects whose type inherits from the corresponding predicate param types (pred_types)
+				possible_instantiations = [ list(map(lambda y: y[0], \
+				                            (filter(lambda x: self._parser.is_type_child_of(x[1],t), enumerate(state_objs))))) + [-1] \
+				                            for t in pred_types ]
 
 				# [(0, 0), (0, 1), (0, 2), (0, -1), (1, 0), (1, 1), (1, 2), (1, -1), (2, 0), (2, 1), (2, 2), (2, -1), (-1, 0), (-1, 1), (-1, 2), (-1, -1)]
 				possible_instantiations = list(itertools.product(*possible_instantiations)) # Do the cartesian product of the list of lists
@@ -568,33 +512,29 @@ class ProblemState:
 	Applies an action, consisting of (possibly) adding objects and an atom, to the initial state.
 	It returns (next_state, reward). It also assigns the next state to self._initial_state.
 	If the action is not applicable, next_state is a copy of the current state.
+	<Note>: 
 
 	@new_objs The objects to add to the state (e.g., ['block', 'circle'])
 	@new_atom The atom to add to the state (e.g., ['on', [1,2]])
 	Note: The atom indices ([1,2]) can refer to new objects not present in the current state but which are added as part of the next
 	      state. Example: current state has only one block, new_objs=['block'] and new_atom=['on', [0, 1]].
+	@obj_types The type of each object in @new_atom[1], whether it is in the state or corresponds to a virtual object (an object in @new_objs)
 	"""
-	def apply_action_to_initial_state(self, new_objs, new_atom):
+	def apply_action_to_initial_state(self, new_objs, new_atom, obj_types):
 		# Make sure we are in the initial state generation phase
 		if self._is_initial_state_generated:
 			raise Exception("The initial state generation phase has already finished")
 
-		next_state = self._initial_state.copy()
-		
 		# Check action consistency
-		# If the action is not consistent, the next state is a copy of the current state (it doesn't change)
-		if self.is_init_state_action_consistent(new_atom):
-			next_state.add_objects(new_objs)
-			next_state.add_atom(new_atom)
+		# If the action is not consistent, the next state is equal to the current state (it doesn't change)
+		if self.is_init_state_action_consistent(new_atom, obj_types):
+			self._initial_state.add_objects(new_objs)
+			self._initial_state.add_atom(new_atom)
 			r = 0
 		else:
 			r = self._penalization_continuous_consistency
 
-		# Assign the next_state
-		self._initial_state = next_state # Warning: the next_state returned and the one stored in self._initial_state share the reference
-
-		# Ouput the next initial state and the reward
-		return next_state, r
+		return self._initial_state, r
 
 	"""
 	Obtains a list with the (positive) atoms of the goal. This list corresponds to the atoms in self._goal_state whose predicate
@@ -641,7 +581,7 @@ class ProblemState:
 		# <<Obtain planning problem information>>
 
 		# Domain name
-		domain_name = self.domain_name
+		domain_name = self._parser.domain_name
 
 		# Problem name (also used in case the problem file is saved to disk (although the .pddl file extension is added to the name))
 		# If not given by the user, use a default name.

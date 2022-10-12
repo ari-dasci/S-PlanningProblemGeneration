@@ -20,7 +20,7 @@ class ValidatorPredOrder(ABC):
 
 	@classmethod
 	@abstractmethod
-	def check_continuous_consistency_state_and_action(cls, curr_state, action):
+	def check_continuous_consistency_state_and_action(cls, curr_state, action, obj_types):
 		raise NotImplementedError()
 
 	@classmethod
@@ -112,12 +112,15 @@ class ValidatorPredOrderBW(ValidatorPredOrder):
 	<Note2>: this method assumes that curr_state meets all the continuous consistency rules.
 	<Note3>: this method assumes that new objects (those present in @action but not in @curr_state) will be added AFTER this method
 			 to the state @curr_state -> Don't call this method after having already added the new objects to the state!!!
+	<Note4>: this method assumes that the object types @obj_types of the objects the atom @action is instantiated on are of the correct
+	         type! (obj_types[i] in type_hierarchy[action[1][i]] for every i)
 
 	@curr_state An instance of RelationalState
 	@action The next atom to add (e.g,. ['on' [1, 0]])
+	@obj_types List with the type of each object in the atom (@action[1]) -> In blocksworld there is only one type, so we do not need to check it 
 	"""
 	@classmethod
-	def check_continuous_consistency_state_and_action(cls, curr_state, action):
+	def check_continuous_consistency_state_and_action(cls, curr_state, action, obj_types):
 		action_pred = action[0]
 		state_atoms = curr_state.atoms
 		state_objs = list(range(curr_state.num_objects)) # Represent the objects as a list of indexes, instead of ['block', 'block'...]
@@ -394,9 +397,10 @@ class DummyValidatorBW(ValidatorPredOrder):
 
 	@curr_state An instance of RelationalState
 	@action The next atom to add (e.g,. ['on' [1, 0]])
+	@obj_types List with the type of each object in the atom (@action[1]) -> In blocksworld there is only one type, so we do not need to check it 
 	"""
 	@classmethod
-	def check_continuous_consistency_state_and_action(cls, curr_state, action):
+	def check_continuous_consistency_state_and_action(cls, curr_state, action, obj_types):
 		action_pred = action[0]
 		state_atoms = curr_state.atoms
 		state_objs = list(range(curr_state.num_objects)) # Represent the objects as a list of indexes, instead of ['block', 'block'...]

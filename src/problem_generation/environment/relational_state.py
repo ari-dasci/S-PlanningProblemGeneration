@@ -7,13 +7,37 @@ Stores a relational(PDDL) state.
 """
 class RelationalState():
 
-    def __init__(self, types, predicates, objects=[], atoms=[]):
+    def __init__(self, types, type_hierarchy, predicates, objects=[], atoms=[]):
         # Domain data
 
         if type(types) != list or type(types[0]) != str:
             raise ValueError("Types must be a list of strings")
 
         self._types = types # A list of types, e.g., ["plane", "car"]
+        # Note: self._types must contain all the types, across all possible levels of hierarchy
+        # Example: in logistics -> ['package', 'object', 'airport', 'truck', 'vehicle', 'city', 'airplane', 'thing', 'location']
+        # Use pddl_parser.domain_types to obtain this list
+
+        # Type hierarchy
+        # A dictionary containing, for each type in self._types, all the types which inherit from it
+        # Note: it does not only contain the children types, but also the grandchildren types, etc. (all the types which recursively
+        # inherit from it)
+        # Use pddl_parser.type_hierarchy to obtain this dictionary
+        if type(type_hierarchy) != dict:
+            raise ValueError("Type_hierarchy must be a dictionary")
+
+        dict_keys = type_hierarchy.keys()
+        dict_vals = [v for l in type_hierarchy.values() for v in l]
+        for t in self._types:
+            if t not in dict_keys or t not in dict_vals:
+               raise ValueError("Every type must be in the dictionary as both a key and value (or more)") 
+
+        self._type_hierarchy = type_hierarchy
+
+        # Create a dictionary to convert from object types to indices and vice versa
+        types_indices = list(range(len(self._types)))
+        self._obj_types_to_indices_dict = dict(zip(self._types, types_indices)) # ['truck', 'plane'] -> [0, 1]
+        self._indices_to_obj_types_dict = dict(zip(types_indices, self._types)) # [0, 1] -> ['truck', 'plane']
 
         # Check the predicates
         if type(predicates) != list or type(predicates[0]) != list or \
@@ -43,8 +67,6 @@ class RelationalState():
         for atom in atoms:
             self.add_atom(atom)
             
-        # --- Used for NLM ---
-        
         # Store number of predicates of each arity -> keys: int corresponding to the arity, values: int representing the number of preds of such arity
         self._num_preds_each_arity = dict()
         
@@ -76,8 +98,37 @@ class RelationalState():
             ind_list[p_arity] += 1 # Add 1 to the index, so that next predicate of the same arity gets a different associated index
         
 
+        # Store the virtual objects (with their corresponding type) which are added to the NLM encoding
+        # of the state (when necessary)
+        # Used in self.atoms_nlm_encoding()
+        self._virtual_objs_with_type = []
+
+        num_virtual_objs_each_type = [0]*self.num_types
+
+        # Calculate how many virtual objects need to be added for each type
+        for p in self._predicates:
+            num_virtual_objs_each_type_p = [0]*self.num_types
+
+            # See how many objects of each type appear in p
+            for param_type in p[1]:
+                # We need to consider both the type "param_type" and all its children types (types which inherit from it)
+                child_types = self._type_hierarchy[param_type] # It includes param_type
+
+                for t in child_types:
+                    num_virtual_objs_each_type_p[self._obj_types_to_indices_dict[t]] += 1
+
+            # Calculate element-wise maximum of the two lists
+            num_virtual_objs_each_type = [max(i, j) for i, j in \
+                                      zip(num_virtual_objs_each_type, num_virtual_objs_each_type_p)]
+
+        # Add needed virtual objects of each type
+        for type_ind in range(self.num_types):
+            self._virtual_objs_with_type.extend( [self._indices_to_obj_types_dict[type_ind]]*num_virtual_objs_each_type[type_ind] )
+
+
     def __copy__(self):
-        new_copy = RelationalState(self._types.copy(), self._predicates.copy(), self._objects.copy(), self._atoms.copy())
+        new_copy = RelationalState(self._types.copy(), self._type_hierarchy.copy(), self._predicates.copy(), self._objects.copy(),
+                                   self._atoms.copy())
 
         return new_copy
 
@@ -91,6 +142,10 @@ class RelationalState():
         return len(self._objects)
 
     @property
+    def num_virtual_objects(self):
+        return len(self._virtual_objs_with_type)
+
+    @property
     def num_atoms(self):
         return len(self._atoms)
 
@@ -99,12 +154,30 @@ class RelationalState():
         return self._types
 
     @property
+    def type_hierarchy(self):
+        return self._type_hierarchy
+
+    @property
     def num_types(self):
         return len(self._types)
     
     @property
+    def obj_types_to_indices_dict(self):
+        return self._obj_types_to_indices_dict
+
+    @property
+    def indices_to_obj_types_dict(self):
+        return self._indices_to_obj_types_dict
+    
+    @property
     def predicates(self):
         return self._predicates
+
+    @property
+    def predicate_names(self):
+        predicate_names = [p[0] for p in self._predicates]
+
+        return predicate_names
 
     """
     Returns the domain predicates in the encoding the AC-GNN class uses.
@@ -137,8 +210,12 @@ class RelationalState():
         return self._arity_and_ind_to_predicate_dict
     
     @property
-    def objects(self):
+    def objects(self): # Note: without virtual objects
         return self._objects
+
+    @property
+    def virtual_objs_with_type(self):
+        return self._virtual_objs_with_type
 
     @property
     def atoms(self):
@@ -203,12 +280,19 @@ class RelationalState():
 
         return (atom_dict, num_objs)
 
-    
     """
     Returns the state atoms in the encoding the NLM uses, as a list of tensors corresponding to predicates of different arities.
     If @add_virtual_objs is True, we add n virtual objects where n is equal to the maximum arity of the NLM.
-    Note: the NLM does not differentiate between objects of different type!
-    
+
+    @add_virtual_objs If True, we add virtual objects.
+                      If @add_object_types is True, we add n virtual objects for each object type, where n
+                      is the maximum number of objects of such type which appear in the same predicate.
+                      E.g., 'block' -> two because in on(block, block) there are two objects of type block.
+                      If @add_object_types is False, we add n virtual objects in total, where n is the maximum
+                      predicate arity (e.g., 2 in blocksworld).
+    @add_object_types Used to differentiate between objects of different type.
+                         If True, we add additional unary predicates which encode the object type of each object
+                         in the domain. These predicates are added after the unary predicates of the domain in the NLM tensor.
     @max_arity If not -1, we assume that is the max arity of the predicates. This parameter is used to encode the relational
                state for a NLM which uses a higher max arity (for the inner layers) than the max arity of the relational
                state.
@@ -217,18 +301,21 @@ class RelationalState():
                            with respect to the maximum number of actions.
                            Examples: if we have executed 6 actions and the max number of actions is 10, then perc_actions_executed=0.6
     """
-    def atoms_nlm_encoding(self, max_arity = -1, add_virtual_objs = True, perc_actions_executed=-1):      
-        num_objs = self.num_objects
+    def atoms_nlm_encoding(self, max_arity = -1, add_virtual_objs = True, add_object_types=True, perc_actions_executed=-1):      
         atoms_list = []
         
-        max_predicate_arity = max_arity if max_arity != -1 else self.max_predicate_arity
+        # Calculate NLM breadth
+        nlm_breadth = max_arity if max_arity != -1 else self.max_predicate_arity
         
+        # Obtain the type of each object in the domain
+        object_types = self._objects.copy()
+
         # Add virtual objects
-        # The number of virtual objects to add is equal to the maximum arity of the state, not of the NLM!!!
-        # Example: if the NLM has a breadth of 3 but the max_pred_arity of the state is 2 (for the predicate 'on', for example)
-        # we add 2 virtual objects and not 3!!!
         if add_virtual_objs:
-            num_objs += self.max_predicate_arity
+            object_types.extend(self._virtual_objs_with_type)
+
+        # Calculate number of objects in the state (including virtuals if added)
+        num_objs = len(object_types)
         
         with torch.no_grad():
             num_preds_each_arity = self._num_preds_each_arity.copy()
@@ -238,10 +325,17 @@ class RelationalState():
                 if 0 not in num_preds_each_arity:
                     num_preds_each_arity[0] = 1
                 else:
-                    num_preds_each_arity[0] = num_preds_each_arity[0]+1
+                    num_preds_each_arity[0] += 1
+
+            # Add extra unary predicates used to represent the type of each object (including virtuals if added)
+            if add_object_types:
+                if 1 not in num_preds_each_arity:
+                    num_preds_each_arity[1] = self.num_types
+                else:
+                    num_preds_each_arity[1] += self.num_types 
 
             # Initialize tensors full of zeros
-            for r in range(max_predicate_arity+1):
+            for r in range(nlm_breadth+1):
                 if r not in num_preds_each_arity or num_preds_each_arity[r] == 0: # No predicates for current arity
                     atoms_list.append(None)
                 else:
@@ -266,9 +360,18 @@ class RelationalState():
             if perc_actions_executed != -1:
                 atoms_list[0][-1] = perc_actions_executed
 
-        return atoms_list    
+            # Encode the type of each object
+            if add_object_types:
+                # Number of unary predicates without considering the extra predicates for object types
+                # self._num_preds_each_arity contains the number of predicates BEFORE adding the extra nullary and unary predicates
+                num_unary_preds = self._num_preds_each_arity[1] if 1 in self._num_preds_each_arity else 0
+
+                for obj_ind, obj_type in enumerate(object_types):
+                    atoms_list[1][obj_ind][num_unary_preds + self._obj_types_to_indices_dict[obj_type]] = 1.0
+
+        return atoms_list
         
-        
+     
     """
     This method works the same as atoms_nlm_encoding() but encodes the atoms of this state (self) AND the atoms of another state
     @goal_state. Both states (self and @goal_state) must have the same objects and the same predicate types.
@@ -279,7 +382,7 @@ class RelationalState():
     This method is used for the goal generation policy, to obtain a NLM encoding of the partially-generated problem (s_i, s_gc).
     To do this, this object (self) must correspond to the initial state (s_i) and @goal_state to the current goal state (s_gc).
     """
-    def atoms_nlm_encoding_with_goal_state(self, goal_state, max_arity = -1, perc_actions_executed=-1):
+    def atoms_nlm_encoding_with_goal_state(self, goal_state, max_arity = -1, add_object_types=True, perc_actions_executed=-1):
         # Check if the predicate types and number of objects are the same in both states (self and goal_state)
         if self.predicates != goal_state.predicates:
             raise ValueError("The initial and goal states contain different predicates")
@@ -291,9 +394,10 @@ class RelationalState():
         # We pass the parameter perc_actions_executed=-1 so that atoms_nlm_encoding() does not add
         # the extra predicate correspoding to the perc_actions_executed
         # This extra predicate has to be added AFTER stacking init_state_nlm_encoding and goal_state_nlm_encoding
+        # The same with the predicates representing object types
         with torch.no_grad():
-            init_state_nlm_encoding = self.atoms_nlm_encoding(max_arity, False, -1) # add_virtual_objs=False, as we do not need to add virtual objects
-            goal_state_nlm_encoding = goal_state.atoms_nlm_encoding(max_arity, False, -1)
+            init_state_nlm_encoding = self.atoms_nlm_encoding(max_arity, False, False, -1) # add_virtual_objs=False, as we do not need to add virtual objects
+            goal_state_nlm_encoding = goal_state.atoms_nlm_encoding(max_arity, False, False, -1)
 
             # Stack goal_state_nlm_encoding to init_state_nlm_encoding
             both_states_nlm_encoding = []
@@ -312,6 +416,23 @@ class RelationalState():
 
                 both_states_nlm_encoding[0] = new_tensor if both_states_nlm_encoding[0] is None else \
                                               torch.cat( (both_states_nlm_encoding[0], new_tensor), dim=-1)
+
+            # Add the extra unary predicates corresponding to the object types (if needed)
+            if add_object_types:
+                # Concatenate tensor containing extra unary predicates encoding object types
+                new_tensor = torch.zeros((self.num_objects,self.num_types), dtype=torch.float32)
+
+                both_states_nlm_encoding[1] = new_tensor if both_states_nlm_encoding[1] is None else \
+                                              torch.cat( (both_states_nlm_encoding[1], new_tensor), dim=-1)
+
+                # Number of unary predicates without considering the extra predicates for object types
+                # self._num_preds_each_arity contains the number of predicates BEFORE adding the extra nullary and unary predicates
+                num_unary_preds = self._num_preds_each_arity[1] if 1 in self._num_preds_each_arity else 0
+                object_types = self._objects
+
+                for obj_ind, obj_type in enumerate(object_types):
+                    both_states_nlm_encoding[1][obj_ind][num_unary_preds + self._obj_types_to_indices_dict[obj_type]] = 1.0
+
             
         return both_states_nlm_encoding
 
@@ -367,7 +488,8 @@ class RelationalState():
                 if len(new_atom[1]) == len(pred[1]): # Arity is correct
 
                     for i in range(len(new_atom[1])): # Check type of each param
-                        if self._objects[new_atom[1][i]] != pred[1][i]:
+                        # if self._objects[new_atom[1][i]] != pred[1][i]:
+                        if self._objects[new_atom[1][i]] not in self._type_hierarchy[pred[1][i]]:
                             raise ValueError(f"Atom parameter at index {i} is not of the correct type")
 
                     is_correct = True
@@ -406,7 +528,7 @@ class RelationalState():
         del self._atoms[ind_atom]
 
     def __str__(self):
-        obj_info = f'Types: {self.types}\nPredicates: {self.predicates}\nObjects: {self.objects}\nAtoms: {self.atoms}'
+        obj_info = f'Types: {self.types}\nType_hierarchy: {self._type_hierarchy}\nPredicates: {self.predicates}\nObjects: {self.objects}\nAtoms: {self.atoms}'
 
         return obj_info
 

@@ -1,6 +1,7 @@
 # --- This module implements the functionality used to generate planning problems at random ---
 
 import random
+import itertools
 
 from problem_generation.environment.problem_state import ProblemState
 from problem_generation.environment.pddl_parser import Parser
@@ -26,7 +27,7 @@ class RandomGenerator():
 
 		# Goal predicates (list of predicates names -> ['on', 'ontable'])
 		if predicates_to_consider_for_goal is None: # Consider every predicate for the goal
-			self._predicates_to_consider_for_goal = [pred[0] for pred in self.domain_predicates]
+			self._predicates_to_consider_for_goal = [pred[0] for pred in self._parser.domain_predicates]
 		else:
 			self._predicates_to_consider_for_goal = predicates_to_consider_for_goal
 
@@ -36,54 +37,6 @@ class RandomGenerator():
 	@property
 	def predicates_to_consider_for_goal(self):
 		return self._predicates_to_consider_for_goal
-
-	@property
-	def domain_name(self):
-		name = self._parser.domain_name
-
-		return name
-
-	# Does not work with type hierarchies!
-	@property
-	def domain_types(self):
-		types = self._parser.types
-
-		type_list = list(types.values())[0] # Convert to a list of strings representing types (['block', 'circle'])
-
-		return type_list
-	
-	@property
-	def domain_predicates(self):
-		predicates = self._parser.predicates
-		predicates = list(predicates.items())
-
-		predicate_list = [[pred[0], list(pred[1].values())] for pred in predicates] # Convert to a list where each element is a predicate in the form
-																					# ['on', ['block', 'block']]
-		return predicate_list
-
-	# <TODO>
-	# Add support for domain constants -> the functionality has not been implemented yet
-	# Return the domain constants, as a list of objects (e.g.: ['block', 'block])
-	# If there are no constants, it returns an empty list -> []
-	@property
-	def domain_constants(self):
-		constants = self._parser.objects # {'block': ['obj1', 'obj2', 'obj3']}
-		constants_encoded = [x for c in constants.items() for x in [c[0]]*len(c[1])] # ['block', 'block', 'block']
-
-		return constants_encoded
-		
-	"""
-	Only returns information about the name of each action and the types of its parameters.
-	"""
-	@property
-	def domain_actions_and_parameters(self):
-		actions = self._parser.actions
-	
-		action_list = [[a.name, [p[1] for p in a.parameters]] for a in actions] # Convert to a list where each element is an action in the form
-																				# ['stack', ['block', 'block']]
-
-		return action_list
-
 
 	# ------------------------------ 
 
@@ -117,7 +70,7 @@ class RandomGenerator():
 		num_atoms_added = 0
 
 		# Initialize the dictionary containing the number of atoms of each predicate
-		predicate_names = [p[0] for p in self.domain_predicates]
+		predicate_names = [p[0] for p in self._parser.domain_predicates]
 		dict_num_atoms_each_pred = dict(zip(predicate_names,[0]*len(predicate_names)))
 
 		# Check if some predicates are required in the init state (i.e., there must be at least one atom of them)
@@ -225,14 +178,7 @@ class RandomGenerator():
 		# Choose a seed
 		random.seed(seed)
 
-		domain_predicates = self.domain_predicates
-
-		# OLD
-		"""
-		if pred_probabilities is None: # Assign the same probability to each predicate
-			prob = 1.0 / len(domain_predicates)
-			pred_probabilities = dict([ (p[0], prob) for p in domain_predicates])
-		"""
+		domain_predicates = self._parser.domain_predicates
 
 		# <Initialize ProblemState instance>
 		problem = ProblemState(self._parser, self._predicates_to_consider_for_goal, self._initial_state_info,
@@ -244,19 +190,8 @@ class RandomGenerator():
 		# Decide how many atoms of each predicate type will be added to the initial state
 		dict_num_atoms_each_pred = self._get_atoms_to_add_init_state(num_actions_for_init_state, num_atoms_each_pred_for_init_state)
 
-		# Decide how many actions will be used to generate the initial state
-		# OLD
-		"""if type(num_actions_for_init_state) == list or type(num_actions_for_init_state) == tuple:
-			num_actions_for_init_state = random.randint(num_actions_for_init_state[0], num_actions_for_init_state[1])
-		"""
-
 		if verbose:
 			print(f"\n> Starting initial state generation phase - num_actions={num_actions_for_init_state}")
-
-
-
-		# <NEW>
-		# After self._get_atoms_to_add_init_state
 
 		init_state_generated = False
 
@@ -282,7 +217,7 @@ class RandomGenerator():
 
 				# Obtain the predicate names ordered according to the predicate order
 				if self._consistency_validator is None:
-					pred_names_ordered = [p[0] for p in self.domain_predicates]
+					pred_names_ordered = [p[0] for p in self._parser.domain_predicates]
 				else:
 					pred_names_ordered = self._consistency_validator.predicate_order	
 
@@ -307,26 +242,56 @@ class RandomGenerator():
 							# Select a random atom
 							chosen_atom = possible_atoms_chosen_pred.pop(0)
 
-							# Transform -1 indexes for indexes of new objects and see objects to add
-							# E.g.: ['on', [-1, 0]] -> ['on', [3, 0]] (if there are three blocks in the state)
+							# Obtain indices of virtual objects in chosen_atom
+							virtual_objs_inds = [i for i, x in enumerate(chosen_atom[1]) if x == -1]
+
+							# Obtain the types of the objects chosen_atom is instantiated on
+							# If the object is in the state, the type is that of the corresponding object
+							# If the object is not in the state (is a virtual object), we can add any object whose type inherits
+							# from the type of the corresponding predicate parameter
+							state_objs = problem.initial_state.objects
+							obj_types_list = []
+
+							for param_ind, obj_ind in enumerate(chosen_atom[1]):
+								if obj_ind == -1: # Virtual object
+									param_type = chosen_pred[1][param_ind] # Type of the corresponding predicate parameter
+									possible_types = self._parser.type_hierarchy[param_type] # List of types which inherit from param_type
+
+									obj_types_list.append(possible_types)
+								else: # The object is in the state
+									obj_types_list.append([state_objs[obj_ind]]) # Type given by object "obj_ind" in the problem init state
+
+							# Do the cartesian product of the list of lists
+							# Example: [[0,1],[2,3]] -> [[0,2],[0,3],[1,2],[1,3]]
+							obj_types_list = list(itertools.product(*obj_types_list))
+							random.shuffle(obj_types_list)
+
+							# Transform -1 indexes for indexes of new objects
 							curr_obj_ind = ind_last_state_obj + 1
-							objs_to_add = []
-			
+
 							for i in range(len(chosen_atom[1])):
 								if chosen_atom[1][i] == -1:
 									chosen_atom[1][i] = curr_obj_ind
 									curr_obj_ind += 1
 
-									objs_to_add.append(chosen_pred[1][i]) # Append a new object to add of the type given by the corresponding predicate
+							# Try the different type instantiations for the virtual objects in the atom,
+							# until one results in a consistent atom
+							for obj_types in obj_types_list:
+								# Check the consistency of the selected action
+								selected_consistent_action = problem.is_init_state_action_consistent(chosen_atom, obj_types)
 
-							# Check the consistency of the selected action
-							selected_consistent_action = problem.is_init_state_action_consistent(chosen_atom)
+								if selected_consistent_action:
+									break
+
 
 						# If we have been able to sample a consistent atom, we add it to the initial state
 						# Otherwise, we try with the next predicate according to predicate order
 						if selected_consistent_action:
+							# Obtain objects to add to the state -> they correspond to the virtual objects
+							objs_to_add = [obj_types[i] for i in virtual_objs_inds]
+
 							# Apply the action to the state
-							_, r = problem.apply_action_to_initial_state(objs_to_add, chosen_atom)
+							_, r = problem.apply_action_to_initial_state(objs_to_add, chosen_atom, obj_types)
 
 							if verbose:
 								if r >= 0: # Valid action
@@ -361,26 +326,55 @@ class RandomGenerator():
 							chosen_atom = possible_atoms.pop(0)
 							chosen_pred = list(filter(lambda x: x[0] == chosen_atom[0], domain_predicates))[0] # Obtain the predicate (not only the name, but also the object types) associated with chosen_atom
 
-							# Transform -1 indexes for indexes of new objects and see objects to add
-							# E.g.: ['on', [-1, 0]] -> ['on', [3, 0]] (if there are three blocks in the state)
+							# Obtain indices of virtual objects in chosen_atom
+							virtual_objs_inds = [i for i, x in enumerate(chosen_atom[1]) if x == -1]
+
+							# Obtain the types of the objects chosen_atom is instantiated on
+							# If the object is in the state, the type is that of the corresponding object
+							# If the object is not in the state (is a virtual object), we can add any object whose type inherits
+							# from the type of the corresponding predicate parameter
+							state_objs = problem.initial_state.objects
+							obj_types_list = []
+
+							for param_ind, obj_ind in enumerate(chosen_atom[1]):
+								if obj_ind == -1: # Virtual object
+									param_type = chosen_pred[1][param_ind] # Type of the corresponding predicate parameter
+									possible_types = self._parser.type_hierarchy[param_type] # List of types which inherit from param_type
+
+									obj_types_list.append(possible_types)
+								else: # The object is in the state
+									obj_types_list.append([state_objs[obj_ind]]) # Type given by object "obj_ind" in the problem init state
+
+							# Do the cartesian product of the list of lists
+							# Example: [[0,1],[2,3]] -> [[0,2],[0,3],[1,2],[1,3]]
+							obj_types_list = list(itertools.product(*obj_types_list))
+							random.shuffle(obj_types_list)
+
+							# Transform -1 indexes for indexes of new objects
 							curr_obj_ind = ind_last_state_obj + 1
-							objs_to_add = []
-			
+
 							for i in range(len(chosen_atom[1])):
 								if chosen_atom[1][i] == -1:
 									chosen_atom[1][i] = curr_obj_ind
 									curr_obj_ind += 1
 
-									objs_to_add.append(chosen_pred[1][i]) # Append a new object to add of the type given by the corresponding predicate
+							# Try the different type instantiations for the virtual objects in the atom,
+							# until one results in a consistent atom
+							for obj_types in obj_types_list:
+								# Check the consistency of the selected action
+								selected_consistent_action = problem.is_init_state_action_consistent(chosen_atom, obj_types)
 
-							# Check the consistency of the selected action
-							selected_consistent_action = problem.is_init_state_action_consistent(chosen_atom)
+								if selected_consistent_action:
+									break
 
 
 						# Add the selected atom to the initial state
 						if selected_consistent_action:
+							# Obtain objects to add to the state -> they correspond to the virtual objects
+							objs_to_add = [obj_types[i] for i in virtual_objs_inds]
+
 							# Apply the action to the state
-							_, r = problem.apply_action_to_initial_state(objs_to_add, chosen_atom)
+							_, r = problem.apply_action_to_initial_state(objs_to_add, chosen_atom, obj_types)
 
 							if verbose:
 								if r >= 0: # Valid action
@@ -399,105 +393,6 @@ class RandomGenerator():
 								print("<<We were not able to generate a consistent initial state!!>>")
 
 
-
-		# <Before self._get_atoms_to_add_init_state> 
-
-
-		# We execute actions (i.e., add atoms) until:
-		# 1. We have executed at least num_actions_for_init_state actions and the problem is totally consistent
-		# OR
-		# 2. There are no more available consistent actions (atoms)
-		"""
-		ind_action = 0
-		available_actions = True
-
-		while (ind_action < num_actions_for_init_state or problem.get_eventual_consistency_reward_of_init_state() != 0) and available_actions:
-			available_actions = True
-			
-			# Obtain the possible actions (atoms) that can be applied to the current state
-			possible_atoms = problem.get_possible_init_state_actions()
-
-			if len(possible_atoms) == 0:
-				if verbose:
-					print("There are no more actions to add. Finishing initial state generation phase...")
-
-				available_actions = False
-				break # Finish while loop
-
-			# Obtain the index of the last object in the state
-			ind_last_state_obj = problem.initial_state.num_objects - 1
-
-			selected_consistent_action = False
-
-			# -- Select a consistent action
-
-			# Select a predicate type according to the pred probabilities given by the user
-			possible_predicates = list(set([a[0] for a in possible_atoms])) # Get the existing predicate types in possible_atoms (e.g.: ['on', 'ontable'])
-			possible_predicates_probs = [pred_probabilities[p] for p in possible_predicates]
-			selected_pred_type = random.choices(possible_predicates, weights=possible_predicates_probs)[0] # weights do not need to sum 1
-			selected_pred = list(filter(lambda x: x[0] == selected_pred_type, domain_predicates))[0]
-			atoms_of_selected_pred_type = list(filter(lambda a: a[0] == selected_pred_type, possible_atoms)) # List with the atoms of the selected predicate type
-			random.shuffle(atoms_of_selected_pred_type) # Shuffle the list
-
-
-			while not selected_consistent_action and available_actions:
-				
-				# If there are no available actions, do not choose any action
-				if len(possible_atoms) == 0:
-					if verbose:
-						print("There are no more actions to add. Finishing initial state generation phase...")
-
-					available_actions = False
-
-				else:
-					# If there is at least an atom whose type is selected_pred_type, then select a random atom of that type
-					# Else, choose a new existing selected_pred_type
-
-					if len(atoms_of_selected_pred_type) == 0: # Choose a new existing selected_pred_type
-						possible_predicates = list(set([a[0] for a in possible_atoms])) # Get the existing predicate types in possible_atoms (e.g.: ['on', 'ontable'])
-						possible_predicates_probs = [pred_probabilities[p] for p in possible_predicates]
-						selected_pred_type = random.choices(possible_predicates, weights=possible_predicates_probs)[0] # weights do not need to sum 1
-						selected_pred = list(filter(lambda x: x[0] == selected_pred_type, domain_predicates))[0]
-						atoms_of_selected_pred_type = list(filter(lambda a: a[0] == selected_pred_type, possible_atoms)) # List with the atoms of the selected predicate type
-						random.shuffle(atoms_of_selected_pred_type) # Shuffle the list
-
-					# Select a random atom with the selected pred type and remove it from both lists
-					chosen_atom = atoms_of_selected_pred_type.pop() # When we use pop(), the popped element is removed from the list
-					possible_atoms.remove(chosen_atom)
-
-					# Transform -1 indexes for indexes of new objects and see objects to add
-					# E.g.: ['on', [-1, 0]] -> ['on', [3, 0]] (if there are three blocks in the state)
-					curr_obj_ind = ind_last_state_obj + 1
-					objs_to_add = []
-			
-					for i in range(len(chosen_atom[1])):
-						if chosen_atom[1][i] == -1:
-							chosen_atom[1][i] = curr_obj_ind
-							curr_obj_ind += 1
-
-							objs_to_add.append(selected_pred[1][i]) # Append a new object to add of the type given by the corresponding predicate
-
-					# Check the consistency of the selected action
-					selected_consistent_action = problem.is_init_state_action_consistent(chosen_atom)
-
-					#print(f"> Pred probs: {list(zip(possible_predicates, possible_predicates_probs))} - selected pred: {selected_pred_type} - selected atom: {chosen_atom}")
-			
-			if available_actions:
-				# Apply the action to the state
-				_, r = problem.apply_action_to_initial_state(objs_to_add, chosen_atom)
-
-				if verbose:
-					if r >= 0: # Valid action
-						print(f"<Valid> - Atom {chosen_atom} and objs {objs_to_add}")
-					else:
-						print(f"<<Invalid>> - Atom {chosen_atom} and objs {objs_to_add}")
-
-				ind_action += 1
-		"""
-
-		
-		
-
 		# <Generate goal state>
 
 		problem.end_initial_state_generation_phase()
@@ -509,36 +404,6 @@ class RandomGenerator():
 
 		if verbose:
 			print(f"> Starting goal state generation phase - num_actions={num_actions_for_goal_state}")
-
-
-
-
-		# <Goal generation before using loop detection>
-
-		"""
-		for _ in range(num_actions_for_goal_state):
-
-			# Get applicable ground actions
-			applicable_ground_actions = problem.applicable_ground_actions()
-
-			if len(applicable_ground_actions) == 0: # No more actions can be executed -> end generation of goal state
-				if verbose:
-					print("<No valid ground actions>")
-				break
-
-			else: # Select a random ground action
-				chosen_ground_action = random.choice(applicable_ground_actions)
-
-				# Apply action to goal state
-				_, r = problem.apply_action_to_goal_state(chosen_ground_action[0], chosen_ground_action[1])
-			
-				if verbose:
-					if r >= 0: # Valid action
-						print(f"<Valid> - Action {[chosen_ground_action[0], chosen_ground_action[1]]}")
-					else: # This should never happen! (we have already checked the action is valid)
-						print(f"<Invalid> - Action {[chosen_ground_action[0], chosen_ground_action[1]]}") 
-		"""
-
 
 
 
@@ -590,7 +455,8 @@ class RandomGenerator():
 			next_action = goal_search_list[-1][1].pop(0) # Obtain the first action and remove it from the list
 
 			# <Execute the action to obtain the next goal_state>
-			next_goal_state, r = problem.apply_action_to_goal_state(next_action[0], next_action[1]) # The goal_state contained in problem is also changed
+			s, r = problem.apply_action_to_goal_state(next_action[0], next_action[1]) # The goal_state contained in problem is also changed
+			next_goal_state = s.copy() # Copy goal state so that it does not share the reference with other objects
 
 			# <Print information to the user>
 			if verbose:
@@ -663,7 +529,7 @@ class RandomGenerator():
 
 		if verbose:
 			print("--- Random problem generation started ---")
-			print("Domain name:", self.domain_name)
+			print("Domain name:", self._parser.domain_name)
 			print("Problems path and name:", problems_path)
 			print("Metrics file path:", metrics_file_path)
 			print("\n")

@@ -79,6 +79,10 @@ class Parser():
 				elif t == ':action':
 					self.parse_action(group)
 				else: self.parse_domain_extended(t, group)
+
+			# Create dictionary containing the children types for each type
+			self._type_hierarchy = dict()
+			self._create_type_hierarchy_dict()
 		else:
 			raise Exception('File ' + domain_filename + ' does not match domain pattern')
 
@@ -254,6 +258,99 @@ class Parser():
 				negative.append(predicate[-1])
 			else:
 				positive.append(predicate)
+
+
+	#-----------------------------------------------
+	# My methods
+	#-----------------------------------------------
+
+	@property
+	def domain_types(self):
+		types = self.types
+
+		# type_list = list(types.values())[0] # Convert to a list of strings representing types (['block', 'circle']) -> Only works without type hierarchies
+		type_list = list(types.values())
+		parent_types_list = list(types.keys()) # Types which do not inherit from anyone
+		type_list.append(parent_types_list)
+		type_list = [obj_type for sublist in type_list for obj_type in sublist] # Unnest list
+		type_list_no_repeated_types = list(set(type_list)) # Delete repeated types
+		
+		return type_list_no_repeated_types
+	
+	@property
+	def type_hierarchy(self):
+		return self._type_hierarchy
+
+	@property
+	def domain_predicates(self):
+		predicates = self.predicates
+		predicates = list(predicates.items())
+
+		predicate_list = [[pred[0], list(pred[1].values())] for pred in predicates] # Convert to a list where each element is a predicate in the form
+																					# ['on', ['block', 'block']]
+		return predicate_list
+
+	# <TODO>
+	# Add support for domain constants -> the functionality has not been implemented yet
+	# Return the domain constants, as a list of objects (e.g.: ['block', 'block])
+	# If there are no constants, it returns an empty list -> []
+	@property
+	def domain_constants(self):
+		raise NotImplementedError()
+
+		"""
+		constants = self.objects # {'block': ['obj1', 'obj2', 'obj3']}
+		constants_encoded = [x for c in constants.items() for x in [c[0]]*len(c[1])] # ['block', 'block', 'block']
+
+		return constants_encoded
+		"""
+		
+	"""
+	Only returns information about the name of each action and the types of its parameters.
+	"""
+	@property
+	def domain_actions_and_parameters(self):
+		actions = self.actions
+	
+		action_list = [[a.name, [p[1] for p in a.parameters]] for a in actions] # Convert to a list where each element is an action in the form
+																				# ['stack', ['block', 'block']]
+
+		return action_list
+
+
+	# Auxiliar method
+	# Given a type t, it obtains a list of all its children (including itself) recursively
+	def _get_children_of_type(self, t):
+		children = []
+
+		# Obtain children types, in case it has them
+		if t in self.types:
+			direct_children = self.types[t]
+
+			for child in direct_children:
+				children.extend(self._get_children_of_type(child))
+
+		children.append(t) # A type always inherits from itself
+
+		return children
+
+	"""
+	This method obtains a dictionary self._type_hierarchy containing for each domain type, 
+	all the types which inherit from it (children, grandchildren...)
+	"""
+	def _create_type_hierarchy_dict(self):
+		types = self.domain_types # List with all the domain types
+
+		for t in types:
+			self._type_hierarchy[t] = self._get_children_of_type(t)
+
+	"""
+	Returns true if @child inherits from @parent.
+	We assume a type inherits from itself (e.g., "vehicle" is children of "vehicle")
+	"""
+	def is_type_child_of(self, child, parent):
+		return child in self._type_hierarchy[parent]
+
 
 class Action():
 

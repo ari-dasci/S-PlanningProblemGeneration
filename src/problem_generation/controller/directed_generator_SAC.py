@@ -65,11 +65,11 @@ class DirectedGenerator():
 
 		# <Relational State which contains the object types and actions in the domain>
 		# Used to convert from action name to index and vice versa (e.g.: "stack" <-> 1)
-		self._dummy_rel_state_actions = RelationalState(self.domain_types, self.domain_actions_and_parameters) 
+		self._dummy_rel_state_actions = RelationalState(self._parser.domain_types, self._parser.domain_actions_and_parameters) 
 
 		# <Goal predicates (list of predicates names -> ['on', 'ontable'])>
 		if predicates_to_consider_for_goal is None: # Consider every predicate for the goal
-			self._predicates_to_consider_for_goal = [pred[0] for pred in self.domain_predicates]
+			self._predicates_to_consider_for_goal = [pred[0] for pred in self._parser.domain_predicates]
 		else:
 			self._predicates_to_consider_for_goal = predicates_to_consider_for_goal
 
@@ -157,59 +157,7 @@ class DirectedGenerator():
 	def max_size_experience_replay(self):
 		return self._max_size_experience_replay
 
-	@property
-	def domain_name(self):
-		name = self._parser.domain_name
-
-		return name
-
-	# Does not work with type hierarchies!
-	@property
-	def domain_types(self):
-		types = self._parser.types
-
-		type_list = list(types.values())[0] # Convert to a list of strings representing types (['block', 'circle'])
-
-		return type_list
 	
-	@property
-	def domain_predicates(self):
-		predicates = self._parser.predicates
-		predicates = list(predicates.items())
-
-		predicate_list = [[pred[0], list(pred[1].values())] for pred in predicates] # Convert to a list where each element is a predicate in the form
-																					# ['on', ['block', 'block']]
-		return predicate_list
-
-	# <TODO>
-	# Add support for domain constants -> the functionality has not been implemented yet
-	# Return the domain constants, as a list of objects (e.g.: ['block', 'block])
-	# If there are no constants, it returns an empty list -> []
-	@property
-	def domain_constants(self):
-		raise NotImplementedError()
-
-		"""
-		constants = self._parser.objects # {'block': ['obj1', 'obj2', 'obj3']}
-		constants_encoded = [x for c in constants.items() for x in [c[0]]*len(c[1])] # ['block', 'block', 'block']
-
-		return constants_encoded
-		"""
-		
-	"""
-	Only returns information about the name of each action and the types of its parameters.
-	"""
-	@property
-	def domain_actions_and_parameters(self):
-		actions = self._parser.actions
-	
-		action_list = [[a.name, [p[1] for p in a.parameters]] for a in actions] # Convert to a list where each element is an action in the form
-																				# ['stack', ['block', 'block']]
-
-		return action_list
-
-
-
 	# ------- Auxiliary Methods --------
 
 
@@ -224,8 +172,8 @@ class DirectedGenerator():
 		num_preds_inner_layers_initial_state_nlm = np.array(num_preds_inner_layers_initial_state_nlm, dtype=np.int) # Convert to np array in case it was a list
 		
 		# Get domain predicates
-		domain_types = self.domain_types
-		domain_preds = self.domain_predicates
+		domain_types = self._parser.domain_types
+		domain_preds = self._parser.domain_predicates
 		
 		dummy_rel_state = RelationalState(domain_types, domain_preds)
 
@@ -258,8 +206,8 @@ class DirectedGenerator():
 		num_preds_inner_layers_goal_nlm = np.array(num_preds_inner_layers_goal_nlm, dtype=np.int) # Convert to np array in case it was a list
 		
 		# Get domain types and actions (with their parameters types) -> e.g.: ['stack', ['block', 'block']]
-		domain_types = self.domain_types
-		domain_preds = self.domain_predicates
+		domain_types = self._parser.domain_types
+		domain_preds = self._parser.domain_predicates
 		
 		dummy_rel_state_input = RelationalState(domain_types, domain_preds) 
 		# dummy_rel_state_output = RelationalState(domain_types, domain_actions)
@@ -1080,7 +1028,7 @@ class DirectedGenerator():
 		
 		if verbose:
 			print("\n\n\n================= Directed Problem Generation Started =================\n")
-			print("Domain name:", self.domain_name)
+			print("Domain name:", self._parser.domain_name)
 			print("Problems path and name:", problems_path)
 			print("Metrics file path:", metrics_file_path)
 			print("\n")
