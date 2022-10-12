@@ -678,9 +678,10 @@ def test_load_models_and_generate_problems():
 	planner = Planner(domain_file_path)
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_84/init_policy_its-380.ckpt"
-	goal_policy_path = "saved_models/both_policies_84/goal_policy_its-380.ckpt"
+	init_policy_path = "saved_models/both_policies_93/init_policy_its-650.ckpt"
+	goal_policy_path = "saved_models/both_policies_93/goal_policy_its-650.ckpt"
 
+	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
 
@@ -1053,7 +1054,48 @@ def test_load_models_and_generate_problems():
 
 
 
+# Ejecución -> ground_entropy*0.5 + lifted_entropy*0.5, sin ignorar term cond prob
+	20 átomos y goal actions
+	<planner_search_options= --alias lama-first>
+	NLM without preds arity 3
 
+	- logs: init_policy\ version_38
+
+	> Entrenamiento
+		- Term cond prob sube al principio hasta 0.2 y después baja hasta 0.07
+		- r_eventual y r_continuous convergen a 0 tras hora y media de entrenamiento
+		- La r_difficulty (con np.log y rescale_factor=0.2) llega hasta 0.67 tras 11h de entrenamiento (seguía aumentando pero paré el entrenamiento)
+		- La init_state_policy_entropy baja hasta 0.22
+
+	> Problemas (its=680)
+		- 20 atoms&actions - diff = 98.1 - diversidad media-baja - problemas con 15 átomos de media
+
+# Ejecución -> ground_entropy*0.5 + lifted_entropy*0.5, sin ignorar term cond prob
+	20 átomos y goal actions
+	planner_search_options= --alias lama-first
+	NLM without preds arity 3
+	<no np.log() to rescale problem difficulty>
+
+	- logs: init_policy\ version_39
+
+	> Entrenamiento
+		- Term con prob sube al principio hasta 0.2 y después baja hasta 0.02 (mucho menor que cuando uso np.log() para la dificultad (ver experimento anterior))
+		- r_eventual converge a 0 pero r_continuous converge a -0.17 (peor r_continuous que cuando uso np.log())
+		- r_difficulty llega hasta 26 (sin np.log y con rescale_factor=0.2) tras 13h de entrenamiento -> MEJOR DIFFICULTY QUE CUANDO USO NP.LOG!!
+		  (si uso np.log() la r_difficulty sería equivalente a 0.97, mayor que la 0.67 del experimento anterior)
+		- La init_state_policy_entropy baja hasta 0.35 -> TIENE MEJOR (MAYOR) ENTROPÍA QUE CUANDO USO NP.LOG!!
+
+	<Las gráficas de entrenamiento son bastante mejores que cuando uso np.log, excepto por la r_continuous que no converge a 0>
+
+	> Problemas (its=650)
+		- 20 atoms&actions - diff = 162.7 - diversidad muy baja (solo un átomo on() por problema) - muchos problems tienen 20 átomos!!
+
+	<CREO QUE ES MEJOR <NO> USAR NP.LOG, YA QUE LOS PROBLEMAS TIENEN MAYOR DIFICULTAD Y MÁS ÁTOMOS DE MEDIA.>
+	No obstante, su diversidad es bastante menor -> hay que disminuir el rescale_factor para la dificultad y/o aumentar los entropy coeffs.
+
+
+
+-----------------
 
 >> CAMBIOS PARA AUMENTAR EFICIENCIA NLM:
 	> Cambiar _calculate_state_value_and_old_policy_probs_trajectory_init_policy (y del goal) para que sea mas eficiente
@@ -1061,6 +1103,9 @@ def test_load_models_and_generate_problems():
 	> Añadir opción para que, si no se usan residual_connections, los predicados extras perc_actions_executed y de los object types
 	  se añadan adicionalmente como inputs a cada NLM layer
 	> Probar a usar menos trajectories_per_train_it
+
+>> Siguientes experimentos:
+	> Disminuir el rescale_factor para la dificultad y aumentar los entropy coeffs.
 
 >> Preguntar en el discord de FD si es posible llamar una sola vez al planner para que resuelva un conjunto de problemas
 
@@ -1105,5 +1150,5 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems()
 
 	#test_generate_random_problems()
-	test_train_init_and_goal_policy()
-	#test_load_models_and_generate_problems()
+	#test_train_init_and_goal_policy()
+	test_load_models_and_generate_problems()

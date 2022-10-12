@@ -690,7 +690,8 @@ class DirectedGenerator():
 		scaled_problem_difficulty = max_difficulty if problem_difficulty == -1 else problem_difficulty
 
 		# use log of rewards
-		log_problem_difficulty = np.log(scaled_problem_difficulty)
+		# log_problem_difficulty = np.log(scaled_problem_difficulty)
+		log_problem_difficulty = scaled_problem_difficulty # QUITAR
 
 		# rescale problem_difficulty
 		scaled_difficulty = log_problem_difficulty*rescale_factor
@@ -1214,6 +1215,16 @@ class DirectedGenerator():
 			print("Metrics file path:", metrics_file_path)
 			print("\n")
 
+
+		# Create a temporary file used to store the problems in order to calculate their difficulty
+
+		# Create file if it doesn't exist
+		self._temp_problem_path = 'temp_problem.pddl'
+		pth_object = Path(self._temp_problem_path)
+		pth_object.touch(exist_ok=True)
+
+		self._fd_temp_problem = open(pth_object, 'r+') # Open in read and write mode
+
 		# Create a file to store the metrics of the problems generated
 		f_metrics = open(metrics_file_path, 'a+')
 		f_metrics.write("\n-------------------\n")
@@ -1244,3 +1255,6 @@ class DirectedGenerator():
 
 		if verbose:
 			print("\n\n================= Directed Problem Generation Finished =================\n")
+
+		# Close temporary file
+		self._fd_temp_problem.close()

@@ -233,16 +233,8 @@ class GenerativePolicy(pl.LightningModule):
 		tensor_lifted_entropy = torch.cat([ (torch.distributions.Categorical(probs = probs_preds).entropy() / np.log(probs_preds.shape[0])).view(1) \
 			                               for probs_preds in list_probs_each_pred ])
 
-		#print("\ntensor_lifted_entropy[0]\n", tensor_lifted_entropy[0])
-
-		#print("\ntensor_ground_entropy + tensor_lifted_entropy", tensor_ground_entropy + tensor_lifted_entropy)
-
-		# CAMBIAR
 		return 0.5*tensor_ground_entropy + 0.5*tensor_lifted_entropy
-		# return tensor_ground_entropy
-	    
-		#return torch.Tensor([0])
-		
+
 		# ------- OLD
 
 		"""
