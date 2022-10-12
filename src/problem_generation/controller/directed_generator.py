@@ -75,7 +75,6 @@ class DirectedGenerator():
 		self._max_actions_init_state = max_actions_init_state
 		self._max_actions_goal_state = max_actions_goal_state
 
-
 		# <Relational State which contains the object types, type_hierarchy and actions in the domain>
 		# Used to convert from action name to index and vice versa (e.g.: "stack" <-> 1)
 		self._dummy_rel_state_actions = RelationalState(self._parser.domain_types, self._parser.type_hierarchy,
@@ -894,10 +893,17 @@ class DirectedGenerator():
 
 			# Information about the current state
 			perc_actions_executed = actions_executed / max_actions_goal_state # Obtain percentage of actions executed (with respect to the max number of actions)
-			curr_goal_and_init_state_tensors = init_state.atoms_nlm_encoding_with_goal_state(curr_goal_state, goal_nlm_max_pred_arity, perc_actions_executed)
+			curr_goal_and_init_state_tensors = init_state.atoms_nlm_encoding_with_goal_state(curr_goal_state, goal_nlm_max_pred_arity, True, perc_actions_executed) # True for adding object types as extra unary predicates
 
 			# Mask tensors
 			mask_tensors = self._get_mask_tensors_goal_policy(goal_nlm_output_layer_shape, problem)
+
+
+			# QUITAR
+			#print("\n state objs:", curr_goal_state.objects)
+			#print("\nobj_types_to_indices_dict init state:", init_state.obj_types_to_indices_dict.items())
+			#print("\nobj_types_to_indices_dict goal state:", curr_goal_state.obj_types_to_indices_dict.items())
+			#print("\ncurr_goal_and_init_state_tensors:", curr_goal_and_init_state_tensors)
 
 			# Obtain an action (index) with the goal policy
 			chosen_action_index = self._goal_policy.select_action(curr_goal_and_init_state_tensors, num_objs, mask_tensors)

@@ -274,7 +274,8 @@ class Parser():
 		type_list.append(parent_types_list)
 		type_list = [obj_type for sublist in type_list for obj_type in sublist] # Unnest list
 		type_list_no_repeated_types = list(set(type_list)) # Delete repeated types
-		
+		type_list_no_repeated_types.sort() # Sort the types so that they are always returned in the same order
+
 		return type_list_no_repeated_types
 	
 	@property
@@ -288,6 +289,9 @@ class Parser():
 
 		predicate_list = [[pred[0], list(pred[1].values())] for pred in predicates] # Convert to a list where each element is a predicate in the form
 																					# ['on', ['block', 'block']]
+
+		predicate_list.sort() # Sort the predicates so that they are always returned in the same order
+
 		return predicate_list
 
 	# <TODO>
@@ -314,6 +318,8 @@ class Parser():
 	
 		action_list = [[a.name, [p[1] for p in a.parameters]] for a in actions] # Convert to a list where each element is an action in the form
 																				# ['stack', ['block', 'block']]
+
+		action_list.sort() # Sort the actions so that they are always returned in the same order																	
 
 		return action_list
 

@@ -148,7 +148,7 @@ class ProblemState:
 			if initial_state_info not in self._parser.domain_types:
 				raise ValueError("Incorrect object type")
 
-			s0 = RelationalState(self._parser.domain_types, self._parser.domain_predicates, [initial_state_info], [])
+			s0 = RelationalState(self._parser.domain_types, self._parser.type_hierarchy, self._parser.domain_predicates, [initial_state_info], [])
 
 		elif isinstance(initial_state_info, RelationalState):
 			s0 = initial_state_info.copy()

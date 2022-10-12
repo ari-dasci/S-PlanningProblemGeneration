@@ -1094,6 +1094,17 @@ def test_load_models_and_generate_problems():
 	No obstante, su diversidad es bastante menor -> hay que disminuir el rescale_factor para la dificultad y/o aumentar los entropy coeffs.
 
 
+# Ejecución -> ground_entropy*0.5 + lifted_entropy*0.5, sin ignorar term cond prob
+	20 átomos y goal actions
+	planner_search_options= --alias lama-first
+	NLM without preds arity 3
+	no np.log() to rescale problem difficulty
+	<NLM with object types>
+
+	Mismo experimento que el anterior pero ahora la NLM codifica los object types
+
+
+
 
 -----------------
 
@@ -1149,6 +1160,6 @@ if __name__ == "__main__":
 
 	#test_load_models_and_generate_problems()
 
-	test_generate_random_problems()
-	#test_train_init_and_goal_policy()
+	#test_generate_random_problems()
+	test_train_init_and_goal_policy()
 	#test_load_models_and_generate_problems()
