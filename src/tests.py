@@ -678,8 +678,8 @@ def test_load_models_and_generate_problems():
 	planner = Planner(domain_file_path)
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_93/init_policy_its-650.ckpt"
-	goal_policy_path = "saved_models/both_policies_93/goal_policy_its-650.ckpt"
+	init_policy_path = "saved_models/both_policies_94/init_policy_its-240.ckpt"
+	goal_policy_path = "saved_models/both_policies_94/goal_policy_its-240.ckpt"
 
 	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
@@ -1100,13 +1100,22 @@ def test_load_models_and_generate_problems():
 	NLM without preds arity 3
 	no np.log() to rescale problem difficulty
 	<NLM with object types>
+	(Mismo experimento que el anterior pero ahora la NLM codifica los object types)
 
-	Mismo experimento que el anterior pero ahora la NLM codifica los object types
+	Funciona perfectamente! (se obtienen las mismas gráficas de entrenamiento que en el experimento anterior)
 
 
 
 
 -----------------
+
+>> TODO
+	- Conseguir que se generen problemas en blocksworld diversos y que generalicen a un mayor número de objetos
+	  (también que tengan handempty() y holding())
+    - Hacer pruebas con logistics -> <Programar el state_validator>
+
+>> Siguientes experimentos:
+	> Disminuir el rescale_factor para la dificultad y aumentar los entropy coeffs.
 
 >> CAMBIOS PARA AUMENTAR EFICIENCIA NLM:
 	> Cambiar _calculate_state_value_and_old_policy_probs_trajectory_init_policy (y del goal) para que sea mas eficiente
@@ -1115,8 +1124,7 @@ def test_load_models_and_generate_problems():
 	  se añadan adicionalmente como inputs a cada NLM layer
 	> Probar a usar menos trajectories_per_train_it
 
->> Siguientes experimentos:
-	> Disminuir el rescale_factor para la dificultad y aumentar los entropy coeffs.
+
 
 >> Preguntar en el discord de FD si es posible llamar una sola vez al planner para que resuelva un conjunto de problemas
 
@@ -1161,5 +1169,5 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems()
 
 	#test_generate_random_problems()
-	test_train_init_and_goal_policy()
-	#test_load_models_and_generate_problems()
+	#test_train_init_and_goal_policy()
+	test_load_models_and_generate_problems()
