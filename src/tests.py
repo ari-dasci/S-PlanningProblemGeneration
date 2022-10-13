@@ -678,8 +678,8 @@ def test_load_models_and_generate_problems():
 	planner = Planner(domain_file_path)
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_94/init_policy_its-240.ckpt"
-	goal_policy_path = "saved_models/both_policies_94/goal_policy_its-240.ckpt"
+	init_policy_path = "saved_models/both_policies_95/init_policy_its-580.ckpt"
+	goal_policy_path = "saved_models/both_policies_95/goal_policy_its-580.ckpt"
 
 	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
@@ -1051,9 +1051,6 @@ def test_load_models_and_generate_problems():
 	Se ralentiza un poco el entrenamiento. En problemas difíciles, se pasa de tardar 4h en realizar 100 train its,
 	a tardar 4h 40 min en hacer 100 train its. El entrenamiento se vuelve un 15% más lento aprox.
 	
-
-
-
 # Ejecución -> ground_entropy*0.5 + lifted_entropy*0.5, sin ignorar term cond prob
 	20 átomos y goal actions
 	<planner_search_options= --alias lama-first>
@@ -1105,6 +1102,33 @@ def test_load_models_and_generate_problems():
 	Funciona perfectamente! (se obtienen las mismas gráficas de entrenamiento que en el experimento anterior)
 
 
+# Ejecución -> ground_entropy*0.5 + lifted_entropy*0.5, sin ignorar term cond prob
+	20 átomos y goal actions
+	planner_search_options= --alias lama-first
+	NLM without preds arity 3
+	no np.log() to rescale problem difficulty
+	<rescale_factor=0.02 for difficulty>
+
+	- logs: init_policy\ version_40
+
+	> Entrenamiento:
+		- Term cond prob es más inestable que cuando uso rescale_factor=0.2: sube hasta 0.25, baja en picado hasta 0.02, sube otra vez
+		  y después baja lentamente hasta 0.04 (la term cond prob termina más alta que con rescale_factor=0.2)
+		- r_eventual y r_continuous convergen a 0 (mientras que con rescale_factor=0.2 r_continuous converge a -0.17)
+		- r_difficulty llega hasta 2 -> si uso rescale_factor=0.2 sería igual a 20, mientras que en el experimento con rescale_factor=0.2
+		  llegaba hasta 26 
+		- la init_state_policy_entropy baja hasta 0.17 (menos que con rescale_factor=0.2)
+		- El tiempo de entrenamiento es el mismo que usando rescale_factor=0.2
+
+	> Problemas (its=580):
+		- 20 atoms&actions - diff = 126.0 - diversidad media-baja (aunque mucho mejor que usando rescale_factor=0.2)
+		                                    Los problemas tienen un alto número de átomos!
+
+	<Es mejor usar rescale_factor=0.02 (como en este experimento) que rescale_factor=0.2>
+
+
+
+
 
 
 -----------------
@@ -1115,7 +1139,11 @@ def test_load_models_and_generate_problems():
     - Hacer pruebas con logistics -> <Programar el state_validator>
 
 >> Siguientes experimentos:
-	> Disminuir el rescale_factor para la dificultad y aumentar los entropy coeffs.
+	> Disminuir el rescale_factor para la dificultad -> Hecho
+	> Aumentar la entropía
+		- Hacer que la entropía de la init_state_policy baje hasta 600 its
+		- Hacer que la entropía de la goal_state_policy baje hasta 300 its
+		- En ambos casos la entropía debe bajar hasta 0.2
 
 >> CAMBIOS PARA AUMENTAR EFICIENCIA NLM:
 	> Cambiar _calculate_state_value_and_old_policy_probs_trajectory_init_policy (y del goal) para que sea mas eficiente

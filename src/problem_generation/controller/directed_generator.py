@@ -651,7 +651,7 @@ class DirectedGenerator():
 
 	<Note>: This method also selects the goal atoms corresponding to the goal predicates given by the user
 	"""
-	def get_problem_difficulty(self, problem, max_difficulty=1e7, rescale_factor=0.2, max_planning_time=10):
+	def get_problem_difficulty(self, problem, max_difficulty=1e7, rescale_factor=0.02, max_planning_time=10):
 		
 		# Encode the problem in PDDL
 		# > This method also selects the goal atoms corresponding to the goal predicates given by the user
