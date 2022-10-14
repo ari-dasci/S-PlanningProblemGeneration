@@ -263,12 +263,13 @@ class GenerativePolicy(pl.LightningModule):
 
 	""" 
 	Function to sample the output of the NLM. It CAN sample the "action" corresponding to the termination condition.
-	It receives a list of tensors @pred_tensors corresponding to probabilities/weights and outputs the index of an element
+	It receives a list of tensors @pred_tensors corresponding to log-probabilities/weights and outputs the index of an element
 	of pred_tensors, according to the probability. The index is represented as a list [arity, o1, o2, ..., on, pred_number]
+	It also returns the probability (not log-) of the sampled action.
 
 	Note: the values of the tensors do not need to sum 1 but they cannot be negative.
 	"""
-	def _sample_action(self, pred_tensors):
+	def _sample_action(self, pred_tensors):		
 		# <Convert from torch to numpy>
 		# Use torch.exp to transform from log_softmax to softmax (i.e., from log_probs to probs)
 		pred_tensors_np = [np.exp(x.detach().numpy()) if x is not None else None for x in pred_tensors]
@@ -277,7 +278,7 @@ class GenerativePolicy(pl.LightningModule):
 	
 		# Get prob to sample each arity
 		# If preds_curr_arr is None, that means there are no predicates for that arity, so we assign a probability of 0 to that predicate arity
-		arity_probs = np.array([preds_curr_arr.sum() if preds_curr_arr is not None else 0 for preds_curr_arr in pred_tensors_np], dtype='float16')
+		arity_probs = np.array([np.sum(preds_curr_arr) if preds_curr_arr is not None else 0 for preds_curr_arr in pred_tensors_np], dtype='float16')
 		arity_probs /= np.sum(arity_probs) # Normalize so that the sum of probabilities is equal to 1
 
 		# Sample an arity
@@ -286,7 +287,7 @@ class GenerativePolicy(pl.LightningModule):
 		# <Sample the chosen arity>
 	
 		# Obtain the predicates of the chosen arity and normalize the probabilities so that they sum 1
-		preds_chosen_arity = pred_tensors_np[chosen_arity]
+		preds_chosen_arity = pred_tensors_np[chosen_arity].copy() # We need to copy the array or else we will modify pred_tensors_np!
 		preds_chosen_arity /= np.sum(preds_chosen_arity)
 
 		# Sample an element and get its index
@@ -294,7 +295,10 @@ class GenerativePolicy(pl.LightningModule):
 		index = np.unravel_index(i, preds_chosen_arity.shape)
 		final_index = [chosen_arity] + list(index) # Append the arity of the predicate to the beginning of the index vector
 	
-		return final_index
+		# <Obtain probability of the sampled action>
+		sampled_action_prob = pred_tensors_np[chosen_arity][tuple(index)]
+
+		return final_index, sampled_action_prob
 
 
 	"""
@@ -373,6 +377,7 @@ class GenerativePolicy(pl.LightningModule):
 	inconsistent initial state (after adding the atom represented by the action). This action is a list "index" representing an atom.
 	index[0] is the predicate arity, index[-1] is the predicate index and index[1:-1] are the obj indexes the predicate is instantiated on.
 	To transform from "index" to a valid atom, use RelationalState.get_predicate_by_arity_and_ind() and DirectedGenerator._get_objs_to_add_and_atom_with_correct_indexes().
+	It also returns the probability (not log-) of the chosen action.
 
 	@mask_tensors If None, we do not mask the nlm_output
 	"""
@@ -387,10 +392,10 @@ class GenerativePolicy(pl.LightningModule):
 		# log_probs[0] -> the tensor of the first sample in the batch (in our case, the only one as the batch contains a single sample)
 		action_log_probs_no_nesting = [log_probs[0] for log_probs in action_log_probs]
 
-		# Sample an action (atom)
-		chosen_action_index = self._sample_action(action_log_probs_no_nesting)
+		# Sample an action (atom) and get its probability
+		chosen_action_index, chosen_action_prob = self._sample_action(action_log_probs_no_nesting)
 
-		return chosen_action_index
+		return chosen_action_index, chosen_action_prob
 
 
 	def configure_optimizers(self):
@@ -404,8 +409,8 @@ class GenerativePolicy(pl.LightningModule):
 
 	Note: we add an entropy bonus to the loss, in order to prefer policies with high entropy.
 
-	@train_batch Batch of training samples, where each one is a tuple (state_tensors, num_objs, mask_tensors, chosen_action_index, r_continuous,
-	             r_eventual, r_difficulty, r_total, r_total_norm, action_prob_old_policy, state_values)
+	@train_batch Batch of training samples, where each one is a tuple (state_tensors, num_objs, mask_tensors, chosen_action_index,
+                 chosen_action_prob, r_continuous, r_eventual, r_difficulty, r_total, r_total_norm, state_values)
 	"""
 	def training_step(self, train_batch, batch_idx=0):
 		train_batch_len = len(train_batch)
@@ -421,8 +426,8 @@ class GenerativePolicy(pl.LightningModule):
 		list_mask_tensors = train_batch_np[:,2].tolist()
 		list_chosen_action_index = train_batch_np[:,3].tolist()
 
-		tensor_r_total_norm = torch.tensor(train_batch_np[:,8].tolist(), dtype=torch.float32, requires_grad=False)
-		tensor_action_prob_old_policy = torch.tensor(train_batch_np[:,9].tolist(), dtype=torch.float32, requires_grad=False)
+		tensor_action_prob_old_policy = torch.tensor(train_batch_np[:,4].tolist(), dtype=torch.float32, requires_grad=False)
+		tensor_r_total_norm = torch.tensor(train_batch_np[:,9].tolist(), dtype=torch.float32, requires_grad=False)	
 		tensor_state_values = torch.tensor(train_batch_np[:,10].tolist(), dtype=torch.float32, requires_grad=False)
 
 		# Represent the state tensors in a suitable encoding for the NLMs
@@ -431,12 +436,11 @@ class GenerativePolicy(pl.LightningModule):
 
 
 		# < Obtain the average rewards for the logs >
-		reward_continuous = np.mean(train_batch_np[:,4])
-		reward_eventual = np.mean(train_batch_np[:,5])
-		reward_difficulty = np.mean(train_batch_np[:,6])
-		reward_total = np.mean(train_batch_np[:,7])
-		reward_total_norm = np.mean(train_batch_np[:,8])
-
+		reward_continuous = np.mean(train_batch_np[:,5])
+		reward_eventual = np.mean(train_batch_np[:,6])
+		reward_difficulty = np.mean(train_batch_np[:,7])
+		reward_total = np.mean(train_batch_np[:,8])
+		reward_total_norm = np.mean(train_batch_np[:,9])
 
 		# < Critic >
 

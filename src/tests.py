@@ -639,6 +639,12 @@ def test_train_init_and_goal_policy():
 
 	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
 
+
+	# Previous values for entropy
+	# entropy_coeff_init_state_policy = 2, entropy_annealing_coeffs_init_state_policy = (300, 0.1)
+	#  entropy_coeff_goal_policy = 1, entropy_annealing_coeffs_goal_policy = (100, 0.1)
+
+
 	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
 										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
 
@@ -647,7 +653,7 @@ def test_train_init_and_goal_policy():
 										   res_connections_initial_state_nlm=True,
 										   lr_initial_state_nlm = 1e-3,
 										   entropy_coeff_init_state_policy = 2,
-										   entropy_annealing_coeffs_init_state_policy = (300, 0.1),
+										   entropy_annealing_coeffs_init_state_policy = (600, 0.2),
 										   epsilon_init_state_policy=0.1,
 
 										   num_preds_inner_layers_goal_nlm=nlm_inner_layers,
@@ -655,8 +661,11 @@ def test_train_init_and_goal_policy():
 										   res_connections_goal_nlm=True,
 										   lr_goal_nlm = 1e-3,
 										   entropy_coeff_goal_policy = 1,
-										   entropy_annealing_coeffs_goal_policy = (100, 0.1),
+										   entropy_annealing_coeffs_goal_policy = (300, 0.2),
 										   epsilon_goal_policy=0.1)
+
+
+
 
 
 	# Train the goal generation policy
@@ -1127,6 +1136,18 @@ def test_load_models_and_generate_problems():
 	<Es mejor usar rescale_factor=0.02 (como en este experimento) que rescale_factor=0.2>
 
 
+# >> Cambiamos _calculate_state_values_trajectory para que no se vuelva a llamar a la NLM -> se reduce el tiempo de entrenamiento!
+
+# Ejecución -> ground_entropy*0.5 + lifted_entropy*0.5, sin ignorar term cond prob
+	20 átomos y goal actions
+	planner_search_options= --alias lama-first
+	NLM without preds arity 3
+	no np.log() to rescale problem difficulty
+	rescale_factor=0.02 for difficulty
+	<entropy_annealing_coeffs_init_state_policy = (600, 0.2), entropy_annealing_coeffs_goal_policy = (300, 0.2)>
+
+
+
 
 
 
@@ -1147,7 +1168,7 @@ def test_load_models_and_generate_problems():
 
 >> CAMBIOS PARA AUMENTAR EFICIENCIA NLM:
 	> Cambiar _calculate_state_value_and_old_policy_probs_trajectory_init_policy (y del goal) para que sea mas eficiente
-	  (no hace falta volver a llamar a la NLM, sino que la probabilidad puede devolverla el metodo select_action() de las generative policies)
+	  (no hace falta volver a llamar a la NLM, sino que la probabilidad puede devolverla el metodo select_action() de las generative policies) -> HECHO
 	> Añadir opción para que, si no se usan residual_connections, los predicados extras perc_actions_executed y de los object types
 	  se añadan adicionalmente como inputs a cada NLM layer
 	> Probar a usar menos trajectories_per_train_it
@@ -1197,5 +1218,5 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems()
 
 	#test_generate_random_problems()
-	#test_train_init_and_goal_policy()
-	test_load_models_and_generate_problems()
+	test_train_init_and_goal_policy()
+	#test_load_models_and_generate_problems()

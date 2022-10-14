@@ -146,6 +146,10 @@ class DirectedGenerator():
 		return self._initial_state_policy
 
 	@property
+	def goal_policy(self):
+		return self._goal_policy
+
+	@property
 	def predicates_to_consider_for_goal(self):
 		return self._predicates_to_consider_for_goal
 
@@ -455,188 +459,49 @@ class DirectedGenerator():
 			r_difficulty_sum *= disc_factor_difficulty
 
 
-
-	# TODO
-	# VER SI CAMBIO EL METODO PARA QUE NO HAYA QUE VOLVER A LLAMAR A self._initial_state_policy.forward()
-	# y lo mismo para _calculate_state_value_and_old_policy_probs_trajectory_goal_policy
-
 	"""
-	This method adds the state value and probability of the selected action for each element in the trajectory corresponding
-	to the initial state generation phase (i.e., to atoms selected by the initial state policy).
-	This is needed by the PPO algorithm to train the init state policy's NLMs.
-
+	This method adds the state value for each element in the trajectory corresponding
+	to the initial state or goal generation phase.
+	This is needed by the PPO algorithm to train the NLMs.
 	Note: this method is in-place.
+
+	@trajectory A list with the samples of the trajectory. Each sample must be in the form:
+				[curr_state_tensors, num_objs_with_virtuals, mask_tensors, chosen_action_index, chosen_action_prob,
+				 r_continuous_sum, r_eventual_sum, r_difficulty_sum, r_total_sum]
+	@policy If 'initial_state_policy', we calculate the state values with the initial_state_policy's critic.
+			If 'goal_policy', we use the goal_policy's critic.
 	"""
-	def _calculate_state_value_and_old_policy_probs_trajectory_init_policy(self, trajectory):
-		trajectory_len = len(trajectory)
+	def _calculate_state_values_trajectory(self, trajectory, policy):
 		
 		# < Represent the data in a suitable form for the calculations >
 
 		# Represent the trajectory as a numpy array. The row are the samples and the columns the different elements of each sample.
+		trajectory_len = len(trajectory)
 		trajectory_np = np.array(trajectory, dtype=object) 
-
 		list_num_objs_with_virtuals = trajectory_np[:, 1].tolist()
-		list_mask_tensors = trajectory_np[:, 2].tolist()
-		list_chosen_action_index = trajectory_np[:,3].tolist()
 
 		# Represent the state tensors in a suitable encoding for the NLMs
 		num_preds_state_tensors = len(trajectory[0][0]) # The number of elements in state_tensors (equal to the max predicate arity - 1)
 		list_state_tensors_nlm_encoding = [[sample[0][r] for sample in trajectory] for r in range(num_preds_state_tensors)]
 
-
-		# < Obtain probability of the selected action >
-
-		# Use the Actor NLM of the initial state policy to obtain the action log_probs
-		action_log_probs_list = self._initial_state_policy(list_state_tensors_nlm_encoding, list_num_objs_with_virtuals, list_mask_tensors)
-
-
-		# Choose the selected action
-		# The result is a list where chosen_action_log_prob_list[i] contains the log_prob of the chosen_action for sample i
-		# list_chosen_action_index[i][0] -> arity r
-		# i -> sample i
-		# tuple(list_chosen_action_index[i][1:]) -> tensor position corresponding to chosen_action
-		chosen_action_log_prob_list = [ action_log_probs_list[list_chosen_action_index[i][0]][i][tuple(list_chosen_action_index[i][1:])].detach().numpy()  \
-								        for i in range(trajectory_len) ]
-
-
-		# Convert from log_probs to probs
-		# Note: if the log_prob is NaN, then we assume the prob is 0 
-		chosen_action_prob_list = [ np.exp(log_prob) if not np.isnan(log_prob) else 1e-5 \
-							        for log_prob in chosen_action_log_prob_list ]
-
-
 		# < Estimate State Value V(s) >
 
 		# Estimate state-value V(s) with the Critic NLM of the initial state policy
-		critic_output = self._initial_state_policy.critic_nlm(list_state_tensors_nlm_encoding, \
-													          list_num_objs_with_virtuals)[0] # [0] to obtain the tensors for the nullary predicates
+		if policy == 'initial_state_policy':
+			critic_output = self._initial_state_policy.critic_nlm(list_state_tensors_nlm_encoding, \
+																  list_num_objs_with_virtuals)[0] # [0] to obtain the tensors for the nullary predicates
+		elif policy == 'goal_policy':
+			critic_output = self._goal_policy.critic_nlm(list_state_tensors_nlm_encoding, \
+														 list_num_objs_with_virtuals)[0] # [0] to obtain the tensors for the nullary predicates
+		else:
+			raise ValueError("Policy parameter must be either 'initial_state_policy' or 'goal_policy'")
+		
 		state_values = [tensor[0].detach().item() for tensor in critic_output] # [0] to obtain the first predicate of the nullary predicates (corresponding to the state_value)
-
 
 		# < Add new information to the trajectory >
 
 		for i in range(trajectory_len):
-			trajectory[i].append(chosen_action_prob_list[i])
 			trajectory[i].append(state_values[i])
-
-
-		# ---- Old method
-		"""
-		for i in range(len(trajectory)):
-			state_tensors, num_objs_with_virtuals, mask_tensors, chosen_action_index, r_continuous, r_eventual, r_difficulty, r_total = trajectory[i]
-			
-			# < Obtain probability of the selected action >
-
-			# Use the Actor NLM of the initial state policy to obtain the action log_probs
-			action_log_probs = self._initial_state_policy(state_tensors, num_objs_with_virtuals, mask_tensors)
-		
-			# Choose the selected action
-			chosen_action_log_prob = action_log_probs[chosen_action_index[0]][tuple(chosen_action_index[1:])].detach().numpy()
-
-			# Convert from log_prob to prob
-			# Note: if the log_prob is NaN, then we assume the prob is 0 (1e-5 to avoid dividing by 0)
-			chosen_action_prob = np.exp(chosen_action_log_prob) if not np.isnan(chosen_action_log_prob) else 1e-5
-
-			# Append prob to the current element of the trajectory
-			trajectory[i].append(chosen_action_prob)
-
-			# < Estimate State Value V(s) >
-
-			# Estimate state-value V(s) with the Critic NLM of the initial state policy
-			state_value = self._initial_state_policy.critic_nlm(state_tensors, num_objs_with_virtuals)[0][0].detach().numpy() # [0][0] to select the first predicate of arity 0 (corresponding to V(s))
-
-			# Append advantage to the current element of the trajectory
-			trajectory[i].append(state_value)
-		"""
-
-
-	"""
-	This method adds the state value and probability of the selected action for each element in the trajectory corresponding
-	to the goal generation phase (i.e., to actions selected by the goal policy).
-	This is needed by the PPO algorithm to train the goal policy's NLMs.
-
-	Note: this method is in-place.
-	"""
-	def _calculate_state_value_and_old_policy_probs_trajectory_goal_policy(self, trajectory):
-		trajectory_len = len(trajectory)
-
-		# < Represent the data in a suitable form for the calculations >
-
-		# Represent the trajectory as a numpy array. The row are the samples and the columns the different elements of each sample.
-		trajectory_np = np.array(trajectory, dtype=object) 
-
-		list_num_objs_with_virtuals = trajectory_np[:, 1].tolist()
-		list_mask_tensors = trajectory_np[:, 2].tolist()
-		list_chosen_action_index = trajectory_np[:,3].tolist()
-
-		# Represent the state tensors in a suitable encoding for the NLMs
-		num_preds_state_tensors = len(trajectory[0][0]) # The number of elements in state_tensors (equal to the max predicate arity - 1)
-		list_state_tensors_nlm_encoding = [[sample[0][r] for sample in trajectory] for r in range(num_preds_state_tensors)]
-
-
-		# < Obtain probability of the selected action >
-
-		# Use the Actor NLM of the initial state policy to obtain the action log_probs
-		action_log_probs_list = self._goal_policy(list_state_tensors_nlm_encoding, list_num_objs_with_virtuals, list_mask_tensors)
-
-		# Choose the selected action
-		# The result is a list where chosen_action_log_prob_list[i] contains the log_prob of the chosen_action for sample i
-		# list_chosen_action_index[i][0] -> arity r
-		# i -> sample i
-		# tuple(list_chosen_action_index[i][1:]) -> tensor position corresponding to chosen_action
-		chosen_action_log_prob_list = [ action_log_probs_list[list_chosen_action_index[i][0]][i][tuple(list_chosen_action_index[i][1:])].detach().numpy()   \
-								        for i in range(trajectory_len) ]
-
-		# Convert from log_probs to probs
-		# Note: if the log_prob is NaN, then we assume the prob is 0 
-		chosen_action_prob_list = [ np.exp(log_prob) if not np.isnan(log_prob) else 1e-5 \
-							        for log_prob in chosen_action_log_prob_list ]
-
-
-		# < Estimate State Value V(s) >
-
-		# Estimate state-value V(s) with the Critic NLM of the initial state policy
-		critic_output = self._goal_policy.critic_nlm(list_state_tensors_nlm_encoding, \
-													          list_num_objs_with_virtuals)[0] # [0] to obtain the tensors for the nullary predicates
-		state_values = [tensor[0].detach().item() for tensor in critic_output] # [0] to obtain the first predicate of the nullary predicates (corresponding to the state_value)
-
-
-		# < Add new information to the trajectory >
-
-		for i in range(trajectory_len):
-			trajectory[i].append(chosen_action_prob_list[i])
-			trajectory[i].append(state_values[i])
-
-
-		# --- Old method 
-
-		"""
-		for i in range(len(trajectory)):
-			state_tensors, num_objs_with_virtuals, mask_tensors, chosen_action_index, r_continuous, r_eventual, r_difficulty, r_total = trajectory[i]
-			
-			# < Obtain probability of the selected action >
-
-			# Use the Actor NLM of the goal state policy to obtain the action log_probs
-			action_log_probs = self._goal_policy(state_tensors, num_objs_with_virtuals, mask_tensors)
-		
-			# Choose the selected action
-			chosen_action_log_prob = action_log_probs[chosen_action_index[0]][tuple(chosen_action_index[1:])].detach().numpy()
-
-			# Convert from log_prob to prob
-			# Note: if the log_prob is NaN, then we assume the prob is 0 (1e-5 to avoid dividing by 0)
-			chosen_action_prob = np.exp(chosen_action_log_prob) if not np.isnan(chosen_action_log_prob) else 1e-5
-
-			# Append prob to the current element of the trajectory
-			trajectory[i].append(chosen_action_prob)
-
-			# < Estimate State Value V(s) >
-
-			# Estimate state-value V(s) with the Critic NLM of the goal state policy
-			state_value = self._goal_policy.critic_nlm(state_tensors, num_objs_with_virtuals)[0][0].detach().numpy() # [0][0] to select the first predicate of arity 0 (corresponding to V(s))
-
-			# Append advantage to the current element of the trajectory
-			trajectory[i].append(state_value)
-		"""
 
 
 	"""
@@ -688,7 +553,7 @@ class DirectedGenerator():
 	Since the scale of rewards can vary a lot during training, we use a moving average to calculate the mean (\mu)
 	and std (\sigma) used to normalize the rewards.
 
-	<Note1>: we assume the rewards are in the position -3 of each trajectory sample. We insert in the -2 position
+	<Note1>: we assume the rewards are in the position -2 of each trajectory sample. We insert in the -2 position
 	         the normalized reward.
 	<Note2>: this method modifies the trajectory in-place.
 	<Note3>: I think this method doesn't work if called in parallel! (as we would be accessing the self._reward_moving_mean and self._reward_moving_std
@@ -697,7 +562,7 @@ class DirectedGenerator():
 	def _normalize_rewards_init_policy(self, trajectory, moving_avg_coeff=0.8, moving_std_coeff=0.8):
 
 		# <Calculate the mean and std of the trajectory rewards (the discounted sum of total rewards)>
-		trajectory_rewards_np = np.array([sample[-3] for sample in trajectory], dtype=np.float32)
+		trajectory_rewards_np = np.array([sample[-2] for sample in trajectory], dtype=np.float32)
 		trajectory_rewards_mean = np.mean(trajectory_rewards_np)
 		trajectory_rewards_std = np.std(trajectory_rewards_np)
 
@@ -713,8 +578,8 @@ class DirectedGenerator():
 		# <Normalize the trajectory rewards>
 		# We store both the reward before normalization and after it
 		for i in range(len(trajectory)):
-			norm_reward = (trajectory[i][-3] - self._reward_moving_mean_init_policy) / (self._reward_moving_std_init_policy + 1e-10) # z-score normalization
-			trajectory[i] = trajectory[i][:-2] + [norm_reward] + trajectory[i][-2:] # Store the normalized reward in the trajectory[i][-3] position
+			norm_reward = (trajectory[i][-2] - self._reward_moving_mean_init_policy) / (self._reward_moving_std_init_policy + 1e-10) # z-score normalization
+			trajectory[i] = trajectory[i][:-1] + [norm_reward] + trajectory[i][-1:] # Store the normalized reward in the trajectory[i][-2] position
 
 
 	"""
@@ -723,7 +588,7 @@ class DirectedGenerator():
 	Since the scale of rewards can vary a lot during training, we use a moving average to calculate the mean (\mu)
 	and std (\sigma) used to normalize the rewards.
 
-	<Note1>: we assume the rewards are in the 4-th position of each trajectory sample. We append to the 5-th position
+	<Note1>: we assume the rewards are in the position -2 of each trajectory sample. We insert in the -2 position
 	         the normalized reward.
 	<Note2>: this method modifies the trajectory in-place.
 	<Note3>: I think this method doesn't work if called in parallel! (as we would be accessing the self._reward_moving_mean and self._reward_moving_std
@@ -732,7 +597,7 @@ class DirectedGenerator():
 	def _normalize_rewards_goal_policy(self, trajectory, moving_avg_coeff=0.8, moving_std_coeff=0.8):
 
 		# <Calculate the mean and std of the trajectory rewards>
-		trajectory_rewards_np = np.array([sample[-3] for sample in trajectory], dtype=np.float32)
+		trajectory_rewards_np = np.array([sample[-2] for sample in trajectory], dtype=np.float32)
 		trajectory_rewards_mean = np.mean(trajectory_rewards_np)
 		trajectory_rewards_std = np.std(trajectory_rewards_np)
 
@@ -748,8 +613,8 @@ class DirectedGenerator():
 		# <Normalize the trajectory rewards>
 		# We store both the reward before normalization and after it
 		for i in range(len(trajectory)):
-			norm_reward = (trajectory[i][-3] - self._reward_moving_mean_goal_policy) / (self._reward_moving_std_goal_policy + 1e-10) # z-score normalization
-			trajectory[i] = trajectory[i][:-2] + [norm_reward] + trajectory[i][-2:] # Store the normalized reward in the trajectory[i][-3] position
+			norm_reward = (trajectory[i][-2] - self._reward_moving_mean_goal_policy) / (self._reward_moving_std_goal_policy + 1e-10) # z-score normalization
+			trajectory[i] = trajectory[i][:-1] + [norm_reward] + trajectory[i][-1:] # Store the normalized reward in the trajectory[i][-2] position
 
 
 	# ------- Main Methods --------
@@ -801,8 +666,8 @@ class DirectedGenerator():
 			mask_tensors = self._get_mask_tensors_init_policy(init_nlm_output_layer_shape, curr_state)
 
 			# Obtain an action (index) with the policy
-			chosen_action_index = self._initial_state_policy.select_action(curr_state_tensors, num_objs_with_virtuals,
-																			mask_tensors)
+			chosen_action_index, chosen_action_prob = self._initial_state_policy.select_action(curr_state_tensors, num_objs_with_virtuals,
+																			                   mask_tensors)
 
 			# <Process the action>
 
@@ -849,12 +714,9 @@ class DirectedGenerator():
 
 			# Append sample to the trajectory
 			trajectory.append( [curr_state_tensors, num_objs_with_virtuals, mask_tensors,
-					            chosen_action_index, r_continuous_consistency, r_eventual_consistency, 0.0] ) # The '0.0' in the last position corresponds to the difficulty reward
-
-			# Quitar
-			#print("\nchosen_action_index:", chosen_action_index)
-			#print("r_continuous_consistency:", r_continuous_consistency)
-
+					            chosen_action_index, chosen_action_prob,
+							    r_continuous_consistency, r_eventual_consistency, 0.0] ) # The '0.0' in the last position corresponds to the difficulty reward
+			
 		return problem, trajectory
 
 
@@ -898,15 +760,8 @@ class DirectedGenerator():
 			# Mask tensors
 			mask_tensors = self._get_mask_tensors_goal_policy(goal_nlm_output_layer_shape, problem)
 
-
-			# QUITAR
-			#print("\n state objs:", curr_goal_state.objects)
-			#print("\nobj_types_to_indices_dict init state:", init_state.obj_types_to_indices_dict.items())
-			#print("\nobj_types_to_indices_dict goal state:", curr_goal_state.obj_types_to_indices_dict.items())
-			#print("\ncurr_goal_and_init_state_tensors:", curr_goal_and_init_state_tensors)
-
 			# Obtain an action (index) with the goal policy
-			chosen_action_index = self._goal_policy.select_action(curr_goal_and_init_state_tensors, num_objs, mask_tensors)
+			chosen_action_index, chosen_action_prob = self._goal_policy.select_action(curr_goal_and_init_state_tensors, num_objs, mask_tensors)
 
 			# <Process the action>
 
@@ -950,7 +805,8 @@ class DirectedGenerator():
 
 			# Append sample to the trajectory
 			trajectory.append( [curr_goal_and_init_state_tensors, num_objs, mask_tensors,
-					            chosen_action_index, 0.0, 0.0, r_difficulty] ) # The two '0.0' correspond to the continuous and eventual consistency rewards
+					            chosen_action_index, chosen_action_prob,
+							    0.0, 0.0, r_difficulty] ) # The two '0.0' correspond to the continuous and eventual consistency rewards
 
 		return problem, r_difficulty_real, trajectory
 
@@ -986,16 +842,15 @@ class DirectedGenerator():
 
 		self._sum_rewards_trajectory(init_and_goal_policy_trajectory, disc_factor_cont_consistency, disc_factor_event_consistency, disc_factor_difficulty)
 
-
 		# <Calculate the state value and selected action probability>
 
 		init_policy_trajectory = init_and_goal_policy_trajectory[:init_policy_trajectory_length]
 		goal_policy_trajectory = init_and_goal_policy_trajectory[init_policy_trajectory_length:]
 
-		self._calculate_state_value_and_old_policy_probs_trajectory_init_policy(init_policy_trajectory)
+		self._calculate_state_values_trajectory(init_policy_trajectory, 'initial_state_policy')
 
 		if len(goal_policy_trajectory) > 0: # Don't call the method if there is no goal_policy trajectory
-			self._calculate_state_value_and_old_policy_probs_trajectory_goal_policy(goal_policy_trajectory)
+			self._calculate_state_values_trajectory(goal_policy_trajectory, 'goal_policy')
 
 		return init_policy_trajectory, goal_policy_trajectory
 
@@ -1058,6 +913,7 @@ class DirectedGenerator():
 					\n\t>Goal policy trajectories: {len(goal_policy_trajectories)}")
 
 			# Normalize the rewards
+
 			self._normalize_rewards_init_policy(init_policy_trajectories)
 			if len(goal_policy_trajectories) > 0:
 				self._normalize_rewards_goal_policy(goal_policy_trajectories)
