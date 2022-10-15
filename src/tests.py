@@ -653,7 +653,7 @@ def test_train_init_and_goal_policy():
 										   res_connections_initial_state_nlm=True,
 										   lr_initial_state_nlm = 1e-3,
 										   entropy_coeff_init_state_policy = 2,
-										   entropy_annealing_coeffs_init_state_policy = (600, 0.2),
+										   entropy_annealing_coeffs_init_state_policy = (600, 0.5),
 										   epsilon_init_state_policy=0.1,
 
 										   num_preds_inner_layers_goal_nlm=nlm_inner_layers,
@@ -661,7 +661,7 @@ def test_train_init_and_goal_policy():
 										   res_connections_goal_nlm=True,
 										   lr_goal_nlm = 1e-3,
 										   entropy_coeff_goal_policy = 1,
-										   entropy_annealing_coeffs_goal_policy = (300, 0.2),
+										   entropy_annealing_coeffs_goal_policy = (400, 0.5),
 										   epsilon_goal_policy=0.1)
 
 
@@ -687,8 +687,8 @@ def test_load_models_and_generate_problems():
 	planner = Planner(domain_file_path)
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_95/init_policy_its-580.ckpt"
-	goal_policy_path = "saved_models/both_policies_95/goal_policy_its-580.ckpt"
+	init_policy_path = "saved_models/both_policies_97/init_policy_its-810.ckpt"
+	goal_policy_path = "saved_models/both_policies_97/goal_policy_its-810.ckpt"
 
 	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
@@ -1138,6 +1138,7 @@ def test_load_models_and_generate_problems():
 
 # >> Cambiamos _calculate_state_values_trajectory para que no se vuelva a llamar a la NLM -> se reduce el tiempo de entrenamiento!
 
+
 # Ejecución -> ground_entropy*0.5 + lifted_entropy*0.5, sin ignorar term cond prob
 	20 átomos y goal actions
 	planner_search_options= --alias lama-first
@@ -1146,6 +1147,67 @@ def test_load_models_and_generate_problems():
 	rescale_factor=0.02 for difficulty
 	<entropy_annealing_coeffs_init_state_policy = (600, 0.2), entropy_annealing_coeffs_goal_policy = (300, 0.2)>
 
+	> Entrenamiento (comparación con experimento anterior con menores entropy coeffs)
+		- Term cond prob baja hasta 0.06 (un valor un poco más alto que el experimento anterior) y la gráfica es más estable
+		- La r_eventual y r_continuous convergen a 0
+		- La r_difficulty llega hasta 2 (al igual que en el experimento anterior), aunque tarda 100 its más
+		- La init_state_policy_entropy baja más lentamente, hasta 0.26 (en el experimento anterior baja hasta 0.17) ->
+		  Tiene más entropía!
+		- La goal_policy_entropy baja hasta 0.09 (en el experimento anterior baja hasta 0.05) -> Tiene más entropía, pero sigue siendo poca
+		- Tiempo de entrenamiento: 9h
+
+	> Problemas (its=680):
+		- 10 atoms&actions - diff = 36.5
+		- 20 atoms&actions - diff = 170 - diversidad media - los problemas tienen un número de átomos variable, algunos tienen casi 20!
+		                                  La mayoría de problemas tienen una sola torre, aunque hay algunos con dos y tres torres de bloques
+									      Todos los problemas tienen holding() y ninguno handempty()
+										  Los objetivos de los problemas generados son muy poco diversos! -> todos menos 1 tienen en el goal
+										  (ontable X) donde X es el bloque en "holding()" en el estado inicial, además de 1 átomo adicional en la mayoría de goals
+										  (ontable) pero no más de dos
+										  <<NECESITO GENERAR OBJETIVOS MUCHO MÁS DIVERSOS!!!!>>
+		- 30 atoms&actions - diff = 331 - Ningún problema generado se acerca a 30 átomos: el que más tiene es 25 y la mayoría tienen alrededor
+		                                  de 20 átomos
+		- 50 atoms&actions - diff = 688.2 - Ningún problema generado se acerca a 50 átomos, pero sí hay problemas con alrededor de 30 átomos!
+		
+		
+	<Genera problemas más difíciles y diversos que en el experimento anterior -> es mejor usar un alto valor de entropía!>
+	<No obstante, no generaliza bien a problemas más grandes y la diversidad de los problemas, sobretodo de los objetivos debe mejorar aún.
+	Además, ningún init state tiene handempty, sino que todos tienen holding>
+
+	<<CREO QUE ES POSIBLE GENERAR PROBLEMAS CON UN MAYOR NÚMERO DE ÁTOMOS PERO, SI QUIERO GENERAR CON 30 ÁTOMOS, DEBERÍA PONER EL MAX_NUM_ATOMS
+	 A 60 (por ejemplo) EN VEZ DE 30>>
+
+
+# Ejecución -> ground_entropy*0.5 + lifted_entropy*0.5, sin ignorar term cond prob
+	20 átomos y goal actions
+	planner_search_options= --alias lama-first
+	NLM without preds arity 3
+	no np.log() to rescale problem difficulty
+	rescale_factor=0.02 for difficulty
+	<entropy_annealing_coeffs_init_state_policy = (600, 0.5), entropy_annealing_coeffs_goal_policy = (400, 0.5)>
+
+	> Entrenamiento (comparación con experimento anterior)
+		- Term cond prob baja más lentamente y hasta 0.08 (en el experimento anterior hasta 0.06)
+		- La r_eventual y r_continuous convergen a 0
+		- La r_difficulty llega hasta 0.35 tras 9h de entrenamiento! (en el experimento anterior llegaba hasta 2)!!
+		- La init_state_policy entropy baja hasta 0.3 (en el experimento anterior bajaba hasta 0.25)
+		- La goal_policy entropy casi no disminuye nada durante el entrenamiento!!! -> baja hasta 0.32 mientras que en el experimento
+		  anterior bajaba hasta 0.09 -> LA ENTROPÍA DE LA GOAL POLICY ES DEMASIADO ALTA!!!
+
+	> Problemas (its=810)
+		- 20 atoms&actions - diff = 26.5 - diversidad alta - LA DIVERSIDAD DE LOS PROBLEMAS ES MUY BUENA PERO LA DIFICULTAD MUY BAJA!!
+					
+	<Mejora la diversidad al aumentar la entropía pero los problemas son demasiado sencillos, y tienen unos pocos átomos menos de media
+	 que en el experimento anterior>
+	<Creo que el problema es la goal_policy, que tiene una entropía demasiado elevada!!!>
+
+# Ejecución -> ground_entropy*0.5 + lifted_entropy*0.5, sin ignorar term cond prob
+	20 átomos y goal actions
+	planner_search_options= --alias lama-first
+	NLM without preds arity 3
+	no np.log() to rescale problem difficulty
+	rescale_factor=0.02 for difficulty
+	<entropy_annealing_coeffs_init_state_policy = (600, 0.5), entropy_annealing_coeffs_goal_policy = (300, 0.3)>
 
 
 
@@ -1161,10 +1223,9 @@ def test_load_models_and_generate_problems():
 
 >> Siguientes experimentos:
 	> Disminuir el rescale_factor para la dificultad -> Hecho
-	> Aumentar la entropía
-		- Hacer que la entropía de la init_state_policy baje hasta 600 its
-		- Hacer que la entropía de la goal_state_policy baje hasta 300 its
-		- En ambos casos la entropía debe bajar hasta 0.2
+	> Aumentar la entropía -> Hecho
+	> Probar a aumentar aún más la entropía o disminuirla
+	> Probar a cambiar la proporción entre ground_entropy y lifted_entropy
 
 >> CAMBIOS PARA AUMENTAR EFICIENCIA NLM:
 	> Cambiar _calculate_state_value_and_old_policy_probs_trajectory_init_policy (y del goal) para que sea mas eficiente
