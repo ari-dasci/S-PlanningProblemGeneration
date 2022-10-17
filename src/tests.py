@@ -653,7 +653,7 @@ def test_train_init_and_goal_policy():
 										   res_connections_initial_state_nlm=True,
 										   lr_initial_state_nlm = 1e-3,
 										   entropy_coeff_init_state_policy = 2,
-										   entropy_annealing_coeffs_init_state_policy = (600, 1.0),
+										   entropy_annealing_coeffs_init_state_policy = (600, 0.2),
 										   epsilon_init_state_policy=0.1,
 
 										   num_preds_inner_layers_goal_nlm=nlm_inner_layers,
@@ -661,7 +661,7 @@ def test_train_init_and_goal_policy():
 										   res_connections_goal_nlm=True,
 										   lr_goal_nlm = 1e-3,
 										   entropy_coeff_goal_policy = 1,
-										   entropy_annealing_coeffs_goal_policy = (300, 0.25),
+										   entropy_annealing_coeffs_goal_policy = (300, 0.2),
 										   epsilon_goal_policy=0.1)
 
 
@@ -687,8 +687,8 @@ def test_load_models_and_generate_problems():
 	planner = Planner(domain_file_path)
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_100/init_policy_its-700.ckpt"
-	goal_policy_path = "saved_models/both_policies_100/goal_policy_its-700.ckpt"
+	init_policy_path = "saved_models/both_policies_96/init_policy_its-680.ckpt"
+	goal_policy_path = "saved_models/both_policies_96/goal_policy_its-680.ckpt"
 
 	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
@@ -712,8 +712,8 @@ def test_load_models_and_generate_problems():
 	# Generate the set of problems with the trained initial policy
 	num_problems = 10
 
-	directed_generator.generate_problems(num_problems, max_atoms_init_state=20, max_actions_init_state=60,
-									     max_actions_goal_state=20, max_planning_time=60, verbose=True)
+	directed_generator.generate_problems(num_problems, max_atoms_init_state=70, max_actions_init_state=210,
+									     max_actions_goal_state=70, max_planning_time=60, verbose=True)
 
 """
 
@@ -1139,6 +1139,13 @@ def test_load_models_and_generate_problems():
 # >> Cambiamos _calculate_state_values_trajectory para que no se vuelva a llamar a la NLM -> se reduce el tiempo de entrenamiento!
 
 
+
+
+
+
+
+# >>>>> Mejor hasta la fecha
+
 # Ejecución -> ground_entropy*0.5 + lifted_entropy*0.5, sin ignorar term cond prob
 	20 átomos y goal actions
 	planner_search_options= --alias lama-first
@@ -1146,6 +1153,9 @@ def test_load_models_and_generate_problems():
 	no np.log() to rescale problem difficulty
 	rescale_factor=0.02 for difficulty
 	<entropy_annealing_coeffs_init_state_policy = (600, 0.2), entropy_annealing_coeffs_goal_policy = (300, 0.2)>
+
+	- logs: init_policy\ version_41, goal_policy\ version_23
+	- saved_models_96
 
 	> Entrenamiento (comparación con experimento anterior con menores entropy coeffs)
 		- Term cond prob baja hasta 0.06 (un valor un poco más alto que el experimento anterior) y la gráfica es más estable
@@ -1158,24 +1168,27 @@ def test_load_models_and_generate_problems():
 
 	> Problemas (its=680):
 		- 10 atoms&actions - diff = 36.5
-		- 20 atoms&actions - diff = 170 - diversidad media - los problemas tienen un número de átomos variable, algunos tienen casi 20!
-		                                  La mayoría de problemas tienen una sola torre, aunque hay algunos con dos y tres torres de bloques
-									      Todos los problemas tienen holding() y ninguno handempty()
-										  Los objetivos de los problemas generados son muy poco diversos! -> todos menos 1 tienen en el goal
-										  (ontable X) donde X es el bloque en "holding()" en el estado inicial, además de 1 átomo adicional en la mayoría de goals
-										  (ontable) pero no más de dos
-										  <<NECESITO GENERAR OBJETIVOS MUCHO MÁS DIVERSOS!!!!>>
+		- 20 atoms&actions - diff = 160 - diversidad media - los problemas tienen un número de átomos variable, algunos tienen casi 20!
+		                                  La mayoría de problemas tienen una sola torre, aunque hay algunos con dos torres
+									      Todos los estados iniciales tienen holding() y ninguno handempty()
+										  Los objetivos tienen diversidad media (y algunos tienen holding como handempty)
 		- 30 atoms&actions - diff = 331 - Ningún problema generado se acerca a 30 átomos: el que más tiene es 25 y la mayoría tienen alrededor
 		                                  de 20 átomos
 		- 50 atoms&actions - diff = 688.2 - Ningún problema generado se acerca a 50 átomos, pero sí hay problemas con alrededor de 30 átomos!
+		- 70 atoms&actions - diff = 1177.7 - Se generan problemas de hasta 44 átomos (la mayoría rondan los 30)
 		
 		
 	<Genera problemas más difíciles y diversos que en el experimento anterior -> es mejor usar un alto valor de entropía!>
 	<No obstante, no generaliza bien a problemas más grandes y la diversidad de los problemas, sobretodo de los objetivos debe mejorar aún.
 	Además, ningún init state tiene handempty, sino que todos tienen holding>
 
-	<<CREO QUE ES POSIBLE GENERAR PROBLEMAS CON UN MAYOR NÚMERO DE ÁTOMOS PERO, SI QUIERO GENERAR CON 30 ÁTOMOS, DEBERÍA PONER EL MAX_NUM_ATOMS
-	 A 60 (por ejemplo) EN VEZ DE 30>>
+	<<ES POSIBLE GENERAR PROBLEMAS CON UN MAYOR NÚMERO DE ÁTOMOS SI max_atoms_init_state LO PONGO MAYOR AL NÚMERO DE ÁTOMOS QUE QUIERO GENERAR
+	  (ej.: para generar problemas con 50 átomos, ponerlo a 70)>>
+
+
+
+
+
 
 
 # Ejecución -> ground_entropy*0.5 + lifted_entropy*0.5, sin ignorar term cond prob
@@ -1246,7 +1259,6 @@ def test_load_models_and_generate_problems():
 
 	<La dificultad sigue siendo baja y ahora los goals son muy poco diversos!>
 
-
 # Ejecución -> ground_entropy*0.5 + lifted_entropy*0.5, sin ignorar term cond prob
 	20 átomos y goal actions
 	planner_search_options= --alias lama-first
@@ -1269,10 +1281,11 @@ def test_load_models_and_generate_problems():
 	 y el entrenamiento se ralentiza un poco>
 
 	> Problemas (its=780)
-		- 20 atoms&actions - diff = 110.8 - diversidad media (los problemas solo tienen 1 o 2 torres en el estado inicial! (ninguno tiene 3 o más))
+	    - 10 atoms&actions - diff = 30
+		- 20 atoms&actions - diff = 90 -    diversidad media (casi todos los problemas tienen una sola torre en el estado inicial)
+											(casi ninguno tiene dos y ninguno tiene tres)
 											El número de átomos ronda los 12
 											Los objetivos son bastante diversos
-	
 
 # Ejecución -> ground_entropy*0.5 + lifted_entropy*0.5, sin ignorar term cond prob
 	20 átomos y goal actions
@@ -1282,11 +1295,25 @@ def test_load_models_and_generate_problems():
 	rescale_factor=0.02 for difficulty
 	<entropy_annealing_coeffs_init_state_policy = (600, 1.0), entropy_annealing_coeffs_goal_policy = (300, 0.25)>
 
+	> Entrenamiento
+		- La r difficulty no pasa de 0.4!
+		- Tanto la init_state_policy como la goal_policy tienen una mayor entropía que en el experimento anterior
+		  (a pesar de solo haber aumentado la entropía de la init_policy)
+
+	> Problemas (its=950)
+		- 20 atoms&actions - diff = 28 - diversidad muy alta 
+										 Casi todos los problemas tienen holding en el estado inicial (solo dos tienen handempty)
+										 Los problemas son muy sencillos, ya que la mayoría tienen muy pocos átomos en el estado inicial!!
+
+	<Se consigue aumentar mucho la diversidad de los problemas, a costa de reducir mucho la dificultad. No obstante, ni así se consiguen
+	 problemas con handempty en el estado inicial (solo dos de diez) ni con tres torres (solo tienen o una o dos)>
 
 
 
 
->>> Mejor modelo hasta la fecha: init_policy\ version_45, saved_models_100
+
+
+SI AÑADO NP.LOG A PERC_ACTIONS_EXECUTED EN ENTRENAMIENTO, TAMBIÉN TENGO QUE AÑADIRLO CUANDO GENERO PROBLEMAS!
 
 
 >>>>> TODO
@@ -1370,5 +1397,5 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems()
 
 	#test_generate_random_problems()
-	test_train_init_and_goal_policy()
-	#test_load_models_and_generate_problems()
+	#test_train_init_and_goal_policy()
+	test_load_models_and_generate_problems()
