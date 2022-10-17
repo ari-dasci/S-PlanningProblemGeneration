@@ -653,7 +653,7 @@ def test_train_init_and_goal_policy():
 										   res_connections_initial_state_nlm=True,
 										   lr_initial_state_nlm = 1e-3,
 										   entropy_coeff_init_state_policy = 2,
-										   entropy_annealing_coeffs_init_state_policy = (600, 0.5),
+										   entropy_annealing_coeffs_init_state_policy = (600, 1.0),
 										   epsilon_init_state_policy=0.1,
 
 										   num_preds_inner_layers_goal_nlm=nlm_inner_layers,
@@ -661,7 +661,7 @@ def test_train_init_and_goal_policy():
 										   res_connections_goal_nlm=True,
 										   lr_goal_nlm = 1e-3,
 										   entropy_coeff_goal_policy = 1,
-										   entropy_annealing_coeffs_goal_policy = (400, 0.5),
+										   entropy_annealing_coeffs_goal_policy = (300, 0.25),
 										   epsilon_goal_policy=0.1)
 
 
@@ -687,8 +687,8 @@ def test_load_models_and_generate_problems():
 	planner = Planner(domain_file_path)
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_97/init_policy_its-810.ckpt"
-	goal_policy_path = "saved_models/both_policies_97/goal_policy_its-810.ckpt"
+	init_policy_path = "saved_models/both_policies_100/init_policy_its-700.ckpt"
+	goal_policy_path = "saved_models/both_policies_100/goal_policy_its-700.ckpt"
 
 	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
@@ -1196,10 +1196,12 @@ def test_load_models_and_generate_problems():
 
 	> Problemas (its=810)
 		- 20 atoms&actions - diff = 26.5 - diversidad alta - LA DIVERSIDAD DE LOS PROBLEMAS ES MUY BUENA PERO LA DIFICULTAD MUY BAJA!!
+															 No obstante, todos los problemas tienen holding y ninguno handempty.
 					
 	<Mejora la diversidad al aumentar la entropía pero los problemas son demasiado sencillos, y tienen unos pocos átomos menos de media
 	 que en el experimento anterior>
 	<Creo que el problema es la goal_policy, que tiene una entropía demasiado elevada!!!>
+
 
 # Ejecución -> ground_entropy*0.5 + lifted_entropy*0.5, sin ignorar term cond prob
 	20 átomos y goal actions
@@ -1209,23 +1211,112 @@ def test_load_models_and_generate_problems():
 	rescale_factor=0.02 for difficulty
 	<entropy_annealing_coeffs_init_state_policy = (600, 0.5), entropy_annealing_coeffs_goal_policy = (300, 0.3)>
 
+	- logs: init_policy\ version_43, saved_models_98
+
+	> Entrenamiento
+		- Mismos resultados que en el experimento anterior menos:
+			- La r_difficulty ahora llega hasta 1 (más alta, pero sigue siendo baja)
+			- La goal_policy entropy baja hasta 0.18
+
+	> Problemas (its=820)
+		- 20 atoms&actions - diff = 79.5 - diversidad alta, aunque todos los problemas tienen holding en el init state y ninguno handempty
+										   No obstante, en el estado inicial todos los problemas tienen o 1 o dos torres.
+		
+	<Mejora la dificultad de los problemas, pero sigue sin ser suficiente>
+
+
+# Ejecución -> ground_entropy*0.5 + lifted_entropy*0.5, sin ignorar term cond prob
+	20 átomos y goal actions
+	planner_search_options= --alias lama-first
+	NLM without preds arity 3
+	no np.log() to rescale problem difficulty
+	rescale_factor=0.02 for difficulty
+	<entropy_annealing_coeffs_init_state_policy = (600, 0.5), entropy_annealing_coeffs_goal_policy = (500, 0.2)>
+
+	> Entrenamiento
+		- La r_difficulty ahora llega hasta 1.3 (más alta, pero sigue sin llegar a 2)
+		- La goal_policy entropy baja hasta 0.12 (es más baja que en el experimento anterior)
+
+	> Problemas (its=810)
+		- 20 atoms&actions - diff = 70.7 - diversidad alta
+		                                  Los problemas tienen pocos átomos!
+										  Los objetivos son muy poco diversos! (casi todos tienen ontable(x) donde x era el átomo
+										  que estaba en holding(X) en el estado inicial y, a veces, otro ontable, aunque la mayoría
+										  de veces el goal es solo apilar todos los bloques en X)
+
+	<La dificultad sigue siendo baja y ahora los goals son muy poco diversos!>
+
+
+# Ejecución -> ground_entropy*0.5 + lifted_entropy*0.5, sin ignorar term cond prob
+	20 átomos y goal actions
+	planner_search_options= --alias lama-first
+	NLM without preds arity 3
+	no np.log() to rescale problem difficulty
+	rescale_factor=0.02 for difficulty
+	<entropy_annealing_coeffs_init_state_policy = (600, 0.3), entropy_annealing_coeffs_goal_policy = (300, 0.3)>
+
+	- logs: init_policy\ version_45, saved_models_100
+
+	> Entrenamiento
+		(comparación con entropy_annealing_coeffs_init_state_policy = (600, 0.2), entropy_annealing_coeffs_goal_policy = (300, 0.2))
+		- La r_difficulty sube hasta 1.4, mientras que en el experimento anterior sube hasta 2
+		- La entropía de la init_state_policy es ligeramente mayor (0.3 vs 0.25) y la de la goal_policy es bastante mayor
+		  (0.15 vs 0.08)
+		- El entrenamiento tarda un poco más (11h vs 8h30)
+		- El resto de cosas son muy similares entre ambos experimentos
+
+	<Parece que a cambio de aumentar bastante la goal_policy entropy y un poco la init_policy entropy, la dificultad disminuye bastante
+	 y el entrenamiento se ralentiza un poco>
+
+	> Problemas (its=780)
+		- 20 atoms&actions - diff = 110.8 - diversidad media (los problemas solo tienen 1 o 2 torres en el estado inicial! (ninguno tiene 3 o más))
+											El número de átomos ronda los 12
+											Los objetivos son bastante diversos
+	
+
+# Ejecución -> ground_entropy*0.5 + lifted_entropy*0.5, sin ignorar term cond prob
+	20 átomos y goal actions
+	planner_search_options= --alias lama-first
+	NLM without preds arity 3
+	no np.log() to rescale problem difficulty
+	rescale_factor=0.02 for difficulty
+	<entropy_annealing_coeffs_init_state_policy = (600, 1.0), entropy_annealing_coeffs_goal_policy = (300, 0.25)>
 
 
 
+
+
+>>> Mejor modelo hasta la fecha: init_policy\ version_45, saved_models_100
+
+
+>>>>> TODO
+
+	> Si los problemas generados (20 atoms) son diversos y difíciles
+		- Ver si generaliza a problemas más grandes
+			- Si generaliza, hemos acabado! -> Guardar modelo, parámetros usados, num its, tiempo de entrenamiento, etc.
+				- Podemos hacer pruebas con un menor num trajectories_per_train_it
+			- Si no, ver si ayuda añadir np.log a perc_actions_executed
+				- Si no es suficiente, probar a generar problemas poniendo max_num_atoms mayor que el número de átomos que queremos que tenga el init_state
+					- Si esto ayuda, añadir los nuevos parámetros a generate_problems
+
+	> Si no son diversos y difíciles, probar a aumentar la diversidad o el rescale_factor de la dificultad
+		- También puedo probar a añadir predicados de ariedad 3
+
+
+>>> GUARDAR EL MEJOR MODELO PARA BLOCKSWORLD Y TAMBIÉN LOS PARÁMETROS USADOS!! (ej.: entropy coeffs, NLM layers...)
+<MEDIR TAMBIÉN EL NÚMERO DE ITS, Y EL TIEMPO DE ENTRENAMIENTO>
 
 
 -----------------
 
+
 >> TODO
 	- Conseguir que se generen problemas en blocksworld diversos y que generalicen a un mayor número de objetos
 	  (también que tengan handempty() y holding())
-    - Hacer pruebas con logistics -> <Programar el state_validator>
-
->> Siguientes experimentos:
-	> Disminuir el rescale_factor para la dificultad -> Hecho
-	> Aumentar la entropía -> Hecho
-	> Probar a aumentar aún más la entropía o disminuirla
-	> Probar a cambiar la proporción entre ground_entropy y lifted_entropy
+    - Hacer pruebas con logistics
+		- VER SI PARA EL GOAL ME QUEDO SOLO CON UN SUBCONJUNTO DE PREDICADOS (ej.: solo los predicados "at" de los "packages")
+		- Creo que en logistics sí será necesario que la NLM use predicados de ariedad 3
+			- Tengo que modificar la NLM para que, si no se usan residual_connections, se añadan los predicados extra como input a cada capa intermedia
 
 >> CAMBIOS PARA AUMENTAR EFICIENCIA NLM:
 	> Cambiar _calculate_state_value_and_old_policy_probs_trajectory_init_policy (y del goal) para que sea mas eficiente
