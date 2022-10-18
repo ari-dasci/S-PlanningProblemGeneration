@@ -340,11 +340,7 @@ class DirectedGenerator():
 		num_objs = problem.goal_state.num_objects # Number of objects in the goal state (and also in the initial state)
 		
 		# Get applicable ground actions at the current goal state
-		start = time.time()
 		applicable_ground_actions = problem.applicable_ground_actions()
-		end = time.time()
-		# QUITAR
-		print(f" -    applicable_ground_actions - {end-start:.3f}s") # -> TARDA MUCHO
 
 		# Convert from the relational encoding ( ['stack', [1, 2]] ) to the encoding
 		# used by the NLM ( [action_arity, obj_1_ind, obj_2_ind, ..., action_ind] -> [2, 1, 2, 0] )
@@ -734,7 +730,7 @@ class DirectedGenerator():
 	@problem A ProblemState instance containing the initial state to start the goal generation phase from.
 	         <Note>: we assume the initial state of @problem meets all the eventual consistency rules.
 	"""
-	def _obtain_trajectory_goal_policy(self, problem, max_actions_goal_state=-1, max_planning_time=10):
+	def _obtain_trajectory_goal_policy(self, problem, max_actions_goal_state=-1, max_planning_time=10, verbose=False):
 
 		if max_actions_goal_state == -1:
 			max_actions_goal_state = self._max_actions_goal_state
@@ -754,11 +750,6 @@ class DirectedGenerator():
 		actions_executed = 0
 
 		while not goal_state_generated:
-
-			# QUITAR
-			print("\n --------------------- ")
-
-
 			# < Use the goal policy to select an action >
 
 			curr_goal_state = problem.goal_state
@@ -768,20 +759,10 @@ class DirectedGenerator():
 			curr_goal_and_init_state_tensors = init_state.atoms_nlm_encoding_with_goal_state(curr_goal_state, goal_nlm_max_pred_arity, True, perc_actions_executed) # True for adding object types as extra unary predicates
 
 			# Mask tensors
-			start = time.time()
 			mask_tensors = self._get_mask_tensors_goal_policy(goal_nlm_output_layer_shape, problem)
-			end = time.time()
-
-			# Quitar
-			print(f"Mask_tensors - {end-start:.3f}s") # -> TARDA MUCHO
 
 			# Obtain an action (index) with the goal policy
-			start = time.time()
 			chosen_action_index, chosen_action_prob = self._goal_policy.select_action(curr_goal_and_init_state_tensors, num_objs, mask_tensors)
-			end = time.time()
-
-			# Quitar
-			print(f"goal_policy.select_action - {end-start:.3f}s")
 
 			# <Process the action>
 
@@ -794,34 +775,26 @@ class DirectedGenerator():
 				goal_state_generated = True
 				problem.end_goal_state_generation_phase()
 
-				# Quitar
-				print(f"> Termination condition\n")
+				if verbose:
+					print("- Termination condition")
+					print("- Goal generation finished - measuring problem difficulty")
 
 				# Call the planner to obtain the difficulty of the problem generated
 				# This method also selects the goal atoms corresponding to the goal predicates given by the user
 				r_difficulty_real, r_difficulty = self.get_problem_difficulty(problem, max_planning_time=max_planning_time) # Difficulty scaled to real values between 0 and 1 (unless the problem difficulty surpasses the maximum difficulty)
 
 			# If the selected action is not the termination condition, execute it
-			else:		
+			else:	
 				
 				# Transform the action index into a proper action
-				start = time.time()
 				action_name = self._dummy_rel_state_actions.get_predicate_by_arity_and_ind(chosen_action_index[0], 
 																			               chosen_action_index[-1])[0] # [0] to get the name
 				action_params = chosen_action_index[1:-1]
-				end = time.time()
 
-				# Quitar
-				print(f"get_predicate_by_arity_and_ind - {end-start:.3f}s")
+				if verbose:
+					print(f"- Action: [{action_name},[{action_params}]]")
 
-				# Quitar
-				# print(f"> Action: [{action_name},[{action_params}]]\n")
-				start = time.time()
 				problem.apply_action_to_goal_state(action_name, action_params, check_action_applicability=False)
-				end = time.time()
-
-				# Quitar
-				print(f"apply_action - {end-start:.3f}s") # -> TARDA MUCHO (aunque menos que mask_tensors)
 
 				actions_executed += 1
 
@@ -831,6 +804,9 @@ class DirectedGenerator():
 				if actions_executed >= max_actions_goal_state:
 					goal_state_generated = True
 					problem.end_goal_state_generation_phase()
+
+					if verbose:
+						print("- Goal generation finished - measuring problem difficulty")
 
 					# Call the planner to obtain the difficulty of the problem generated
 					# This method also selects the goal atoms corresponding to the goal predicates given by the user
@@ -842,7 +818,6 @@ class DirectedGenerator():
 			trajectory.append( [curr_goal_and_init_state_tensors, num_objs, mask_tensors,
 					            chosen_action_index, chosen_action_prob,
 							    0.0, 0.0, r_difficulty] ) # The two '0.0' correspond to the continuous and eventual consistency rewards
-
 
 
 		return problem, r_difficulty_real, trajectory
@@ -1051,7 +1026,7 @@ class DirectedGenerator():
 			print("> Generating goal (:goal)")
 
 		# <Generate a goal state with the goal policy>
-		final_problem, problem_difficulty, goal_policy_trajectory = self._obtain_trajectory_goal_policy(init_problem, max_actions_goal_state, max_planning_time=max_planning_time)
+		final_problem, problem_difficulty, goal_policy_trajectory = self._obtain_trajectory_goal_policy(init_problem, max_actions_goal_state, max_planning_time=max_planning_time, verbose=verbose)
 
 		# <Obtain the PDDL encoding of the problem>
 		# Note: this method also selects at the goal state the predicates given by the user, in order to obtain the problem goal (:goal)

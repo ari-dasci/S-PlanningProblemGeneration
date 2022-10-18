@@ -319,19 +319,19 @@ def test_generate_random_problems():
 
 	random_generator = RandomGenerator(parser, planner)
 
-	num_problems_to_generate = 100
+	num_problems_to_generate = 5
 
 	# Assign a higher probability to the 'on' predicate, so that there are more atoms (on _ _) in the problems generated
 	# pred_probs = dict([('ontable', 100), ('on', 40), ('clear', 1), ('holding', 1), ('handempty', 3)])
 	#pred_probs = dict([('ontable', 30), ('on', 5), ('clear', 1), ('holding', 1), ('handempty', 1)])
 
 	# Choose the number of atoms for each predicate type
-	num_atoms_each_pred_for_init_state = dict([('ontable', (1,20)), ('on', (1,20)), ('clear', (1,20)), ('holding', (0,1)), ('handempty', (0,1))])
+	num_atoms_each_pred_for_init_state = dict([('ontable', (1,50)), ('on', (1,50)), ('clear', (1,50)), ('holding', (0,1)), ('handempty', (0,1))])
 
 	print(">> Calling generate_random_problems()")
 
-	random_generator.generate_random_problems(num_problems_to_generate, num_actions_for_init_state=20,
-									num_actions_for_goal_state=20, num_atoms_each_pred_for_init_state=num_atoms_each_pred_for_init_state,
+	random_generator.generate_random_problems(num_problems_to_generate, num_actions_for_init_state=50,
+									num_actions_for_goal_state=50, num_atoms_each_pred_for_init_state=num_atoms_each_pred_for_init_state,
 									verbose=True)
 
 
@@ -687,8 +687,8 @@ def test_load_models_and_generate_problems():
 	planner = Planner(domain_file_path)
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_96/init_policy_its-680.ckpt"
-	goal_policy_path = "saved_models/both_policies_96/goal_policy_its-680.ckpt"
+	init_policy_path = "saved_models/both_policies_102/init_policy_its-1500.ckpt"
+	goal_policy_path = "saved_models/both_policies_102/goal_policy_its-1500.ckpt"
 
 	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
@@ -712,8 +712,8 @@ def test_load_models_and_generate_problems():
 	# Generate the set of problems with the trained initial policy
 	num_problems = 10
 
-	directed_generator.generate_problems(num_problems, max_atoms_init_state=70, max_actions_init_state=210,
-									     max_actions_goal_state=70, max_planning_time=60, verbose=True)
+	directed_generator.generate_problems(num_problems, max_atoms_init_state=20, max_actions_init_state=60,
+									     max_actions_goal_state=20, max_planning_time=60, verbose=True)
 
 """
 
@@ -1308,57 +1308,63 @@ def test_load_models_and_generate_problems():
 	<Se consigue aumentar mucho la diversidad de los problemas, a costa de reducir mucho la dificultad. No obstante, ni así se consiguen
 	 problemas con handempty en el estado inicial (solo dos de diez) ni con tres torres (solo tienen o una o dos)>
 
+# Ejecución -> ground_entropy*0.5 + lifted_entropy*0.5, sin ignorar term cond prob
+	20 átomos y goal actions
+	planner_search_options= --alias lama-first
+	NLM without preds arity 3
+	no np.log() to rescale problem difficulty
+	rescale_factor=0.02 for difficulty
+	<entropy_annealing_coeffs_init_state_policy = (600, 0.2), entropy_annealing_coeffs_goal_policy = (300, 0.2)>
+	<trajectories_per_train_it=25, minibatch_size=70>
+
+	- logs: init_policy\ version_47
+
+	> Entrenamiento
+		- Tarda más (en alcanzar la misma dificultad) que cuando uso un mayor número de trajectories_per_train_it!
+
+	> Problemas (its=1500)
+		- 20 atoms&actions - diff = 150.8 - diversidad baja (todos los problemas tienen una única torre en el init_state)
+
+	<Es mejor usar trajectories_per_train_it=50>
 
 
 
+-----------------------------
 
+> Comparación directed_generator con random_generator en blocksworld
+	- Mi método genera problemas mucho más difíciles (CON EL MISMO NÚMERO DE ÁTOMOS)
+		- Ej.: para 50 átomos, el random_generator obtiene dificulty 100 y mi método 1100
 
-SI AÑADO NP.LOG A PERC_ACTIONS_EXECUTED EN ENTRENAMIENTO, TAMBIÉN TENGO QUE AÑADIRLO CUANDO GENERO PROBLEMAS!
+	- No obstante, mi método no es más rápido que el random generator
+		- Esto es porque las comprobaciones de consistencia son muy rápidas de hacer y lo costoso
+		  es generar el objetivo (lo que hacen igual tanto el random como directed generator)
 
+> Consigo generar problemas más o menos diversos y difíciles con las generative policies
+  También consigo que generalicen a problemas más grandes aumentando el max_actions_init_state por encima del número
+  de átomos que quiero obtener
+  No obstante, el método se ralentiza cuando tiene que generar problemas con un gran número de átomos (debido al pddl_parser)
 
->>>>> TODO
-
-	> Si los problemas generados (20 atoms) son diversos y difíciles
-		- Ver si generaliza a problemas más grandes
-			- Si generaliza, hemos acabado! -> Guardar modelo, parámetros usados, num its, tiempo de entrenamiento, etc.
-				- Podemos hacer pruebas con un menor num trajectories_per_train_it
-			- Si no, ver si ayuda añadir np.log a perc_actions_executed
-				- Si no es suficiente, probar a generar problemas poniendo max_num_atoms mayor que el número de átomos que queremos que tenga el init_state
-					- Si esto ayuda, añadir los nuevos parámetros a generate_problems
-
-	> Si no son diversos y difíciles, probar a aumentar la diversidad o el rescale_factor de la dificultad
-		- También puedo probar a añadir predicados de ariedad 3
-
-
->>> GUARDAR EL MEJOR MODELO PARA BLOCKSWORLD Y TAMBIÉN LOS PARÁMETROS USADOS!! (ej.: entropy coeffs, NLM layers...)
-<MEDIR TAMBIÉN EL NÚMERO DE ITS, Y EL TIEMPO DE ENTRENAMIENTO>
-
+  Cosas a mejorar:
+	- La diversidad de los problemas debería ser un poco mayor (el init state generalmente tiene una sola torre y nunca tiene handempty)
+	- La generalización a problemas más grandes (tengo que poner max_actions_init_state más alto de lo necesario para que generalice)
+	- El tiempo en generar el goal para problemas grandes (el método groundify del pddl_parser es muy lento)
 
 -----------------
 
-
 >> TODO
-	- Conseguir que se generen problemas en blocksworld diversos y que generalicen a un mayor número de objetos
-	  (también que tengan handempty() y holding())
     - Hacer pruebas con logistics
 		- VER SI PARA EL GOAL ME QUEDO SOLO CON UN SUBCONJUNTO DE PREDICADOS (ej.: solo los predicados "at" de los "packages")
 		- Creo que en logistics sí será necesario que la NLM use predicados de ariedad 3
 			- Tengo que modificar la NLM para que, si no se usan residual_connections, se añadan los predicados extra como input a cada capa intermedia
 
 >> CAMBIOS PARA AUMENTAR EFICIENCIA NLM:
-	> Cambiar _calculate_state_value_and_old_policy_probs_trajectory_init_policy (y del goal) para que sea mas eficiente
-	  (no hace falta volver a llamar a la NLM, sino que la probabilidad puede devolverla el metodo select_action() de las generative policies) -> HECHO
 	> Añadir opción para que, si no se usan residual_connections, los predicados extras perc_actions_executed y de los object types
 	  se añadan adicionalmente como inputs a cada NLM layer
-	> Probar a usar menos trajectories_per_train_it
+	> Probar a usar menos trajectories_per_train_it -> No funciona
 
 
 
 >> Preguntar en el discord de FD si es posible llamar una sola vez al planner para que resuelva un conjunto de problemas
-
-
-
-
 
 ------
 
@@ -1373,8 +1379,6 @@ SI AÑADO NP.LOG A PERC_ACTIONS_EXECUTED EN ENTRENAMIENTO, TAMBIÉN TENGO QUE A�
 
 # MIRAR LINK: https://vitalab.github.io/article/2020/01/14/Implementation_Matters.html
 # HAY MUCHOS "CODE-LEVEL OPTIMIZATIONS" QUE PUEDEN SER IMPORTANTES DE CARA A TRABAJAR CON PPO!!!
-> Ver cómo mejorar el rendimiento (quizás permitiendo ejecutar el planner en paralelo para así poder
-					               obtener trayectorias en paralelo)
 
 """
 
@@ -1396,6 +1400,6 @@ if __name__ == "__main__":
 
 	#test_load_models_and_generate_problems()
 
-	#test_generate_random_problems()
+	test_generate_random_problems()
 	#test_train_init_and_goal_policy()
-	test_load_models_and_generate_problems()
+	#test_load_models_and_generate_problems()

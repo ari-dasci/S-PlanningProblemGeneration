@@ -1,0 +1,103 @@
+----- Best model blocksworld
+
+--- logs: init_policy\ version_41, goal_policy\ version_23
+--- saved_folder: saved_models_96
+--- num_its: 680
+
+> Architecture
+
+- NLM shape: [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]] (no preds arity 3)
+		   MLP without hidden layer
+
+- Directed generator:
+                     DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
+							  max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
+
+							  num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
+							  mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
+						       res_connections_initial_state_nlm=True,
+		                             lr_initial_state_nlm = 1e-3,
+							   entropy_coeff_init_state_policy = 2,
+							   entropy_annealing_coeffs_init_state_policy = (600, 0.2),
+						        epsilon_init_state_policy=0.1,
+
+							   num_preds_inner_layers_goal_nlm=nlm_inner_layers,
+							   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
+							   res_connections_goal_nlm=True,
+							   lr_goal_nlm = 1e-3,
+							   entropy_coeff_goal_policy = 1,
+							   entropy_annealing_coeffs_goal_policy = (300, 0.2),
+							   epsilon_goal_policy=0.1)
+
+
+- Other:
+	- policy entropy calculated as: ground_entropy*0.5 + lifted_entropy*0.5
+	- planner_search_options (for calculating difficulty): --alias lama-first
+	- no np.log() to rescale problem difficulty
+	- rescale_factor=0.02 for difficulty
+
+> Entrenamiento (comparación con experimento anterior con menores entropy coeffs)
+		- Term cond prob baja hasta 0.06 (un valor un poco más alto que el experimento anterior) y la gráfica es más estable
+		- La r_eventual y r_continuous convergen a 0
+		- La r_difficulty llega hasta 2 (al igual que en el experimento anterior), aunque tarda 100 its más
+		- La init_state_policy_entropy baja más lentamente, hasta 0.26 (en el experimento anterior baja hasta 0.17) ->
+		  Tiene más entropía!
+		- La goal_policy_entropy baja hasta 0.09 (en el experimento anterior baja hasta 0.05) -> Tiene más entropía, pero sigue siendo poca
+		- Tiempo de entrenamiento: 9h
+
+> Problemas (its=680):
+		- 10 atoms&actions - diff = 36.5
+		- 20 atoms&actions - diff = 160 - diversidad media - los problemas tienen un número de átomos variable, algunos tienen casi 20!
+		                                  La mayoría de problemas tienen una sola torre, aunque hay algunos con dos torres
+							       Todos los estados iniciales tienen holding() y ninguno handempty()
+								  Los objetivos tienen diversidad media (y algunos tienen holding como handempty)
+		- 30 atoms&actions - diff = 331 - Ningún problema generado se acerca a 30 átomos: el que más tiene es 25 y la mayoría tienen alrededor
+		                                  de 20 átomos
+		- 50 atoms&actions - diff = 688.2 - Ningún problema generado se acerca a 50 átomos, pero sí hay problemas con alrededor de 30 átomos!
+		- 70 atoms&actions - diff = 1177.7 - Se generan problemas de hasta 44 átomos (la mayoría rondan los 30)
+
+> Problemas con random generator:
+		- 10 atoms&actions - diff = 12.2
+		- 20 atoms&actions - diff = 36.1
+		- 30 atoms&actions - diff = 55.8 
+
+> Comparación directed_generator con random_generator en blocksworld
+	- Mi método genera problemas mucho más difíciles (CON EL MISMO NÚMERO DE ÁTOMOS)
+		- Ej.: el random_generator genera un problema con 53 átomos en el init_state que tiene 91 de dificultad,
+                  mientras que mi método genera problemas de 1177.7 de dificultad media cuando max_actions_init_state vale 70
+                  (y ningún problema tiene más de 44 átomos en el init_state)
+			  <Mi método es capaz de generar problemas más difíciles y no porque añada más átomos en el init_state, sino
+                   porque los añade "mejor">
+
+	- No obstante, mi método no es más rápido que el random generator
+		- Esto es porque las comprobaciones de consistencia son muy rápidas de hacer y lo costoso
+		  es generar el objetivo (lo que hacen igual tanto el random como directed generator)
+
+		- En los experimentos del paper, en vez de medir el tiempo de generación de problemas quizás puedo medir
+             el número de comprobaciones de consistencia que hay que hacer al generar el init_state con el random_generator
+             vs directed_generator (y mencionar que se tarda tanto en generar problemas debido a que el pddl_parser es muy ineficiente)
+
+> Análisis de resultados:
+	<Genera problemas más difíciles y diversos que en el experimento anterior -> es mejor usar un alto valor de entropía!>
+	<No obstante, no generaliza bien a problemas más grandes y la diversidad de los problemas, sobretodo de los objetivos, debe mejorar aún.
+	Además, ningún init state tiene handempty, sino que todos tienen holding>
+
+	<<ES POSIBLE GENERAR PROBLEMAS CON UN MAYOR NÚMERO DE ÁTOMOS SI max_atoms_init_state LO PONGO MAYOR AL NÚMERO DE ÁTOMOS QUE QUIERO GENERAR
+	  (ej.: para generar problemas con 50 átomos, ponerlo a 70)>>
+
+> Análisis de resultados final blocksworld:
+  Consigo generar problemas más o menos diversos y difíciles con las generative policies
+  También consigo que generalicen a problemas más grandes aumentando el max_actions_init_state por encima del número
+  de átomos que quiero obtener
+  No obstante, el método se ralentiza cuando tiene que generar problemas con un gran número de átomos (debido al pddl_parser)	
+
+> Cosas a mejorar:
+	- La diversidad de los problemas debería ser un poco mayor (el init state generalmente tiene una sola torre (aunque a veces dos)
+        y nunca tiene handempty)
+	- La generalización a problemas más grandes (tengo que poner max_actions_init_state más alto de lo necesario para que generalice)
+	- El tiempo en generar el goal para problemas grandes (el método groundify del pddl_parser es muy lento)
+		- El random_generator y directed_generator tardan lo mismo en la práctica! (ya que las comprobaciones de consistencia son
+             muy eficientes de realizar)
+	
+
+

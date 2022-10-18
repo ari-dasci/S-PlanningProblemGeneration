@@ -1,6 +1,5 @@
 import itertools
 import random
-import time
 
 from .relational_state import RelationalState
 from .pddl_parser import Parser, Planner, Action
@@ -261,6 +260,10 @@ class ProblemState:
 	Returns all the ground (domain) actions that are applicable at the current goal state.
 	We assume actions cannot have repeated parameters (e.g.: stack A A)
 	They are returned as a list where each element represents a ground action, e.g., ['stack', [1, 2]]
+
+	Note: this method is very inefficient for problems with a large number of objects.
+	      The bottleneck is "l_a.groundify". However, in order to make it more efficient, I will
+		  probably need to completely replace the pddl_parser
 	"""
 	def applicable_ground_actions(self):
 		# Represent the state in an encoding suitable for the parser
@@ -270,22 +273,14 @@ class ProblemState:
 		lifted_actions = self._parser.actions
 
 		# Obtain the ground actions in the domain (ground each lifted action)
-		start = time.time()
-		ground_actions = [g_a for l_a in lifted_actions for g_a in l_a.groundify(state_objs, self._parser.types)]
-		end = time.time()
-		# QUITAR
-		print(f" --  groundify all actions - {end-start:.3f}s") # -> bottleneck
+		ground_actions = [g_a for l_a in lifted_actions for g_a in l_a.groundify(state_objs, self._parser.types)] # -> bottleneck
 
 		# Delete actions with repeated arguments (e.g.: stack('a', 'a') is invalid)
 		ground_actions_no_rep_args = list(filter(lambda a: len(a.parameters) == len(set(a.parameters)), ground_actions))
 
 		# Test applicability of ground actions
-		start = time.time()
 		applicable_ground_actions = list(filter(lambda a: self._planner.applicable(state_atoms, a.positive_preconditions, \
 		 a.negative_preconditions), ground_actions_no_rep_args))
-		end = time.time()
-		# QUITAR
-		print(f" -- test applicability ground actions - {end-start:.3f}s")
 
 		# Encode ground actions in the RelationalState form, e.g., ['stack', [1, 2]]
 		applicable_ground_actions_rel_state_enc = [ [a.name, [int(p) for p in a.parameters]] for a in applicable_ground_actions]
