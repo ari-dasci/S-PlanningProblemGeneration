@@ -1,43 +1,42 @@
 (define (problem bw_both_generative_policies_1)
 
-(:domain blocks)
+(:domain logistics)
 
 (:objects
-	obj0 obj1 obj2 obj3 obj4 obj5 obj6 obj7 obj8 obj9 obj10 - block
+	obj0 obj2 - airport
+	obj1 - city
+	obj3 - location
+	obj4 - truck
+	obj5 obj6 obj7 obj8 obj9 obj10 obj11 obj12 - package
 )
 
 (:init
-	(ontable obj0)
-	(ontable obj1)
-	(ontable obj2)
-	(ontable obj3)
-	(on obj4 obj3)
-	(on obj5 obj4)
-	(on obj6 obj5)
-	(on obj7 obj6)
-	(on obj8 obj7)
-	(on obj9 obj8)
-	(on obj10 obj9)
-	(clear obj0)
-	(clear obj2)
-	(clear obj1)
-	(clear obj10)
-	(handempty)
+	(in-city obj0 obj1)
+	(in-city obj2 obj1)
+	(in-city obj3 obj1)
+	(at obj4 obj0)
+	(in obj5 obj4)
+	(in obj6 obj4)
+	(in obj7 obj4)
+	(in obj8 obj4)
+	(in obj9 obj4)
+	(in obj10 obj4)
+	(in obj11 obj4)
+	(in obj12 obj4)
 )
 
 (:goal (and
-	(ontable obj0)
-	(on obj6 obj7)
-	(on obj1 obj2)
-	(on obj5 obj6)
-	(handempty)
-	(on obj4 obj5)
-	(on obj7 obj8)
-	(on obj10 obj1)
-	(on obj3 obj4)
-	(on obj2 obj0)
-	(on obj9 obj10)
-	(clear obj3)
-	(on obj8 obj9)
+	(at obj12 obj0)
+	(in-city obj2 obj1)
+	(at obj4 obj0)
+	(at obj7 obj0)
+	(at obj9 obj0)
+	(at obj8 obj3)
+	(at obj10 obj0)
+	(in-city obj3 obj1)
+	(at obj5 obj0)
+	(at obj11 obj0)
+	(at obj6 obj0)
+	(in-city obj0 obj1)
 ))
 )

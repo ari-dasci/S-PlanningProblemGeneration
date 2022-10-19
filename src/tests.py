@@ -739,7 +739,7 @@ def test_generate_random_problems_logistics():
 	num_problems_to_generate = 10
 
 	# Choose the number of atoms for each predicate type
-	num_atoms_each_pred_for_init_state = dict([('in-city', (1,15)), ('at', (1,15)), ('in', (0,5))])
+	num_atoms_each_pred_for_init_state = dict([('in-city', (1,20)), ('at', (1,20)), ('in', (0,20))])
 
 	print(">> Calling generate_random_problems()")
 
@@ -767,14 +767,19 @@ def test_train_init_and_goal_policy_logistics():
 
 	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]] # -> Preds arity 3
-	nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]] # -> No preds arity 3
+	# nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]] # -> No preds arity 3
 
-	nlm_hidden_layers_mlp = [0]*(len(nlm_inner_layers)+1)
+	# The goal_nlm_layers need to account for arity 4, as one action has 4 parameters
+	# We also need to have some predicates of arity 3 in the last layer or, else, there will be no predicates to compute the action of arity 4
+	init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+	goal_policy_nlm_inner_layers = [[8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,4,0]]
 
-	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
+	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
+
+	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorLogistics,
 										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
 
-										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
+										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
 										   res_connections_initial_state_nlm=True,
 										   lr_initial_state_nlm = 1e-3,
@@ -782,7 +787,7 @@ def test_train_init_and_goal_policy_logistics():
 										   entropy_annealing_coeffs_init_state_policy = (600, 0.2),
 										   epsilon_init_state_policy=0.1,
 
-										   num_preds_inner_layers_goal_nlm=nlm_inner_layers,
+										   num_preds_inner_layers_goal_nlm=goal_policy_nlm_inner_layers,
 										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
 										   res_connections_goal_nlm=True,
 										   lr_goal_nlm = 1e-3,
@@ -794,6 +799,87 @@ def test_train_init_and_goal_policy_logistics():
 	directed_generator.train_generative_policies(training_iterations = 10000)
 
 """
+We load the trained init and goal policies and use them to generate problems for the logistics domain.
+"""
+def test_load_models_and_generate_problems_logistics():
+	from problem_generation.controller.directed_generator import DirectedGenerator
+	from problem_generation.environment.pddl_parser import Parser
+	from problem_generation.environment.planner import Planner
+	from problem_generation.environment.state_validator import ValidatorLogistics
+
+	domain_file_path = '../data/domains/logistics-domain.pddl'
+
+	parser = Parser()
+	parser.parse_domain(domain_file_path)
+	planner = Planner(domain_file_path)
+
+	# Create the generator and load the trained models
+	init_policy_path = "saved_models/both_policies_103/init_policy_its-700.ckpt"
+	goal_policy_path = "saved_models/both_policies_103/goal_policy_its-700.ckpt"
+
+	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+	goal_policy_nlm_inner_layers = [[8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,4,0]]
+
+	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
+
+	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorLogistics,
+										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
+										  
+										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
+										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
+										   res_connections_initial_state_nlm=True,
+										   load_init_state_policy_checkpoint_name=init_policy_path,
+
+										   num_preds_inner_layers_goal_nlm=goal_policy_nlm_inner_layers,
+										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
+										   res_connections_goal_nlm=True,
+										   load_goal_policy_checkpoint_name=goal_policy_path)
+
+	print(f">> Init model {init_policy_path} and goal model {goal_policy_path} loaded")
+
+	# Generate the set of problems with the trained initial policy
+	num_problems = 10
+
+	directed_generator.generate_problems(num_problems, max_atoms_init_state=20, max_actions_init_state=60,
+									     max_actions_goal_state=20, max_planning_time=60, verbose=True)
+
+
+"""
+
+> <First test logistics>
+  <goal_policy_nlm_inner_layers = [[8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,4,0]]>
+
+  > Entrenamiento
+	- La gráfica de dificultad tiene un pico altísimo! (creo que es porque se generó un problema irresoluble o dio timeout el planner)
+	- El tiempo de entrenamiento es muy alto!!! -> Tarda 22h y aún así seguía aumentando la dificultad
+		- Creo que el parser es el bottleneck
+	- La r_difficulty llega hasta 0.5 (paré el entrenamiento antes de que terminara)
+	- La r_continuous y r_eventual convergen a 0
+	- La term_cond_prob llega hasta 0.05
+	- La init_policy_entropy llega hasta 0.2
+
+  > Problemas
+	> directed_generator (its=700)
+		- 20 atoms&actions - diff = 34.6 - diversidad media-alta, aunque ningún problema tiene un avión (objeto "airplane")
+
+	> random_generator
+		- 20 atoms&actions - diff = 18.2
+
+	<A pesar de que aún tiene que aumentar la dificultad, nuestro método genera problemas más difíciles que el random generator!>
+	<Hay que mejorar mucho la eficiencia del método, especialmente del pddl_parser>
+
+
+
+
+
+
+>> Creo que puedo hacer masking de aquellos átomos, para la init_policy, de predicados que no están en el current phase
+   (esto ayudaría a la NLM)
+   TAMBIÉN PUEDO HACER MASKING DE LA TERMINATION CONDITION SI AÚN NO SE HAN AÑADIDO TODOS LOS ÁTOMOS DE LOS REQUIRED_PREDS!!!
+
+> Implementar un pddl_parser más eficiente mientras se están haciendo los experimentos de logistics y zenotravel
+  (una vez haya añadido los predicados extra a las NLM layers en caso de no usar residual connections)
 
 -----------------------------
 
@@ -868,5 +954,6 @@ if __name__ == "__main__":
 	#test_train_init_and_goal_policy()
 	#test_load_models_and_generate_problems()
 
-	# test_generate_random_problems_logistics()
-	test_train_init_and_goal_policy_logistics
+	test_generate_random_problems_logistics()
+	#test_train_init_and_goal_policy_logistics()
+	#test_load_models_and_generate_problems_logistics()

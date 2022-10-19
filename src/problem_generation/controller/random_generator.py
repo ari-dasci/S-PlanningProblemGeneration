@@ -202,11 +202,6 @@ class RandomGenerator():
 			possible_atoms = problem.get_possible_init_state_actions()
 			random.shuffle(possible_atoms) # Shuffle the atoms
 
-			# QUITAR
-			print("\n\n-----------")
-			print("possible_atoms:", possible_atoms)
-
-
 			# Get the existing predicate types in possible_atoms (e.g.: ['on', 'ontable'])
 			possible_predicates = list(set([a[0] for a in possible_atoms]))
 

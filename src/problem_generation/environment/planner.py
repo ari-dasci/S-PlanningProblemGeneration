@@ -106,7 +106,9 @@ class Planner():
 		else:
 			expanded_nodes = -1
 
-			print(">>> NO SOLUTION FOUND")
+			print(">>>> NO SOLUTION FOUND")
+			print("> pddl_problem_path:", pddl_problem_path)
+			raise Exception("The generated problem is unsolvable")
 
 		return expanded_nodes
 

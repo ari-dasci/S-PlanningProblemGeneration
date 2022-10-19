@@ -140,6 +140,7 @@ class DirectedGenerator():
 																				 epsilon=epsilon_goal_policy)
 
 
+
 	# ------- Getters and Setters --------
 		
 
@@ -518,7 +519,7 @@ class DirectedGenerator():
 
 	<Note>: This method also selects the goal atoms corresponding to the goal predicates given by the user
 	"""
-	def get_problem_difficulty(self, problem, max_difficulty=1e7, rescale_factor=0.02, max_planning_time=10):
+	def get_problem_difficulty(self, problem, max_difficulty=1e4, rescale_factor=0.02, max_planning_time=60):
 		# Encode the problem in PDDL
 		# > This method also selects the goal atoms corresponding to the goal predicates given by the user
 		pddl_problem = problem.obtain_pddl_problem()
@@ -692,9 +693,9 @@ class DirectedGenerator():
 				# The indexes in between correspond to the object indeces the action/pred is instantiated on (if arity >= 1)
 				chosen_action_name = curr_state.get_predicate_by_arity_and_ind(chosen_action_index[0], chosen_action_index[-1])[0] # [0] to get the name
 				chosen_action = [chosen_action_name, chosen_action_index[1:-1]] # To form the chosen action, we add the action name and obj indexes like ['on', [1, 0]]
-				
+
 				# Obtain the object types and objects to add as part of the chosen action. Also change the obj indexes of chosen_action
-				chosen_action, objs_to_add, obj_types = self._get_objs_to_add_and_atom_with_correct_indexes(curr_state, chosen_action)			
+				chosen_action, objs_to_add, obj_types = self._get_objs_to_add_and_atom_with_correct_indexes(curr_state, chosen_action)
 
 				# Execute the action to obtain the reward (associated with the continuous consistency rules) and next state
 				_, r_continuous_consistency = problem.apply_action_to_initial_state(objs_to_add, chosen_action, obj_types)
@@ -730,7 +731,7 @@ class DirectedGenerator():
 	@problem A ProblemState instance containing the initial state to start the goal generation phase from.
 	         <Note>: we assume the initial state of @problem meets all the eventual consistency rules.
 	"""
-	def _obtain_trajectory_goal_policy(self, problem, max_actions_goal_state=-1, max_planning_time=10, verbose=False):
+	def _obtain_trajectory_goal_policy(self, problem, max_actions_goal_state=-1, max_planning_time=60, verbose=False):
 
 		if max_actions_goal_state == -1:
 			max_actions_goal_state = self._max_actions_goal_state
@@ -784,8 +785,7 @@ class DirectedGenerator():
 				r_difficulty_real, r_difficulty = self.get_problem_difficulty(problem, max_planning_time=max_planning_time) # Difficulty scaled to real values between 0 and 1 (unless the problem difficulty surpasses the maximum difficulty)
 
 			# If the selected action is not the termination condition, execute it
-			else:	
-				
+			else:			
 				# Transform the action index into a proper action
 				action_name = self._dummy_rel_state_actions.get_predicate_by_arity_and_ind(chosen_action_index[0], 
 																			               chosen_action_index[-1])[0] # [0] to get the name
@@ -818,7 +818,6 @@ class DirectedGenerator():
 			trajectory.append( [curr_goal_and_init_state_tensors, num_objs, mask_tensors,
 					            chosen_action_index, chosen_action_prob,
 							    0.0, 0.0, r_difficulty] ) # The two '0.0' correspond to the continuous and eventual consistency rewards
-
 
 		return problem, r_difficulty_real, trajectory
 

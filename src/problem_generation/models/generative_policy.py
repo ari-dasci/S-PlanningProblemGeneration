@@ -354,17 +354,15 @@ class GenerativePolicy(pl.LightningModule):
 
 	@list_mask_tensors If None or [None, ...], we do not mask the nlm_output
 	"""
-	def forward(self, list_state_tensors, list_num_objs, list_mask_tensors=None):
-		
+	def forward(self, list_state_tensors, list_num_objs, list_mask_tensors=None):	
 		# NLM forward pass
 		list_nlm_output = self._actor_nlm(list_state_tensors, list_num_objs)
-		
+
 		# Mask NLM output (set to -inf values corresponding to invalid atoms)
 		if list_mask_tensors is not None and list_mask_tensors[0] is not None:
 			list_nlm_output_masked = self._mask_nlm_output(list_nlm_output, list_mask_tensors)
 		else:
 			list_nlm_output_masked = list_nlm_output
-
 
 		# Apply log_softmax to the masked NLM output to obtain log_probabilities for the atoms
 		list_nlm_output_log_softmax = self._log_softmax(list_nlm_output_masked)
@@ -387,7 +385,7 @@ class GenerativePolicy(pl.LightningModule):
 		
 		# Obtain (masked) log probabilities for each action (atom)
 		action_log_probs = self.forward(state_tensors_batch, [num_objs_with_virtuals], [mask_tensors])
-
+		
 		# Remove the nesting level previously added
 		# log_probs[0] -> the tensor of the first sample in the batch (in our case, the only one as the batch contains a single sample)
 		action_log_probs_no_nesting = [log_probs[0] for log_probs in action_log_probs]
