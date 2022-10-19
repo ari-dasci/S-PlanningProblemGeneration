@@ -870,7 +870,11 @@ def test_load_models_and_generate_problems_logistics():
 	<Hay que mejorar mucho la eficiencia del método, especialmente del pddl_parser>
 
 
-
+> <First test logistics>
+  goal_policy_nlm_inner_layers = [[8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,4,0]]
+  <_get_mask_tensors_init_policy() for only allowed predicates and term cond>
+  
+  <QUIZÁS SE CALCULE AHORA MAL LA ENTROPÍA AL ESTAR PONIENDO A -INF PREDICADOS ENTEROS Y/O LA TERM CONDITION!!!>
 
 
 
@@ -954,6 +958,6 @@ if __name__ == "__main__":
 	#test_train_init_and_goal_policy()
 	#test_load_models_and_generate_problems()
 
-	test_generate_random_problems_logistics()
-	#test_train_init_and_goal_policy_logistics()
+	#test_generate_random_problems_logistics()
+	test_train_init_and_goal_policy_logistics()
 	#test_load_models_and_generate_problems_logistics()

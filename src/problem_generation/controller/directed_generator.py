@@ -277,8 +277,14 @@ class DirectedGenerator():
 
 
 	"""
-	Returns the mask tensors used to mask (i.e., set to -inf) the probabilities of invalid atoms (those grounded on objects of invalid type)
-	predicted by the NLM. The mask tensors are returned as a list of tensors (or None, if there are no tensors to mask
+	Returns the mask tensors used to mask (i.e., set to -inf) the probabilities of invalid atoms.
+	An atom is invalid if:
+		- It is instantiated on objects of incorrect type
+		- The predicate type cannot be added in the current phase (according to the consistency validator)
+		  To this regard, the termination condition can only be sampled once all the required predicates
+		  have been added to the initial state
+    
+    The mask tensors are returned as a list of tensors (or None, if there are no tensors to mask
 	for that arity), with the same shape as the NLM output.
 	In order to mask the NLM output, simply sum the mask tensor values with the output NLM tensors.
 
@@ -295,32 +301,67 @@ class DirectedGenerator():
 		predicates = rel_state.predicates # Get the state predicates
 		pred_to_index_dict = rel_state.pred_names_to_indices_dict_each_arity
 
+		# Get the allowed predicates, i.e., those which can be added to rel_state
+		allowed_preds = self._consistency_validator.predicates_in_current_phase(rel_state)
+
+		# Check if we can sample the termination condition (else it needs to be masked)
+		# It can be sampled iff rel_state contains every required_pred
+		state_atoms = rel_state.atoms
+		preds_in_curr_state = set([a[0] for a in state_atoms])
+		required_preds = set(self._consistency_validator.required_pred_names())
+		term_cond_allowed = required_preds.issubset(preds_in_curr_state)
+
 		# Initialize mask tensors full of zeros
 		mask_tensors = [torch.zeros( (num_objs_with_virtuals,)*r + (num_preds,), dtype=torch.float32) \
 						if num_preds != 0 else None for r, num_preds in enumerate(nlm_output_shape)]
 
-		# For each predicate, mask (put to 0) tensor values corresponding to atoms with invalid object types
+		# Iterate over each predicate in the domain
 		for pred in predicates:
 			pred_ind = pred_to_index_dict[pred[0]]
 			pred_arity = len(pred[1])
 			pred_params = pred[1]
 
-			# Iterate over the parameters of the predicate
-			for param_ind, param_type in enumerate(pred_params):
-				# Get object indices of incorrect type, i.e., those which do not inherit from the param type
-				incorrect_obj_inds = [obj_ind for obj_ind, obj_type in enumerate(objs_with_virtuals) \
-				                      if not self._parser.is_type_child_of(obj_type, param_type)]	
+			# If the predicate is allowed (can be added to the state), then only mask objects of invalid type
+			if pred[0] in allowed_preds:
+				# Iterate over the parameters of the predicate
+				for param_ind, param_type in enumerate(pred_params):
+					# Get object indices of incorrect type, i.e., those which do not inherit from the param type
+					incorrect_obj_inds = [obj_ind for obj_ind, obj_type in enumerate(objs_with_virtuals) \
+										  if not self._parser.is_type_child_of(obj_type, param_type)]	
 
-				# Permute the tensor so that the first dimension is the one corresponding to param_ind and the second
-				# dimension corresponds to the predicate types
-				obj_inds_except_param_ind = list(range(pred_arity))
-				obj_inds_except_param_ind.remove(param_ind)
-				permute_inds = (param_ind, pred_arity) + tuple(obj_inds_except_param_ind)
+					# Permute the tensor so that the first dimension is the one corresponding to param_ind and the second
+					# dimension corresponds to the predicate types
+					obj_inds_except_param_ind = list(range(pred_arity))
+					obj_inds_except_param_ind.remove(param_ind)
+					permute_inds = (param_ind, pred_arity) + tuple(obj_inds_except_param_ind)
+            
+					curr_tensor = torch.permute(mask_tensors[pred_arity], permute_inds)
+
+					# Now we can easily set to -inf the corresponding elements
+					curr_tensor[incorrect_obj_inds, pred_ind] = -float("inf") # -inf
+
+			# If the predicate is not allowed, mask every object
+			else:
+				# Permute the tensor so that the first dimension corresponds to the predicate type
+				obj_inds= list(range(pred_arity))
+				permute_inds = (pred_arity,) + tuple(obj_inds)
             
 				curr_tensor = torch.permute(mask_tensors[pred_arity], permute_inds)
 
-				# Now we can easily set to -inf the corresponding elements
-				curr_tensor[incorrect_obj_inds, pred_ind] = -float("inf") # -inf
+				# Now we can easily set to -inf all the objects for the corresponding predicate given by pred_ind
+				curr_tensor[pred_ind] = -float("inf")
+
+		# Mask the termination condition if it cannot be sampled
+		if not term_cond_allowed:
+			mask_tensors[0][-1] = -float("inf")
+
+
+		# QUITAR
+		#print("allowed_preds:", allowed_preds)
+		#print("state atoms:", rel_state.atoms)
+		#print("term_cond_allowed", term_cond_allowed)
+		#print("Mask_tensors:", mask_tensors)
+		#sys.exit()
 
 
 		return mask_tensors
