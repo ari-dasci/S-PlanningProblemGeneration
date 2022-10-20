@@ -781,7 +781,8 @@ def test_train_init_and_goal_policy_logistics():
 
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
-										   res_connections_initial_state_nlm=True,
+										   extra_input_preds_initial_state_nlm=True,
+										   res_connections_initial_state_nlm=False,
 										   lr_initial_state_nlm = 1e-3,
 										   entropy_coeff_init_state_policy = 2,
 										   entropy_annealing_coeffs_init_state_policy = (600, 0.2),
@@ -789,7 +790,8 @@ def test_train_init_and_goal_policy_logistics():
 
 										   num_preds_inner_layers_goal_nlm=goal_policy_nlm_inner_layers,
 										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
-										   res_connections_goal_nlm=True,
+										   extra_input_preds_goal_nlm=True,
+										   res_connections_goal_nlm=False,
 										   lr_goal_nlm = 1e-3,
 										   entropy_coeff_goal_policy = 1,
 										   entropy_annealing_coeffs_goal_policy = (300, 0.2),
@@ -814,8 +816,8 @@ def test_load_models_and_generate_problems_logistics():
 	planner = Planner(domain_file_path)
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_103/init_policy_its-700.ckpt"
-	goal_policy_path = "saved_models/both_policies_103/goal_policy_its-700.ckpt"
+	init_policy_path = "saved_models/both_policies_104/init_policy_its-530.ckpt"
+	goal_policy_path = "saved_models/both_policies_104/goal_policy_its-530.ckpt"
 
 	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
@@ -870,20 +872,42 @@ def test_load_models_and_generate_problems_logistics():
 	<Hay que mejorar mucho la eficiencia del método, especialmente del pddl_parser>
 
 
-> <First test logistics>
-  goal_policy_nlm_inner_layers = [[8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,4,0]]
+> goal_policy_nlm_inner_layers = [[8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,4,0]]
   <_get_mask_tensors_init_policy() for only allowed predicates and term cond>
   
-  <QUIZÁS SE CALCULE AHORA MAL LA ENTROPÍA AL ESTAR PONIENDO A -INF PREDICADOS ENTEROS Y/O LA TERM CONDITION!!!>
+  > Entrenamiento
+	- La gráfica de dificultad ahora no tiene el pico. La r_difficulty llega hasta el mismo valor que el experimento anterior,
+	  aunque más rápido (tarda unas 100 its menos). También se ralentizó mucho el experimento, por lo que tuve que cortarlo
+	  a mitad
+	- La r_eventual y r_continuous convergen a 0 mucho más rápido que en el experimento anterior
+	- La term_cond_prob se mantiene más baja durante todo el entrenamiento y llega hasta 0.03
+	- La init_policy_entropy empieza más baja al principio pero después, tras 400 its, los valores son iguales que en el
+	  experimento anterior
+
+	<Las gráficas de entrenamiento son mucho mejores con el nuevo _get_mask_tensors_init_policy()!!>
+
+  > Problemas
+	> directed_generator (its=530)
+		- 20 atoms&actions - diff = 35.9 - diversidad media, aunque ningún problema tiene un objeto de tipo "airplane"
 
 
 
->> Creo que puedo hacer masking de aquellos átomos, para la init_policy, de predicados que no están en el current phase
-   (esto ayudaría a la NLM)
-   TAMBIÉN PUEDO HACER MASKING DE LA TERMINATION CONDITION SI AÚN NO SE HAN AÑADIDO TODOS LOS ÁTOMOS DE LOS REQUIRED_PREDS!!!
+
+ 
+
+----- TODO
+
+> Añadir predicados extra a la NLM si no se usan residual connections
+	- Hacer pruebas sin residual connections y usando predicados de ariedad 3 en todas las capas
 
 > Implementar un pddl_parser más eficiente mientras se están haciendo los experimentos de logistics y zenotravel
   (una vez haya añadido los predicados extra a las NLM layers en caso de no usar residual connections)
+	- Mirarme la página que me ha pasado ignacio
+
+> Cambiar el cálculo de la policy_entropy para intentar que se añadan objetos de distinto tipo
+  (ningún problema generado tiene un objeto de tipo 'airplane')
+
+> Leerme detenidamente paper Autoscale que me pasó Juan
 
 -----------------------------
 
@@ -959,5 +983,5 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems()
 
 	#test_generate_random_problems_logistics()
-	test_train_init_and_goal_policy_logistics()
-	#test_load_models_and_generate_problems_logistics()
+	#test_train_init_and_goal_policy_logistics()
+	test_load_models_and_generate_problems_logistics()

@@ -206,12 +206,7 @@ class _NLM_Layer(nn.Module):
     
     # =============================================   
     # Operations: expand, reduce and permute
-    
-    def _expand_old(self, tensor, num_objs):
-        repeat_vector = [1]*(tensor.dim()-1) + [num_objs] + [1] # Repeat along the new axis, added just before the last axis
-
-        return tensor.unsqueeze(-2).repeat(repeat_vector)
-    
+ 
     """
     Expansion.
 
@@ -234,14 +229,6 @@ class _NLM_Layer(nn.Module):
         
         return expanded_tensors
         
-
-    def _reduce_old(self, tensor, reduce_type):
-        if reduce_type == 'min':
-            return torch.amin(tensor, -2)
-        elif reduce_type == 'max':
-            return torch.amax(tensor, -2)
-        else:
-            raise ValueError("Invalid value for reduce_type. It must be 'min' or 'max'")
     """
     Reduction.
 
@@ -259,21 +246,6 @@ class _NLM_Layer(nn.Module):
                           [torch.amax(tensor, -2) for tensor in X]
         
         return reduced_tensors
-    
-    def _permute_old(self, tensor):
-        tensor_dim = tensor.dim()
-
-        if tensor_dim < 3: # dim=1 -> nullary predicates, dim=2 -> unary predicates : they do not need permutations
-            return tensor
-
-        obj_axes = list(range(tensor_dim-1)) # Indexes of axes that correspond to objects in the tensor (e.g.: [0, 1] for binary predicates)
-
-        res = [] # List with all the permuted tensors
-        for perm in itertools.permutations(obj_axes):
-            perm = perm + (tensor_dim-1,) # The last axis (corresponding to the predicates) does not change order
-            res.append(tensor.permute(perm)) # Create new permuted tensor
-
-        return torch.cat(res, dim=-1) # Concatenate the permuted tensors along the last dimension, corresponding to the predicates
 
     """
     Permutation.
@@ -307,93 +279,6 @@ class _NLM_Layer(nn.Module):
         return permuted_tensors
     
     # =============================================
-    
-    
-    
-    def forward_old(self, input_tensors_list, num_objs):
-        # <Verifications>
-        # Delete to speed up NLM inference
-
-        assert len(input_tensors_list) == len(self._num_in_preds_each_arity), "Wrong arities for the input predicates"
-        
-        # Make sure we have the correct number of input predicates for each arity r
-        # and they are instantiated on the correct number of objects
-        for r in range(len(input_tensors_list)):
-            if input_tensors_list[r] is None: # No input predicates for arity r
-                assert self._num_in_preds_each_arity[r] == 0, f"Incorrect number of input predicates for arity {r}"
-            
-            else:
-                assert input_tensors_list[r].shape[-1] == self._num_in_preds_each_arity[r], \
-                       f"Incorrect number of input predicates for arity {r}"
-
-                # If the arity r is 1 or more, make sure the predicates are instantiated on the correct
-                # number of objects
-                if r > 0:
-                    shape_set = set(input_tensors_list[r].shape[:-1])
-
-                    assert len(shape_set) == 1 and shape_set.pop() == num_objs, \
-                           f"Input predicates of arity {r} are instantiated on an incorrect number of objects"
-                        
-        # <Inference>
-        
-        # Obtain the <real> input tensors for the MLP of each arity r
-        # By <real> we mean we take into account the additional predicates from the expand, reduce and permute operations
-        real_input_tensors_list = []
-        
-        for r in range(len(input_tensors_list)):
-            # If we do not need the output predicates for arity r, we skip this arity
-            if self._num_out_preds_each_arity[r] > 0:
-                input_tensors_curr_arity = []
-                
-                # Expand arity r-1 
-                if r > 0 and input_tensors_list[r-1] is not None:
-                    input_tensors_curr_arity.append(self._expand_old(input_tensors_list[r-1], num_objs))
-                
-                # Tensors arity r
-                if input_tensors_list[r] is not None:
-                    input_tensors_curr_arity.append(input_tensors_list[r])
-                
-                # Reduce arity r+1, with min and max
-                if r < len(input_tensors_list)-1 and input_tensors_list[r+1] is not None:
-                    input_tensors_curr_arity.append(self._reduce_old(input_tensors_list[r+1], 'min'))
-                    input_tensors_curr_arity.append(self._reduce_old(input_tensors_list[r+1], 'max'))
-                
-                assert len(input_tensors_curr_arity) > 0, f"Error: no real input tensors to compute output predicates of arity {r}"
- 
-                # Concatenate the tensors
-                concatenated_tensor = torch.cat(input_tensors_curr_arity, dim=-1)
-                
-                # Permute object axes (for arity < 2, self._permute() simply returns the tensor without permuting anything)
-                permuted_tensor = self._permute_old(concatenated_tensor)
-                
-                # Append the final tensor to the list of real input tensors
-                real_input_tensors_list.append(permuted_tensor)
-            
-            else:
-                real_input_tensors_list.append(None) # Append None if we do not need the real input tensors for arity r
-        
-        # Obtain the output tensors by applying the MLP to the real input tensors
-        # Also, if we are using skip_connections, append the input predicates to the output predicates arity-wise
-        output_tensors_list = []
-        
-        for r in range(len(self._num_out_preds_each_arity)):
-            if self._num_out_preds_each_arity[r] == 0: # We do not need to compute the output predicates for this arity
-                
-                if self._residual_connections:
-                    output_tensors_list.append(input_tensors_list[r])
-                else:
-                    output_tensors_list.append(None)
-                
-            else:
-                out_tensor = self._mlps[r]([real_input_tensors_list[r]], [num_objs])[0] # Obtain the output tensor using the MLP corresponding to arity r
-                
-                if self._residual_connections and input_tensors_list[r] is not None:
-                    out_tensor_cat = torch.cat((input_tensors_list[r], out_tensor), dim=-1) # Concatenate the output tensors to the input tensors
-                    output_tensors_list.append(out_tensor_cat)
-                else:
-                    output_tensors_list.append(out_tensor)
-               
-        return output_tensors_list
     
     """
     Computes a forward pass.
@@ -483,7 +368,7 @@ class _NLM_Layer(nn.Module):
         
         
         # Obtain the output tensors by applying the MLP to the real input tensors
-        # Also, if we are using skip_connections, append the input predicates to the output predicates arity-wise
+        # Also, if we are using residual_connections, append the input predicates to the output predicates arity-wise
         output_tensors_list = []
         num_out_preds_each_arity_len = len(self._num_out_preds_each_arity)
 
@@ -526,29 +411,52 @@ class NLM(nn.Module):
                       output any predicate of arity r.
     @mlp_hidden_size_layers A list containing, for each layer, the hidden size of the MLPs to use. A value of 0 means
                             the mlps of the corresponding layer have no hidden layer.
+    @extra_preds_each_arity If not None, a list containing for each predicate arity the predicates of the input to the NLM
+                            which must be added as additional inputs to each other NLM layer.
+                            Example: if NLM's breadth is 3, then [[3],[1,2],None,None] means that we must add the
+                                     third nullary predicate and first two unary predicates of the first NLM layer
+                                     as additional inputs to every other NLM layer.
+                            <Note>: the indices cannot be negative!!! (e.g., [[-1],[1,2],None,None] is not allowed)
     @residual_connections Whether to use residual connections for the NLM (i.e., all the layers except the last one)
+    <Note: we cannot use residual_connections and extra_preds_each_arity at the same time>
     """
-    def __init__(self, num_preds_layers, mlp_hidden_size_layers, residual_connections=True):
+    def __init__(self, num_preds_layers, mlp_hidden_size_layers, extra_preds_each_arity=None, residual_connections=True):
         super().__init__()
         
+        if extra_preds_each_arity is not None and residual_connections:
+            raise Exception("The NLM cannot use extra_preds_each_arity and residual_connections at the same time.")
+
         assert num_preds_layers.shape[0] >= 2, "The NLM must contain at least one layer"
         assert num_preds_layers.shape[0]-1 == len(mlp_hidden_size_layers), "Wrong length of mlp_hidden_size_layers"
         
         self._mlp_hidden_size_layers = mlp_hidden_size_layers
+        self._extra_preds_each_arity = extra_preds_each_arity
         self._residual_connections = residual_connections
-       
-        # If we use residual connections, add the extra number of predicates to the input predicates of each layer
+          
         num_input_preds_layers = [num_preds_layers[i] for i in range(0, num_preds_layers.shape[0]-1)]
         num_output_preds_layers = [num_preds_layers[i] for i in range(1, num_preds_layers.shape[0])]
 
+        # If we use residual connections, add the extra number of predicates to the input predicates of each layer
         if residual_connections:
-            num_input_preds_layers_with_res = [sum(num_input_preds_layers[:i+1]) for i in range(len(num_input_preds_layers))]
+             num_input_preds_layers_modified = [sum(num_input_preds_layers[:i+1]) for i in range(len(num_input_preds_layers))]
+        
+        # If extra_preds_each_arity is not None, we need to add extra predicates of the first NLM layer to every other layer     
+        elif extra_preds_each_arity is not None:
+            # Calculate the number of extra predicates for each arity
+            # [[3],[1,2],None,None] -> [1,2,0,0]
+            num_extra_preds_each_arity = np.array([0 if preds_r is None else len(preds_r) for preds_r in extra_preds_each_arity], dtype=np.int)
+                
+            num_input_preds_layers_modified = [num_input_preds_layers[i] if i == 0 else \
+                                               num_input_preds_layers[i] + num_extra_preds_each_arity \
+                                               for i in range(len(num_input_preds_layers))]
+        
         else:
-            num_input_preds_layers_with_res = num_input_preds_layers
+            num_input_preds_layers_modified = num_input_preds_layers
+
 
         # Create each NLM layer and add it to a module list
         # Do not apply sigmoid or residual connections to the last NLM layer
-        self.layers = nn.ModuleList([_NLM_Layer(num_input_preds_layers_with_res[i], num_output_preds_layers[i], mlp_hidden_size_layers[i],
+        self.layers = nn.ModuleList([_NLM_Layer(num_input_preds_layers_modified[i], num_output_preds_layers[i], mlp_hidden_size_layers[i],
                                                 apply_sigmoid = (i != num_preds_layers.shape[0]-2),
                                                 residual_connections = (residual_connections and i != num_preds_layers.shape[0]-2)) \
                                      for i in range(len(num_input_preds_layers))]) 
@@ -588,10 +496,32 @@ class NLM(nn.Module):
     @list_num_objs List with the number of objects each batch element is instantiated on.
     """
     def forward(self, input_tensors_list, list_num_objs):
+        # If extra_preds_each_arity is not None, obtain the extra input tensors which need to be added
+        # as inputs to each NLM layer except for the first one
+        add_extra_preds = (self._extra_preds_each_arity is not None)
+        pred_arities = range(len(input_tensors_list))
+        num_samples = len(input_tensors_list[0])
+
+        if add_extra_preds:          
+            extra_preds_each_arity = [torch.tensor(x, dtype=torch.long) for x in self._extra_preds_each_arity] # We need to encapsulate every index list in a tensor for using the torch.index_select() method
+            
+            # Select the extra tensors which need to be added to each layer
+            extra_tensors_list = [ [ torch.index_select(sample_tensor, r, extra_preds_each_arity[r]) for sample_tensor in input_tensors_list[r] ] \
+                                  for r in pred_arities]
+            
         curr_tensors_list = input_tensors_list
         
         # Iteratively apply forward pass with each NLM layer
         for i in range(self.num_layers):
-            curr_tensors_list = self.layers[i](curr_tensors_list, list_num_objs)
+            # We do not add the extra predicates as inputs to the first NLM layer
+            if add_extra_preds and i > 0:
+                # Append the extra predicates to each sample in the batch for each arity
+                curr_tensors_list_modified = [ [torch.cat(x, dim=-1) for x in zip(curr_tensors_list[r], extra_tensors_list[r])]  \ 
+                                               for r in pred_arities]
+
+            else:
+                curr_tensors_list_modified = curr_tensors_list
+
+            curr_tensors_list = self.layers[i](curr_tensors_list_modified, list_num_objs)
 
         return curr_tensors_list

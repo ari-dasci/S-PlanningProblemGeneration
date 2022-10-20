@@ -44,7 +44,9 @@ class DirectedGenerator():
 											  Otherwise, the inner layers shapes must be passed as a list of lists, e.g., [[1,1,1,1]] (for only one hidden layer)
 	@load_init_state_policy_checkpoint_name If not None, we load the initial state policy checkpoint given by @load_checkpoint_name instead of initializing
 											the initial state policy (actor and critic NLMs) weights from scratch.
-
+	@extra_input_preds_initial_state_nlm If True, we add as extra input predicates to each NLM layer (except for the last one) the predicates
+	                                     corresponding to the termination condition and to the object types.
+										 <Note>: @extra_input_preds_initial_state_nlm and @res_connections_initial_state_nlm cannot be both True!
 	<Note>: when we load the init or goal policies, only the weights are restored, but the rest of the hyperparameters (e.g.: entropy coeffs, curr_log_it)
 	        are not loaded but initialized by the constructor!
 	"""
@@ -53,11 +55,13 @@ class DirectedGenerator():
 				 penalization_continuous_consistency=-1, penalization_eventual_consistency=-1,
 				 max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
 				
-				 num_preds_inner_layers_initial_state_nlm=[[4,4,4,4]], mlp_hidden_layers_initial_state_nlm=[0,0], res_connections_initial_state_nlm=True,
+				 num_preds_inner_layers_initial_state_nlm=[[4,4,4,4]], mlp_hidden_layers_initial_state_nlm=[0,0], 
+				 extra_input_preds_initial_state_nlm=True, res_connections_initial_state_nlm=False,
 				 lr_initial_state_nlm=5e-4, entropy_coeff_init_state_policy=1.0,
 				 entropy_annealing_coeffs_init_state_policy = None, epsilon_init_state_policy=0.2, load_init_state_policy_checkpoint_name=None,
 				 
-				 num_preds_inner_layers_goal_nlm=[[4,4,4,4]], mlp_hidden_layers_goal_nlm=[0,0], res_connections_goal_nlm=True,
+				 num_preds_inner_layers_goal_nlm=[[4,4,4,4]], mlp_hidden_layers_goal_nlm=[0,0], 
+				 extra_input_preds_goal_nlm=True, res_connections_goal_nlm=False,
 				 lr_goal_nlm=5e-4, entropy_coeff_goal_policy = 1.0,
 				 entropy_annealing_coeffs_goal_policy = None, epsilon_goal_policy=0.2, load_goal_policy_checkpoint_name=None):
 				 
@@ -66,6 +70,9 @@ class DirectedGenerator():
 		warnings.filterwarnings('ignore', category=FutureWarning) # Numpy warning
 		warnings.filterwarnings("ignore", ".*Consider increasing the value of the `num_workers` argument*") # Pytorch warning about increasing number of workers for dataloader
 
+		if (extra_input_preds_initial_state_nlm and res_connections_initial_state_nlm) or \
+		   (extra_input_preds_goal_nlm and res_connections_goal_nlm):
+			raise Exception("The NLM cannot use extra_input_preds and residual_connections at the same time.")
 
 		self._parser = parser
 		self._planner = planner
@@ -106,15 +113,19 @@ class DirectedGenerator():
 		# Initial state generation policy
 		num_preds_all_layers_initial_state_nlm = self._num_preds_all_layers_init_nlm(num_preds_inner_layers_initial_state_nlm)
 
+		extra_preds_each_arity_initial_state_nlm = self._extra_preds_each_arity_init_nlm() if extra_input_preds_initial_state_nlm else None
+
 		if load_init_state_policy_checkpoint_name is None:
 			self._initial_state_policy = GenerativePolicy(num_preds_all_layers_initial_state_nlm, mlp_hidden_layers_initial_state_nlm, 
+												        extra_preds_each_arity_initial_state_nlm,
 												        res_connections_initial_state_nlm, lr_initial_state_nlm,
 													    entropy_coeff_init_state_policy,
 														entropy_annealing_coeffs_init_state_policy, epsilon_init_state_policy)
 		else: # Load initial state policy from checkpoint
 			self._initial_state_policy = GenerativePolicy.load_from_checkpoint(checkpoint_path=load_init_state_policy_checkpoint_name,
 																		         num_preds_layers_nlm=num_preds_all_layers_initial_state_nlm, 
-																				 mlp_hidden_sizes_nlm=mlp_hidden_layers_initial_state_nlm, 
+																				 mlp_hidden_sizes_nlm=mlp_hidden_layers_initial_state_nlm,
+																				 nlm_extra_preds_each_arity=extra_preds_each_arity_initial_state_nlm,
 																				 nlm_residual_connections=res_connections_initial_state_nlm, 
 																				 lr=lr_initial_state_nlm,
 																				 action_entropy_coeff=entropy_coeff_init_state_policy,
@@ -124,15 +135,19 @@ class DirectedGenerator():
 		# Goal generation policy
 		num_preds_all_layers_goal_nlm = self._num_preds_all_layers_goal_nlm(num_preds_inner_layers_goal_nlm)
 
+		extra_preds_each_arity_goal_nlm = self._extra_preds_each_arity_goal_nlm() if extra_input_preds_goal_nlm else None
+
 		if load_goal_policy_checkpoint_name is None:
-			self._goal_policy = GenerativePolicy(num_preds_all_layers_goal_nlm, mlp_hidden_layers_goal_nlm, 
+			self._goal_policy = GenerativePolicy(num_preds_all_layers_goal_nlm, mlp_hidden_layers_goal_nlm,
+														extra_preds_each_arity_goal_nlm,
 												        res_connections_goal_nlm, lr_goal_nlm,
 													    entropy_coeff_goal_policy,
 														entropy_annealing_coeffs_goal_policy, epsilon_goal_policy)
 		else: # Load initial state policy from checkpoint
 			self._goal_policy = GenerativePolicy.load_from_checkpoint(checkpoint_path=load_goal_policy_checkpoint_name,
 																		         num_preds_layers_nlm=num_preds_all_layers_goal_nlm, 
-																				 mlp_hidden_sizes_nlm=mlp_hidden_layers_goal_nlm, 
+																				 mlp_hidden_sizes_nlm=mlp_hidden_layers_goal_nlm,
+																				 nlm_extra_preds_each_arity=extra_preds_each_arity_goal_nlm,
 																				 nlm_residual_connections=res_connections_goal_nlm, 
 																				 lr=lr_goal_nlm,
 																				 action_entropy_coeff=entropy_coeff_goal_policy,
@@ -274,6 +289,23 @@ class DirectedGenerator():
 																	 output_nlm_layer_shape))
 
 		return num_preds_all_layers_goal_nlm
+
+	"""
+	Assuming extra_input_preds_goal_nlm is True, this method obtains a list with the extra predicates to add as inputs
+	to every layer (except the first one) of the initial_state_policy NLM. These predicates correspond to the nullary predicate
+	encoding perc_actions_executed and the unary predicates encoding the object types.
+	"""
+	def _extra_preds_each_arity_init_nlm():
+		pass
+
+
+	"""
+	Assuming extra_input_preds_initial_state_nlm is True, this method obtains a list with the extra predicates to add as inputs
+	to every layer (except the first one) of the goal_policy NLM. These predicates correspond to the nullary predicate
+	encoding perc_actions_executed and the unary predicates encoding the object types.
+	"""
+	def _extra_preds_each_arity_goal_nlm():
+		pass
 
 
 	"""

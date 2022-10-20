@@ -16,6 +16,7 @@ class GenerativePolicy(pl.LightningModule):
 	"""
 	Constructor. Creates the NLMs (actor and critic) used for the initial state policy.
 
+	@nlm_extra_preds_each_arity The extra predicates which must be given as inputs to every NLM layer except for the first one
 	@nlm_residual_connections Whether the NLM must use residual connections
 	@action_entropy_coeff Coefficient for the entropy loss, used when calculating the Actor loss
 	@epsilon PPO parameter that controls how much the policy can diverge from the old one
@@ -29,7 +30,7 @@ class GenerativePolicy(pl.LightningModule):
 	      and the number of atoms already added to the initial state (perc_actions_executed, a number between 0 and 1), in case these are needed.
 	      Also, it needs to include the extra unary predicates representing object types, if needed.
 	"""
-	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_residual_connections, lr,
+	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_extra_preds_each_arity, nlm_residual_connections, lr,
 			     action_entropy_coeff, entropy_annealing_coeffs, epsilon):
 		super().__init__()
 
@@ -45,8 +46,7 @@ class GenerativePolicy(pl.LightningModule):
 			self._entropy_annealing_coeff = (entropy_annealing_coeffs[1] - action_entropy_coeff) / entropy_annealing_coeffs[0]
 			self._final_iteration_entropy_annealing = entropy_annealing_coeffs[0]
 
-
-		self._actor_nlm = NLM(num_preds_layers_nlm, mlp_hidden_sizes_nlm, residual_connections=nlm_residual_connections)
+		self._actor_nlm = NLM(num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_extra_preds_each_arity, nlm_residual_connections)
 
 		# The NLM for the critic has the same shape as the actor NLM except for the output layer, where it only has
 		# a single nullary predicate corresponding to the value function prediction V(s)
@@ -54,7 +54,7 @@ class GenerativePolicy(pl.LightningModule):
 		num_preds_layers_nlm_critic[-1, :] = 0
 		num_preds_layers_nlm_critic[-1, 0] = 1
 
-		self._critic_nlm = NLM(num_preds_layers_nlm_critic, mlp_hidden_sizes_nlm, residual_connections=nlm_residual_connections)
+		self._critic_nlm = NLM(num_preds_layers_nlm_critic, mlp_hidden_sizes_nlm, nlm_extra_preds_each_arity, nlm_residual_connections)
 
 		self.curr_log_iteration = 0 # Used to track the current logging iteration in order to save the logs correctly
 
