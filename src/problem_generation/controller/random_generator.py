@@ -26,10 +26,16 @@ class RandomGenerator():
 		self._max_objects_init_state = max_objects_init_state
 		self._max_atoms_init_state = max_atoms_init_state
 
-		# Goal predicates (list of predicates names -> ['on', 'ontable'])
+		# <Goal predicates, as a list of predicates (with name and parameters)>
 		if predicates_to_consider_for_goal is None: # Consider every predicate for the goal
-			self._predicates_to_consider_for_goal = [pred[0] for pred in self._parser.domain_predicates]
+			self._predicates_to_consider_for_goal = self._parser.domain_predicates
 		else:
+			# Make sure every predicate name only appears at most once
+			pred_names = set([pred[0] for pred in predicates_to_consider_for_goal])
+
+			if len(pred_names) != len(predicates_to_consider_for_goal):
+				raise ValueError("The parameter predicates_to_consider_for_goal contains at least one duplicate predicate")
+
 			self._predicates_to_consider_for_goal = predicates_to_consider_for_goal
 
 

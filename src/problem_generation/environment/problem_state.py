@@ -21,7 +21,13 @@ class ProblemState:
 	Constructor of the ProblemState class.
 
 	@parser Instance of Parser class, containing the parsed information about the PDDL domain.
-	@predicates_to_consider_for_goal List of predicate <names> (e.g., ['on', 'ontable']) to consider for the goals of the generated problems.
+	@predicates_to_consider_for_goal List of predicates (name and parameter types) which will be considered for the goal.
+									 Only the atoms of the goal_state which match one of the goal_predicates will form part of the goal.
+									 In order for a goal atom to be added to the goal, it needs to match both the name of the predicate
+									 and the type of each object it is instantiated on must inherit from the corresponding param type
+									 in the goal predicate.
+									 Example: if goal_predicates contains ['at',['vehicle','location']], then we will only consider for the goal
+									          those atoms of type "at" which correspond to vehicles (and locations), but not to packages (and locations).
 	@initial_state_info Information used to create the initial state of the generation process. 
 	                    If None, the initial state is empty (contains no objects or atoms).
                         If str (e.g., 'block'), the initial state contains a single object of such type. 
@@ -47,7 +53,7 @@ class ProblemState:
 		self._penalization_eventual_consistency = penalization_eventual_consistency
 		self._penalization_non_applicable_action = penalization_non_applicable_action
 
-		# Goal predicates (list of predicates names -> ['on', 'ontable'])
+		# Goal predicates (list of predicates (with names and parameters))
 		self._predicates_to_consider_for_goal = predicates_to_consider_for_goal
 
 		# Get initial state of the generation process
@@ -541,14 +547,29 @@ class ProblemState:
 		return self._initial_state, r
 
 	"""
-	Obtains a list with the (positive) atoms of the goal. This list corresponds to the atoms in self._goal_state whose predicate
-	is in self._predicates_to_consider_for_goal.
+	Obtains a list with the (positive) atoms of the goal, according to self._predicates_to_consider_for_goal.
 	Before calling this method, the goal state should have already been generated.
 	"""
 	def _get_atoms_in_problem_goal(self):
 		goal_atoms = self._goal_state.atoms
+		goal_objects = self._goal_state.objects # List with the type of each object in goal_state
 
-		goal_atoms_filtered = list(filter(lambda atom: atom[0] in self._predicates_to_consider_for_goal, goal_atoms))
+		# goal_atoms_filtered = list(filter(lambda atom: atom[0] in self._predicates_to_consider_for_goal, goal_atoms))
+
+		goal_atoms_filtered = []
+
+		for atom in goal_atoms:
+			for pred in self._predicates_to_consider_for_goal:
+				if atom[0] == pred[0]:
+					types_correct = True
+
+					for obj_ind, param_type in zip(atom[1], pred[1]):
+						types_correct = types_correct and self._parser.is_type_child_of(goal_objects[obj_ind], param_type)
+
+					if types_correct:
+						goal_atoms_filtered.append(atom)
+
+					break
 		
 		return goal_atoms_filtered
 

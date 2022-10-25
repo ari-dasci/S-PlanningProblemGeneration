@@ -89,10 +89,16 @@ class DirectedGenerator():
 		self._dummy_rel_state_actions = RelationalState(self._parser.domain_types, self._parser.type_hierarchy,
 		                                                self._parser.domain_actions_and_parameters) 
 
-		# <Goal predicates (list of predicates names -> ['on', 'ontable'])>
+		# <Goal predicates, as a list of predicates (with name and parameters)>
 		if predicates_to_consider_for_goal is None: # Consider every predicate for the goal
-			self._predicates_to_consider_for_goal = [pred[0] for pred in self._parser.domain_predicates]
+			self._predicates_to_consider_for_goal = self._parser.domain_predicates
 		else:
+			# Make sure every predicate name only appears at most once
+			pred_names = set([pred[0] for pred in predicates_to_consider_for_goal])
+
+			if len(pred_names) != len(predicates_to_consider_for_goal):
+				raise ValueError("The parameter predicates_to_consider_for_goal contains at least one duplicate predicate")
+
 			self._predicates_to_consider_for_goal = predicates_to_consider_for_goal
 
 		# <Parameters used to normalize the rewards>
@@ -113,7 +119,11 @@ class DirectedGenerator():
 		# Initial state generation policy
 		num_preds_all_layers_initial_state_nlm = self._num_preds_all_layers_init_nlm(num_preds_inner_layers_initial_state_nlm)
 
-		extra_preds_each_arity_initial_state_nlm = self._extra_preds_each_arity_init_nlm() if extra_input_preds_initial_state_nlm else None
+		extra_preds_each_arity_initial_state_nlm = self._extra_preds_each_arity_init_nlm(num_preds_all_layers_initial_state_nlm[0]) if extra_input_preds_initial_state_nlm else None
+
+		# QUITAR
+		#print("num_preds_all_layers_initial_state_nlm", num_preds_all_layers_initial_state_nlm)
+		#print("extra_preds_each_arity_initial_state_nlm", extra_preds_each_arity_initial_state_nlm)
 
 		if load_init_state_policy_checkpoint_name is None:
 			self._initial_state_policy = GenerativePolicy(num_preds_all_layers_initial_state_nlm, mlp_hidden_layers_initial_state_nlm, 
@@ -135,7 +145,7 @@ class DirectedGenerator():
 		# Goal generation policy
 		num_preds_all_layers_goal_nlm = self._num_preds_all_layers_goal_nlm(num_preds_inner_layers_goal_nlm)
 
-		extra_preds_each_arity_goal_nlm = self._extra_preds_each_arity_goal_nlm() if extra_input_preds_goal_nlm else None
+		extra_preds_each_arity_goal_nlm = self._extra_preds_each_arity_goal_nlm(num_preds_all_layers_goal_nlm[0]) if extra_input_preds_goal_nlm else None
 
 		if load_goal_policy_checkpoint_name is None:
 			self._goal_policy = GenerativePolicy(num_preds_all_layers_goal_nlm, mlp_hidden_layers_goal_nlm,
@@ -154,6 +164,9 @@ class DirectedGenerator():
 																				 entropy_annealing_coeffs=entropy_annealing_coeffs_goal_policy, 
 																				 epsilon=epsilon_goal_policy)
 
+		# QUITAR
+		#print("num_preds_all_layers_goal_nlm", num_preds_all_layers_goal_nlm)
+		#print("extra_preds_each_arity_goal_nlm", extra_preds_each_arity_goal_nlm)
 
 
 	# ------- Getters and Setters --------
@@ -294,18 +307,42 @@ class DirectedGenerator():
 	Assuming extra_input_preds_goal_nlm is True, this method obtains a list with the extra predicates to add as inputs
 	to every layer (except the first one) of the initial_state_policy NLM. These predicates correspond to the nullary predicate
 	encoding perc_actions_executed and the unary predicates encoding the object types.
+
+	@num_preds_init_layer Number of predicates of each arity the init_state NLM receives as input.
 	"""
-	def _extra_preds_each_arity_init_nlm():
-		pass
+	def _extra_preds_each_arity_init_nlm(self, num_preds_init_layer):
+		num_obj_types = len(self._parser.domain_types)
+		
+		extra_preds_each_arity = [None]*len(num_preds_init_layer)
+		
+		# The extra nullary predicates simply correspond to the last nullary predicate representing perc_actions_executed
+		extra_preds_each_arity[0] = [num_preds_init_layer[0]-1]
+
+		# The extra unary predicates simply correspond to the last n unary predicates, where n is the number of object types
+		extra_preds_each_arity[1] = list(range(num_preds_init_layer[1] - num_obj_types, num_preds_init_layer[1]))
+
+		return extra_preds_each_arity
 
 
 	"""
 	Assuming extra_input_preds_initial_state_nlm is True, this method obtains a list with the extra predicates to add as inputs
 	to every layer (except the first one) of the goal_policy NLM. These predicates correspond to the nullary predicate
 	encoding perc_actions_executed and the unary predicates encoding the object types.
+
+	@num_preds_init_layer Number of predicates of each arity the goal NLM receives as input.
 	"""
-	def _extra_preds_each_arity_goal_nlm():
-		pass
+	def _extra_preds_each_arity_goal_nlm(self, num_preds_init_layer):
+		num_obj_types = len(self._parser.domain_types)
+		
+		extra_preds_each_arity = [None]*len(num_preds_init_layer)
+		
+		# The extra nullary predicates simply correspond to the last nullary predicate representing perc_actions_executed
+		extra_preds_each_arity[0] = [num_preds_init_layer[0]-1]
+
+		# The extra unary predicates simply correspond to the last n unary predicates, where n is the number of object types
+		extra_preds_each_arity[1] = list(range(num_preds_init_layer[1] - num_obj_types, num_preds_init_layer[1]))
+
+		return extra_preds_each_arity
 
 
 	"""

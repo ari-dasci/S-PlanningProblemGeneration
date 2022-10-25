@@ -734,7 +734,10 @@ def test_generate_random_problems_logistics():
 	parser.parse_domain(domain_file_path)
 	planner = Planner(domain_file_path)
 
-	random_generator = RandomGenerator(parser, planner,consistency_validator=ValidatorLogistics)
+	# Goal predicates
+	goal_predicates = [['at', ['package','location']]]
+
+	random_generator = RandomGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics)
 
 	num_problems_to_generate = 10
 
@@ -765,6 +768,9 @@ def test_train_init_and_goal_policy_logistics():
 	parser.parse_domain(domain_file_path)
 	planner = Planner(domain_file_path)
 
+	# Goal predicates
+	goal_predicates = [['at', ['package','location']]]
+
 	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]] # -> Preds arity 3
 	# nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]] # -> No preds arity 3
@@ -776,7 +782,7 @@ def test_train_init_and_goal_policy_logistics():
 
 	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
 
-	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorLogistics,
+	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
 
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
@@ -815,9 +821,12 @@ def test_load_models_and_generate_problems_logistics():
 	parser.parse_domain(domain_file_path)
 	planner = Planner(domain_file_path)
 
+	# Goal predicates
+	goal_predicates = [['at', ['package','location']]]
+
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_104/init_policy_its-530.ckpt"
-	goal_policy_path = "saved_models/both_policies_104/goal_policy_its-530.ckpt"
+	init_policy_path = "saved_models/both_policies_106/init_policy_its-790.ckpt"
+	goal_policy_path = "saved_models/both_policies_106/goal_policy_its-790.ckpt"
 
 	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
@@ -825,17 +834,19 @@ def test_load_models_and_generate_problems_logistics():
 
 	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
 
-	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorLogistics,
+	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
 										  
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
-										   res_connections_initial_state_nlm=True,
+										   extra_input_preds_initial_state_nlm=True,
+										   res_connections_initial_state_nlm=False,
 										   load_init_state_policy_checkpoint_name=init_policy_path,
 
 										   num_preds_inner_layers_goal_nlm=goal_policy_nlm_inner_layers,
 										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
-										   res_connections_goal_nlm=True,
+										   extra_input_preds_goal_nlm=True,
+										   res_connections_goal_nlm=False,
 										   load_goal_policy_checkpoint_name=goal_policy_path)
 
 	print(f">> Init model {init_policy_path} and goal model {goal_policy_path} loaded")
@@ -883,6 +894,7 @@ def test_load_models_and_generate_problems_logistics():
 	- La term_cond_prob se mantiene más baja durante todo el entrenamiento y llega hasta 0.03
 	- La init_policy_entropy empieza más baja al principio pero después, tras 400 its, los valores son iguales que en el
 	  experimento anterior
+	- La goal_policy_entropy es demasiado alta!! (al final del entrenamiento es más alta que al principio)
 
 	<Las gráficas de entrenamiento son mucho mejores con el nuevo _get_mask_tensors_init_policy()!!>
 
@@ -890,24 +902,95 @@ def test_load_models_and_generate_problems_logistics():
 	> directed_generator (its=530)
 		- 20 atoms&actions - diff = 35.9 - diversidad media, aunque ningún problema tiene un objeto de tipo "airplane"
 
+> goal_policy_nlm_inner_layers = [[8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,4,0]]
+  <extra_input_preds=True, res_connections=False>
+
+  > Entrenamiento
+	- La r_difficulty tarda más en empezar a subir y sube más lenta, pero termina llegando al mismo valor que en el experimento anterior
+	- La r_continuous y r_eventual tardan más en converger a 0, pero al final lo hacen
+	- La term_cond_prob es idéntica al experimento anterior. Al final de todo el entrenamiento llega a un valor muy cercano a 0!
+	- La gráfica de la init_policy_entropy es parecida a la del experimento anterior aunque, como este experimento se ejecuta durante más training its,
+	  al final del entrenamiento la entropía es más baja que en el experimento anterior (baja hasta 0.13)
+	- La goal_policy_entropy es demasiado alta!! (al final del entrenamiento es casi tan alta como al principio)
+
+  > Problemas
+	> directed_generator (its=670)
+		- 20 atoms&actions - diff = 32.3 - diversidad media, aunque un poco menor que en el experimento anterior.
+										   Todos los paquetes aparecen en predicados "in", ninguno en "at".
+										   Ningún problema tiene un objeto de tipo "airplane".
+
+		<Este modelo, que no usa residual_connections, aprende a generar problemas de la misma dificultad, pero a costa
+		 de una menor diversidad (entropía) y más tiempo de entrenamiento> -> Creo que debería probar a añadir predicados
+		 de ariedad 3 si no añado residual_connections, o más predicados de todas las ariedades.
+
+		<Si en vez de usar el modelo its=670, uso el modelo its=200 para generar los problemas, ahí si hay varios problemas
+		 con varios objetos de tipo airplane!! -> parece que la política "aprende" a dejar de generar problemas con objetos
+		 de tipo "airplane".> -> LA ENTROPY_LOSS DEBE INCENTIVAR PROBLEMAS CON OBJETOS DE DISTINTOS TIPOS (incluido airplane)!
+  
+> goal_policy_nlm_inner_layers = [[8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,4,0]]
+  extra_input_preds=True, res_connections=False
+  <predicates_to_consider_for_goal=[['at', ['package','location']]]>
+
+  > Entrenamiento
+	- La r_difficulty aumenta un poco más lentamente y llega hasta 0.45, solo un poco menos que en el experimento anterior!
+	- La r_eventual y r_continuous convergen a 0
+	- La term_cond_prob es casi idéntica al experimento anterior
+	- La init_policy_entropy baja hasta 0.07, mientras que en el experimento anterior llegaba a 0.13
+	- La goal_policy_entropy primero baja hasta 0.21, pero después empieza a subir hasta 0.3!!!
+
+	<A pesar de limitar los goal_predicates a "at", los problemas generados tienen casi la misma dificultad!!!>
+
+  > Problemas
+	> directed generator (its=790)
+		- 20 atoms&actions - diff = 32.3 - diversidad muy baja - los problemas son muy parecidos.
+																 En todos ellos hay un solo camión y casi todos los paquetes empiezan
+																 dentro del camión (predicado "in").
+																 Además, ningún problema tiene ningún objeto de tipo "airplane".
+
+	> random generator (con predicates_to_consider_for_goal=[['at', ['package','location']]])
+		- 20 atoms&actions - diff = 5.7
+
+	<Para evitar que se generen problemas así, debo aumentar los entropy_coeffs y prohibir que se añada el predicado "in" al estado
+	 inicial.>
 
 
 
- 
+
+-----
+
+1. <Ver si se añaden objetos de tipo airplane al principio del entrenamiento y después se dejan de añadir!!>
+	- Sí, y después se dejan de añadir.
+
+2. <<SOLO QUEDARNOS CON EL PREDICADO "AT" PARA "PACKAGE" EN EL OBJETIVO DE LOS PROBLEMAS GENERADOS!!>>
+  (solo nos importan los paquetes, el resto de objetos nos dan igual)
+
 
 ----- TODO
 
-> Añadir predicados extra a la NLM si no se usan residual connections
-	- Hacer pruebas sin residual connections y usando predicados de ariedad 3 en todas las capas
+> Aumentar la eficiencia del pddl parser (Ver discord de FD, Slack y github up)
+	- Probar métodos del issue de github de up
+	- Probar powerlifted y ver cómo obtienen las applicable actions los lifted planners
 
-> Implementar un pddl_parser más eficiente mientras se están haciendo los experimentos de logistics y zenotravel
-  (una vez haya añadido los predicados extra a las NLM layers en caso de no usar residual connections)
-	- Mirarme la página que me ha pasado ignacio
+> Cambiar método cálculo dificultad
+	- Leer papers que me pasó Sergio sobre métodos para medir la dificultad de los problemas
+	- Implementar nuevo método (basado en heurísticas)
 
-> Cambiar el cálculo de la policy_entropy para intentar que se añadan objetos de distinto tipo
-  (ningún problema generado tiene un objeto de tipo 'airplane')
+> Siguiente experimento logistics
+	- Cambiar consistency rules para que no se añada nunca un predicado "in" al init state y 
+	  aumentar los entropy coeffs de la init policy (para que se generen problemas más diversos)
 
-> Leerme detenidamente paper Autoscale que me pasó Juan
+> Facilitar la codificación de las reglas de consistencia
+	- Añadir métodos para poder codificar reglas del tipo "num-preds(pred, [list-objs])" de manera declarativa
+	  Mirar cómo lo hace ESSENCE
+	- Comprobar que funciona usando el random generator
+
+> Informarme sobre métodos para medir la diversidad de los problemas generados (y también de los estados iniciales)
+	VER .TXT ESCRITORIO!!
+
+> Añadir al entropy loss un término para añadir objetos de distintos tipos al estado inicial
+	- (en el caso de que los problemas generados no tengan objetos de tipo airplane)
+
+> Hacer pruebas sin residual_connections pero con predicados de ariedad 3
 
 -----------------------------
 

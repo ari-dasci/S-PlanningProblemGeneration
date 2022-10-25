@@ -2,9 +2,11 @@
 # This implementation allows for a whole batch to be passed as input to the NLM
 
 import torch
+import numpy as np
 from torch import nn
 import itertools
 import math
+import sys
 
 """
 MLP used to perform inference in the inner layers of the NLM.
@@ -461,8 +463,9 @@ class NLM(nn.Module):
                                                 residual_connections = (residual_connections and i != num_preds_layers.shape[0]-2)) \
                                      for i in range(len(num_input_preds_layers))]) 
     
-        self._num_input_preds_layers = num_input_preds_layers_with_res
+        self._num_input_preds_layers = num_input_preds_layers_modified
         self._num_output_preds_layers = num_output_preds_layers
+
 
     # Getters
     @property
@@ -502,12 +505,18 @@ class NLM(nn.Module):
         pred_arities = range(len(input_tensors_list))
         num_samples = len(input_tensors_list[0])
 
+        #print("input_tensors_list first sample", [x[0] if x is not None else None for x in input_tensors_list])
+
         if add_extra_preds:          
-            extra_preds_each_arity = [torch.tensor(x, dtype=torch.long) for x in self._extra_preds_each_arity] # We need to encapsulate every index list in a tensor for using the torch.index_select() method
+            extra_preds_each_arity = [torch.tensor(x, dtype=torch.long) if x is not None else None \
+                                      for x in self._extra_preds_each_arity] # We need to encapsulate every index list in a tensor for using the torch.index_select() method
             
             # Select the extra tensors which need to be added to each layer
             extra_tensors_list = [ [ torch.index_select(sample_tensor, r, extra_preds_each_arity[r]) for sample_tensor in input_tensors_list[r] ] \
-                                  for r in pred_arities]
+                                   if extra_preds_each_arity[r] is not None else None \
+                                   for r in pred_arities]
+
+            #print("extra_tensors_list first sample", [x[0] if x is not None else None for x in extra_tensors_list])
             
         curr_tensors_list = input_tensors_list
         
@@ -516,11 +525,22 @@ class NLM(nn.Module):
             # We do not add the extra predicates as inputs to the first NLM layer
             if add_extra_preds and i > 0:
                 # Append the extra predicates to each sample in the batch for each arity
-                curr_tensors_list_modified = [ [torch.cat(x, dim=-1) for x in zip(curr_tensors_list[r], extra_tensors_list[r])]  \ 
+                curr_tensors_list_modified = [ [torch.cat(x, dim=-1) for x in zip(curr_tensors_list[r], extra_tensors_list[r])]  \
+                                               if extra_preds_each_arity[r] is not None else curr_tensors_list[r] \
                                                for r in pred_arities]
 
             else:
                 curr_tensors_list_modified = curr_tensors_list
+
+
+            # QUITAR
+            # if i == 0:
+            #    print("\ncurr_tensors_list_modified layer 0", [x[0] if x is not None else None for x in curr_tensors_list_modified])
+                
+            #if i == 1:
+            #    print("\curr_tensors_list layer 1", [x[0] if x is not None else None for x in curr_tensors_list])
+            #    print("\ncurr_tensors_list_modified layer 1", [x[0] if x is not None else None for x in curr_tensors_list_modified])
+            #    sys.exit()
 
             curr_tensors_list = self.layers[i](curr_tensors_list_modified, list_num_objs)
 
