@@ -583,15 +583,24 @@ class ValidatorLogistics(ValidatorPredOrder):
 
 
 		# (in ?p - package ?veh - vehicle)
+
+		# OLD
 		# The vehicle must already exist -> ?veh must be in state_objs
 		# The package must be new (since a package cannot be in both
 		#  a location and inside a vehicle at the same time (mutex)) -> ?p must not be in state_objs
-		# A package cannot be in two vehicles at the same time -> no need to check this condition, since ?p is not in state_objs
+		# A package cannot be in two vehicles at the same time -> no need to check this condition, since ?p is not in state_objs		
+		"""
 		if action_pred == 'in':
 			package, vehicle = action[1]
 
-			# The package must be new wheresa the vehicle must already exist in state_objs
+			# The package must be new whereas the vehicle must already exist in state_objs
 			return package not in state_objs and vehicle in state_objs
+		"""
+
+		# NEW
+		# The initial state can have no atoms of type "in"
+		if action_pred == 'in':
+			return False
 
 
 	"""

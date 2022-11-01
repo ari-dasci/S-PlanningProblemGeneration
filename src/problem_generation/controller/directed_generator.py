@@ -357,6 +357,9 @@ class DirectedGenerator():
 	for that arity), with the same shape as the NLM output.
 	In order to mask the NLM output, simply sum the mask tensor values with the output NLM tensors.
 
+	<Note>: if no actions are valid, i.e., no atom can be added to the init state, we <never> mask the
+	        termination condition, even if the current state does not contain all the required predicates.
+
 	@nlm_output_shape Shape of the last NLM layer, as a list of num_preds, e.g., [1,2,3,0]. Note: @nlm_output_shape must
 	                  take into account the extra nullary predicate added for the termination condition (in case it is added).
 	@rel_state Instance of RelationalState representing the state the NLM is applied to. Used to obtain the state objects (with their types)
@@ -424,14 +427,12 @@ class DirectedGenerator():
 		if not term_cond_allowed:
 			mask_tensors[0][-1] = -float("inf")
 
+		# If no action is valid, we unmask the termination condition
+		# (set to 0)
+		all_values_masked = all(torch.all(tensor==-float("inf")) for tensor in mask_tensors if tensor is not None)
 
-		# QUITAR
-		#print("allowed_preds:", allowed_preds)
-		#print("state atoms:", rel_state.atoms)
-		#print("term_cond_allowed", term_cond_allowed)
-		#print("Mask_tensors:", mask_tensors)
-		#sys.exit()
-
+		if all_values_masked:
+			mask_tensors[0][-1] = 0.0
 
 		return mask_tensors
 

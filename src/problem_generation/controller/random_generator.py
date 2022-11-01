@@ -328,9 +328,6 @@ class RandomGenerator():
 					else:
 						selected_consistent_action = False
 
-						# QUITAR
-						print("\npossible_atoms after:", possible_atoms)
-
 						# Select a consistent action
 						while not selected_consistent_action and len(possible_atoms) > 0:
 							# Select a random possible action (atom)
