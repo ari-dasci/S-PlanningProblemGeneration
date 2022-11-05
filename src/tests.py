@@ -307,9 +307,10 @@ Test generate_random_problems() in Controller class.
 """
 def test_generate_random_problems():
 	from problem_generation.controller.controller import RandomGenerator
-	from problem_generation.environment.pddl_parser import Parser
 	from problem_generation.environment.planner import Planner
+	from problem_generation.environment.state_validator import ValidatorPredOrderBW
 
+	from lifted_pddl import Parser
 
 	domain_file_path = '../data/domains/blocks-domain.pddl'
 
@@ -317,7 +318,7 @@ def test_generate_random_problems():
 	parser.parse_domain(domain_file_path)
 	planner = Planner(domain_file_path)
 
-	random_generator = RandomGenerator(parser, planner)
+	random_generator = RandomGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW)
 
 	num_problems_to_generate = 5
 
@@ -623,9 +624,10 @@ Tests the functionality of directed_generator.py used to train both the initial 
 """
 def test_train_init_and_goal_policy():
 	from problem_generation.controller.directed_generator import DirectedGenerator
-	from problem_generation.environment.pddl_parser import Parser
 	from problem_generation.environment.planner import Planner
 	from problem_generation.environment.state_validator import ValidatorPredOrderBW
+	
+	from lifted_pddl import Parser
 
 	domain_file_path = '../data/domains/blocks-domain.pddl'
 
@@ -676,9 +678,10 @@ We load the trained init and goal policies and use them to generate problems.
 """
 def test_load_models_and_generate_problems():
 	from problem_generation.controller.directed_generator import DirectedGenerator
-	from problem_generation.environment.pddl_parser import Parser
 	from problem_generation.environment.planner import Planner
 	from problem_generation.environment.state_validator import ValidatorPredOrderBW
+
+	from lifted_pddl import Parser
 
 	domain_file_path = '../data/domains/blocks-domain.pddl'
 
@@ -723,10 +726,10 @@ Test generate_random_problems() in Controller class for the logistics domain.
 """
 def test_generate_random_problems_logistics():
 	from problem_generation.controller.controller import RandomGenerator
-	from problem_generation.environment.pddl_parser import Parser
 	from problem_generation.environment.planner import Planner
 	from problem_generation.environment.state_validator import ValidatorLogistics
 
+	from lifted_pddl import Parser
 
 	domain_file_path = '../data/domains/logistics-domain.pddl'
 
@@ -735,7 +738,7 @@ def test_generate_random_problems_logistics():
 	planner = Planner(domain_file_path)
 
 	# Goal predicates
-	goal_predicates = [['at', ['package','location']]]
+	goal_predicates = {('at', ('package','location'))}
 
 	random_generator = RandomGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics)
 
@@ -758,9 +761,10 @@ Tests the functionality of directed_generator.py used to train both the initial 
 """
 def test_train_init_and_goal_policy_logistics():
 	from problem_generation.controller.directed_generator import DirectedGenerator
-	from problem_generation.environment.pddl_parser import Parser
 	from problem_generation.environment.planner import Planner
 	from problem_generation.environment.state_validator import ValidatorLogistics
+
+	from lifted_pddl import Parser
 
 	domain_file_path = '../data/domains/logistics-domain.pddl'
 
@@ -769,7 +773,7 @@ def test_train_init_and_goal_policy_logistics():
 	planner = Planner(domain_file_path)
 
 	# Goal predicates
-	goal_predicates = [['at', ['package','location']]]
+	goal_predicates = {('at', ('package','location'))}
 
 	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]] # -> Preds arity 3
@@ -815,9 +819,10 @@ We load the trained init and goal policies and use them to generate problems for
 """
 def test_load_models_and_generate_problems_logistics():
 	from problem_generation.controller.directed_generator import DirectedGenerator
-	from problem_generation.environment.pddl_parser import Parser
 	from problem_generation.environment.planner import Planner
 	from problem_generation.environment.state_validator import ValidatorLogistics
+
+	from lifted_pddl import Parser
 
 	domain_file_path = '../data/domains/logistics-domain.pddl'
 
@@ -826,7 +831,7 @@ def test_load_models_and_generate_problems_logistics():
 	planner = Planner(domain_file_path)
 
 	# Goal predicates
-	goal_predicates = [['at', ['package','location']]]
+	goal_predicates = {('at', ('package','location'))}
 
 	# Create the generator and load the trained models
 	init_policy_path = "saved_models/both_policies_107/init_policy_its-710.ckpt"
@@ -1107,6 +1112,6 @@ if __name__ == "__main__":
 	#test_train_init_and_goal_policy()
 	#test_load_models_and_generate_problems()
 
-	#test_generate_random_problems_logistics()
-	test_train_init_and_goal_policy_logistics()
+	test_generate_random_problems_logistics()
+	#test_train_init_and_goal_policy_logistics()
 	#test_load_models_and_generate_problems_logistics()

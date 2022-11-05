@@ -1,9 +1,6 @@
 import itertools
-import random
 
 from .relational_state import RelationalState
-from .pddl_parser import Parser, Planner, Action
-from .state_validator import ValidatorPredOrder
 
 """
 This class stores a planning problem partially generated and also implements the associated functionality.
@@ -20,7 +17,7 @@ class ProblemState:
 	"""
 	Constructor of the ProblemState class.
 
-	@parser Instance of Parser class, containing the parsed information about the PDDL domain.
+	@parser Instance of Parser class, from lifted_pddl package
 	@predicates_to_consider_for_goal List of predicates (name and parameter types) which will be considered for the goal.
 									 Only the atoms of the goal_state which match one of the goal_predicates will form part of the goal.
 									 In order for a goal atom to be added to the goal, it needs to match both the name of the predicate
@@ -44,9 +41,6 @@ class ProblemState:
 	def __init__(self, parser, predicates_to_consider_for_goal, initial_state_info=None, penalization_continuous_consistency=-1, 
 			     penalization_eventual_consistency=-1, penalization_non_applicable_action=-1, consistency_validator=None):
 		self._parser = parser
-
-		# Create planner instance to obtain next state after applying action at the current state
-		self._planner = Planner()
 
 		# Rewards
 		self._penalization_continuous_consistency = penalization_continuous_consistency  
@@ -111,34 +105,6 @@ class ProblemState:
 
 	# -------------------------
 
-	# Receives a state as an instance of RelationalState and returns the state objects and atoms in an encoding suitable for the parser
-	# Objects -> from ['block', 'block', 'circle'] to {'block': ['0', '1'], 'circle':['2']}
-	# Atoms -> from [['on', [1, 0]], ['on', [2, 1]]] to [('on', '1', '0'), ('on', '2', '1')]
-	def _encode_relational_state_for_parser(self, state):
-		# <Get state objects in the encoding self._parser uses>
-		# From ['block', 'block', 'circle'] to {'block': ['0', '1'], 'circle':['2']}
-		state_objs = state.objects # Ex: ['block', 'block', 'circle']
-		state_objs_with_names = [(str(ind), _type) for ind, _type in enumerate(state_objs)] # [('0', 'block'), ('1', 'block'), ('2', 'circle')]
-		obj_types_in_state = set(state_objs) # {'block', 'circle'}
-
-		state_objs_dict = dict(zip(obj_types_in_state, [ [] for _ in range(len(obj_types_in_state)) ])) # {'block': [], 'circle': []}
-
-		for obj_name, obj_type in state_objs_with_names: # {'block': ['0', '1'], 'circle':['2']}
-			state_objs_dict[obj_type].append(obj_name)
-
-
-		# <Get state atoms in in the encoding self._parser uses>
-		# From [['on', [1, 0]], ['on', [2,1]]] to frozenset({('on', 'b', 'a'), ('on', 'c', 'b')})
-		state_atoms = state.atoms # [['on', [1, 0]], ['on', [2,1]]]
-		state_atoms_for_parser = frozenset([ tuple([atom[0]] + list(map(str, atom[1]))) for atom in state_atoms]) # [('on', '1', '0'), ('on', '2', '1')]
-
-		#state_atoms_nested = [[[atom[0]], atom[1]]  for atom in state_atoms] # [[['on'], [1, 0]], [['on'], [2,1]]]
-		#state_atoms_unnested = [list(itertools.chain(*atom)) for atom in state_atoms_nested] # [['on', 1, 0], ['on', 2, 1]]
-		#state_atoms_strings = [tuple([str(elem) for elem in atom]) for atom in state_atoms_unnested] # [('on', '1', '0'), ('on', '2', '1')]
-		#state_atoms_strings = frozenset(state_atoms_strings)
-
-		return state_objs_dict, state_atoms_for_parser
-
 	"""
 	Returns the initial state (s0) corresponding to the generation process.
 	If @initial_state_info is None, the initial state is empty (contains no objects or atoms).
@@ -148,13 +114,13 @@ class ProblemState:
 	def _get_s0(self, initial_state_info=None):
 
 		if initial_state_info is None: # Empty state
-			s0 = RelationalState(self._parser.domain_types, self._parser.type_hierarchy, self._parser.domain_predicates, [], [])
+			s0 = RelationalState(self._parser.types, self._parser.type_hierarchy, self._parser.predicates)
 
 		elif type(initial_state_info) == str: # Type given by the user
-			if initial_state_info not in self._parser.domain_types:
+			if initial_state_info not in self._parser.types:
 				raise ValueError("Incorrect object type")
 
-			s0 = RelationalState(self._parser.domain_types, self._parser.type_hierarchy, self._parser.domain_predicates, [initial_state_info], [])
+			s0 = RelationalState(self._parser.types, self._parser.type_hierarchy, self._parser.predicates, [initial_state_info])
 
 		elif isinstance(initial_state_info, RelationalState):
 			s0 = initial_state_info.copy()
@@ -163,7 +129,7 @@ class ProblemState:
 		# <TODO>
 		# Add support for domain constants
 		"""
-		constants = self._parser.domain_constants
+		constants = self._parser.constants
 
 		print(">> Constants:", constants)
 
@@ -195,54 +161,26 @@ class ProblemState:
 		if not self._is_initial_state_generated:
 			raise Exception("The initial state generation phase has not finished yet")
 		
-		# <Get lifted action (as instance of class Action)>
-		actions = self._parser.actions
-		action_names = [a.name for a in actions]
-		action_to_apply = actions[action_names.index(action_name)] # Object of class Action representing the lifted action to apply to the state
+		# Assign the goal_state as the parser state
+		self._parser.object_names = [] # No need for object_names to obtain applicable actions
+		self._parser.object_types = self._goal_state.objects
+		self._parser.atoms = self._goal_state.atoms
+		self._parser.goals = set() # No need for goals to obtain applicable actions
 
-
-		# <Get state objects and atoms in the encoding self._parser uses>
-		state_objs, state_atoms = self._encode_relational_state_for_parser(self._goal_state)
-
-		# <Ground action>
-		ground_actions = action_to_apply.groundify(state_objs, self._parser.types)
-
-		# Delete actions with repeated arguments (e.g.: stack('a', 'a') is invalid)
-		ground_actions_no_rep_args = list(filter(lambda a: len(a.parameters) == len(set(a.parameters)), ground_actions))
-
-		# If there are no actions, then the lifted action is not applicable
-		if len(ground_actions_no_rep_args) == 0:
-			return False
-
-		# <Test applicability of ground actions>
-		applicable_ground_actions = list(filter(lambda a: self._planner.applicable(state_atoms, a.positive_preconditions, \
-		 a.negative_preconditions), ground_actions_no_rep_args))
-
-		return len(applicable_ground_actions) > 0
-
-
-	# Just like the function above, but it receives the state objects and atoms (in an encoding for self._parser) instead of calculating them
-	# Note: here the action (@lifted_action) is given as an instance of class Action
-	def _is_lifted_action_applicable(self, lifted_action, state_objs, state_atoms):
-		# <Ground action>
-		ground_actions = lifted_action.groundify(state_objs, self._parser.types)
+		# Obtain all ground applicable actions
+		all_applicable_actions = self._parser.get_applicable_actions()
+		
+		# Select the actions corresponding to action_name and obtain the list of valid param substitutions
+		applicable_param_assigns = all_applicable_actions[action_name]
 
 		# Delete actions with repeated arguments (e.g.: stack('a', 'a') is invalid)
-		ground_actions_no_rep_args = list(filter(lambda a: len(a.parameters) == len(set(a.parameters)), ground_actions))
-
-		# If there are no actions, then the lifted action is not applicable
-		if len(ground_actions_no_rep_args) == 0:
-			return False
-
-		# <Test applicability of ground actions>
-		applicable_ground_actions = list(filter(lambda a: self._planner.applicable(state_atoms, a.positive_preconditions, \
-		 a.negative_preconditions), ground_actions_no_rep_args))
-
-		return len(applicable_ground_actions) > 0
-
+		applicable_param_assigns = [param_assign for param_assign in applicable_param_assigns if len(param_assign) == len(set(param_assign))]
+		
+		# If there are still some valid param substitutions left, then the lifted action is applicable
+		return len(applicable_param_assigns) > 0
 
 	# Returns all the lifted (domain) actions that are applicable at the current state.
-	# They are returned as a vector where each element is a tuple containing the action name and if True/False if applicable/not applicable
+	# They are returned as a list of strings with the names of the actions that are applicable.
 	# A lifted action is applicable if any instantiation (grounding) is applicable, i.e., the preconditions are met AND there are no repeated
 	# objects (for example, stack(A, A) is not applicable)
 	# Note: works with predicates of arity 0
@@ -250,136 +188,74 @@ class ProblemState:
 		# Make sure we are in the goal generation phase
 		if not self._is_initial_state_generated:
 			raise Exception("The initial state generation phase has not finished yet")
+		
+		# Assign the goal_state as the parser state
+		self._parser.object_names = [] # No need for object_names to obtain applicable actions
+		self._parser.object_types = self._goal_state.objects
+		self._parser.atoms = self._goal_state.atoms
+		self._parser.goals = set() # No need for goals to obtain applicable actions
 
-		# Obtain the actions in the domain
-		lifted_actions = self._parser.actions
+		# Obtain all ground applicable actions
+		all_applicable_actions = self._parser.get_applicable_actions()
+		
+		# For each action_name, see if there exists at least one valid param substitution (with non-repeated param instantiations)
+		applicable_action_names = [action_name for action_name in all_applicable_actions.keys() \
+								  if len([param_assign for param_assign in all_applicable_actions[action_name] if len(param_assign) == len(set(param_assign))]) > 0]
 
-		# Represent the state in an encoding suitable for the parser
-		state_objs, state_atoms = self._encode_relational_state_for_parser(self._goal_state)
-
-		# Check the applicability of each action
-		lifted_actions_applicability = [(action.name, self._is_lifted_action_applicable(action, state_objs, state_atoms)) for action in lifted_actions]
-
-		return lifted_actions_applicability
+		return applicable_action_names
 
 	"""
 	Returns all the ground (domain) actions that are applicable at the current goal state.
 	We assume actions cannot have repeated parameters (e.g.: stack A A)
-	They are returned as a list where each element represents a ground action, e.g., ['stack', [1, 2]]
+	They are returned as a list where each element represents a ground action, e.g., ('stack', (1, 2))
 
 	Note: this method is very inefficient for problems with a large number of objects.
 	      The bottleneck is "l_a.groundify". However, in order to make it more efficient, I will
 		  probably need to completely replace the pddl_parser
 	"""
 	def applicable_ground_actions(self):
-		# Represent the state in an encoding suitable for the parser
-		state_objs, state_atoms = self._encode_relational_state_for_parser(self._goal_state)
+		# Make sure we are in the goal generation phase
+		if not self._is_initial_state_generated:
+			raise Exception("The initial state generation phase has not finished yet")
 		
-		# Obtain the lifted actions in the domain
-		lifted_actions = self._parser.actions
+		# Assign the goal_state as the parser state
+		self._parser.object_names = [] # No need for object_names to obtain applicable actions
+		self._parser.object_types = self._goal_state.objects
+		self._parser.atoms = self._goal_state.atoms
+		self._parser.goals = set() # No need for goals to obtain applicable actions
+		
+		# Obtain all ground applicable actions
+		all_applicable_actions = self._parser.get_applicable_actions()
 
-		# Obtain the ground actions in the domain (ground each lifted action)
-		ground_actions = [g_a for l_a in lifted_actions for g_a in l_a.groundify(state_objs, self._parser.types)] # -> bottleneck
-
+		# Encode actions as a list of actions where each actions is in the form ('stack', (1, 2))
 		# Delete actions with repeated arguments (e.g.: stack('a', 'a') is invalid)
-		ground_actions_no_rep_args = list(filter(lambda a: len(a.parameters) == len(set(a.parameters)), ground_actions))
+		applicable_actions_as_list = [(action_name, param_assign) for action_name in all_applicable_actions.keys() \
+									  for param_assign in all_applicable_actions[action_name] \
+									  if len(param_assign) == len(set(param_assign))]
 
-		# Test applicability of ground actions
-		applicable_ground_actions = list(filter(lambda a: self._planner.applicable(state_atoms, a.positive_preconditions, \
-		 a.negative_preconditions), ground_actions_no_rep_args))
-
-		# Encode ground actions in the RelationalState form, e.g., ['stack', [1, 2]]
-		applicable_ground_actions_rel_state_enc = [ [a.name, [int(p) for p in a.parameters]] for a in applicable_ground_actions]
-
-		return applicable_ground_actions_rel_state_enc
-
-
-	# Function used to obtain the grounded action, as an instance of Action class, corresponding to an action name and objects
-	# (represented as a list of indexes of a RelationalState instance) 
-	# @state_objs Objects in the state, obtained by calling the method self._encode_relational_state_for_parser()
-	# It returns None if action_objs are of the incorrect type according to the action parameters.
-	def _obtain_ground_action_from_name_and_params(self, action_name, action_objs, state_objs):
-		# Transform action_objs from List[int] to List[str]
-		action_objs = [str(o) for o in action_objs]
-
-		# Obtain lifted action corresponding to action_name
-		actions = self._parser.actions
-		action_names = [a.name for a in actions]
-		lifted_action = actions[action_names.index(action_name)] # Object of class Action representing the lifted action to apply to @state
-
-		# Ground it
-		# The action is only grounded on objects of the correct type
-		ground_actions = lifted_action.groundify(state_objs, self._parser.types)
-
-		# Among all the ground actions, select the one corresponding to @action_name and @action_objs
-
-		# See if there is some action corresponding to action_name and action_objs
-		# If there is none, then action_objs are of the incorrect type! (and we return None)
-		l = list(filter(lambda a: a.name == action_name and tuple(a.parameters) == tuple(action_objs), ground_actions))
-		if len(l) > 0:
-			ground_action = l[0]
-		else:
-			ground_action = None
-
-		return ground_action
+		return applicable_actions_as_list	
 
 	"""
-	Checks if a ground action is applicable at the current state or not.
+	Checks if a ground action is applicable at the current state (self._goal_state) or not.
 	We also check if the action is instantiated on objects of the correct type.
 	@action_name Name of the action (e.g., "pick-up")
-	@action_objs The instantiated parameters of the action, as a list of indices corresponding to objects in @state (e.g., [0,1])
-	@state_objs Objects in the state, obtained by calling the method self._encode_relational_state_for_parser()
-	@state_atoms Atoms in the state, obtained by calling the method self._encode_relational_state_for_parser()
-	"""
-	def _is_ground_action_applicable(self, action_name, action_objs, state_objs, state_atoms):
-		# Obtain ground action
-		ground_action = self._obtain_ground_action_from_name_and_params(action_name, action_objs, state_objs)
-
-		# If ground_action is None, then action_objs are of the incorrect type -> Therefore, the action is not applicable
-		if ground_action is None:
-			return False
-		else:
-			return self._planner.applicable(state_atoms, ground_action.positive_preconditions, ground_action.negative_preconditions)
-
-	"""
-	Like the method above, but receives no state as parameter (it checks applicability on self._goal_state).
+	@action_objs The instantiated parameters of the action, as a list/tuple of indexes corresponding to objects in @state (e.g., [0,1])
 	"""
 	def is_ground_action_applicable(self, action_name, action_objs):
-		# Get state objects and atoms in the encoding self._parser uses
-		state_objs, state_atoms = self._encode_relational_state_for_parser(self._goal_state) 
+		# Make sure we are in the goal generation phase
+		if not self._is_initial_state_generated:
+			raise Exception("The initial state generation phase has not finished yet")
 		
-		# Obtain ground action
-		ground_action = self._obtain_ground_action_from_name_and_params(action_name, action_objs, state_objs)
+		# Assign the goal_state as the parser state
+		self._parser.object_names = [] # No need for object_names to obtain applicable actions
+		self._parser.object_types = self._goal_state.objects
+		self._parser.atoms = self._goal_state.atoms
+		self._parser.goals = set() # No need for goals to obtain applicable actions
+	
+		# Check applicability (including if action_objs are of the correct type)
+		is_applicable = self._parser.is_action_applicable(action_name, tuple(action_objs))
 
-		# If ground_action is None, then action_objs are of the incorrect type -> Therefore, the action is not applicable
-		if ground_action is None:
-			return False
-		else:
-			return self._planner.applicable(state_atoms, ground_action.positive_preconditions, ground_action.negative_preconditions)
-
-	"""
-	Obtains the next state resulting from applying a ground action at the current state.
-	@action_name Name of the action (e.g., "pick-up")
-	@action_objs The instantiated parameters of the action, as a list of indices corresponding to objects in @state (e.g., [0,1])
-	@state_objs Objects in the state, obtained by calling the method self._encode_relational_state_for_parser()
-	@state_atoms Atoms in the state, obtained by calling the method self._encode_relational_state_for_parser()
-	@state The state as an instance of RelationalState
-	Note: this method assumes the action applicability has been previously checked using self._is_ground_state_applicable()
-	"""
-	def _apply_ground_action_and_get_next_state(self, action_name, action_objs, state_objs, state_atoms, state):
-		# Obtain ground actions
-		ground_action = self._obtain_ground_action_from_name_and_params(action_name, action_objs, state_objs)
-
-		# Obtain next state, in the frozenset format used by self._parser and self._planner
-		next_state = self._planner.apply(state_atoms, ground_action.add_effects, ground_action.del_effects)
-
-		# Transform next_state to the format used by RelationalState
-		new_state_atoms = [[atom[0], list(map(int, atom[1:]))] for atom in next_state]
-
-		# Change the atoms of the state according to the action effects
-		state.atoms = new_state_atoms
-
-		return state
+		return is_applicable	
 
 	"""
 	Applies a domain (ground) action to the goal state in order to obtain the next goal state.
@@ -387,7 +263,7 @@ class ProblemState:
 	If the action is not applicable, next_state is a copy of the current state.
 
 	@action_name Name of the action (e.g., "pick-up")
-	@action_objs The instantiated parameters of the action, as a list of indices corresponding to objects in @state (e.g., [0,1])
+	@action_objs The instantiated parameters of the action, as a tuple/list of indexes corresponding to objects in @state (e.g., [0,1])
 	@check_action_applicability If True, we check if the action passed as argument can be applied at the current goal state, i.e., if its
 	                            preconditions are met. If False, we assume the action is applicable and return an action_reward of 0.
 	"""
@@ -396,24 +272,26 @@ class ProblemState:
 		if not self._is_initial_state_generated:
 			raise Exception("The initial state generation phase has not finished yet")
 		
-		# Get state objects and atoms in the encoding self._parser uses
-		state_objs, state_atoms = self._encode_relational_state_for_parser(self._goal_state)
-
-		# Check action applicability (only if check_action_applicability is True)
+		# Assign the goal_state as the parser state
+		self._parser.object_names = [] # No need for object_names to obtain applicable actions
+		self._parser.object_types = self._goal_state.objects
+		self._parser.atoms = self._goal_state.atoms
+		self._parser.goals = set() # No need for goals to obtain applicable actions
+		
 		if check_action_applicability:
-			is_applicable = self._is_ground_action_applicable(action_name, action_objs, state_objs, state_atoms)
+			# Check applicability (including if action_objs are of the correct type)
+			is_applicable = self._parser.is_action_applicable(action_name, tuple(action_objs))
 		else:
 			is_applicable = True # We assume the action is applicable
-		
+
 		# Get next goal state
-		if is_applicable: 
-			self._goal_state = self._apply_ground_action_and_get_next_state(action_name, action_objs, state_objs, state_atoms, self._goal_state)
+		if is_applicable:
+			self._goal_state.atoms = self._parser.get_next_state(action_name, tuple(action_objs), check_action_applicability=False) # We have already checked action applicability
 			action_reward = 0
 		else: # If the action is not applicable, we don't change the goal state -> THIS SHOULD NOT HAPPEN (we mask goal policy's output so that it only samples applicable actions)
 			action_reward = self._penalization_non_applicable_action
 		
 		return self._goal_state, action_reward # <Note> the returned goal state shares the reference with self._goal_state!
-
 
 	"""
 	Checks if the initial state resulting from applying @action to self._initial_state is consistent or not.
@@ -423,10 +301,13 @@ class ProblemState:
 			  inherits from the corresponding object type of the predicate associated with action.
 			  Example: ['on'[1,0]] -> objects 1 and 0 must be of type "block", due to the predicate ['on', ['block', 'block']]
 
-	@action A new atom to add to the initial state, represented as ['on', [1, 0]]
+	@action A new atom to add to the initial state, represented as ('on', (1, 0))
 	@obj_types The type of each object in @action[1], regardless of whether it is in the state or corresponds to a virtual object.
 	"""
 	def is_init_state_action_consistent(self, action, obj_types):
+		# Encode action in tuple form (in case it was a list)
+		action = (action[0], tuple(action[1]))
+
 		state_atoms = self._initial_state.atoms
 
 		# Check that the atom to add (@action) is not already present in the current state
@@ -438,7 +319,6 @@ class ProblemState:
 			return True
 		else:
 			return self._consistency_validator.check_continuous_consistency_state_and_action(self._initial_state, action, obj_types)
-
 
 	"""
 	Checks if the initial state (self._initial_state) meets the eventual consistency rules and returns
@@ -462,25 +342,25 @@ class ProblemState:
 
 	"""
 	Obtains a list with all the actions that can be applied to the initial state.
-	Example: [['on', [1, 0]], ['on', [1, -1]], ['handempty', []]]
+	Example: [('on', (1, 0)), ('on', (1, -1)), ('handempty', ())]
 	         An index of -1 corresponds to a new object/non-existing object in the current state
 	This method does NOT check the consistency (as it is very expensive to do for every existing init_state action).
 	However, it does check some things:
 		> The atoms returned only correspond to predicates of the current phase 
 		  (according to the predicate order of the consistency validator)
 		> The object indexes the atoms are instantiated on are of the correct type
-		  Example: if ['on', [1, 0]] is returned as a possible action, the objects 1 and 0 must be of type block.
+		  Example: if ('on', (1, 0)) is returned as a possible action, the objects 1 and 0 must be of type block.
 	"""
 	def get_possible_init_state_actions(self):
 		state_objs = self._initial_state.objects
 
 		# If there is a consistency validator, only return atoms with the predicates of the current phase
 		if self._consistency_validator is None:
-			preds_in_curr_phase = [pred[0] for pred in self._parser.domain_predicates]
+			preds_in_curr_phase = [pred[0] for pred in self._parser.predicates]
 		else:
 			preds_in_curr_phase = self._consistency_validator.predicates_in_current_phase(self._initial_state)
 
-		domain_preds = self._parser.domain_predicates
+		domain_preds = self._parser.predicates
 		available_predicates = list(filter(lambda pred: pred[0] in preds_in_curr_phase, domain_preds))
 
 		possible_actions = []
@@ -489,7 +369,7 @@ class ProblemState:
 		for pred in available_predicates:
 			pred_name, pred_types = pred
 			
-			if pred_types == []: # Predicate of arity-0 -> cannot be instantiated on any objects
+			if len(pred_types) == 0: # Predicate of arity-0 -> cannot be instantiated on any objects
 				possible_actions.append(pred)
 			else:
 				# Create a list of lists, where at each position it stores the possible objects to instantiate the predicate on
@@ -501,17 +381,16 @@ class ProblemState:
 
 				# [[0, 1, 2, -1], [0, 1, 2, -1]]
 
-				# possible_instantiations = [list(map(lambda y: y[0], (filter(lambda x: x[1] == t, enumerate(state_objs))))) + [-1] for t in pred_types]
 				# We instantiate on objects whose type inherits from the corresponding predicate param types (pred_types)
 				possible_instantiations = [ list(map(lambda y: y[0], \
-				                            (filter(lambda x: self._parser.is_type_child_of(x[1],t), enumerate(state_objs))))) + [-1] \
+				                            (filter(lambda x: x[1] in self._parser.type_hierarchy[t], enumerate(state_objs))))) + [-1] \
 				                            for t in pred_types ]
 
 				# [(0, 0), (0, 1), (0, 2), (0, -1), (1, 0), (1, 1), (1, 2), (1, -1), (2, 0), (2, 1), (2, 2), (2, -1), (-1, 0), (-1, 1), (-1, 2), (-1, -1)]
 				possible_instantiations = list(itertools.product(*possible_instantiations)) # Do the cartesian product of the list of lists
 
-				# [['on', [0,0]], ['on', [0, 1]], ...]
-				atoms = [[pred_name, list(i)] for i in possible_instantiations]
+				# [('on', (0,0)), ('on', (0,1)) ...]
+				atoms = [(pred_name, tuple(i)) for i in possible_instantiations]
 
 				# Append the atoms to possible_actions
 				possible_actions.extend(atoms)
@@ -525,12 +404,15 @@ class ProblemState:
 	<Note>: 
 
 	@new_objs The objects to add to the state (e.g., ['block', 'circle'])
-	@new_atom The atom to add to the state (e.g., ['on', [1,2]])
-	Note: The atom indices ([1,2]) can refer to new objects not present in the current state but which are added as part of the next
-	      state. Example: current state has only one block, new_objs=['block'] and new_atom=['on', [0, 1]].
+	@new_atom The atom to add to the state (e.g., ('on', (1,2)))
+	Note: The atom indices ((1,2)) can refer to new objects not present in the current state but which are added as part of the next
+	      state. Example: current state has only one block, new_objs=['block'] and new_atom= ('on', (0,1)).
 	@obj_types The type of each object in @new_atom[1], whether it is in the state or corresponds to a virtual object (an object in @new_objs)
 	"""
 	def apply_action_to_initial_state(self, new_objs, new_atom, obj_types):
+		# Encode new_atom as a tuple (just in case)
+		new_atom = (new_atom[0], tuple(new_atom[1]))
+		
 		# Make sure we are in the initial state generation phase
 		if self._is_initial_state_generated:
 			raise Exception("The initial state generation phase has already finished")
@@ -554,8 +436,6 @@ class ProblemState:
 		goal_atoms = self._goal_state.atoms
 		goal_objects = self._goal_state.objects # List with the type of each object in goal_state
 
-		# goal_atoms_filtered = list(filter(lambda atom: atom[0] in self._predicates_to_consider_for_goal, goal_atoms))
-
 		goal_atoms_filtered = []
 
 		for atom in goal_atoms:
@@ -564,8 +444,8 @@ class ProblemState:
 					types_correct = True
 
 					for obj_ind, param_type in zip(atom[1], pred[1]):
-						types_correct = types_correct and self._parser.is_type_child_of(goal_objects[obj_ind], param_type)
-
+						types_correct = types_correct and (goal_objects[obj_ind] in self._parser.type_hierarchy[param_type])
+					
 					if types_correct:
 						goal_atoms_filtered.append(atom)
 

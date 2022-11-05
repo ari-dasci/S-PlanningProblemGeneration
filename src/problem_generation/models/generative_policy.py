@@ -7,8 +7,6 @@ import numpy as np
 import pytorch_lightning as pl
 from itertools import chain
 
-import sys
-
 from problem_generation.models.nlm import NLM
 
 class GenerativePolicy(pl.LightningModule):

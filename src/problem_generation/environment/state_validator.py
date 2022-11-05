@@ -206,7 +206,6 @@ class ValidatorPredOrderBW(ValidatorPredOrder):
 		# The block on top of each tower of blocks must have the clear atom -> if for Y does not exist (on _ Y) (there are no blocks on top of Y),
 		# and (clear Y) not in curr_state.atoms, then the action is invalid (I should have added (clear Y) before starting adding atoms of type
 		# 'holding')
-
 		if action_pred == 'holding':
 			o = action[1][0]
 
@@ -226,7 +225,7 @@ class ValidatorPredOrderBW(ValidatorPredOrder):
 										state_objs))
 
 			# Calculate number of blocks with no other blocks on top that have no 'clear' atom associated
-			num_invalid_objs = len(list(filter(lambda b: ['clear', [b]] not in state_atoms, clear_blocks)))
+			num_invalid_objs = len(list(filter(lambda b: ('clear', tuple(b)) not in state_atoms, clear_blocks)))
 
 			return num_invalid_objs == 0
 			 
@@ -247,7 +246,7 @@ class ValidatorPredOrderBW(ValidatorPredOrder):
 									state_objs))
 
 			# Calculate number of blocks with no other blocks on top that have no 'clear' atom associated
-			num_invalid_objs = len(list(filter(lambda b: ['clear', [b]] not in state_atoms, clear_blocks)))
+			num_invalid_objs = len(list(filter(lambda b: ('clear', tuple(b)) not in state_atoms, clear_blocks)))
 
 			return num_invalid_objs == 0
 
@@ -282,7 +281,7 @@ class ValidatorPredOrderBW(ValidatorPredOrder):
 									state_objs))
 
 		# Calculate number of blocks with no other blocks on top that have no 'clear' atom associated
-		num_invalid_objs = len(list(filter(lambda b: ['clear', [b]] not in state_atoms, clear_blocks)))
+		num_invalid_objs = len(list(filter(lambda b: ('clear', tuple(b)) not in state_atoms, clear_blocks)))
 
 		if num_invalid_objs > 0:
 			return False

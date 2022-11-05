@@ -7,46 +7,58 @@ Stores a relational(PDDL) state.
 """
 class RelationalState():
 
-    def __init__(self, types, type_hierarchy, predicates, objects=[], atoms=[]):
+    def __init__(self, types, type_hierarchy, predicates, objects=[], atoms=set()):
         # Domain data
 
-        if type(types) != list or type(types[0]) != str:
-            raise ValueError("Types must be a list of strings")
+        # Sanity checks
+        if type(types) != set or type(list(types)[0]) != str:
+            raise ValueError("Types must be a set of strings")
+        
+        type_hierarchy_tuple = tuple(type_hierarchy.items())[0] # Obtain the first item in type_hierarchy for sanity checks
+        if type(type_hierarchy) != dict or type(type_hierarchy_tuple[0]) != str or type(type_hierarchy_tuple[1]) != set:
+            raise ValueError("Type hierarchy must be a dictionary where keys are strings and values sets of strings")
 
-        self._types = types # A list of types, e.g., ["plane", "car"]
+        dict_keys = type_hierarchy.keys()
+        dict_vals = [v for l in type_hierarchy.values() for v in l]
+        for t in types:
+            if t not in dict_keys or t not in dict_vals:
+               raise ValueError("Every type must be in the dictionary as both a key and value (or more)") 
+
+        first_pred = list(predicates)[0] # Obtain a predicate for sanity checks
+        if type(predicates) != set or type(first_pred) != tuple or type(first_pred[0]) != str or type(first_pred[1]) != tuple:
+            raise ValueError("Predicates must be a set of tuples")
+
+        if len(objects) > 0:
+            if type(objects) != list or type(objects[0]) != str:
+                raise ValueError("Objects must be a list of strings")
+
+        if len(atoms) > 0:
+            first_atom = list(atoms)[0] # Get an atom for sanity checks
+            if type(atoms) != set or type(first_atom) != tuple or type(first_atom[0]) != str or type(first_atom[1]) != tuple:
+                raise ValueError("Atoms must be a set of tuples")
+
+
+        self._types = types # A set of types, e.g., {"plane", "car"}
         # Note: self._types must contain all the types, across all possible levels of hierarchy
-        # Example: in logistics -> ['package', 'object', 'airport', 'truck', 'vehicle', 'city', 'airplane', 'thing', 'location']
-        # Use pddl_parser.domain_types to obtain this list
+        # Example: in logistics -> {'package', 'object', 'airport', 'truck', 'vehicle', 'city', 'airplane', 'thing', 'location'}
+        # Use parser.types
 
         # Type hierarchy
         # A dictionary containing, for each type in self._types, all the types which inherit from it
         # Note: it does not only contain the children types, but also the grandchildren types, etc. (all the types which recursively
         # inherit from it)
-        # Use pddl_parser.type_hierarchy to obtain this dictionary
-        if type(type_hierarchy) != dict:
-            raise ValueError("Type_hierarchy must be a dictionary")
-
-        dict_keys = type_hierarchy.keys()
-        dict_vals = [v for l in type_hierarchy.values() for v in l]
-        for t in self._types:
-            if t not in dict_keys or t not in dict_vals:
-               raise ValueError("Every type must be in the dictionary as both a key and value (or more)") 
-
+        # Use parser.type_hierarchy to obtain this dictionary
         self._type_hierarchy = type_hierarchy
 
         # Create a dictionary to convert from object types to indices and vice versa
         types_indices = list(range(len(self._types)))
-        self._obj_types_to_indices_dict = dict(zip(self._types, types_indices)) # ['truck', 'plane'] -> [0, 1]
-        self._indices_to_obj_types_dict = dict(zip(types_indices, self._types)) # [0, 1] -> ['truck', 'plane']
+        types_list = list(self._types)
+        self._obj_types_to_indices_dict = dict(zip(types_list, types_indices)) # ['truck', 'plane'] -> [0, 1]
+        self._indices_to_obj_types_dict = dict(zip(types_indices, types_list)) # [0, 1] -> ['truck', 'plane']
 
-        # Check the predicates
-        if type(predicates) != list or type(predicates[0]) != list or \
-            type(predicates[0][0]) != str or type(predicates[0][1]) != list:
-            raise ValueError("Predicates must be a list of elements of the form [pred_name, \
-                             ['type param 1', ..., type param n]]")
-
+        # Predicates
         self._predicates = predicates # The name and parameter type of each predicate, where predicates[i] is
-                                      # [name, list_of_types], e.g., ['on', ['block', 'block']]
+                                      # [name, list_of_types], e.g., ('on', ('block', 'block'))
 
         # Create a dictionary to convert from pred names to indices. Example: ['on', 'clear'] -> [0, 1]
         pred_names = [p[0] for p in self._predicates] # ['on', 'clear']
@@ -55,18 +67,18 @@ class RelationalState():
 
         # State data
         self._objects = [] # List of objects, where objects[i] is "type" and where "type" is in self.types
-        self._atoms = [] # List of atoms, where atoms[i] is ("type", [ind_obj_1, ind_obj_2, ..., ind_obj_n]) and where
+        self._atoms = set() # Set of atoms, where atoms[i] is ("type", [ind_obj_1, ind_obj_2, ..., ind_obj_n]) and where
                            # "type" is the type of the atom in self.predicates and ind_obj_i is the index (in self.objects)
                            # of the i-th object in the atom (n is equal to the predicate arity)
-                           # Atom example: ['on', [1, 0]]
-                           # Atom example with arity 0: ['handempty', []]
+                           # Atom example: ('on', (1, 0))
+                           # Atom example with arity 0: ('handempty', ())
 
         for obj in objects:
             self.add_object(obj)
 
         for atom in atoms:
             self.add_atom(atom)
-            
+
         # Store number of predicates of each arity -> keys: int corresponding to the arity, values: int representing the number of preds of such arity
         self._num_preds_each_arity = dict()
         
@@ -352,7 +364,7 @@ class RelationalState():
                 if pred_arity == 0:
                     atoms_list[pred_arity][pred_ind] = 1.0
                 else:
-                    ind = tuple(atom_objs) + (pred_ind,) # Note: 'tuple' and 'list' work differently when using them to index np arrays or torch tensors!
+                    ind = atom_objs + (pred_ind,) # Note: 'tuple' and 'list' work differently when using them to index np arrays or torch tensors!
 
                     atoms_list[pred_arity][ind] = 1.0
               
@@ -442,18 +454,46 @@ class RelationalState():
 
     @types.setter
     def types(self, value):
+        if type(value) != set or type(list(value)[0]) != str:
+            raise ValueError("Types must be a set of strings")
+
         self._types = value
+
+    @type_hierarchy.setter
+    def type_hierarchy(self, value):
+        type_hierarchy_tuple = tuple(value.items())[0] # Obtain the first item in type_hierarchy for sanity checks
+        if type(value) != dict or type(type_hierarchy_tuple[0]) != str or type(type_hierarchy_tuple[1]) != set:
+            raise ValueError("Type hierarchy must be a dictionary where keys are strings and values sets of strings")
+
+        dict_keys = value.keys()
+        dict_vals = [v for l in value.values() for v in l]
+        for t in self._types:
+            if t not in dict_keys or t not in dict_vals:
+               raise ValueError("Every type must be in the dictionary as both a key and value (or more)") 
+
+        self._type_hierarchy = value
 
     @predicates.setter
     def predicates(self, value):
+        first_pred = list(value)[0] # Obtain a predicate for sanity checks
+        if type(value) != set or type(first_pred) != tuple or type(first_pred[0]) != str or type(first_pred[1]) != tuple:
+            raise ValueError("Predicates must be a set of tuples")
+
         self._predicates = value
 
     @objects.setter
     def objects(self, value):
+        if type(value) != list or type(value[0]) != str:
+            raise ValueError("Objects must be a list of strings")
+
         self._objects = value
 
     @atoms.setter
     def atoms(self, value):
+        first_atom = list(value)[0] # Get an atom for sanity checks
+        if type(value) != set or type(first_atom) != tuple or type(first_atom[0]) != str or type(first_atom[1]) != tuple:
+            raise ValueError("Atoms must be a set of tuples")
+
         self._atoms = value
 
 
@@ -471,8 +511,11 @@ class RelationalState():
         for obj in obj_array:
             self.add_object(obj)
 
-    def add_atom(self, new_atom): # predicate: ['on', ['block', 'block']]
-                                  # atom: ['on', [1, 2]]
+    def add_atom(self, new_atom): # predicate: ('on', ('block', 'block'))
+                                  # atom: ('on', (1, 2))
+        # Check the atom type is correct
+        if type(new_atom) != tuple or type(new_atom[0]) != str or type(new_atom[1]) != tuple:
+            raise ValueError("new_atom must be in the form (pred_name, tuple(obj_indexes))")
 
         # Check if the object indexes are correct
         num_objects = self.num_objects
@@ -489,7 +532,6 @@ class RelationalState():
                 if len(new_atom[1]) == len(pred[1]): # Arity is correct
 
                     for i in range(len(new_atom[1])): # Check type of each param
-                        # if self._objects[new_atom[1][i]] != pred[1][i]:
                         if self._objects[new_atom[1][i]] not in self._type_hierarchy[pred[1][i]]:
                             raise ValueError(f"Atom parameter at index {i} is not of the correct type")
 
@@ -498,7 +540,7 @@ class RelationalState():
         if not is_correct:
             raise ValueError(f"Atom syntax is not correct")
 
-        self._atoms.append(new_atom)
+        self._atoms.add(new_atom)
 
     def add_atoms(self, atom_array): # atom_array -> list where each element is an atom
         for atom in atom_array:
@@ -520,110 +562,15 @@ class RelationalState():
         # Delete the object
         del self._objects[ind_obj]
 
-    # Delete atom by index
-    def del_atom(self, ind_atom):
+    # Delete atom by value
+    def del_atom(self, atom):
         # Check the atom is valid
-        if ind_atom >= self.num_atoms:
+        if atom not in self._atoms:
             raise ValueError("The atom does not exist")
 
-        del self._atoms[ind_atom]
+        self._atoms.remove(atom)
 
     def __str__(self):
         obj_info = f'Types: {self.types}\nType_hierarchy: {self._type_hierarchy}\nPredicates: {self.predicates}\nObjects: {self.objects}\nAtoms: {self.atoms}'
 
         return obj_info
-
-"""
-Stores a list of relational states and, for each one of them, a target (the value the network should predict for it).
-"""
-class RelationalStatesDataset(torch.utils.data.Dataset):
-
-    """
-    @states_list A list of states, where each element is a relational state.
-    @targets_list A list of the expected target for each state.
-    """
-    def __init__(self, states_list, targets_list):
-
-        if not (type(states_list) == list and type(targets_list)):
-            raise ValueError("States and targets must be given as lists")
-
-        if len(states_list) != len(targets_list):
-            raise ValueError("The length of the states and targets must be the same!")
-
-        self._states_list = states_list
-        self._targets_list = targets_list
-
-    @property
-    def states_list(self):
-        return self._states_list
-
-    @property
-    def targets_list(self):
-        return self._targets_list
-
-    def __len__(self):
-        return len(self._states_list)
-
-    def __getitem__(self, idx):
-        return (self._states_list[idx], self._targets_list[idx])
-
-    def add_element(self, new_state, new_target):
-        self._states_list.append(new_state)
-        self._targets_list.append(new_target)
-
-    def del_element(self, idx):
-        if idx < 0 or idx >= len(self):
-            raise ValueError("Index out of range")
-
-        del self._states_list[idx]
-        del self._targets_list[idx]
-
-
-# Transform needed for dataloader. It transforms from instances of RelationalState to the state representation 
-# (type=Tuple[Dict[int, Tensor], List[int]]) the <AC_GNN> uses.
-class TransformRelationalStateForGNN_AC_GNN():
-
-    """
-    Transform @sample into the state encoding the AC_GNN uses
-
-    @batch a list corresponding to a batch of elements of type (RelationalState, int)
-    """
-    def __call__(self, batch): 
-        new_batch = [(sample[0].atoms_gnn_encoding, sample[1]) for sample in batch]
-
-        return new_batch
-
-# Transform needed for dataloader. It transforms from instances of RelationalState to the state representation 
-# ( (type=Tuple[Dict[int, Tensor], List[int]]), List[str] )  the <ACR_GNN> uses.
-class TransformRelationalStateForGNN():
-    """
-    Transform @sample into the state encoding the AC_GNN uses
-
-    @batch a list corresponding to a batch of elements of type (RelationalState, int)
-    """
-    def __call__(self, batch): 
-        new_batch = [ ( (sample[0].atoms_gnn_encoding, sample[0].objects), sample[1] ) for sample in batch]
-
-        return new_batch
-    
-# Transform needed for dataloader. It transforms from instances of RelationalState into the U-grounding tensor
-# representation the NLM uses.
-class TransformRelationalStateForNLM():
-    
-    """
-    Constructor. Used to specify a different max predicate arity than the one of the relational states in the dataset.
-    """
-    def __init__(self, max_arity = -1):
-        self.max_arity = max_arity
-    
-    """
-    Transform @sample into the state encoding the NLM uses
-
-    @batch a list corresponding to a batch of elements of type (RelationalState, int)
-    """
-    def __call__(self, batch): 
-        new_batch = [ ( sample[0].atoms_nlm_encoding(self.max_arity), sample[0].num_objects, 
-                       sample[1].atoms_nlm_encoding(self.max_arity) ) \
-                     for sample in batch]
-
-        return new_batch

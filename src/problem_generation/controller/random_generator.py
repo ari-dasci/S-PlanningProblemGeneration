@@ -5,14 +5,8 @@ import itertools
 import copy
 
 from problem_generation.environment.problem_state import ProblemState
-from problem_generation.environment.pddl_parser import Parser
 from problem_generation.environment.planner import Planner
 from problem_generation.environment.state_validator import ValidatorPredOrderBW
-
-import sys
-
-# <TODO>
-# Use self._max_objects_init_state and self._max_atoms_init_state to limit the number of objects and atoms in the initial state of the problems generated.
 
 class RandomGenerator():
 
@@ -28,7 +22,7 @@ class RandomGenerator():
 
 		# <Goal predicates, as a list of predicates (with name and parameters)>
 		if predicates_to_consider_for_goal is None: # Consider every predicate for the goal
-			self._predicates_to_consider_for_goal = self._parser.domain_predicates
+			self._predicates_to_consider_for_goal = self._parser.predicates
 		else:
 			# Make sure every predicate name only appears at most once
 			pred_names = set([pred[0] for pred in predicates_to_consider_for_goal])
@@ -36,7 +30,7 @@ class RandomGenerator():
 			if len(pred_names) != len(predicates_to_consider_for_goal):
 				raise ValueError("The parameter predicates_to_consider_for_goal contains at least one duplicate predicate")
 
-			self._predicates_to_consider_for_goal = predicates_to_consider_for_goal
+			self._predicates_to_consider_for_goal = set(predicates_to_consider_for_goal)
 
 
 	# ------- Getters and Setters --------
@@ -55,8 +49,8 @@ class RandomGenerator():
 	def _get_state_hash(self, state):
 		# Convert from list to tuple
 		objects = tuple(state.objects)
-		atoms = frozenset(tuple( [(atom[0], tuple(atom[1])) for atom in state.atoms] )) # Convert nested list to tuple
-		                                                                                # We convert objects into a set because we do not care about the order in which objects are stored in the list
+		atoms = frozenset(state.atoms)
+		                                                                                
 		# Get the hash of the state
 		state_hash = hash((objects, atoms))
 
@@ -77,7 +71,7 @@ class RandomGenerator():
 		num_atoms_added = 0
 
 		# Initialize the dictionary containing the number of atoms of each predicate
-		predicate_names = [p[0] for p in self._parser.domain_predicates]
+		predicate_names = [p[0] for p in self._parser.predicates]
 		dict_num_atoms_each_pred = dict(zip(predicate_names,[0]*len(predicate_names)))
 
 		# Check if some predicates are required in the init state (i.e., there must be at least one atom of them)
@@ -185,7 +179,7 @@ class RandomGenerator():
 		# Choose a seed
 		random.seed(seed)
 
-		domain_predicates = self._parser.domain_predicates
+		domain_predicates = self._parser.predicates
 
 		# <Initialize ProblemState instance>
 		problem = ProblemState(self._parser, self._predicates_to_consider_for_goal, self._initial_state_info,
@@ -224,7 +218,7 @@ class RandomGenerator():
 
 				# Obtain the predicate names ordered according to the predicate order
 				if self._consistency_validator is None:
-					pred_names_ordered = [p[0] for p in self._parser.domain_predicates]
+					pred_names_ordered = [p[0] for p in domain_predicates]
 				else:
 					pred_names_ordered = self._consistency_validator.predicate_order	
 
@@ -243,7 +237,7 @@ class RandomGenerator():
 						
 						# Select those atoms with predicate==chosen_pred
 						# possible_atoms_chosen_pred = list(filter(lambda atom: atom[0] == chosen_pred[0], possible_atoms))
-						possible_atoms_chosen_pred = [copy.deepcopy(atom) for atom in possible_atoms if atom[0]==chosen_pred[0]] # Deepcopy atom so that, if we modify it, we don't modify the same atom in possible_atoms list
+						possible_atoms_chosen_pred = [[atom[0], list(atom[1])] for atom in possible_atoms if atom[0]==chosen_pred[0]] # Convert from tuple to list so that we can change the indexes and also so that the reference is not shared
 
 						# Sample a consistent atom
 						while not selected_consistent_action and len(possible_atoms_chosen_pred) > 0:
@@ -263,7 +257,7 @@ class RandomGenerator():
 							for param_ind, obj_ind in enumerate(chosen_atom[1]):
 								if obj_ind == -1: # Virtual object
 									param_type = chosen_pred[1][param_ind] # Type of the corresponding predicate parameter
-									possible_types = self._parser.type_hierarchy[param_type] # List of types which inherit from param_type
+									possible_types = list(self._parser.type_hierarchy[param_type]) # List of types which inherit from param_type
 
 									obj_types_list.append(possible_types)
 								else: # The object is in the state
@@ -281,6 +275,9 @@ class RandomGenerator():
 								if chosen_atom[1][i] == -1:
 									chosen_atom[1][i] = curr_obj_ind
 									curr_obj_ind += 1
+
+							# Transform chosen_atom back into a tuple
+							chosen_atom = (chosen_atom[0], tuple(chosen_atom[1]))
 
 							# Try the different type instantiations for the virtual objects in the atom,
 							# until one results in a consistent atom
@@ -347,7 +344,7 @@ class RandomGenerator():
 							for param_ind, obj_ind in enumerate(chosen_atom[1]):
 								if obj_ind == -1: # Virtual object
 									param_type = chosen_pred[1][param_ind] # Type of the corresponding predicate parameter
-									possible_types = self._parser.type_hierarchy[param_type] # List of types which inherit from param_type
+									possible_types = list(self._parser.type_hierarchy[param_type]) # List of types which inherit from param_type
 
 									obj_types_list.append(possible_types)
 								else: # The object is in the state
@@ -361,10 +358,16 @@ class RandomGenerator():
 							# Transform -1 indexes for indexes of new objects
 							curr_obj_ind = ind_last_state_obj + 1
 
+							# Transform chosen_atom into a list so that it can be modified
+							chosen_atom = [chosen_atom[0], list(chosen_atom[1])]
+
 							for i in range(len(chosen_atom[1])):
 								if chosen_atom[1][i] == -1:
 									chosen_atom[1][i] = curr_obj_ind
 									curr_obj_ind += 1
+
+							# Transform chosen_atom back into a tuple
+							chosen_atom = (chosen_atom[0], tuple(chosen_atom[1]))
 
 							# Try the different type instantiations for the virtual objects in the atom,
 							# until one results in a consistent atom
@@ -504,7 +507,6 @@ class RandomGenerator():
 				if len(goal_search_list) - 1 > num_actions_best_goal_state:
 					num_actions_best_goal_state = len(goal_search_list) - 1 # len(goal_search_list) - 1  is equal to the number of actions executed from the initial state to next_goal_state
 					best_goal_state = next_goal_state
-
 
 
 		# <Obtain PDDL problem>

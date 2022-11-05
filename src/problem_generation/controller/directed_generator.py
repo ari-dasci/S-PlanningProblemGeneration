@@ -86,12 +86,12 @@ class DirectedGenerator():
 
 		# <Relational State which contains the object types, type_hierarchy and actions in the domain>
 		# Used to convert from action name to index and vice versa (e.g.: "stack" <-> 1)
-		self._dummy_rel_state_actions = RelationalState(self._parser.domain_types, self._parser.type_hierarchy,
-		                                                self._parser.domain_actions_and_parameters) 
+		self._dummy_rel_state_actions = RelationalState(self._parser.types, self._parser.type_hierarchy,
+		                                                self._parser.actions) 
 
 		# <Goal predicates, as a list of predicates (with name and parameters)>
 		if predicates_to_consider_for_goal is None: # Consider every predicate for the goal
-			self._predicates_to_consider_for_goal = self._parser.domain_predicates
+			self._predicates_to_consider_for_goal = self._parser.predicates
 		else:
 			# Make sure every predicate name only appears at most once
 			pred_names = set([pred[0] for pred in predicates_to_consider_for_goal])
@@ -99,7 +99,7 @@ class DirectedGenerator():
 			if len(pred_names) != len(predicates_to_consider_for_goal):
 				raise ValueError("The parameter predicates_to_consider_for_goal contains at least one duplicate predicate")
 
-			self._predicates_to_consider_for_goal = predicates_to_consider_for_goal
+			self._predicates_to_consider_for_goal = set(predicates_to_consider_for_goal)
 
 		# <Parameters used to normalize the rewards>
 
@@ -220,9 +220,9 @@ class DirectedGenerator():
 		num_preds_inner_layers_initial_state_nlm = np.array(num_preds_inner_layers_initial_state_nlm, dtype=np.int) # Convert to np array in case it was a list
 		
 		# Get domain predicates
-		domain_types = self._parser.domain_types
+		domain_types = self._parser.types
 		domain_type_hierarchy = self._parser.type_hierarchy
-		domain_preds = self._parser.domain_predicates
+		domain_preds = self._parser.predicates
 		
 		dummy_rel_state = RelationalState(domain_types, domain_type_hierarchy, domain_preds)
 
@@ -269,9 +269,9 @@ class DirectedGenerator():
 		num_preds_inner_layers_goal_nlm = np.array(num_preds_inner_layers_goal_nlm, dtype=np.int) # Convert to np array in case it was a list
 		
 		# Get domain types and actions (with their parameters types) -> e.g.: ['stack', ['block', 'block']]
-		domain_types = self._parser.domain_types
+		domain_types = self._parser.types
 		domain_type_hierarchy = self._parser.type_hierarchy
-		domain_preds = self._parser.domain_predicates
+		domain_preds = self._parser.predicates
 		
 		dummy_rel_state_input = RelationalState(domain_types, domain_type_hierarchy, domain_preds)
 		dummy_rel_state_output = self._dummy_rel_state_actions
@@ -311,7 +311,7 @@ class DirectedGenerator():
 	@num_preds_init_layer Number of predicates of each arity the init_state NLM receives as input.
 	"""
 	def _extra_preds_each_arity_init_nlm(self, num_preds_init_layer):
-		num_obj_types = len(self._parser.domain_types)
+		num_obj_types = len(self._parser.types)
 		
 		extra_preds_each_arity = [None]*len(num_preds_init_layer)
 		
@@ -332,7 +332,7 @@ class DirectedGenerator():
 	@num_preds_init_layer Number of predicates of each arity the goal NLM receives as input.
 	"""
 	def _extra_preds_each_arity_goal_nlm(self, num_preds_init_layer):
-		num_obj_types = len(self._parser.domain_types)
+		num_obj_types = len(self._parser.types)
 		
 		extra_preds_each_arity = [None]*len(num_preds_init_layer)
 		
@@ -399,8 +399,8 @@ class DirectedGenerator():
 				for param_ind, param_type in enumerate(pred_params):
 					# Get object indices of incorrect type, i.e., those which do not inherit from the param type
 					incorrect_obj_inds = [obj_ind for obj_ind, obj_type in enumerate(objs_with_virtuals) \
-										  if not self._parser.is_type_child_of(obj_type, param_type)]	
-
+										  if obj_type not in self._parser.type_hierarchy[param_type]]
+					
 					# Permute the tensor so that the first dimension is the one corresponding to param_ind and the second
 					# dimension corresponds to the predicate types
 					obj_inds_except_param_ind = list(range(pred_arity))
@@ -454,11 +454,11 @@ class DirectedGenerator():
 		# Get applicable ground actions at the current goal state
 		applicable_ground_actions = problem.applicable_ground_actions()
 
-		# Convert from the relational encoding ( ['stack', [1, 2]] ) to the encoding
+		# Convert from the relational encoding ( ('stack', (1, 2)) ) to the encoding
 		# used by the NLM ( [action_arity, obj_1_ind, obj_2_ind, ..., action_ind] -> [2, 1, 2, 0] )
 		action_name_to_ind_dict = self._dummy_rel_state_actions.pred_names_to_indices_dict_each_arity
 
-		applicable_ground_actions_nlm_format = [ [len(a[1])] + a[1] + [action_name_to_ind_dict[a[0]]] \
+		applicable_ground_actions_nlm_format = [ [len(a[1])] + list(a[1]) + [action_name_to_ind_dict[a[0]]] \
 										        for a in applicable_ground_actions ]
 
 		# We mask all the NLM output positions except the ones corresponding to applicable_ground_actions_nlm_format
@@ -482,6 +482,8 @@ class DirectedGenerator():
 	Returns a list with the objects to add to @rel_state. These objects correspond to those virtual objects @atom_to_add is instantiated on,
 	i.e., those objects that are not present in @rel_state.
 
+	<Note:> The atom must be represented as a list since tuples can't be modified (are immutable).
+
 	Returns the atom to add with the changed indexes (so that they index objs in the state after adding the list objs_to_add) and the objects 
 	to add to the state as a list like ['block', 'block'].
 	After adding the objs_to_add to the state, the obj indexes in atom_to_add corresponding to virtual objects now index objects in the state.
@@ -494,9 +496,6 @@ class DirectedGenerator():
 		num_objs_without_virtuals = len(objs_without_virtuals)
 		objs_with_virtuals = objs_without_virtuals + rel_state.virtual_objs_with_type
 		num_objs_with_virtuals = len(objs_with_virtuals)
-
-		# Obtain the predicate (name and parameters) corresponding to atom_to_add
-		# atom_pred = list(filter(lambda x: x[0] == atom_to_add[0], state_preds))[0]
 
 		# <Obtain the types of the objects atom_to_add is instantiated on>
 		# To do so, we use the object indexes returned by the NLM, which can index both
@@ -530,7 +529,7 @@ class DirectedGenerator():
 		for param_position, obj_ind in enumerate(atom_to_add[1]):
 			if obj_ind in dict_old_inds_to_new_inds: # If the index is not in the dictionary, it does not need to be changed
 				atom_to_add[1][param_position] = dict_old_inds_to_new_inds[obj_ind]
-		
+
 		return atom_to_add, objs_to_add, obj_types
 
 
@@ -807,6 +806,9 @@ class DirectedGenerator():
 
 				# Obtain the object types and objects to add as part of the chosen action. Also change the obj indexes of chosen_action
 				chosen_action, objs_to_add, obj_types = self._get_objs_to_add_and_atom_with_correct_indexes(curr_state, chosen_action)
+
+				# Represent the action (atom) as a tuple
+				chosen_action = (chosen_action[0], tuple(chosen_action[1]))
 
 				# Execute the action to obtain the reward (associated with the continuous consistency rules) and next state
 				_, r_continuous_consistency = problem.apply_action_to_initial_state(objs_to_add, chosen_action, obj_types)

@@ -3,7 +3,7 @@
 import random
 
 from problem_generation.environment.problem_state import ProblemState
-from problem_generation.environment.pddl_parser import Parser
+from lifted_pddl import Parser
 from problem_generation.environment.planner import Planner
 from problem_generation.environment.state_validator import ValidatorPredOrderBW
 from problem_generation.controller.random_generator import RandomGenerator
