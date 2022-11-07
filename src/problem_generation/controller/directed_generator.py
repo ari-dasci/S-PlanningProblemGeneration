@@ -1027,12 +1027,10 @@ class DirectedGenerator():
 
 			print("\n> Collecting trajectories")
 
-			# Collect the trajectories
 			for _ in range(trajectories_per_train_it):
 				init_policy_trajectory, goal_policy_trajectory = self._obtain_trajectory_and_preprocess_for_PPO()
 				init_policy_trajectories.extend(init_policy_trajectory)
 				goal_policy_trajectories.extend(goal_policy_trajectory)
-
 		
 			print(f"> Trajectories collected. Num samples:\n\t>Init policy trajectories: {len(init_policy_trajectories)} \
 					\n\t>Goal policy trajectories: {len(goal_policy_trajectories)}")
@@ -1044,7 +1042,6 @@ class DirectedGenerator():
 				self._normalize_rewards_goal_policy(goal_policy_trajectories)
 
 			# < Train the generative policies >
-			# <TODO>: train both policies in parallel!
 
 			# -- Initial state policy
 

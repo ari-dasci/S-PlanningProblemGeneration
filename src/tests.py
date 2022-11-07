@@ -834,8 +834,8 @@ def test_load_models_and_generate_problems_logistics():
 	goal_predicates = {('at', ('package','location'))}
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_107/init_policy_its-710.ckpt"
-	goal_policy_path = "saved_models/both_policies_107/goal_policy_its-710.ckpt"
+	init_policy_path = "saved_models/both_policies_110/init_policy_its-810.ckpt"
+	goal_policy_path = "saved_models/both_policies_110/goal_policy_its-810.ckpt"
 
 	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
@@ -868,7 +868,7 @@ def test_load_models_and_generate_problems_logistics():
 	num_problems = 10
 
 	directed_generator.generate_problems(num_problems, max_atoms_init_state=20, max_actions_init_state=60,
-									     max_actions_goal_state=20, max_planning_time=60, verbose=True)
+									     max_actions_goal_state=20, max_planning_time=600, verbose=True)
 
 
 """
@@ -1008,18 +1008,43 @@ def test_load_models_and_generate_problems_logistics():
   usar predicados de ariedad 3 tengo que optimizar la NLM (ej.: ejecutarla en GPU)).
 
 
-
-
-
 > extra_input_preds=True, res_connections=False
   predicates_to_consider_for_goal=[['at', ['package','location']]]
   state_validator: don't add predicates "in" to the init state
   <no_preds_arity_3 in NLM>
   <Lifted Parser>
 
-  <COMPARAR CON EXPERIMENTO ANTES DE AÑADIR LIFTED_PARSER (las gráficas de entrenamiento deberían ser idénticas)>
+  > logs: init_policy\ version_55
+  > saved_model: both_policies_110
 
-  
+  > Entrenamiento (comparación con experimento init_policy\ version_52):
+	> Las gráficas de entrenamiento son idénticas que antes de integrar Lifted Parser (Lifted Parser funciona!!)
+	> <<El tiempo se reduce mucho!!>> Cuanto más avanza el entrenamiento (y más grandes son los problemas generados),
+	  más diferencia hay en el tiempo de entrenamiento entre usar Lifted Parser o el pddl_parser antiguo.
+	  Para el step=720, sin usar Lifted Parser (experimento antiguo) se tardó 1 día 10 horas, pero con el Lifted Parser
+	  (experimento nuevo) se tardó 21h 30 min.
+
+	> La r_difficulty llegó hasta 0.5 (se paró el experimento en mitad), tras 1d 10h de entrenamiento
+	  (el entrenamiento sigue siendo muy lento debido a la NLM)
+	> La init_policy_entropy bajó hasta 0.15 (y seguía bajando cuando se paró el entrenamiento)
+	> La goal_policy_entropy bajó hasta 0.25 (y seguía bajando cuando se paró el entrenamiento)
+	  Parece que ahora la goal_policy_entropy sí baja!!!
+	> La term_cond_prob (tanto de la init_policy como goal_policy) va bajando hasta 0
+
+  > Problemas
+	> directed generator (its=810)
+		- 20 atoms&actions - diff = 32.1 - diversidad media (en muchos problemas (aprox. la mitad) todos los packages están en la misma
+		                                   location en el init state. Además, en el init state todos los packages están en airports, y ninguno
+										   está en un objeto de tipo location. Esto no sucede en el :goal (donde muchos packages si están en objetos
+										   de tipo location)) -> <Hace falta aumentar la diversidad de la init_policy>
+										   <Ningún problema tiene un objeto de tipo 'airplane'.>
+										   Alto número de objetos.
+
+
+	<Parece que la NLM es capaz de aprender a generar problema en logistics, incluso sin usar predicados de ariedad 3!!>
+	<No obtante, la init_policy necesita mayor entropía. Además, debe añadir objetos de tipo airplane y aprender a generar problemas
+	donde los aviones deben volar entre ciudades.>
+	
 
 > extra_input_preds=True, res_connections=False
   predicates_to_consider_for_goal=[['at', ['package','location']]]
@@ -1027,6 +1052,8 @@ def test_load_models_and_generate_problems_logistics():
   no_preds_arity_3 in NLM
   <500 samples per train it>
 
+  <<NO APRENDE>> (la r_difficulty se queda en 0.02 durante todo el entrenamiento)
+  Parece que debería mantener constante el número de trayectorias en vez de samples
 
 
 
@@ -1057,6 +1084,7 @@ def test_load_models_and_generate_problems_logistics():
 	  Esto hará que al final del entrenamiento no se ralentice tanto (al tener cada trajectory más samples de media)
 	  QUIZÁS ASÍ PUEDO HACER QUE SE USEN MÁS SAMPLES AL PRINCIPIO DEL ENTRENAMIENTO (ej.: 100 trajectories al principio), y así
 	  el entrenamiento vaya más rápido!!!
+	  <<NO FUNCIONA (el modelo no aprende)>>
 
 >> Añadir algoritmo de búsqueda
 	- Leer sobre diversity planning y ver cómo puedo hacer el algoritmo de búsqueda
@@ -1148,5 +1176,5 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems()
 
 	#test_generate_random_problems_logistics()
-	test_train_init_and_goal_policy_logistics()
-	#test_load_models_and_generate_problems_logistics()
+	#test_train_init_and_goal_policy_logistics()
+	test_load_models_and_generate_problems_logistics()
