@@ -781,12 +781,12 @@ def test_train_init_and_goal_policy_logistics():
 
 	# The goal_nlm_layers need to account for arity 4, as one action has 4 parameters
 	# We also need to have some predicates of arity 3 in the last layer or, else, there will be no predicates to compute the action of arity 4
-	#init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
-	#goal_policy_nlm_inner_layers = [[8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,4,0]]
+	init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+	goal_policy_nlm_inner_layers = [[8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,4,0]]
 
 	# NLM layers with predicates of arity 3
-	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
-	goal_policy_nlm_inner_layers = [[8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0]]
+	#init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	#goal_policy_nlm_inner_layers = [[8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0]]
 
 	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
 
@@ -838,12 +838,12 @@ def test_load_models_and_generate_problems_logistics():
 	goal_policy_path = "saved_models/both_policies_107/goal_policy_its-710.ckpt"
 
 	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
-	#init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
-	#goal_policy_nlm_inner_layers = [[8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,4,0]]
+	init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+	goal_policy_nlm_inner_layers = [[8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,4,0]]
 
 	# NLM layers with predicates of arity 3
-	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
-	goal_policy_nlm_inner_layers = [[8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0]]
+	#init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	#goal_policy_nlm_inner_layers = [[8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0]]
 
 	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
 
@@ -1011,30 +1011,82 @@ def test_load_models_and_generate_problems_logistics():
 
 
 
+> extra_input_preds=True, res_connections=False
+  predicates_to_consider_for_goal=[['at', ['package','location']]]
+  state_validator: don't add predicates "in" to the init state
+  <no_preds_arity_3 in NLM>
+  <Lifted Parser>
+
+  <COMPARAR CON EXPERIMENTO ANTES DE AÑADIR LIFTED_PARSER (las gráficas de entrenamiento deberían ser idénticas)>
+
+  
+
+> extra_input_preds=True, res_connections=False
+  predicates_to_consider_for_goal=[['at', ['package','location']]]
+  state_validator: don't add predicates "in" to the init state
+  no_preds_arity_3 in NLM
+  <500 samples per train it>
+
+
+
+
+
+
+
 
 ----- TODO
-
-> Aumentar la eficiencia del pddl parser (Ver discord de FD, Slack y github up)
-	- Ver issue de github unified-planning -> creo que up es demasiado lento debido a que hace grounding!!
-	- Probar a generar problemas random
 	
+> Cambiar método cálculo dificultad
+	- Usar método basado en planning features
+	- Ver si soy capaz de extraer las FD features con el código del github
+	- Entrenar un random forest usando el dataset en formato json/csv
+	- Integrar el modelo entrenado + código extracción características para medir la dificultad de los problemas
+	- Probar que funciona correctamente (aprende a generar problemas que son difíciles de resolver con <varios planners> (LAMA, FF...))
+
+> Ver si se generan problemas con varios tipos en el init state (específicamente, que tengan objetos de tipo "airplane")
+	- Si no, cambiar cálculo entropy_loss para motivar que se añadan objetos de distintos tipos
+	- Probar si ahora sí se añaden objetos de tipo airplane
+		- Mientras se hacen las pruebas, ponerme con la review (hacer cambios de la última sección (tabla, etc.) para subirlo a arxiv)
+		- Antes de eso, leer sobre diversity planning y ver cómo implementar el algoritmo de búsqueda (en una fase posterior del trabajo)
+
+> <Opcional> Mejorar eficiencia NLM
+	- Probar a ejecutar sobre GPU (en caso de que sea posible) y comparar tiempos NLM CPU vs GPU
+	- También puedo probar a ir variando el número de trajectories_per_train_it durante el entrenamiento
+	  (En vez de usar trajectories_per_train_it para determinar el número de trayectorias, hacer que sea por número de samples.)
+	  Por ejemplo: que se obtengan o 50 trajectories o 400 samples (para la init_policy y goal_policy), lo que se cumpla antes.
+	  Esto hará que al final del entrenamiento no se ralentice tanto (al tener cada trajectory más samples de media)
+	  QUIZÁS ASÍ PUEDO HACER QUE SE USEN MÁS SAMPLES AL PRINCIPIO DEL ENTRENAMIENTO (ej.: 100 trajectories al principio), y así
+	  el entrenamiento vaya más rápido!!!
+
+>> Añadir algoritmo de búsqueda
+	- Leer sobre diversity planning y ver cómo puedo hacer el algoritmo de búsqueda
+	- Ver cómo medir la diversidad entre los problemas generados (incluidos aquellos que solo tienen estado inicial pero no goal)
+		- Tengo que ver cómo medir la diversidad en 1) init state generation phase y 2) goal state generation phase
+		- Creo que puedo usar un subconjunto de las planning features usadas para medir la dificultad
+		  (ver txt escritorio "Cómo medir la diversidad...")
+	- Implementar algoritmo de búsqueda (tanto para random_generator como directed_generator) y comparar resultados vs
+	  cuando no se usa el algoritmo de búsqueda (para esto, creo que puedo crear un parámetro en el algoritmo de búsqueda
+	  para que la open_list tenga espacio para un solo nodo (problema))
+		- Ver si mejora la dificultad y la diversidad
+		- Ver si mejora la generalización a problemas más grandes (con un mayor número de átomos)
+			- Si no, simplemente aumentar el max_atoms_init_state por encima del número de átomos que realmente queremos generar
+
+> Testear método en sokoban
+	- Añadir soporte para constantes
+	- Hacer pruebas en sokoban para ver si mi método funciona bien en un dominio tan complejo
+	- Si no, usar un dominio más sencillo en vez de sokoban (como zenotravel)
+
+
+------ OTRO
+
 > Una vez implementado el nuevo pddl parser, hacer pruebas tanto con la NLM sin predicados de ariedad 3
   como usando predicados de ariedad 3 (se paró el entrenamiento a mitad en ambos casos)
 	- <<Tengo que ver si es posible generar problemas difíciles sin usar predicados de ariedad 3 en la NLM>>
-
-> Cambiar método cálculo dificultad
-	- Ver correo
 
 > Facilitar la codificación de las reglas de consistencia
 	- Añadir métodos para poder codificar reglas del tipo "num-preds(pred, [list-objs])" de manera declarativa
 	  Mirar cómo lo hace ESSENCE
 	- Comprobar que funciona usando el random generator
-
-> Informarme sobre métodos para medir la diversidad de los problemas generados (y también de los estados iniciales)
-	VER .TXT ESCRITORIO!!
-
-> Añadir al entropy loss un término para añadir objetos de distintos tipos al estado inicial
-	- (en el caso de que los problemas generados no tengan objetos de tipo airplane)
 
 > Añadir soporte para domain constants (el nuevo pddl parser las soporta)
 	- Esto será necesario para sokoban
@@ -1058,23 +1110,6 @@ def test_load_models_and_generate_problems_logistics():
 	- La diversidad de los problemas debería ser un poco mayor (el init state generalmente tiene una sola torre y nunca tiene handempty)
 	- La generalización a problemas más grandes (tengo que poner max_actions_init_state más alto de lo necesario para que generalice)
 	- El tiempo en generar el goal para problemas grandes (el método groundify del pddl_parser es muy lento)
-
------------------
-
->> TODO
-    - Hacer pruebas con logistics
-		- VER SI PARA EL GOAL ME QUEDO SOLO CON UN SUBCONJUNTO DE PREDICADOS (ej.: solo los predicados "at" de los "packages")
-		- Creo que en logistics sí será necesario que la NLM use predicados de ariedad 3
-			- Tengo que modificar la NLM para que, si no se usan residual_connections, se añadan los predicados extra como input a cada capa intermedia
-
->> CAMBIOS PARA AUMENTAR EFICIENCIA NLM:
-	> Añadir opción para que, si no se usan residual_connections, los predicados extras perc_actions_executed y de los object types
-	  se añadan adicionalmente como inputs a cada NLM layer
-	> Probar a usar menos trajectories_per_train_it -> No funciona
-
-
-
->> Preguntar en el discord de FD si es posible llamar una sola vez al planner para que resuelva un conjunto de problemas
 
 ------
 
@@ -1112,6 +1147,6 @@ if __name__ == "__main__":
 	#test_train_init_and_goal_policy()
 	#test_load_models_and_generate_problems()
 
-	test_generate_random_problems_logistics()
-	#test_train_init_and_goal_policy_logistics()
+	#test_generate_random_problems_logistics()
+	test_train_init_and_goal_policy_logistics()
 	#test_load_models_and_generate_problems_logistics()

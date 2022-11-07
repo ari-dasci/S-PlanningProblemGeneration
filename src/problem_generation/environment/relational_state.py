@@ -39,6 +39,7 @@ class RelationalState():
 
 
         self._types = types # A set of types, e.g., {"plane", "car"}
+        sorted_types = sorted(self._types) # Sort the types in order to define some auxiliary data structures which depend on the order of types
         # Note: self._types must contain all the types, across all possible levels of hierarchy
         # Example: in logistics -> {'package', 'object', 'airport', 'truck', 'vehicle', 'city', 'airplane', 'thing', 'location'}
         # Use parser.types
@@ -51,18 +52,18 @@ class RelationalState():
         self._type_hierarchy = type_hierarchy
 
         # Create a dictionary to convert from object types to indices and vice versa
-        types_indices = list(range(len(self._types)))
-        types_list = list(self._types)
-        self._obj_types_to_indices_dict = dict(zip(types_list, types_indices)) # ['truck', 'plane'] -> [0, 1]
-        self._indices_to_obj_types_dict = dict(zip(types_indices, types_list)) # [0, 1] -> ['truck', 'plane']
+        types_indices = list(range(len(sorted_types)))
+        self._obj_types_to_indices_dict = dict(zip(sorted_types, types_indices)) # ['truck', 'plane'] -> [0, 1]
+        self._indices_to_obj_types_dict = dict(zip(types_indices, sorted_types)) # [0, 1] -> ['truck', 'plane']
 
         # Predicates
         self._predicates = predicates # The name and parameter type of each predicate, where predicates[i] is
                                       # [name, list_of_types], e.g., ('on', ('block', 'block'))
+        sorted_predicates = sorted(self._predicates) # Sort the predicates in order to define some auxiliary data structures which depend on the order of predicates
 
         # Create a dictionary to convert from pred names to indices. Example: ['on', 'clear'] -> [0, 1]
-        pred_names = [p[0] for p in self._predicates] # ['on', 'clear']
-        pred_indices = list(range(len(self._predicates))) # [0, 1]
+        pred_names = [p[0] for p in sorted_predicates] # ['on', 'clear']
+        pred_indices = list(range(len(sorted_predicates))) # [0, 1]
         self._pred_names_to_indices_dict = dict(zip(pred_names, pred_indices)) # 'on' : 0, 'clear' : 1
 
         # State data
@@ -82,7 +83,7 @@ class RelationalState():
         # Store number of predicates of each arity -> keys: int corresponding to the arity, values: int representing the number of preds of such arity
         self._num_preds_each_arity = dict()
         
-        for p in self._predicates:
+        for p in sorted_predicates:
             p_arity = len(p[1])
             
             if p_arity in self._num_preds_each_arity:
@@ -100,7 +101,7 @@ class RelationalState():
         # E.g.: (2, 0) (pred number 0 of arity 2) -> ['on', ['block, block']]
         self._arity_and_ind_to_predicate_dict = dict()
         
-        for p in self._predicates:
+        for p in sorted_predicates:
             p_arity = len(p[1])
             p_ind = ind_list[p_arity]
             
@@ -118,7 +119,7 @@ class RelationalState():
         num_virtual_objs_each_type = [0]*self.num_types
 
         # Calculate how many virtual objects need to be added for each type
-        for p in self._predicates:
+        for p in sorted_predicates:
             num_virtual_objs_each_type_p = [0]*self.num_types
 
             # See how many objects of each type appear in p
@@ -136,6 +137,7 @@ class RelationalState():
         # Add needed virtual objects of each type
         for type_ind in range(self.num_types):
             self._virtual_objs_with_type.extend( [self._indices_to_obj_types_dict[type_ind]]*num_virtual_objs_each_type[type_ind] )
+
 
 
     def __copy__(self):

@@ -15,7 +15,7 @@ import warnings
 from pathlib import Path
 
 from problem_generation.environment.problem_state import ProblemState
-from problem_generation.environment.pddl_parser import Parser
+from lifted_pddl import Parser
 from problem_generation.environment.planner import Planner
 from problem_generation.environment.state_validator import ValidatorPredOrderBW
 from problem_generation.environment.relational_state import RelationalState
@@ -844,7 +844,7 @@ class DirectedGenerator():
 	@problem A ProblemState instance containing the initial state to start the goal generation phase from.
 	         <Note>: we assume the initial state of @problem meets all the eventual consistency rules.
 	"""
-	def _obtain_trajectory_goal_policy(self, problem, max_actions_goal_state=-1, max_planning_time=60, verbose=False):
+	def _obtain_trajectory_goal_policy(self, problem, max_actions_goal_state=-1, max_planning_time=600, verbose=False):
 
 		if max_actions_goal_state == -1:
 			max_actions_goal_state = self._max_actions_goal_state
@@ -1033,6 +1033,7 @@ class DirectedGenerator():
 				init_policy_trajectories.extend(init_policy_trajectory)
 				goal_policy_trajectories.extend(goal_policy_trajectory)
 
+		
 			print(f"> Trajectories collected. Num samples:\n\t>Init policy trajectories: {len(init_policy_trajectories)} \
 					\n\t>Goal policy trajectories: {len(goal_policy_trajectories)}")
 
