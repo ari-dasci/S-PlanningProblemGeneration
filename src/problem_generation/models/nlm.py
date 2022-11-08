@@ -505,19 +505,21 @@ class NLM(nn.Module):
         pred_arities = range(len(input_tensors_list))
         num_samples = len(input_tensors_list[0])
 
-        #print("input_tensors_list first sample", [x[0] if x is not None else None for x in input_tensors_list])
+        # Obtain the torch_device from the input data (CPU or GPU)
+        for x in input_tensors_list: # Iterate until we find an arity r for which input_tensors_list[r] is not a list of None.
+            if x[0] is not None:
+                data_device = x[0].device
+                break
 
         if add_extra_preds:          
-            extra_preds_each_arity = [torch.tensor(x, dtype=torch.long) if x is not None else None \
+            extra_preds_each_arity = [torch.tensor(x, dtype=torch.long, device=data_device) if x is not None else None \
                                       for x in self._extra_preds_each_arity] # We need to encapsulate every index list in a tensor for using the torch.index_select() method
             
             # Select the extra tensors which need to be added to each layer
             extra_tensors_list = [ [ torch.index_select(sample_tensor, r, extra_preds_each_arity[r]) for sample_tensor in input_tensors_list[r] ] \
                                    if extra_preds_each_arity[r] is not None else None \
                                    for r in pred_arities]
-
-            #print("extra_tensors_list first sample", [x[0] if x is not None else None for x in extra_tensors_list])
-            
+           
         curr_tensors_list = input_tensors_list
         
         # Iteratively apply forward pass with each NLM layer
@@ -531,16 +533,6 @@ class NLM(nn.Module):
 
             else:
                 curr_tensors_list_modified = curr_tensors_list
-
-
-            # QUITAR
-            # if i == 0:
-            #    print("\ncurr_tensors_list_modified layer 0", [x[0] if x is not None else None for x in curr_tensors_list_modified])
-                
-            #if i == 1:
-            #    print("\curr_tensors_list layer 1", [x[0] if x is not None else None for x in curr_tensors_list])
-            #    print("\ncurr_tensors_list_modified layer 1", [x[0] if x is not None else None for x in curr_tensors_list_modified])
-            #    sys.exit()
 
             curr_tensors_list = self.layers[i](curr_tensors_list_modified, list_num_objs)
 

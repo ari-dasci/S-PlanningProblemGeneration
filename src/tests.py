@@ -649,6 +649,7 @@ def test_train_init_and_goal_policy():
 
 	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
 										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
+										   device='cuda',
 
 										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -699,6 +700,7 @@ def test_load_models_and_generate_problems():
 
 	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
 										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
+										   device='cuda',
 										  
 										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -792,6 +794,7 @@ def test_train_init_and_goal_policy_logistics():
 
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
+										   device='cuda',
 
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -849,6 +852,7 @@ def test_load_models_and_generate_problems_logistics():
 
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
+										   device='cuda',
 										  
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -1058,12 +1062,17 @@ def test_load_models_and_generate_problems_logistics():
 
 
 
+>>> PONER trajectories_per_train_it=50
+
+>>> INTENTAR USAR TORCH. EN VEZ DE NP. PARA QUE VAYA MÁS RÁPIDO (ASÍ HACEMOS LAS OPERACIONES EN LA GPU SIN TENER QUE TRAER LOS DATOS DE CPU A GPU
+    Y VICEVERSA)
 
 
 
 ----- TODO
 	
 > Cambiar método cálculo dificultad
+	- INSTALAR UNA VERSIÓN ANTIGUA DE FAST DOWNWARD
 	- Usar método basado en planning features
 	- Ver si soy capaz de extraer las FD features con el código del github
 	- Entrenar un random forest usando el dataset en formato json/csv
@@ -1176,5 +1185,5 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems()
 
 	#test_generate_random_problems_logistics()
-	#test_train_init_and_goal_policy_logistics()
-	test_load_models_and_generate_problems_logistics()
+	test_train_init_and_goal_policy_logistics()
+	#test_load_models_and_generate_problems_logistics()

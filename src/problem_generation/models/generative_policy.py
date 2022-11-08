@@ -7,6 +7,8 @@ import numpy as np
 import pytorch_lightning as pl
 from itertools import chain
 
+import sys
+
 from problem_generation.models.nlm import NLM
 
 class GenerativePolicy(pl.LightningModule):
@@ -19,17 +21,18 @@ class GenerativePolicy(pl.LightningModule):
 	@action_entropy_coeff Coefficient for the entropy loss, used when calculating the Actor loss
 	@epsilon PPO parameter that controls how much the policy can diverge from the old one
 	@epsilon_annealing_coeffs If None, we do not change the entropy coefficient during training.
-	                          Else, if it is a tuple (i, final_entropy),
+							  Else, if it is a tuple (i, final_entropy),
 							  we linearly anneal (reduce) @action_entropy_coeff so that it becomes
 							  final_entropy.
 		Note: reduce_entropy() method must be manually called after each trainer.fit() in order to reduce the entropy.
+	@device instance of torch.device determining whether the model will be executed on GPU or CPU.
 	
 	Note: @num_preds_layers_nlm needs to include the extra nullary predicate for the termination condition (in the output layer)
-	      and the number of atoms already added to the initial state (perc_actions_executed, a number between 0 and 1), in case these are needed.
-	      Also, it needs to include the extra unary predicates representing object types, if needed.
+		  and the number of atoms already added to the initial state (perc_actions_executed, a number between 0 and 1), in case these are needed.
+		  Also, it needs to include the extra unary predicates representing object types, if needed.
 	"""
 	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_extra_preds_each_arity, nlm_residual_connections, lr,
-			     action_entropy_coeff, entropy_annealing_coeffs, epsilon):
+				 action_entropy_coeff, entropy_annealing_coeffs, epsilon, device):
 		super().__init__()
 
 		self._lr = lr
@@ -57,6 +60,15 @@ class GenerativePolicy(pl.LightningModule):
 		self.curr_log_iteration = 0 # Used to track the current logging iteration in order to save the logs correctly
 
 		self._curr_entropy_annealing_it = 0
+
+		# <Move the model to cuda in case device==torch.device('cuda:0'). Else, it is on CPU.>
+		if device.type == 'cuda':
+			self.to('cuda')
+
+		# QUITAR
+		#print("> Generative policy device:", self.device, list(self.parameters())[0].device)
+		#print("> nlm device:", list(self._actor_nlm.parameters())[0].device, list(self._critic_nlm.parameters())[0].device)
+		#sys.exit()
 
 
 	# ------- Getters
@@ -132,12 +144,12 @@ class GenerativePolicy(pl.LightningModule):
 		# torch.cat() -> concatenate all the flattened tensors for each sample
 		# torch.logsumexp() -> calculate logsumexp for all the concatenated flattened tensors of each sample
 		log_sum_exp_list = [ torch.logsumexp(torch.cat( [list_nlm_output[r][i].flatten() if list_nlm_output[r][i] is not None \
-			                                               else torch.empty(0, dtype=torch.float32) for r in range(num_arities)] ), dim=-1) \
-		                     for i in range(num_samples) ]
+														   else torch.empty(0, dtype=torch.float32, device=self.device) for r in range(num_arities)] ), dim=-1) \
+							 for i in range(num_samples) ]
 
 		# Calculate log_softmax of each sample [i] in the batch by substracting log_sum_exp_list[i]
 		list_nlm_output_log_softmax = [ [list_nlm_output[r][i] - log_sum_exp_list[i] for i in range(num_samples)] \
-		                                if list_nlm_output[r][0] is not None else list_nlm_output[r] for r in range(num_arities)]
+										if list_nlm_output[r][0] is not None else list_nlm_output[r] for r in range(num_arities)]
 
 		return list_nlm_output_log_softmax
 
@@ -169,14 +181,14 @@ class GenerativePolicy(pl.LightningModule):
 		# Ignore the last predicate of arity 0, corresponding to the termination condition
 		# list_prob_tensors = [ [torch.exp(sample_output[r][:-1])  if r==0 else  torch.exp(sample_output[r]) \
 		#				       for r in range(len(sample_output)) if sample_output[r] is not None] \
-        #                      for sample_output in list_nlm_output_samples ]
+		#                      for sample_output in list_nlm_output_samples ]
 
 		# Transform log_probs to probs (by using torch.exp)
 		# Ignore None tensors, as they correspond to non-existent actions
 		# IF WE IGNORE THE TERMINATION CONDITION (last predicate of arity 0) IT STOPS WORKING! (termination condition prob. converges a 1)
 		list_prob_tensors = [ [torch.exp(tensor) \
-						       for tensor in sample_output if tensor is not None] \
-                               for sample_output in list_nlm_output_samples ]
+							   for tensor in sample_output if tensor is not None] \
+							   for sample_output in list_nlm_output_samples ]
 
 
 		#print("\nlist_prob_tensors[0]\n", list_prob_tensors[0])
@@ -185,7 +197,7 @@ class GenerativePolicy(pl.LightningModule):
 		# For each sample, obtain a list of tensors corresponding to the different predicates (instead of the different arities)
 		# Example: a tensor for on, a tensor for ontable...
 		list_prob_tensors_each_pred = [ list(chain.from_iterable([torch.unbind(tensor,dim=-1) for tensor in sample_output])) \
-                                        for sample_output in list_prob_tensors ]
+										for sample_output in list_prob_tensors ]
  
 
 
@@ -195,7 +207,7 @@ class GenerativePolicy(pl.LightningModule):
 
 		# Flatten the tensors
 		list_prob_tensors_each_pred_flat = [ [torch.flatten(tensor) for tensor in sample_output] \
-                                              for sample_output in list_prob_tensors_each_pred ]
+											  for sample_output in list_prob_tensors_each_pred ]
 
 
 		#print("\nlist_prob_tensors_each_pred_flat[0]\n", list_prob_tensors_each_pred_flat[0])
@@ -211,7 +223,7 @@ class GenerativePolicy(pl.LightningModule):
 
 
 		tensor_ground_entropy = torch.cat([ (torch.distributions.Categorical(probs = probs_flattened).entropy() / np.log(probs_flattened.shape[0])).view(1) \
-			                               for probs_flattened in list_prob_tensors_ground ])
+										   for probs_flattened in list_prob_tensors_ground ])
 
 		#print("\ntensor_ground_entropy[0]\n", tensor_ground_entropy[0])
 
@@ -221,7 +233,7 @@ class GenerativePolicy(pl.LightningModule):
 		# (i.e., adding ontable, on, clear, handempty or holding regardless of the objects the predicate is instantiated on)
 
 		list_probs_each_pred = [ torch.cat([torch.sum(tensor).reshape(1) for tensor in sample_output]) 
-						         for sample_output in list_prob_tensors_each_pred_flat ]
+								 for sample_output in list_prob_tensors_each_pred_flat ]
 
 		#print("\nlist_probs_each_pred[0]\n", list_probs_each_pred[0])
 
@@ -230,7 +242,7 @@ class GenerativePolicy(pl.LightningModule):
 		#	list_probs_each_pred[i][1] = 0
 
 		tensor_lifted_entropy = torch.cat([ (torch.distributions.Categorical(probs = probs_preds).entropy() / np.log(probs_preds.shape[0])).view(1) \
-			                               for probs_preds in list_probs_each_pred ])
+										   for probs_preds in list_probs_each_pred ])
 
 		return 0.5*tensor_ground_entropy + 0.5*tensor_lifted_entropy
 
@@ -240,7 +252,7 @@ class GenerativePolicy(pl.LightningModule):
 		# Transform log_probs to probs and flatten the tensors
 		# We ignore None tensors, as they correspond to non-existent actions
 		list_prob_tensors = [ [torch.exp(tensor).flatten() for tensor in sample_output if tensor is not None] \
-                              for sample_output in list_nlm_output_samples ]
+							  for sample_output in list_nlm_output_samples ]
 
 		# Ignore probabilities of 0, corresponding to masked values (with mask_nlm_output())
 		list_prob_tensors = [ [tensor[tensor.nonzero()].flatten() for tensor in prob_tensors] \
@@ -252,7 +264,7 @@ class GenerativePolicy(pl.LightningModule):
 		list_probs_flattened = [torch.cat(prob_tensors) for prob_tensors in list_prob_tensors] # Put all the probabilities into a single flattened tensor
 
 		tensor_action_entropy = torch.cat([ (torch.distributions.Categorical(probs = probs_flattened).entropy() / np.log(probs_flattened.shape[0])).view(1) \
-			                                   for probs_flattened in list_probs_flattened ])
+											   for probs_flattened in list_probs_flattened ])
 		
 
 		return tensor_action_entropy
@@ -270,7 +282,7 @@ class GenerativePolicy(pl.LightningModule):
 	def _sample_action(self, pred_tensors):		
 		# <Convert from torch to numpy>
 		# Use torch.exp to transform from log_softmax to softmax (i.e., from log_probs to probs)
-		pred_tensors_np = [np.exp(x.detach().numpy()) if x is not None else None for x in pred_tensors]
+		pred_tensors_np = [np.exp(x.cpu().detach().numpy()) if x is not None else None for x in pred_tensors] # CAMBIAR (QUITAR .CPU())
 
 		# <Decide which arity to sample>
 	
@@ -406,25 +418,69 @@ class GenerativePolicy(pl.LightningModule):
 	Note: we add an entropy bonus to the loss, in order to prefer policies with high entropy.
 
 	@train_batch Batch of training samples, where each one is a tuple (state_tensors, num_objs, mask_tensors, chosen_action_index,
-                 chosen_action_prob, r_continuous, r_eventual, r_difficulty, r_total, r_total_norm, state_values)
+				 chosen_action_prob, r_continuous, r_eventual, r_difficulty, r_total, r_total_norm, state_values)
 	"""
 	def training_step(self, train_batch, batch_idx=0):
 		train_batch_len = len(train_batch)
 		assert train_batch_len > 0, "Train batch cannot have length 0"
 
+
+		# ------------ NEW
+
+		# From https://pytorch-lightning.readthedocs.io/en/stable/starter/converting.html#remove-any-cuda-or-to-device-calls
+		# Los tensores de la NLM deberian estar en la GPU (al estar inicializados en self.__init__)
+		# Los tensores en train_batch tambien deberian estar en la GPU 
+		# COMPROBAR SI LAS DOS CONDICIONES DE ARRIBA SE CUMPLEN!!!
+
+		# QUITAR
+		list_num_objs = [sample[1] for sample in train_batch]
+		list_mask_tensors = [sample[2] for sample in train_batch]
+		list_chosen_action_index = [sample[3] for sample in train_batch]
+
+		tensor_action_prob_old_policy = torch.tensor([sample[4] for sample in train_batch], dtype=torch.float32, requires_grad=False, device=self.device)
+		tensor_r_total_norm = torch.tensor([sample[9] for sample in train_batch], dtype=torch.float32, requires_grad=False, device=self.device)
+		tensor_state_values = torch.tensor([sample[10] for sample in train_batch], dtype=torch.float32, requires_grad=False, device=self.device)
+
+		num_preds_state_tensors = len(train_batch[0][0])
+		list_state_tensors_nlm_encoding = [[sample[0][r] for sample in train_batch] for r in range(num_preds_state_tensors)]
+
+		reward_continuous = np.mean([sample[5] for sample in train_batch])
+		reward_eventual = np.mean([sample[6] for sample in train_batch])
+		reward_difficulty = np.mean([sample[7] for sample in train_batch])
+		reward_total = np.mean([sample[8] for sample in train_batch])
+		reward_total_norm = np.mean([sample[9] for sample in train_batch])
+
+
+		# QUITAR
+		#print("DEVICE", type(self.device), self.device) # cuda:0 <class 'torch.device'>
+
+		#print("list_mask_tensors[0][0].device:", list_mask_tensors[0][0].device) # cuda
+		#print("tensor_action_prob_old_policy[0].device:", tensor_action_prob_old_policy[0].device) # cpu (cuda con device=self.device)
+		#print("tensor_r_total_norm[0].device:", tensor_r_total_norm[0].device) # cpu (cuda con device=self.device)
+		#print("tensor_state_values[0].device:", tensor_state_values[0].device) # cpu (cuda con device=self.device)
+		#print("list_state_tensors_nlm_encoding[0][0].device:", list_state_tensors_nlm_encoding[0][0].device) # cuda
+
+		#sys.exit()
+
+
+
+
+		# ------------ OLD 
+
+		"""
 		# < Represent the data in a suitable form for the calculations >
 
 		# Represent the batch as a numpy array. The row are the samples and the columns the different elements of each sample.
-		train_batch_np = np.array(train_batch, dtype=object) 
+		train_batch_np = np.array(train_batch, dtype=object)
 
 		# Obtain a list (or tensor) with the sample information
 		list_num_objs = train_batch_np[:,1].tolist()
 		list_mask_tensors = train_batch_np[:,2].tolist()
 		list_chosen_action_index = train_batch_np[:,3].tolist()
 
-		tensor_action_prob_old_policy = torch.tensor(train_batch_np[:,4].tolist(), dtype=torch.float32, requires_grad=False)
-		tensor_r_total_norm = torch.tensor(train_batch_np[:,9].tolist(), dtype=torch.float32, requires_grad=False)	
-		tensor_state_values = torch.tensor(train_batch_np[:,10].tolist(), dtype=torch.float32, requires_grad=False)
+		tensor_action_prob_old_policy = torch.tensor(train_batch_np[:,4].tolist(), dtype=torch.float32, requires_grad=False, device=self.device)
+		tensor_r_total_norm = torch.tensor(train_batch_np[:,9].tolist(), dtype=torch.float32, requires_grad=False, device=self.device)	
+		tensor_state_values = torch.tensor(train_batch_np[:,10].tolist(), dtype=torch.float32, requires_grad=False, device=self.device)
 
 		# Represent the state tensors in a suitable encoding for the NLMs
 		num_preds_state_tensors = len(train_batch[0][0]) # The number of elements in state_tensors (equal to the max predicate arity - 1)
@@ -437,6 +493,11 @@ class GenerativePolicy(pl.LightningModule):
 		reward_difficulty = np.mean(train_batch_np[:,7])
 		reward_total = np.mean(train_batch_np[:,8])
 		reward_total_norm = np.mean(train_batch_np[:,9])
+		"""
+
+
+
+
 
 		# < Critic >
 
@@ -458,13 +519,13 @@ class GenerativePolicy(pl.LightningModule):
 		# i -> sample i
 		# tuple(list_chosen_action_index[i][1:]) -> tensor position corresponding to chosen_action
 		chosen_action_log_prob_list = [ action_log_probs_list[list_chosen_action_index[i][0]][i][tuple(list_chosen_action_index[i][1:])]   \
-								        for i in range(train_batch_len) ]
+										for i in range(train_batch_len) ]
 
 		# Convert from log_probs to probs
 		# Note: if the log_prob is NaN, then we assume the prob is 0 
 		chosen_action_prob_tensor = torch.cat([ torch.exp(log_prob).view(1) if not torch.isnan(log_prob) else \
-								                   torch.tensor([1e-5], dtype=torch.float32) \
-							                       for log_prob in chosen_action_log_prob_list ])
+												   torch.tensor([1e-5], dtype=torch.float32, device=self.device) \
+												   for log_prob in chosen_action_log_prob_list ])
 
 		# Calculate the probability ratios r_t
 		prob_ratio_tensor = chosen_action_prob_tensor / tensor_action_prob_old_policy
@@ -475,7 +536,7 @@ class GenerativePolicy(pl.LightningModule):
 
 		# Calculate the PPO loss
 		PPO_loss = torch.mean( -torch.min(prob_ratio_tensor * advantage_tensor, \
-						       torch.clip(prob_ratio_tensor, 1-self._epsilon, 1+self._epsilon) * advantage_tensor) )
+							   torch.clip(prob_ratio_tensor, 1-self._epsilon, 1+self._epsilon) * advantage_tensor) )
 
 		# Calculate the entropy loss
 		policy_entropy = torch.mean(self._policy_entropy(action_log_probs_list))
@@ -486,7 +547,7 @@ class GenerativePolicy(pl.LightningModule):
 
 		# Calculate probability of termination condition
 		with torch.no_grad():
-			term_cond_prob_tensor = torch.tensor([ np.exp(action_log_probs_list[0][i][-1].detach().numpy()) for i in range(train_batch_len) ])
+			term_cond_prob_tensor = torch.tensor([ np.exp(action_log_probs_list[0][i][-1].detach().numpy()) for i in range(train_batch_len) ], device=self.device)
 			mean_term_cond_prob = torch.mean(term_cond_prob_tensor)
 
 
