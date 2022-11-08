@@ -1005,7 +1005,7 @@ class DirectedGenerator():
 	Note: We add an index to the folder name given by @checkpoint_folder. Example: saved_models/both_policies_2
 	      (in case there are two other experiments ids=0, 1 before it).
 	"""
-	def train_generative_policies(self, training_iterations, epochs_per_train_it=3, trajectories_per_train_it=1, minibatch_size=125,
+	def train_generative_policies(self, training_iterations, epochs_per_train_it=3, trajectories_per_train_it=50, minibatch_size=125,
 							      its_per_model_checkpoint=10, checkpoint_folder="saved_models/both_policies", logs_name="both_policies"):
 
 		# Obtain folder name to save the model checkpoints in
@@ -1075,6 +1075,11 @@ class DirectedGenerator():
 			
 			trainer_init_policy.fit(self._initial_state_policy, trajectory_dataloader_init_policy)
 
+			# Seems like we need to move the lightning_module back to the GPU after every call to Trainer.fit()
+			if self.device.type == 'cuda':
+				self._initial_state_policy.to('cuda')
+
+
 
 			# Linearly anneal the entropy regularization of the policy
 			self._initial_state_policy.reduce_entropy()
@@ -1102,12 +1107,17 @@ class DirectedGenerator():
 				if len(goal_policy_trajectories) > 3*10*trajectories_per_train_it / 4:
 					goal_policy_train_epochs += 1
 
+
 				if self.device.type == 'cuda':
 					trainer_goal_policy = pl.Trainer(max_epochs=goal_policy_train_epochs, logger=logger_goal_policy, accelerator='gpu', devices=1)
 				else:
 					trainer_goal_policy = pl.Trainer(max_epochs=goal_policy_train_epochs, logger=logger_goal_policy, accelerator='cpu')
-				
+
 				trainer_goal_policy.fit(self._goal_policy, trajectory_dataloader_goal_policy)
+
+				if self.device.type == 'cuda':
+					self._goal_policy.to('cuda')
+
 
 				# Linearly anneal the entropy regularization of the policy
 				self._goal_policy.reduce_entropy()

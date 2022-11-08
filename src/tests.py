@@ -1062,10 +1062,17 @@ def test_load_models_and_generate_problems_logistics():
 
 
 
->>> PONER trajectories_per_train_it=50
 
->>> INTENTAR USAR TORCH. EN VEZ DE NP. PARA QUE VAYA MÁS RÁPIDO (ASÍ HACEMOS LAS OPERACIONES EN LA GPU SIN TENER QUE TRAER LOS DATOS DE CPU A GPU
-    Y VICEVERSA)
+
+---
+
+>>> PREGUNTAR EN INTERNET POR QUÉ TENGO QUE VOLVER A HACER .to('cuda') después de cada llamada a trainer.fit()
+
+
+>>> Si no funciona, el fallo debería estar en algo del código que toqué para no tener que convertir de torch.tensor a np.array
+	- Mirar método _sample_action()
+	   VER SI EN ESTE MÉTODO EN pred_tensors = [torch.exp(x.detach()) if x is not None else None for x in pred_tensors] puedo
+	   quitar el .detach() y sigue funcionando!!
 
 
 

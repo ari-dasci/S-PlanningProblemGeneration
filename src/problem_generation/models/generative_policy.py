@@ -279,7 +279,46 @@ class GenerativePolicy(pl.LightningModule):
 
 	Note: the values of the tensors do not need to sum 1 but they cannot be negative.
 	"""
-	def _sample_action(self, pred_tensors):		
+	def _sample_action(self, pred_tensors):
+		
+		with torch.no_grad():
+			# Use torch.exp to transform from log_softmax to softmax (i.e., from log_probs to probs)
+			pred_tensors = [torch.exp(x.detach()) if x is not None else None for x in pred_tensors]
+		
+			# <Decide which arity to sample>
+
+			# Get prob to sample each arity
+			# If preds_curr_arr is None, that means there are no predicates for that arity, so we assign a probability of 0 to that predicate arity
+			arity_probs = torch.tensor([torch.sum(preds_curr_arr) if preds_curr_arr is not None else 0 for preds_curr_arr in pred_tensors],
+										dtype=torch.float16, device=self.device)
+			arity_probs /= torch.sum(arity_probs) # Normalize so that the sum of probabilities is equal to 1
+		
+			# Sample an arity
+			chosen_arity = np.random.choice(range(len(pred_tensors)), p = arity_probs.cpu().numpy())
+		
+			# <Sample the chosen arity>
+	
+			# Obtain the predicates of the chosen arity and normalize the probabilities so that they sum 1
+			preds_chosen_arity = pred_tensors[chosen_arity].detach() # We need to copy the array or else we will modify pred_tensors_np!
+			preds_chosen_arity /= torch.sum(preds_chosen_arity)
+
+			# Sample an element and get its index
+			i = np.random.choice(range(preds_chosen_arity.numel()), p=preds_chosen_arity.cpu().numpy().ravel())
+			index = np.unravel_index(i, tuple(preds_chosen_arity.shape))
+			final_index = [chosen_arity] + list(index) # Append the arity of the predicate to the beginning of the index vector
+
+			# <Obtain probability of the sampled action>
+			sampled_action_prob = pred_tensors[chosen_arity][tuple(index)].item()
+
+			return final_index, sampled_action_prob
+
+
+
+
+		# --------- OLD
+		
+
+		"""
 		# <Convert from torch to numpy>
 		# Use torch.exp to transform from log_softmax to softmax (i.e., from log_probs to probs)
 		pred_tensors_np = [np.exp(x.cpu().detach().numpy()) if x is not None else None for x in pred_tensors] # CAMBIAR (QUITAR .CPU())
@@ -309,6 +348,7 @@ class GenerativePolicy(pl.LightningModule):
 		sampled_action_prob = pred_tensors_np[chosen_arity][tuple(index)]
 
 		return final_index, sampled_action_prob
+		"""
 
 
 	"""
@@ -427,11 +467,6 @@ class GenerativePolicy(pl.LightningModule):
 
 		# ------------ NEW
 
-		# From https://pytorch-lightning.readthedocs.io/en/stable/starter/converting.html#remove-any-cuda-or-to-device-calls
-		# Los tensores de la NLM deberian estar en la GPU (al estar inicializados en self.__init__)
-		# Los tensores en train_batch tambien deberian estar en la GPU 
-		# COMPROBAR SI LAS DOS CONDICIONES DE ARRIBA SE CUMPLEN!!!
-
 		# QUITAR
 		list_num_objs = [sample[1] for sample in train_batch]
 		list_mask_tensors = [sample[2] for sample in train_batch]
@@ -547,10 +582,11 @@ class GenerativePolicy(pl.LightningModule):
 
 		# Calculate probability of termination condition
 		with torch.no_grad():
-			term_cond_prob_tensor = torch.tensor([ np.exp(action_log_probs_list[0][i][-1].detach().numpy()) for i in range(train_batch_len) ], device=self.device)
+			# term_cond_prob_tensor = torch.tensor([ np.exp(action_log_probs_list[0][i][-1].cpu().detach().numpy()) for i in range(train_batch_len) ], device=self.device)
+			term_cond_prob_tensor = torch.tensor([ torch.exp(action_log_probs_list[0][i][-1].detach()) for i in range(train_batch_len) ], device=self.device)
 			mean_term_cond_prob = torch.mean(term_cond_prob_tensor)
-
-
+			
+			
 		# < Actor + Critic loss >
 		loss = actor_loss + critic_loss
 
