@@ -649,7 +649,6 @@ def test_train_init_and_goal_policy():
 
 	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
 										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
-										   device='cuda',
 
 										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -700,7 +699,6 @@ def test_load_models_and_generate_problems():
 
 	directed_generator = DirectedGenerator(parser, planner, consistency_validator=ValidatorPredOrderBW,
 										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
-										   device='cuda',
 										  
 										   num_preds_inner_layers_initial_state_nlm=nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -794,7 +792,6 @@ def test_train_init_and_goal_policy_logistics():
 
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
-										   device='cuda',
 
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -837,8 +834,8 @@ def test_load_models_and_generate_problems_logistics():
 	goal_predicates = {('at', ('package','location'))}
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_110/init_policy_its-810.ckpt"
-	goal_policy_path = "saved_models/both_policies_110/goal_policy_its-810.ckpt"
+	init_policy_path = "saved_models/both_policies_115/init_policy_its-790.ckpt"
+	goal_policy_path = "saved_models/both_policies_115/goal_policy_its-790.ckpt"
 
 	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
@@ -852,7 +849,6 @@ def test_load_models_and_generate_problems_logistics():
 
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
-										   device='cuda',
 										  
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -1060,19 +1056,39 @@ def test_load_models_and_generate_problems_logistics():
   Parece que debería mantener constante el número de trayectorias en vez de samples
 
 
+ >>>>> Código soporte para entrenar en GPU
+
+	> Entrenamiento en GPU
+		<<SE QUEDA SIN MEMORIA!!! (creo que tengo poca VRAM)>>
+		Además, tarda aprox. un 65% más que cuando se entrena sobre CPU (nota, el entrenamiento se paró tras 1h)
+
+	> Entrenamiento en CPU
+		<<No aprende (la r_difficulty no aumenta)>>
+		Habría que repetir la ejecución para ver si es mala suerte o un bug en el código.
+
+  << No merece la pena entrenar sobre GPU. >>
+  Si quiero mejorar la eficiencia, debería reducir el número de parámetros de las acciones.
+
+
+>>>>> Pruebas código antes de añadir soporte para GPU
+	  En una ejecución (init_policy\ version_56) no aprende (la r_difficulty no pasa de 0.02) mientras que en otra ejecución
+	  (init_policy\ version_57) sí aprende (la r_difficulty llega hasta 0.05), aunque no tanto como en la ejecución anterior
+	  (init_policy\ version_55, donde la r_difficulty llega hasta 0.5).
+	  << En definitiva, el entrenamiento no es estable!!! (Los resultados varían según el experimento) >>
+
+	  > Problemas (init_policy\ version_57, its=790):
+		- diff = 3.6 (dificultad muy baja (muchos problemas tienen dificultad 1)) - ningún problema generado tiene un objeto de tipo airplane!!!
+
+	  << El entrenamiento es inestable y el modelo a veces no aprende!!! >>
+
+
+>>> HACER PRUEBA CON PREDICADOS DE ARIEDAD 3 (8 en cada capa menos en la última de la goal_policy, con solo 4)
+	El tiempo de ejecución debería ser casi idéntico que en el experimento anterior
 
 
 
 
----
 
->>> PREGUNTAR EN INTERNET POR QUÉ TENGO QUE VOLVER A HACER .to('cuda') después de cada llamada a trainer.fit()
-
-
->>> Si no funciona, el fallo debería estar en algo del código que toqué para no tener que convertir de torch.tensor a np.array
-	- Mirar método _sample_action()
-	   VER SI EN ESTE MÉTODO EN pred_tensors = [torch.exp(x.detach()) if x is not None else None for x in pred_tensors] puedo
-	   quitar el .detach() y sigue funcionando!!
 
 
 
@@ -1093,17 +1109,18 @@ def test_load_models_and_generate_problems_logistics():
 		- Antes de eso, leer sobre diversity planning y ver cómo implementar el algoritmo de búsqueda (en una fase posterior del trabajo)
 
 > <Opcional> Mejorar eficiencia NLM
-	- Probar a ejecutar sobre GPU (en caso de que sea posible) y comparar tiempos NLM CPU vs GPU
-	- También puedo probar a ir variando el número de trajectories_per_train_it durante el entrenamiento
-	  (En vez de usar trajectories_per_train_it para determinar el número de trayectorias, hacer que sea por número de samples.)
-	  Por ejemplo: que se obtengan o 50 trajectories o 400 samples (para la init_policy y goal_policy), lo que se cumpla antes.
-	  Esto hará que al final del entrenamiento no se ralentice tanto (al tener cada trajectory más samples de media)
-	  QUIZÁS ASÍ PUEDO HACER QUE SE USEN MÁS SAMPLES AL PRINCIPIO DEL ENTRENAMIENTO (ej.: 100 trajectories al principio), y así
-	  el entrenamiento vaya más rápido!!!
+	- Ejecutar sobre GPU -> no merece la pena (se queda sin memoria la GPU y el entrenamiento es más lento)
+	- Mantener constante el número de samples_per_train_it en vez de trajectories_per_train_it
 	  <<NO FUNCIONA (el modelo no aprende)>>
+
+	>> Si necesito mejorar la eficiencia, lo que debería de hacer es reducir el número de parámetros de las acciones.
+	   Para ello, debería añadir soporte para :when :forall y :exists en el parser y cambiar el dominio de logistics
+	   para que las acciones tengan menos parámetros (quitar el parámetro "city" de las acciones)
 
 >> Añadir algoritmo de búsqueda
 	- Leer sobre diversity planning y ver cómo puedo hacer el algoritmo de búsqueda
+		- Ver si integro el algoritmo de búsqueda con el entrenamiento (de manera parecida a AlphaZero)
+		  o si entreno la política como hasta ahora y solo uso el algoritmo de búsqueda en test
 	- Ver cómo medir la diversidad entre los problemas generados (incluidos aquellos que solo tienen estado inicial pero no goal)
 		- Tengo que ver cómo medir la diversidad en 1) init state generation phase y 2) goal state generation phase
 		- Creo que puedo usar un subconjunto de las planning features usadas para medir la dificultad
