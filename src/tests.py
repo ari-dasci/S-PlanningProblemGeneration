@@ -781,12 +781,14 @@ def test_train_init_and_goal_policy_logistics():
 
 	# The goal_nlm_layers need to account for arity 4, as one action has 4 parameters
 	# We also need to have some predicates of arity 3 in the last layer or, else, there will be no predicates to compute the action of arity 4
+	
+	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
 	goal_policy_nlm_inner_layers = [[8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,4,0]]
 
 	# NLM layers with predicates of arity 3
 	#init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
-	#goal_policy_nlm_inner_layers = [[8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0]]
+	#goal_policy_nlm_inner_layers = [[8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,4,0]]
 
 	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
 
@@ -837,13 +839,13 @@ def test_load_models_and_generate_problems_logistics():
 	init_policy_path = "saved_models/both_policies_115/init_policy_its-790.ckpt"
 	goal_policy_path = "saved_models/both_policies_115/goal_policy_its-790.ckpt"
 
-	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
 	goal_policy_nlm_inner_layers = [[8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,4,0]]
 
 	# NLM layers with predicates of arity 3
-	#init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
-	#goal_policy_nlm_inner_layers = [[8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0]]
+	# init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	# goal_policy_nlm_inner_layers = [[8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,4,0]]
 
 	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
 
@@ -1082,10 +1084,24 @@ def test_load_models_and_generate_problems_logistics():
 	  << El entrenamiento es inestable y el modelo a veces no aprende!!! >>
 
 
->>> HACER PRUEBA CON PREDICADOS DE ARIEDAD 3 (8 en cada capa menos en la última de la goal_policy, con solo 4)
-	El tiempo de ejecución debería ser casi idéntico que en el experimento anterior
+> extra_input_preds=True, res_connections=False
+  predicates_to_consider_for_goal=[['at', ['package','location']]]
+  state_validator: don't add predicates "in" to the init state
+  no_preds_arity_3 in NLM
+  <init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]>
+  <goal_policy_nlm_inner_layers = [[8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,4,0]]>
+
+  El tiempo de entrenamiento es casi el doble que cuando no uso predicados de ariedad 3!!!
 
 
+> extra_input_preds=True, res_connections=False
+  predicates_to_consider_for_goal=[['at', ['package','location']]]
+  state_validator: don't add predicates "in" to the init state
+  no_preds_arity_3 in NLM
+  <init_policy_nlm_inner_layers = [[4,4,4,0], [4,4,4,0], [4,4,4,0], [4,4,4,0], [4,4,4,0], [4,4,4,0]]>
+  <goal_policy_nlm_inner_layers = [[4,4,4,0,0], [4,4,4,0,0], [4,4,4,0,0], [4,4,4,0,0], [4,4,4,0,0], [4,4,4,4,0]]>
+
+  El entrenamiento se cortó a mitad, así que no sé si aprende o no (aunque parece que el tiempo de entrenamiento es prácticamente el mismo).
 
 
 
@@ -1117,6 +1133,10 @@ def test_load_models_and_generate_problems_logistics():
 	   Para ello, debería añadir soporte para :when :forall y :exists en el parser y cambiar el dominio de logistics
 	   para que las acciones tengan menos parámetros (quitar el parámetro "city" de las acciones)
 
+> Añadir método para cargar checkpoints
+	- Que no solo se carguen los parámetros del modelo sino también el resto de variables (ej.: entropy coeffs) para que se pueda
+	  reanudar el entrenamiento
+
 >> Añadir algoritmo de búsqueda
 	- Leer sobre diversity planning y ver cómo puedo hacer el algoritmo de búsqueda
 		- Ver si integro el algoritmo de búsqueda con el entrenamiento (de manera parecida a AlphaZero)
@@ -1132,6 +1152,12 @@ def test_load_models_and_generate_problems_logistics():
 		- Ver si mejora la generalización a problemas más grandes (con un mayor número de átomos)
 			- Si no, simplemente aumentar el max_atoms_init_state por encima del número de átomos que realmente queremos generar
 
+> Comparar dificultad de los problemas generados con mi método (para logistics) con los generados mediante el instance generator
+  de logistics (ver github AIPlanning)
+	- Mi método debería ser capaz de generar problemas más difíciles!!
+	- Si no es capaz, quizás debería simplificar el dominio de logistics (añadir :exists y quitar action parameters)
+	  para facilitar el entrenamiento
+
 > Testear método en sokoban
 	- Añadir soporte para constantes
 	- Hacer pruebas en sokoban para ver si mi método funciona bien en un dominio tan complejo
@@ -1140,17 +1166,10 @@ def test_load_models_and_generate_problems_logistics():
 
 ------ OTRO
 
-> Una vez implementado el nuevo pddl parser, hacer pruebas tanto con la NLM sin predicados de ariedad 3
-  como usando predicados de ariedad 3 (se paró el entrenamiento a mitad en ambos casos)
-	- <<Tengo que ver si es posible generar problemas difíciles sin usar predicados de ariedad 3 en la NLM>>
-
 > Facilitar la codificación de las reglas de consistencia
 	- Añadir métodos para poder codificar reglas del tipo "num-preds(pred, [list-objs])" de manera declarativa
 	  Mirar cómo lo hace ESSENCE
 	- Comprobar que funciona usando el random generator
-
-> Añadir soporte para domain constants (el nuevo pddl parser las soporta)
-	- Esto será necesario para sokoban
 
 -----------------------------
 
