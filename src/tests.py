@@ -1104,6 +1104,16 @@ def test_load_models_and_generate_problems_logistics():
   El entrenamiento se cortó a mitad, así que no sé si aprende o no (aunque parece que el tiempo de entrenamiento es prácticamente el mismo).
 
 
+> extra_input_preds=True, res_connections=False
+  predicates_to_consider_for_goal=[['at', ['package','location']]]
+  state_validator: don't add predicates "in" to the init state
+  no_preds_arity_3 in NLM
+  <init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]>
+  <goal_policy_nlm_inner_layers = [[8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,4,0]]>
+  <problem difficulty as EPM>
+  <rescale_factor = 2>
+
+
 
 
 

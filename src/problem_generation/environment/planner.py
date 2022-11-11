@@ -6,9 +6,15 @@ from subprocess import TimeoutExpired
 import re
 import os
 import tempfile
+import pandas as pd
+from sklearn.ensemble import RandomForestRegressor
+import joblib
 
 import sys
 import time
+
+from .epm.pddl_features_extractor import SimplePDDLFeatureExtractor
+from .epm.sas_features_extractor import SASFeatureExtractor
 
 class Planner():
 
@@ -23,9 +29,10 @@ class Planner():
 					'astar(blind())' -> A* with "blind heuristic"
 					'astar(lmcut())' -> A* with LM-cut heuristic
 	Information about search_options can be found in: https://www.fast-downward.org/PlannerUsage
+	@path_epm Path to the EPM (trained random forest) used to predict planning times from features.
 	"""
-	def __init__(self, domain_file_path, python_call='python', planner_path='./fast-downward/fast-downward.py', 
-				 alias='lama-first',search_options=''):
+	def __init__(self, domain_file_path, python_call='python', planner_path='./fast-downward', 
+				 alias='lama-first', search_options='', path_epm='./problem_generation/environment/epm/trained_model.joblib'):
 
 		# planner_path=r'R:\RamDisk\fast-downward\fast-downward.py'
 		# search_options='astar(lmcut())'
@@ -35,6 +42,9 @@ class Planner():
 		self._planner_path = planner_path
 		self._alias=alias
 		self._search_options = search_options
+
+		# Load the EPM (random forest) used to predict planning times
+		self._epm = joblib.load(path_epm)
 
 	@property
 	def domain_file_path(self):
@@ -53,12 +63,18 @@ class Planner():
 	"""
 	def solve_problem(self, pddl_problem_path, max_planning_time = 60):
 		# Create the command to call the planner
-		
+		planner_path = self._planner_path
+
+		if planner_path[-1] != '/':
+			planner_path = planner_path + '/'
+
+		planner_path = planner_path + 'fast-downward.py' # Path to the script to call fast downward
+
 		if self._alias is None:
-			planner_command = [self._python_call, self._planner_path, self._domain_file_path, pddl_problem_path,
+			planner_command = [self._python_call, planner_path, self._domain_file_path, pddl_problem_path,
 					'--search', self._search_options]
 		else:
-			planner_command = [self._python_call, self._planner_path, '--alias', self._alias, self._domain_file_path, 
+			planner_command = [self._python_call, planner_path, '--alias', self._alias, self._domain_file_path, 
 					  pddl_problem_path]
 
 		# Use a heuristic in the initial state as the problem difficulty
@@ -112,43 +128,45 @@ class Planner():
 
 		return expanded_nodes
 
+	"""
+	Uses an EPM (empirical performance model) to efficiently predict the planning time given the problem features.
+	"""
+	def predict_problem_difficulty_epm(self, pddl_problem_path):
+		# < Obtain the problem features >
 
-	"""
-	The same as get_problem_difficulty but we create a temporary file to store the PDDL problem, which is deleted
-	as soon as the difficulty is calculated.
-	"""
-	def get_problem_difficulty_temp_file(self, pddl_problem, max_planning_time = 60):
+		# Extract features
+		pddl_features_extractor = SimplePDDLFeatureExtractor()
+		sas_features_extractor = SASFeatureExtractor()
+
+		features = pddl_features_extractor.extract(self._domain_file_path, pddl_problem_path)[1]
+		features.update(sas_features_extractor.extract(self._planner_path, self._domain_file_path, pddl_problem_path)[1])
+
+		# Represent in a dataframe
+		features = {k : [v] for k,v in features.items()}
+		df_features = pd.DataFrame.from_dict(features)
+
+		# Select subset of features for predicting planning time
+		features_to_use = ['pddlNumActions', 'pddlNumPredicates', 'pddlMinParamsPerPredicate', 'pddlMeanParamsPerPredicate', 'pddlMaxParamsPerPredicate', 'pddlMinPredicatesPerPrecondition',
+                   'pddlMeanPredicatesPerPrecondition', 'pddlMaxPredicatesPerPrecondition', 'pddlMinPredicatesPerEffect', 'pddlMeanPredicatesPerEffect', 'pddlMaxPredicatesPerEffect',
+                   'pddlMinNegationsPerEffect', 'pddlMeanNegationsPerEffect', 'pddlMaxNegationsPerEffect', 'pddlMarksTotalNumActions', 'pddlRatioActionsWithNegativeEffectsOverActions',
+                   'pddlNumGoals', 'pddlNumObjects', 'pddlNumInitialConditions', 'pddlRequiresADL', 'pddlRequiresConditionalEffects', 'pddlRequiresDisjunctivePreconditions',
+                   'pddlRequiresEquality', 'pddlRequiresExistentialPreconditions', 'pddlRequiresQuantifiedPreconditions', 'pddlRequiresStrips', 'pddlRequiresTyping',
+                   'pddlRequiresUniversalPreconditions', 'pddlNumConstants', 'pddlNumConstantsAndObjects', 'pddlNumEqualityInitialConditions', 'pddlHasTypes', 'pddlNumTypes',
+                   'pddlRequiresNegation', 'pddlRequiresNegativePreconditions', 'sasRules', 'sasRelevantAtoms', 'sasAuxiliaryAtoms', 'sasFinalQueueLength', 'sasTotalQueuePushes',
+                   'sasInitialInvariantCandidates', 'sasUncoveredFacts', 'sasImpliedPreconditionsAdded', 'sasOperatorsRemoved', 'sasPropositionsRemoved', 'sasTranslatorVariables',
+                   'sasTranslatorDerivedVariables', 'sasTranslatorFacts', 'sasTranslatorMutexGroups', 'sasTranslatorOperators', 'sasTranslatorTaskSize', 'sasFileVersion',
+                   'sasFileHasMetric', 'sasFileNumVariables', 'sasFileMinVariableDomainSize', 'sasFileMeanVariableDomainSize', 'sasFileMaxVariableDomainSize', 'sasFileNumGoalPairs',
+                   'sasFileRatioGoalPairsOverNumVariables', 'sasFileNumOperators', 'sasFileMinPrevailConditionsPerOperator', 'sasFileMeanPrevailConditionsPerOperator',
+                   'sasFileMaxPrevailConditionsPerOperator', 'sasFileMinEffectsPerOperator', 'sasFileMeanEffectsPerOperator', 'sasFileMaxEffectsPerOperator',
+                   'sasPreprocessingPercentageVariablesDeemedNecessary', 'sasPreprocessingPercentageMutexGroupsDeemedNecessary', 'sasPreprocessingPercentageOperatorsDeemedNecessary']
+
+		df_features = df_features.loc[:, features_to_use]
+
+		# < Use the EPM to predict planning time >
+		prediction = self._epm.predict(df_features)[0]
+
+		#print("\n\n> Features:\n", df_features)
+		#print("\n\n> Prediction:", prediction) # 0.2382
 		
-		"""
-		# This doesn't work in Windows!!
+		return prediction
 
-		# Create a virtual file in RAM (use a named pipe or FIFO)
-		file_name = "problem.pddl"
-		os.mkfifo(file_name)
-
-		# Save the PDDL problem to the virtual file just created
-		with open(file_name, 'w+') as f:
-			f.write(pddl_problem)
-
-		# Obtain the difficulty of the problem (by reading the virtual file containing the PDDL encoding of the problem)
-		difficulty = self.get_problem_difficulty(r_fd, max_planning_time)
-
-		# Delete the virtual file
-		os.remove(file_name)
-		"""
-
-		# Create named temporary file (in read+write mode and with automatic delete = False)
-		fd = tempfile.NamedTemporaryFile(mode="w+t", delete=False) # File descriptor (as the one obtained by doing f = open(name, mode))
-		file_path = fd.name # Obtain file path
-
-		# Write PDDL problem to the file and close it, so that the planner can open it
-		fd.write(pddl_problem)
-		fd.close()
-
-		# Obtain the difficulty of the problem (by reading the file with the PDDL encoding of the problem)
-		difficulty = self.get_problem_difficulty(file_path, max_planning_time)
-
-		# Delete the file
-		os.remove(file_path)
-
-		return difficulty

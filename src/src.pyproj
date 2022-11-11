@@ -1206,6 +1206,24 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="problem_generation\controller\__init__.py" />
+    <Compile Include="problem_generation\environment\epm\feature_extractor.py" />
+    <Compile Include="problem_generation\environment\epm\pddl\actions.py" />
+    <Compile Include="problem_generation\environment\epm\pddl\axioms.py" />
+    <Compile Include="problem_generation\environment\epm\pddl\conditions.py" />
+    <Compile Include="problem_generation\environment\epm\pddl\effects.py" />
+    <Compile Include="problem_generation\environment\epm\pddl\functions.py" />
+    <Compile Include="problem_generation\environment\epm\pddl\f_expression.py" />
+    <Compile Include="problem_generation\environment\epm\pddl\graph.py" />
+    <Compile Include="problem_generation\environment\epm\pddl\parser.py" />
+    <Compile Include="problem_generation\environment\epm\pddl\pddl_file.py" />
+    <Compile Include="problem_generation\environment\epm\pddl\pddl_types.py" />
+    <Compile Include="problem_generation\environment\epm\pddl\predicates.py" />
+    <Compile Include="problem_generation\environment\epm\pddl\pretty_print.py" />
+    <Compile Include="problem_generation\environment\epm\pddl\tasks.py" />
+    <Compile Include="problem_generation\environment\epm\pddl\__init__.py" />
+    <Compile Include="problem_generation\environment\epm\pddl_features_extractor.py" />
+    <Compile Include="problem_generation\environment\epm\sas_features_extractor.py" />
+    <Compile Include="problem_generation\environment\epm\__init__.py" />
     <Compile Include="problem_generation\environment\planner.py" />
     <Compile Include="problem_generation\environment\problem_state.py" />
     <Compile Include="problem_generation\environment\relational_state.py" />
@@ -1250,6 +1268,20 @@
     <Content Include="fast-downward\misc\tox.ini" />
     <Content Include="fast-downward\src\CMakeLists.txt" />
     <Content Include="fast-downward\src\search\CMakeLists.txt" />
+    <Content Include="problem_generation\environment\epm\pddl\__pycache__\actions.cpython-38.pyc" />
+    <Content Include="problem_generation\environment\epm\pddl\__pycache__\axioms.cpython-38.pyc" />
+    <Content Include="problem_generation\environment\epm\pddl\__pycache__\conditions.cpython-38.pyc" />
+    <Content Include="problem_generation\environment\epm\pddl\__pycache__\effects.cpython-38.pyc" />
+    <Content Include="problem_generation\environment\epm\pddl\__pycache__\functions.cpython-38.pyc" />
+    <Content Include="problem_generation\environment\epm\pddl\__pycache__\f_expression.cpython-38.pyc" />
+    <Content Include="problem_generation\environment\epm\pddl\__pycache__\graph.cpython-38.pyc" />
+    <Content Include="problem_generation\environment\epm\pddl\__pycache__\parser.cpython-38.pyc" />
+    <Content Include="problem_generation\environment\epm\pddl\__pycache__\pddl_file.cpython-38.pyc" />
+    <Content Include="problem_generation\environment\epm\pddl\__pycache__\pddl_types.cpython-38.pyc" />
+    <Content Include="problem_generation\environment\epm\pddl\__pycache__\predicates.cpython-38.pyc" />
+    <Content Include="problem_generation\environment\epm\pddl\__pycache__\tasks.cpython-38.pyc" />
+    <Content Include="problem_generation\environment\epm\pddl\__pycache__\__init__.cpython-38.pyc" />
+    <Content Include="problem_generation\environment\epm\trained_model.joblib" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="fast-downward" />
@@ -1467,6 +1499,9 @@
     <Folder Include="problem_generation" />
     <Folder Include="problem_generation\controller" />
     <Folder Include="problem_generation\environment" />
+    <Folder Include="problem_generation\environment\epm\" />
+    <Folder Include="problem_generation\environment\epm\pddl\" />
+    <Folder Include="problem_generation\environment\epm\pddl\__pycache__\" />
     <Folder Include="problem_generation\models" />
   </ItemGroup>
   <ItemGroup>
