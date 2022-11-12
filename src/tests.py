@@ -1113,6 +1113,38 @@ def test_load_models_and_generate_problems_logistics():
   <problem difficulty as EPM>
   <rescale_factor = 2>
 
+  La r_difficulty aumenta pero en los problemas generados todos los goals son siempre True en el init state.
+  <El EPM no funciona!!!>
+  La term cond prob de la goal policy converge a 0.8 (la NLM aprende a generar :goals que son iguales que el :init).
+  <En los problemas generados hay objetos de tipo "airplane" pero no "truck"!!!! (tampoco hay locations, solo airports)>
+
+
+
+
+  > Si no aprende:
+	- Esperar a leer el correo de Mauro:
+		- Mientras tanto hacer otras cosas:
+			- Carga de checkpoints
+			- Ver dificultad problemas instance generator logistics (en el github de AI Planning)
+			- Cambiar policy_entropy para que se añadan objetos de distinto tipo (quizás puedo simplemente usar la lifted y esta nueva entropy y no usar la ground entropy)
+				- Hacer pruebas
+			- Ir pensando (y leyendo) sobre cómo puedo hacer el algoritmo de búsqueda
+
+	- Probar a cambiar el dataset de entrenamiento
+		- VER SI HAY ALGUNA CARACTERÍSTICA QUE SEA EL NÚMERO DE GOALS QUE NO SON TRUE EN EL INIT STATE
+		- Probar a usar solo problemas más pequeños (ej.: num_atoms < 50)
+		- Probar a no usar log para normalizar los tiempos de los planners
+
+	- Alternativas:
+		>>> Probar mi método de usar mean(heuristics)*std(heuristics) (quizás puedo añadir un término que fomente los problemas grandes)
+		- Probar a usar varios satisficing planners (lama, ff, fd...) para resolver el problema y calcular así la dificultad.
+		  Esta opción puede tener sentido si: 1) los planners son muy rápidos y 2) entreno en problemas pequeños
+		  (resolubles eficientemente con los planners) y el método es capaz de generalizar a problemas más grandes
+		  -> DEBERÍA EVALUAR LA CAPACIDAD DE GENERALIZACIÓN A PROBLEMAS DE DISTINTOS TAMAÑOS (para esto puede ayudar el algoritmo de búsqueda,
+		     al evitar que se generen problemas demasiado pequeños)
+
+
+
 
 
 
@@ -1169,10 +1201,13 @@ def test_load_models_and_generate_problems_logistics():
 	  para facilitar el entrenamiento
 
 > Testear método en sokoban
-	- Añadir soporte para constantes
+	- Añadir soporte para constantes -> Quizás no sea necesario!!!!
 	- Hacer pruebas en sokoban para ver si mi método funciona bien en un dominio tan complejo
 	- Si no, usar un dominio más sencillo en vez de sokoban (como zenotravel)
 
+> En la experimentación del paper, añadir un apartado donde genere problemas muy difíciles (aunque con poca diversidad)
+  así puedo demostrar que mi método sirve para, dado un dominio, encontrar qué tipo de problemas son más difíciles
+  -> Domain Characterization
 
 ------ OTRO
 
