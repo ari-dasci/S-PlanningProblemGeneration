@@ -7,6 +7,8 @@ import numpy as np
 import pytorch_lightning as pl
 from itertools import chain
 
+import sys
+
 from problem_generation.models.nlm import NLM
 
 class GenerativePolicy(pl.LightningModule):
@@ -33,16 +35,17 @@ class GenerativePolicy(pl.LightningModule):
 		super().__init__()
 
 		self._lr = lr
-		self._action_entropy_coeff = action_entropy_coeff
 		self._epsilon = epsilon
+		self.register_buffer('_action_entropy_coeff', torch.tensor(action_entropy_coeff, dtype=torch.float32))	
 
 		# Calculate how much we need to reduce the entropy coeffs at each training iteration (in case we use linear annealing)
 		if entropy_annealing_coeffs is None:
-			self._entropy_annealing_coeff = 0
-			self._final_iteration_entropy_annealing = 0
+			self.register_buffer('_entropy_annealing_coeff', torch.tensor(0, dtype=torch.float32))
+			self.register_buffer('_final_iteration_entropy_annealing', torch.tensor(0, dtype=torch.int32))
 		else:
-			self._entropy_annealing_coeff = (entropy_annealing_coeffs[1] - action_entropy_coeff) / entropy_annealing_coeffs[0]
-			self._final_iteration_entropy_annealing = entropy_annealing_coeffs[0]
+			self.register_buffer('_entropy_annealing_coeff', torch.tensor((entropy_annealing_coeffs[1] - action_entropy_coeff) / entropy_annealing_coeffs[0],
+																          dtype=torch.float32))
+			self.register_buffer('_final_iteration_entropy_annealing', torch.tensor(entropy_annealing_coeffs[0], dtype=torch.int32))
 
 		self._actor_nlm = NLM(num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_extra_preds_each_arity, nlm_residual_connections)
 
@@ -54,9 +57,11 @@ class GenerativePolicy(pl.LightningModule):
 
 		self._critic_nlm = NLM(num_preds_layers_nlm_critic, mlp_hidden_sizes_nlm, nlm_extra_preds_each_arity, nlm_residual_connections)
 
-		self.curr_log_iteration = 0 # Used to track the current logging iteration in order to save the logs correctly
+		# Variables used to keep track of the current iteration
+		# Used to track the current logging iteration in order to save the logs correctly
+		self.register_buffer('curr_log_iteration', torch.tensor(0, dtype=torch.int32))	
 
-		self._curr_entropy_annealing_it = 0
+		self.register_buffer('_curr_entropy_annealing_it', torch.tensor(0, dtype=torch.int32))	
 
 
 	# ------- Getters

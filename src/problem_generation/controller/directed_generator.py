@@ -164,6 +164,7 @@ class DirectedGenerator():
 																				 entropy_annealing_coeffs=entropy_annealing_coeffs_goal_policy, 
 																				 epsilon=epsilon_goal_policy)
 
+
 		# QUITAR
 		#print("num_preds_all_layers_goal_nlm", num_preds_all_layers_goal_nlm)
 		#print("extra_preds_each_arity_goal_nlm", extra_preds_each_arity_goal_nlm)
@@ -983,6 +984,8 @@ class DirectedGenerator():
 	This method trains both the initial and goal generation policies end-to-end.
 
 	@training_iterations The number of PPO iterations
+	@start_it At which iteration start training. Used when we load a model checkpoint and resume training. In this case,
+	          @start_it should be set to the training_it the model was at when it was saved. Otherwise, it should be set to 0.
 	@epochs_per_train_it For each PPO iteration, how many training epochs to use over the dataset of collected trajectories
 	@trajectories_per_train_it For each PPO iteration, how many trajectories to collect
 	@minibatch_size Minibatch size to use when training the model over the collected trajectories
@@ -991,7 +994,7 @@ class DirectedGenerator():
 	Note: We add an index to the folder name given by @checkpoint_folder. Example: saved_models/both_policies_2
 	      (in case there are two other experiments ids=0, 1 before it).
 	"""
-	def train_generative_policies(self, training_iterations, epochs_per_train_it=3, trajectories_per_train_it=50, minibatch_size=125,
+	def train_generative_policies(self, training_iterations, start_it=0, epochs_per_train_it=3, trajectories_per_train_it=50, minibatch_size=125,
 							      its_per_model_checkpoint=10, checkpoint_folder="saved_models/both_policies", logs_name="both_policies"):
 
 		# Obtain folder name to save the model checkpoints in
@@ -1017,7 +1020,7 @@ class DirectedGenerator():
 		logger_goal_policy = TensorBoardLogger("lightning_logs", name=logs_name+'/goal_policy')
 
 		# Train the policies with PPO
-		for i in range(training_iterations):
+		for i in range(start_it, training_iterations):
 			print("\n>> Curr train it:", i)
 
 			# < Obtain the trajectories for the current PPO iteration >

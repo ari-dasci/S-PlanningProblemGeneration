@@ -873,6 +873,57 @@ def test_load_models_and_generate_problems_logistics():
 									     max_actions_goal_state=20, max_planning_time=600, verbose=True)
 
 
+def test_load_models_and_resume_training_logistics():
+	from problem_generation.controller.directed_generator import DirectedGenerator
+	from problem_generation.environment.planner import Planner
+	from problem_generation.environment.state_validator import ValidatorLogistics
+
+	from lifted_pddl import Parser
+
+	domain_file_path = '../data/domains/logistics-domain.pddl'
+
+	parser = Parser()
+	parser.parse_domain(domain_file_path)
+	planner = Planner(domain_file_path)
+
+	# Goal predicates
+	goal_predicates = {('at', ('package','location'))}
+
+	# Create the generator and load the trained models
+	curr_it = 370 # It of the loaded model, used to resume training
+	init_policy_path = "saved_models/both_policies_119/init_policy_its-{}.ckpt".format(curr_it)
+	goal_policy_path = "saved_models/both_policies_119/goal_policy_its-{}.ckpt".format(curr_it)
+
+	# NLM layers without predicates of arity 3
+	init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+	goal_policy_nlm_inner_layers = [[8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,4,0]]
+
+	# NLM layers with predicates of arity 3
+	# init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	# goal_policy_nlm_inner_layers = [[8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,4,0]]
+
+	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
+
+	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
+										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
+										  
+										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
+										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
+										   extra_input_preds_initial_state_nlm=True,
+										   res_connections_initial_state_nlm=False,
+										   load_init_state_policy_checkpoint_name=init_policy_path,
+
+										   num_preds_inner_layers_goal_nlm=goal_policy_nlm_inner_layers,
+										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
+										   extra_input_preds_goal_nlm=True,
+										   res_connections_goal_nlm=False,
+										   load_goal_policy_checkpoint_name=goal_policy_path)
+
+	print(f">> Init model {init_policy_path} and goal model {goal_policy_path} loaded")
+
+	# Train the goal generation policy
+	directed_generator.train_generative_policies(training_iterations = 10000, start_it=curr_it+1) # +1 because we need to start with the next iteration
+
 """
 
 > <First test logistics>
@@ -1175,10 +1226,6 @@ def test_load_models_and_generate_problems_logistics():
 	   Para ello, debería añadir soporte para :when :forall y :exists en el parser y cambiar el dominio de logistics
 	   para que las acciones tengan menos parámetros (quitar el parámetro "city" de las acciones)
 
-> Añadir método para cargar checkpoints
-	- Que no solo se carguen los parámetros del modelo sino también el resto de variables (ej.: entropy coeffs) para que se pueda
-	  reanudar el entrenamiento
-
 >> Añadir algoritmo de búsqueda
 	- Leer sobre diversity planning y ver cómo puedo hacer el algoritmo de búsqueda
 		- Ver si integro el algoritmo de búsqueda con el entrenamiento (de manera parecida a AlphaZero)
@@ -1274,4 +1321,5 @@ if __name__ == "__main__":
 
 	#test_generate_random_problems_logistics()
 	test_train_init_and_goal_policy_logistics()
-	#test_load_models_and_generate_problems_logistics()
+	#test_load_models_and_generate_problems_logistics()	
+	#test_load_models_and_resume_training_logistics()
