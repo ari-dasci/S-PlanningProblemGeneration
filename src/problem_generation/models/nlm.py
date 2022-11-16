@@ -532,16 +532,6 @@ class NLM(nn.Module):
             else:
                 curr_tensors_list_modified = curr_tensors_list
 
-
-            # QUITAR
-            # if i == 0:
-            #    print("\ncurr_tensors_list_modified layer 0", [x[0] if x is not None else None for x in curr_tensors_list_modified])
-                
-            #if i == 1:
-            #    print("\curr_tensors_list layer 1", [x[0] if x is not None else None for x in curr_tensors_list])
-            #    print("\ncurr_tensors_list_modified layer 1", [x[0] if x is not None else None for x in curr_tensors_list_modified])
-            #    sys.exit()
-
             curr_tensors_list = self.layers[i](curr_tensors_list_modified, list_num_objs)
 
         return curr_tensors_list

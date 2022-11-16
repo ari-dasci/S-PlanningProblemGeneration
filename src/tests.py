@@ -809,8 +809,8 @@ def test_train_init_and_goal_policy_logistics():
 										   extra_input_preds_goal_nlm=True,
 										   res_connections_goal_nlm=False,
 										   lr_goal_nlm = 1e-3,
-										   entropy_coeff_goal_policy = 1,
-										   entropy_annealing_coeffs_goal_policy = (300, 0.2),
+										   entropy_coeff_goal_policy = 0.1,
+										   entropy_annealing_coeffs_goal_policy = (300, 0.005),
 										   epsilon_goal_policy=0.1)
 
 	# Train the goal generation policy
@@ -836,8 +836,8 @@ def test_load_models_and_generate_problems_logistics():
 	goal_predicates = {('at', ('package','location'))}
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_115/init_policy_its-790.ckpt"
-	goal_policy_path = "saved_models/both_policies_115/goal_policy_its-790.ckpt"
+	init_policy_path = "saved_models/both_policies_121/init_policy_its-830.ckpt"
+	goal_policy_path = "saved_models/both_policies_121/goal_policy_its-830.ckpt"
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
@@ -1170,12 +1170,71 @@ def test_load_models_and_resume_training_logistics():
   <En los problemas generados hay objetos de tipo "airplane" pero no "truck"!!!! (tampoco hay locations, solo airports)>
 
 
+> extra_input_preds=True, res_connections=False
+  predicates_to_consider_for_goal=[['at', ['package','location']]]
+  state_validator: don't add predicates "in" to the init state
+  <problem difficulty with LAMA>
+  <rescale_factor = 0.02>
+  <policy_entropy without masked values>
+  <init_policy_entropy_coeffs: 2, (600, 0.2)>
+  <goal_policy_entropy_coeffs: 1, (300, 0.2)>
+
+  > logs: init_policy\ version_63
+  > saved_model: both_policies_121
+
+  > Entrenamiento
+	> La r_continuous y r_eventual convergen a 0
+	> La r_difficulty converge a 0.03 (no sube de ahí)
+	> La term_cond_prob converge a 0.07 (para la init_policy) y 0.1 (para la goal_policy)
+	> La init_policy_entropy empieza en 0.9 y termina en 0.43
+	> La goal_policy_entropy empieza en 0.9 y termina en 0.85 (casi no baja!!!)
+
+  > Problemas (its=830)
+		- 20 atoms&actions - diff = 1.6 (dificultad muy baja -> todos los problemas tienen dificultad 1 menos uno que tiene dificultad 7)
+									    Los problemas tienen una media de 13 objetos aprox.
+						   - diversidad: diversidad alta!!!
+										 3 problemas tienen objetos de tipo airplane!!!
+										 
+  < Esta forma de calcular la entropía es mucho mejor!! Los problemas son mucho más diversos. >
+    Parece que hay que bajar los entropy_coeffs, ya que la entropía de la goal_policy es demasiado alta.
+
+
+> extra_input_preds=True, res_connections=False
+  predicates_to_consider_for_goal=[['at', ['package','location']]]
+  state_validator: don't add predicates "in" to the init state
+  problem difficulty with LAMA
+  rescale_factor = 0.02
+  policy_entropy without masked values
+  init_policy_entropy_coeffs: 2, (600, 0.2)
+  <goal_policy_entropy_coeffs: 1, (300, 0.05)>
+
+  > Entrenamiento
+	> Mismas gráficas que en el experimento anterior, pero ahora la r_difficulty sube un poco más (con 640 its estaba en 0.04)
+
+> extra_input_preds=True, res_connections=False
+  predicates_to_consider_for_goal=[['at', ['package','location']]]
+  state_validator: don't add predicates "in" to the init state
+  problem difficulty with LAMA
+  rescale_factor = 0.02
+  policy_entropy without masked values
+  init_policy_entropy_coeffs: 2, (600, 0.2)
+  <goal_policy_entropy_coeffs: 0.1, (300, 0.005)>
+
+  > Entrenamiento
+	> Ahora la r_difficulty sí sube! (Estaba en 0.14 cuando paré el entrenamiento, tras 14h)
+
+
+
+
+
+
+  > VOLVER A CAMBIAR RESCALE FACTOR A 2 Y USAR EPM!!
+
 
 
   > Si no aprende:
 	- Esperar a leer el correo de Mauro:
 		- Mientras tanto hacer otras cosas:
-			- Carga de checkpoints
 			- Ver dificultad problemas instance generator logistics (en el github de AI Planning)
 			- Cambiar policy_entropy para que se añadan objetos de distinto tipo (quizás puedo simplemente usar la lifted y esta nueva entropy y no usar la ground entropy)
 				- Hacer pruebas
@@ -1204,12 +1263,7 @@ def test_load_models_and_resume_training_logistics():
 ----- TODO
 	
 > Cambiar método cálculo dificultad
-	- INSTALAR UNA VERSIÓN ANTIGUA DE FAST DOWNWARD
-	- Usar método basado en planning features
-	- Ver si soy capaz de extraer las FD features con el código del github
-	- Entrenar un random forest usando el dataset en formato json/csv
-	- Integrar el modelo entrenado + código extracción características para medir la dificultad de los problemas
-	- Probar que funciona correctamente (aprende a generar problemas que son difíciles de resolver con <varios planners> (LAMA, FF...))
+	- Ver si uso la EPM u otro método
 
 > Ver si se generan problemas con varios tipos en el init state (específicamente, que tengan objetos de tipo "airplane")
 	- Si no, cambiar cálculo entropy_loss para motivar que se añadan objetos de distintos tipos
@@ -1252,9 +1306,15 @@ def test_load_models_and_resume_training_logistics():
 	- Hacer pruebas en sokoban para ver si mi método funciona bien en un dominio tan complejo
 	- Si no, usar un dominio más sencillo en vez de sokoban (como zenotravel)
 
-> En la experimentación del paper, añadir un apartado donde genere problemas muy difíciles (aunque con poca diversidad)
-  así puedo demostrar que mi método sirve para, dado un dominio, encontrar qué tipo de problemas son más difíciles
-  -> Domain Characterization
+
+> Escritura paper
+	- En la experimentación del paper, añadir un apartado donde genere problemas muy difíciles (aunque con poca diversidad)
+	  así puedo demostrar que mi método sirve para, dado un dominio, encontrar qué tipo de problemas son más difíciles
+	  -> Domain Characterization
+
+	- Quizás puedo hablar de hard constraints y de soft constraints (o preferences) a la hora de generar los problemas.
+	  Los hard constraints estarían relacionados con la validez (que sean resolubles y consistentes) y los soft constraints
+	  con la calidad (otras preferencias del usuario, como que los problemas sean lo más difíciles posible)
 
 ------ OTRO
 

@@ -164,8 +164,6 @@ class GenerativePolicy(pl.LightningModule):
 		# list[r][i] -> list[i][r]
 		list_nlm_output_samples = [ [list_nlm_output[r][i] for r in range(num_arities)] for i in range(num_samples)]
 
-		#print("\nlist_nlm_output_samples[0]\n", list_nlm_output_samples[0])
-
 
 		# NEW 
 
@@ -182,43 +180,38 @@ class GenerativePolicy(pl.LightningModule):
 		list_prob_tensors = [ [torch.exp(tensor) \
 						       for tensor in sample_output if tensor is not None] \
                                for sample_output in list_nlm_output_samples ]
-
-
-		#print("\nlist_prob_tensors[0]\n", list_prob_tensors[0])
 		
 
 		# For each sample, obtain a list of tensors corresponding to the different predicates (instead of the different arities)
 		# Example: a tensor for on, a tensor for ontable...
 		list_prob_tensors_each_pred = [ list(chain.from_iterable([torch.unbind(tensor,dim=-1) for tensor in sample_output])) \
                                         for sample_output in list_prob_tensors ]
- 
-
-
-		#print("\nlist_prob_tensors_each_pred[0]\n", list_prob_tensors_each_pred[0])
-
-
 
 		# Flatten the tensors
 		list_prob_tensors_each_pred_flat = [ [torch.flatten(tensor) for tensor in sample_output] \
                                               for sample_output in list_prob_tensors_each_pred ]
-
-
-		#print("\nlist_prob_tensors_each_pred_flat[0]\n", list_prob_tensors_each_pred_flat[0])
 		
+		# Filter out those masked values (with a value of 0.0)
+		list_prob_tensors_each_pred_nonzero = [ [tensor[tensor.nonzero(as_tuple=True)] for tensor in sample_output] \
+												for sample_output in list_prob_tensors_each_pred_flat ]
+
+		# Remove tensors corresponding to predicates with no nonzero elements (i.e., empty tensors)
+		list_prob_tensors_each_pred_filter = [ [tensor for tensor in sample_output if tensor.numel() != 0] \
+												for sample_output in list_prob_tensors_each_pred_nonzero ]	
 
 
 		# <Ground action entropy>
 		# Calculate entropy of the prob distribution of all the ground actions
 
-		list_prob_tensors_ground = [ torch.cat(sample_output) for sample_output in list_prob_tensors_each_pred_flat ]
+		list_prob_tensors_ground = [ torch.cat(sample_output) for sample_output in list_prob_tensors_each_pred_filter ]
 
-		#print("\nlist_prob_tensors_ground[0]\n", list_prob_tensors_ground[0])
-
-
-		tensor_ground_entropy = torch.cat([ (torch.distributions.Categorical(probs = probs_flattened).entropy() / np.log(probs_flattened.shape[0])).view(1) \
+		# We need the +1e-6 because, otherwise, we obtain an entropy of inf for tensors with a single value (probs_preds.shape[0] in that case is 1, 
+		# np.log(1)=0 and when we divide by 0 we get inf)
+		tensor_ground_entropy = torch.cat([ (torch.distributions.Categorical(probs = probs_flattened).entropy() / np.log(probs_flattened.shape[0]+1e-6)).view(1) \
 			                               for probs_flattened in list_prob_tensors_ground ])
 
-		#print("\ntensor_ground_entropy[0]\n", tensor_ground_entropy[0])
+		# Put values of inf to 0 (they correspond to entropy of tensors with a single value) -> Does not work!
+		# tensor_ground_entropy[tensor_ground_entropy==float("inf")] = 0
 
 
 		# <Lifted action entropy>
@@ -226,21 +219,27 @@ class GenerativePolicy(pl.LightningModule):
 		# (i.e., adding ontable, on, clear, handempty or holding regardless of the objects the predicate is instantiated on)
 
 		list_probs_each_pred = [ torch.cat([torch.sum(tensor).reshape(1) for tensor in sample_output]) 
-						         for sample_output in list_prob_tensors_each_pred_flat ]
-
-		#print("\nlist_probs_each_pred[0]\n", list_probs_each_pred[0])
+						         for sample_output in list_prob_tensors_each_pred_filter ]
 
 		# Ignore termination condition prob when calculating lifted action entropy
 		# for i in range(len(list_probs_each_pred)):
 		#	list_probs_each_pred[i][1] = 0
 
-		tensor_lifted_entropy = torch.cat([ (torch.distributions.Categorical(probs = probs_preds).entropy() / np.log(probs_preds.shape[0])).view(1) \
+		# We need the +1e-6 because, otherwise, we obtain an entropy of inf for tensors with a single value (probs_preds.shape[0] in that case is 1, 
+		# np.log(1)=0 and when we divide by 0 we get inf)
+		tensor_lifted_entropy = torch.cat([ (torch.distributions.Categorical(probs = probs_preds).entropy() / np.log(probs_preds.shape[0]+1e-6)).view(1) \
 			                               for probs_preds in list_probs_each_pred ])
+
+		# Put values of inf to 0 (they correspond to entropy of tensors with a single value) -> Does not work!
+		# tensor_lifted_entropy[tensor_lifted_entropy==float("inf")] = 0
+		# tensor_lifted_entropy = torch.where(tensor_lifted_entropy==float("inf"),torch.tensor(0.0),tensor_lifted_entropy)
+
 
 		return 0.5*tensor_ground_entropy + 0.5*tensor_lifted_entropy
 
+		
 		# ------- OLD
-
+		
 		"""
 		# Transform log_probs to probs and flatten the tensors
 		# We ignore None tensors, as they correspond to non-existent actions
