@@ -784,7 +784,7 @@ def test_train_init_and_goal_policy_logistics():
 	
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
-	goal_policy_nlm_inner_layers = [[8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,4,0]]
+	goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
 
 	# NLM layers with predicates of arity 3
 	#init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
@@ -841,7 +841,7 @@ def test_load_models_and_generate_problems_logistics():
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
-	goal_policy_nlm_inner_layers = [[8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,4,0]]
+	goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
 
 	# NLM layers with predicates of arity 3
 	# init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
@@ -896,7 +896,7 @@ def test_load_models_and_resume_training_logistics():
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
-	goal_policy_nlm_inner_layers = [[8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,0,0], [8,8,8,4,0]]
+	goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
 
 	# NLM layers with predicates of arity 3
 	# init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
@@ -1211,6 +1211,7 @@ def test_load_models_and_resume_training_logistics():
   > Entrenamiento
 	> Mismas gráficas que en el experimento anterior, pero ahora la r_difficulty sube un poco más (con 640 its estaba en 0.04)
 
+
 > extra_input_preds=True, res_connections=False
   predicates_to_consider_for_goal=[['at', ['package','location']]]
   state_validator: don't add predicates "in" to the init state
@@ -1224,6 +1225,17 @@ def test_load_models_and_resume_training_logistics():
 	> Ahora la r_difficulty sí sube! (Estaba en 0.14 cuando paré el entrenamiento, tras 14h)
 
 
+> extra_input_preds=True, res_connections=False
+  predicates_to_consider_for_goal=[['at', ['package','location']]]
+  state_validator: don't add predicates "in" to the init state
+  problem difficulty with LAMA
+  rescale_factor = 0.02
+  policy_entropy without masked values
+  init_policy_entropy_coeffs: 2, (600, 0.2)
+  goal_policy_entropy_coeffs: 0.1, (300, 0.005)
+  <init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]>
+  <goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]>
+  <domain_with_exists>
 
 
 

@@ -1,8 +1,9 @@
-;; Source: https://github.com/josej30/Planner-Sat-Constraints
+;; Adapted from: https://github.com/josej30/Planner-Sat-Constraints
+;; We use existential preconditions (exists) to remove as many parameters from the actions as possible
 
 (define (domain logistics)
 
-(:requirements :strips :typing) 
+(:requirements :strips :typing :existential-preconditions) 
 
 (:types  city location thing - object
          package vehicle - thing
@@ -14,10 +15,13 @@
               (in ?p - package ?veh - vehicle))
   
 (:action drive
-         :parameters    (?t - truck ?from ?to - location ?c - city)
-         :precondition  (and (at ?t ?from)
-                             (in-city ?from ?c)
-                             (in-city ?to ?c))
+         :parameters    (?t - truck ?from ?to - location)
+         :precondition  (and 
+                             (at ?t ?from)
+                             (exists (?c - city)
+                                (and (in-city ?from ?c) (in-city ?to ?c))
+                              )
+                         )
          :effect        (and (not (at ?t ?from))
                              (at ?t ?to)))
 

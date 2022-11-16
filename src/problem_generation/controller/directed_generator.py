@@ -86,8 +86,14 @@ class DirectedGenerator():
 
 		# <Relational State which contains the object types, type_hierarchy and actions in the domain>
 		# Used to convert from action name to index and vice versa (e.g.: "stack" <-> 1)
+
+		# Represent the parser actions in a suitable form for RelationalState
+		# (action_name, action_params) -> action_params correspond to the subset of action variables with class=='param'
+		parser_actions = set([(action[0], tuple([var for var, var_class in zip(action[1][0], action[1][1]) if var_class=='param'])) \
+							  for action in self._parser.actions])
+
 		self._dummy_rel_state_actions = RelationalState(self._parser.types, self._parser.type_hierarchy,
-		                                                self._parser.actions) 
+		                                                parser_actions) 
 
 		# <Goal predicates, as a list of predicates (with name and parameters)>
 		if predicates_to_consider_for_goal is None: # Consider every predicate for the goal
