@@ -1240,30 +1240,9 @@ def test_load_models_and_resume_training_logistics():
 
 
 
-  > VOLVER A CAMBIAR RESCALE FACTOR A 2 Y USAR EPM!!
+ >> Generar problemas con este método y testear método de medir dificultad con heuristics
 
 
-
-  > Si no aprende:
-	- Esperar a leer el correo de Mauro:
-		- Mientras tanto hacer otras cosas:
-			- Ver dificultad problemas instance generator logistics (en el github de AI Planning)
-			- Cambiar policy_entropy para que se añadan objetos de distinto tipo (quizás puedo simplemente usar la lifted y esta nueva entropy y no usar la ground entropy)
-				- Hacer pruebas
-			- Ir pensando (y leyendo) sobre cómo puedo hacer el algoritmo de búsqueda
-
-	- Probar a cambiar el dataset de entrenamiento
-		- VER SI HAY ALGUNA CARACTERÍSTICA QUE SEA EL NÚMERO DE GOALS QUE NO SON TRUE EN EL INIT STATE
-		- Probar a usar solo problemas más pequeños (ej.: num_atoms < 50)
-		- Probar a no usar log para normalizar los tiempos de los planners
-
-	- Alternativas:
-		>>> Probar mi método de usar mean(heuristics)*std(heuristics) (quizás puedo añadir un término que fomente los problemas grandes)
-		- Probar a usar varios satisficing planners (lama, ff, fd...) para resolver el problema y calcular así la dificultad.
-		  Esta opción puede tener sentido si: 1) los planners son muy rápidos y 2) entreno en problemas pequeños
-		  (resolubles eficientemente con los planners) y el método es capaz de generalizar a problemas más grandes
-		  -> DEBERÍA EVALUAR LA CAPACIDAD DE GENERALIZACIÓN A PROBLEMAS DE DISTINTOS TAMAÑOS (para esto puede ayudar el algoritmo de búsqueda,
-		     al evitar que se generen problemas demasiado pequeños)
 
 
 

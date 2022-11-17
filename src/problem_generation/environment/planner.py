@@ -4,6 +4,7 @@
 import subprocess
 from subprocess import TimeoutExpired
 import re
+import numpy as np
 import os
 import tempfile
 import pandas as pd
@@ -77,10 +78,6 @@ class Planner():
 			planner_command = [self._python_call, planner_path, '--alias', self._alias, self._domain_file_path, 
 					  pddl_problem_path]
 
-		# Use a heuristic in the initial state as the problem difficulty
-		# planner_command = [self._python_call, self._planner_path, self._domain_file_path, pddl_problem_path, 
-		#			       '--search', 'eager_greedy([ff(), lmcut(), hm(m=1)], bound=0)'] -> Works for obtaining the value of several heuristics!
-
 		# Call the planner and detect timeouts
 		# <TODO>
 		# Solve timeout bug (timeout option sometimes does not work)
@@ -106,10 +103,6 @@ class Planner():
 		# Check if there was a timeout -> we consider this case the same as when the planner does not find a solution
 		if planner_output == 'timeout':
 			return -1
-
-		# Use one/several heuristic(s) evaluated on the initial problem state to calculate its difficulty
-		# h_val = int(re.search(r"Initial heuristic value for .+: ([0-9]+)", planner_output).group(1))
-		# return h_val
 
 		# Check if the planner found a solution
 		if re.search("Solution found.", planner_output):
@@ -169,4 +162,35 @@ class Planner():
 		#print("\n\n> Prediction:", prediction) # 0.2382
 		
 		return prediction
+
+	"""
+	Uses heuristics to predict the problem difficulty. More specifically, it evaluates a set of heuristics h_1, ..., h_n
+	on the initial state (s_i) of the problem given by @pddl_problem_path, and estimates its difficulty as
+	mean(h_1(s_i), ..., h_n(s_i))*std(h_1(s_i), ..., h_n(s_i))
+	"""
+	def predict_problem_difficulty_heuristics(self, pddl_problem_path):
+		# TODO 
+		# ADD STD TO FORMULA
+
+		# Heuristics to use
+		# heuristics_list = ['cegar()', 'lmcut()'] # only admissible heuristics
+		heuristics_list = ['add()', 'cea()', 'cegar()', 'cg()', 'ff()', 'lmcut()'] # I should also try the merge_and_shrink() heuristic
+
+		# Call the planner (i.e., evaluate the heuristics on the initial state)
+		planner_command = [self._python_call, self._planner_path, self._domain_file_path, pddl_problem_path, 
+					       '--search', f"eager_greedy([{', '.join(h for h in heuristics_list)}], bound=0)"]
+		planner_output = subprocess.run(planner_command, shell=False,
+										   stdout=subprocess.PIPE).stdout.decode('utf-8')
+
+		# Parse the planner output to obtain the heuristic value of each heuristic
+		parse_str = r"Initial heuristic value for {}: ([0-9]+)"
+		h_vals = [int(re.search(parse_str.format(h), planner_output).group(1)) for h in heuristics_list]
+
+		# Compute the difficulty with the following formula: mean(h_1(s_i), ..., h_n(s_i))*std(h_1(s_i), ..., h_n(s_i))
+		# diff = np.mean(h_vals)*(1+np.std(h_vals))
+		diff = np.mean(h_vals)
+
+		# No need to normalize (e.g., substract the mean and divide by std) the heuristic values, as all of them have a similar range
+
+		return diff
 
