@@ -169,28 +169,43 @@ class Planner():
 	mean(h_1(s_i), ..., h_n(s_i))*std(h_1(s_i), ..., h_n(s_i))
 	"""
 	def predict_problem_difficulty_heuristics(self, pddl_problem_path):
-		# TODO 
-		# ADD STD TO FORMULA
-
 		# Heuristics to use
 		# heuristics_list = ['cegar()', 'lmcut()'] # only admissible heuristics
-		heuristics_list = ['add()', 'cea()', 'cegar()', 'cg()', 'ff()', 'lmcut()'] # I should also try the merge_and_shrink() heuristic
+		heuristics_list = ['add', 'cea', 'cegar', 'cg', 'ff', 'lmcut'] # I should also try the merge_and_shrink() heuristic
 
 		# Call the planner (i.e., evaluate the heuristics on the initial state)
-		planner_command = [self._python_call, self._planner_path, self._domain_file_path, pddl_problem_path, 
-					       '--search', f"eager_greedy([{', '.join(h for h in heuristics_list)}], bound=0)"]
+		planner_path = self._planner_path
+		if planner_path[-1] != '/':
+			planner_path = planner_path + '/'
+		planner_path = planner_path + 'fast-downward.py' # Path to the script to call fast downward
+
+		planner_command = [self._python_call, planner_path, self._domain_file_path, pddl_problem_path, 
+					       '--search', f"eager_greedy([{', '.join(h + '()' for h in heuristics_list)}], bound=0)"]
+
 		planner_output = subprocess.run(planner_command, shell=False,
 										   stdout=subprocess.PIPE).stdout.decode('utf-8')
 
 		# Parse the planner output to obtain the heuristic value of each heuristic
 		parse_str = r"Initial heuristic value for {}: ([0-9]+)"
-		h_vals = [int(re.search(parse_str.format(h), planner_output).group(1)) for h in heuristics_list]
+		h_vals = []
+
+		for h in heuristics_list:
+			h_str = parse_str.format(h)
+			match = re.search(h_str, planner_output)
+
+			if match is None:
+				return 1 # The goal is empty, so the problem has the minimum difficulty (1)
+
+			h_val = match.group(1)
+			h_vals.append(int(h_val))
+
+
+		# h_vals = [int(re.search(parse_str.format(h), planner_output).group(1)) for h in heuristics_list]
 
 		# Compute the difficulty with the following formula: mean(h_1(s_i), ..., h_n(s_i))*std(h_1(s_i), ..., h_n(s_i))
-		# diff = np.mean(h_vals)*(1+np.std(h_vals))
-		diff = np.mean(h_vals)
+		diff = np.mean(h_vals)*(1+np.std(h_vals))+1 # Add 1 to std because if all heuristic values are the same, then x*0=0 and the difficulty is 0
+													# Add 1 to the end because diff can't be 0
 
 		# No need to normalize (e.g., substract the mean and divide by std) the heuristic values, as all of them have a similar range
 
 		return diff
-

@@ -836,8 +836,8 @@ def test_load_models_and_generate_problems_logistics():
 	goal_predicates = {('at', ('package','location'))}
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_121/init_policy_its-830.ckpt"
-	goal_policy_path = "saved_models/both_policies_121/goal_policy_its-830.ckpt"
+	init_policy_path = "saved_models/both_policies_125/init_policy_its-1240.ckpt"
+	goal_policy_path = "saved_models/both_policies_125/goal_policy_its-1240.ckpt"
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
@@ -1237,10 +1237,73 @@ def test_load_models_and_resume_training_logistics():
   <goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]>
   <domain_with_exists>
 
+  > logs: init_policy\ version_66
+  > saved_model: both_policies_124
+
+  > Entrenamiento
+	> Tiempo de entrenamiento: 1d 5h
+	> La r_eventual y r_continuous convergen a 0
+	> La r_difficulty llega hasta 0.7
+	> La term_cond_prob de la init y goal policy convergen a casi 0
+	> La init_policy_entropy baja hasta 0.22
+	> La goal_policy_entropy baja hasta 0.4
+
+  > Problemas (its=1160)
+	- 20 atoms&actions - diff = 44.2 (dificultad muy alta)
+		- Problemas con un gran número de objetos (casi 20 siempre e incluso a veces se pasan (tienen 20 átomos pero más de 20 objetos))
+		- Solo un problema tiene un objeto de tipo airplane (el resto solo tienen trucks)
+		- Los problemas tienen tanto objetos de tipo location como airport
+		- Los problemas solo tienen una ciudad!!
+		- En el init state, en la mayoría de los problemas todos los paquetes están en una única localización
+		- En cambio, en el goal, los paquetes están (predicado at) en distintas localizaciones
+
+		- diversidad media (tengo que aumentar más la entropía!)
+
+	<Funciona tanto el nuevo domain con exists (se reduce mucho el tiempo de entrenamiento) como la nueva forma de calcular la entropía.>
+	No obstante, hace falta aumentar los entropy_coeffs.
+														  
+	
+> init_policy_entropy_coeffs: 2, (600, 0.2)
+  goal_policy_entropy_coeffs: 0.1, (300, 0.005)
+  init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+  goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+  policy_entropy without masked values
+  init_policy_entropy_coeffs: 2, (600, 0.2)
+  goal_policy_entropy_coeffs: 0.1, (300, 0.005)
+  domain_with_exists
+  <measure difficulty with heuristics>
+  <rescale_factor = 0.05>
+
+  > logs: init_policy\ version_67
+  > saved_model: both_policies_125
+
+  > Entrenamiento:
+	> Tiempo de entrenamiento: 1d 1h (paré el entrenamiento, pero la r_difficulty seguía aumentando)
+	> La r_eventual y r_continuous convergen a 0
+	> La r_difficulty llega hasta 6.36 (creo que debería bajar el rescale_factor)
+	> La term_cond_prob de la init policy converge a 0.035 y la de la goal policy a 0.02
+	> La init_policy_entropy y goal_policy_entropy bajan hasta 0.3
+
+  > Problemas (its=1240)
+	- 20 atoms&actions - diff (lama-first) = 29.5 (dificultad alta, aunque menos que en el experimento anterior (nota: paramos el 
+									               entrenamiento antes de que la r_difficulty dejara de aumentar))
+		- diversidad baja
+		- no hay ningún objeto de tipo airplane
+		- solo hay un objeto de tipo truck en cada problema
+		- en el init state, la mayoría de objetos están en la misma ciudad
+
+	<Esta forma de medir la dificultad (con heurísticas) funciona!!>
+	 No obstante, creo que tengo que aumentar la entropía y bajar mucho el rescale_factor.
 
 
 
- >> Generar problemas con este método y testear método de medir dificultad con heuristics
+
+> ...
+  <rescale_factor = 0.01>
+
+
+
+
 
 
 
@@ -1252,15 +1315,10 @@ def test_load_models_and_resume_training_logistics():
 
 
 ----- TODO
-	
-> Cambiar método cálculo dificultad
-	- Ver si uso la EPM u otro método
 
 > Ver si se generan problemas con varios tipos en el init state (específicamente, que tengan objetos de tipo "airplane")
 	- Si no, cambiar cálculo entropy_loss para motivar que se añadan objetos de distintos tipos
 	- Probar si ahora sí se añaden objetos de tipo airplane
-		- Mientras se hacen las pruebas, ponerme con la review (hacer cambios de la última sección (tabla, etc.) para subirlo a arxiv)
-		- Antes de eso, leer sobre diversity planning y ver cómo implementar el algoritmo de búsqueda (en una fase posterior del trabajo)
 
 > <Opcional> Mejorar eficiencia NLM
 	- Ejecutar sobre GPU -> no merece la pena (se queda sin memoria la GPU y el entrenamiento es más lento)
@@ -1371,6 +1429,6 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems()
 
 	#test_generate_random_problems_logistics()
-	test_train_init_and_goal_policy_logistics()
-	#test_load_models_and_generate_problems_logistics()	
+	#test_train_init_and_goal_policy_logistics()
+	test_load_models_and_generate_problems_logistics()	
 	#test_load_models_and_resume_training_logistics()
