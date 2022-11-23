@@ -59,6 +59,23 @@ class ProblemState:
 
 		self._consistency_validator = consistency_validator
 
+
+	def __copy__(self):
+        new_copy = ProblemState(self._parser, self._predicates_to_consider_for_goal.copy(), None, self._penalization_continuous_consistency,
+                                self._penalization_eventual_consistency, self._penalization_non_applicable_action, self._consistency_validator)
+
+        # Copy current init_state and goal_state information
+        new_copy._initial_state = self._initial_state.copy()
+        new_copy._goal_state = self._goal_state.copy()
+
+        new_copy._is_initial_state_generated = self._is_initial_state_generated
+        new_copy._is_goal_state_generated = self._is_goal_state_generated
+
+        return new_copy
+
+    def copy(self):
+        return self.__copy__()
+
 	@property
 	def initial_state(self):
 		return self._initial_state
@@ -208,10 +225,6 @@ class ProblemState:
 	Returns all the ground (domain) actions that are applicable at the current goal state.
 	We assume actions cannot have repeated parameters (e.g.: stack A A)
 	They are returned as a list where each element represents a ground action, e.g., ('stack', (1, 2))
-
-	Note: this method is very inefficient for problems with a large number of objects.
-	      The bottleneck is "l_a.groundify". However, in order to make it more efficient, I will
-		  probably need to completely replace the pddl_parser
 	"""
 	def applicable_ground_actions(self):
 		# Make sure we are in the goal generation phase
@@ -401,15 +414,16 @@ class ProblemState:
 	Applies an action, consisting of (possibly) adding objects and an atom, to the initial state.
 	It returns (next_state, reward). It also assigns the next state to self._initial_state.
 	If the action is not applicable, next_state is a copy of the current state.
-	<Note>: 
+	<Note>: the state returned is not a copy, and shares the reference!
 
 	@new_objs The objects to add to the state (e.g., ['block', 'circle'])
 	@new_atom The atom to add to the state (e.g., ('on', (1,2)))
 	Note: The atom indices ((1,2)) can refer to new objects not present in the current state but which are added as part of the next
 	      state. Example: current state has only one block, new_objs=['block'] and new_atom= ('on', (0,1)).
 	@obj_types The type of each object in @new_atom[1], whether it is in the state or corresponds to a virtual object (an object in @new_objs)
+	@check_consistency If True, we check that the atom to add results in a consistent state.
 	"""
-	def apply_action_to_initial_state(self, new_objs, new_atom, obj_types):
+	def apply_action_to_initial_state(self, new_objs, new_atom, obj_types, check_consistency=True):
 		# Encode new_atom as a tuple (just in case)
 		new_atom = (new_atom[0], tuple(new_atom[1]))
 		
@@ -418,13 +432,19 @@ class ProblemState:
 			raise Exception("The initial state generation phase has already finished")
 
 		# Check action consistency
-		# If the action is not consistent, the next state is equal to the current state (it doesn't change)
-		if self.is_init_state_action_consistent(new_atom, obj_types):
+		if check_consistency:
+			# If the action is not consistent, the next state is equal to the current state (it doesn't change)
+			if self.is_init_state_action_consistent(new_atom, obj_types):
+				self._initial_state.add_objects(new_objs)
+				self._initial_state.add_atom(new_atom)
+				r = 0
+			else:
+				r = self._penalization_continuous_consistency
+
+		else:
 			self._initial_state.add_objects(new_objs)
 			self._initial_state.add_atom(new_atom)
 			r = 0
-		else:
-			r = self._penalization_continuous_consistency
 
 		return self._initial_state, r
 

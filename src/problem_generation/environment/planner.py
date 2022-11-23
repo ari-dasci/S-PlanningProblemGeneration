@@ -208,7 +208,6 @@ class Planner():
 		# diff = np.mean(h_vals)*(1+np.sqrt(np.std(h_vals)))+1
 		diff = np.mean(h_vals) + np.sqrt(np.std(h_vals)) + 1
 
-
 		# No need to normalize (e.g., substract the mean and divide by std) the heuristic values, as all of them have a similar range
 
 		return diff

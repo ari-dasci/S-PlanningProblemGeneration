@@ -211,6 +211,9 @@ class DirectedGenerator():
 	def max_actions_goal_state(self):
 		return self._max_actions_goal_state
 
+	@property
+	def dummy_rel_state_actions(self):
+		return self._dummy_rel_state_actions
 
 	# ------- Auxiliary Methods --------
 
@@ -497,7 +500,7 @@ class DirectedGenerator():
 	Example: if the state contains two objects and we are going to add a new virtual object, we need to change @atom_to_add from
 			 ['on', [3, 0]] to ['on', [2,0]]
 	"""
-	def _get_objs_to_add_and_atom_with_correct_indexes(self, rel_state, atom_to_add):
+	def get_objs_to_add_and_atom_with_correct_indexes(self, rel_state, atom_to_add):
 		state_preds = rel_state.predicates
 		objs_without_virtuals = rel_state.objects
 		num_objs_without_virtuals = len(objs_without_virtuals)
@@ -813,7 +816,7 @@ class DirectedGenerator():
 				chosen_action = [chosen_action_name, chosen_action_index[1:-1]] # To form the chosen action, we add the action name and obj indexes like ['on', [1, 0]]
 
 				# Obtain the object types and objects to add as part of the chosen action. Also change the obj indexes of chosen_action
-				chosen_action, objs_to_add, obj_types = self._get_objs_to_add_and_atom_with_correct_indexes(curr_state, chosen_action)
+				chosen_action, objs_to_add, obj_types = self.get_objs_to_add_and_atom_with_correct_indexes(curr_state, chosen_action)
 
 				# Represent the action (atom) as a tuple
 				chosen_action = (chosen_action[0], tuple(chosen_action[1]))
@@ -1239,3 +1242,51 @@ class DirectedGenerator():
 		if verbose:
 			print("\n\n================= Directed Problem Generation Finished =================\n")
 
+
+	"""
+	Returns the masked log probabilities predicted by the initial state policy for the initial_state of @problem_state.
+
+	@max_atoms_init_state Maximum number of atoms which we can add to an initial state
+	"""
+	def get_log_probs_init_state_policy(self, problem_state, max_atoms_init_state):
+		# Information about the NLM of the initial state policy
+		init_nlm_max_pred_arity = self._initial_state_policy.actor_nlm.max_arity # This value corresponds to the breadth of the NLM
+		init_nlm_output_layer_shape = self._initial_state_policy.actor_nlm.num_output_preds_layers[-1]
+
+		# Information about the initial state
+		init_state = problem_state.initial_state
+		perc_actions_executed = init_state.num_atoms / max_atoms_init_state
+		init_state_tensors = init_state.atoms_nlm_encoding(max_arity=init_nlm_max_pred_arity, perc_actions_executed=perc_actions_executed)
+		num_objs_with_virtuals = init_state.num_objects + init_state.num_virtual_objects
+
+		mask_tensors = self._get_mask_tensors_init_policy(init_nlm_output_layer_shape, init_state)
+
+		# Obtain masked log probs for problem_state.initial_state, using the initial_state_policy
+		action_log_probs = self._initial_state_policy.forward_single_state(init_state_tensors, num_objs_with_virtuals, mask_tensors)
+
+		return action_log_probs
+
+	"""
+	Returns the masked log probabilities predicted by the goal policy for the goal_state of @problem_state.
+
+	@num_actions_executed Number of actions which have been executed so far to obtain @problem_state.goal_state from its initial state
+	@max_actions_goal_state Maximum number of actions we can execute to generate the problem goal
+	"""
+	def get_log_probs_goal_state_policy(self, problem_state, num_actions_executed, max_actions_goal_state):
+		# Information about the NLM of the goal policy
+		goal_nlm_max_pred_arity = self._goal_policy.actor_nlm.max_arity # This value corresponds to the breadth of the NLM
+		goal_nlm_output_layer_shape = self._goal_policy.actor_nlm.num_output_preds_layers[-1]
+
+		# Information about the goal state
+		goal_state = problem_state.goal_state
+		perc_actions_executed = num_actions_executed / max_actions_goal_state
+		init_and_goal_state_tensors = problem_state.initial_state.atoms_nlm_encoding_with_goal_state(goal_state, goal_nlm_max_pred_arity, 
+																						             True, perc_actions_executed) # True for adding object types as extra unary predicates
+		num_objs = goal_state.num_objects
+
+		mask_tensors = self._get_mask_tensors_goal_policy(goal_nlm_output_layer_shape, problem_state)
+
+		# Obtain masked log probs for problem_state.goal_state, using the goal_state_policy
+		action_log_probs = self._goal_policy.forward_single_state(init_and_goal_state_tensors, num_objs, mask_tensors)
+
+		return action_log_probs

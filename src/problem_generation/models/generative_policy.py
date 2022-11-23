@@ -14,7 +14,7 @@ from problem_generation.models.nlm import NLM
 class GenerativePolicy(pl.LightningModule):
 
 	"""
-	Constructor. Creates the NLMs (actor and critic) used for the initial state policy.
+	Constructor. Creates the NLMs (actor and critic) used for the initial state and goal policies.
 
 	@nlm_extra_preds_each_arity The extra predicates which must be given as inputs to every NLM layer except for the first one
 	@nlm_residual_connections Whether the NLM must use residual connections
@@ -271,7 +271,7 @@ class GenerativePolicy(pl.LightningModule):
 
 	Note: the values of the tensors do not need to sum 1 but they cannot be negative.
 	"""
-	def _sample_action(self, pred_tensors):		
+	def sample_action(self, pred_tensors):		
 		# <Convert from torch to numpy>
 		# Use torch.exp to transform from log_softmax to softmax (i.e., from log_probs to probs)
 		pred_tensors_np = [np.exp(x.detach().numpy()) if x is not None else None for x in pred_tensors]
@@ -371,6 +371,22 @@ class GenerativePolicy(pl.LightningModule):
 
 		return list_nlm_output_log_softmax
 
+	"""
+	Like forward, but it receives a single element (i.e., state) instead of a batch of samples.
+	"""
+	def forward_single_state(self, state_tensors, num_objs, mask_tensors=None):
+		# Add one nesting level so that the encoding is as the NLM expects (i.e., a single-element batch in this case)
+		state_tensors_batch = [[tensor] for tensor in state_tensors]
+		
+		# Obtain (masked) log probabilities for each action (atom)
+		action_log_probs = self.forward(state_tensors_batch, [num_objs], [mask_tensors])	
+
+		# Remove the nesting level previously added
+		# log_probs[0] -> the tensor of the first sample in the batch (in our case, the only one as the batch contains a single sample)
+		action_log_probs_no_nesting = [log_probs[0] for log_probs in action_log_probs]
+
+		return action_log_probs_no_nesting
+
 
 	"""
 	Outputs an action, sampled according to the probabilities predicted with the NLM. This action is valid (due to the mask), but it can result in an
@@ -382,18 +398,11 @@ class GenerativePolicy(pl.LightningModule):
 	@mask_tensors If None, we do not mask the nlm_output
 	"""
 	def select_action(self, state_tensors, num_objs_with_virtuals, mask_tensors=None):
-		# Add one nesting level so that the encoding is as the NLM expects (i.e., a single-element batch in this case)
-		state_tensors_batch = [[tensor] for tensor in state_tensors]
-		
-		# Obtain (masked) log probabilities for each action (atom)
-		action_log_probs = self.forward(state_tensors_batch, [num_objs_with_virtuals], [mask_tensors])
-		
-		# Remove the nesting level previously added
-		# log_probs[0] -> the tensor of the first sample in the batch (in our case, the only one as the batch contains a single sample)
-		action_log_probs_no_nesting = [log_probs[0] for log_probs in action_log_probs]
+		# Obtain the masked log_probabilities given by the NLM	
+		action_log_probs_no_nesting = self.forward_single_state(state_tensors, num_objs_with_virtuals, mask_tensors)
 
 		# Sample an action (atom) and get its probability
-		chosen_action_index, chosen_action_prob = self._sample_action(action_log_probs_no_nesting)
+		chosen_action_index, chosen_action_prob = self.sample_action(action_log_probs_no_nesting)
 
 		return chosen_action_index, chosen_action_prob
 
