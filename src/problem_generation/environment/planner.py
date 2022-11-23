@@ -203,8 +203,11 @@ class Planner():
 		# h_vals = [int(re.search(parse_str.format(h), planner_output).group(1)) for h in heuristics_list]
 
 		# Compute the difficulty with the following formula: mean(h_1(s_i), ..., h_n(s_i))*std(h_1(s_i), ..., h_n(s_i))
-		diff = np.mean(h_vals)*(1+np.std(h_vals))+1 # Add 1 to std because if all heuristic values are the same, then x*0=0 and the difficulty is 0
+		# diff = np.mean(h_vals)*(1+np.std(h_vals))+1 # Add 1 to std because if all heuristic values are the same, then x*0=0 and the difficulty is 0
 													# Add 1 to the end because diff can't be 0
+		# diff = np.mean(h_vals)*(1+np.sqrt(np.std(h_vals)))+1
+		diff = np.mean(h_vals) + np.sqrt(np.std(h_vals)) + 1
+
 
 		# No need to normalize (e.g., substract the mean and divide by std) the heuristic values, as all of them have a similar range
 

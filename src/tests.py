@@ -800,8 +800,8 @@ def test_train_init_and_goal_policy_logistics():
 										   extra_input_preds_initial_state_nlm=True,
 										   res_connections_initial_state_nlm=False,
 										   lr_initial_state_nlm = 1e-3,
-										   entropy_coeff_init_state_policy = 2,
-										   entropy_annealing_coeffs_init_state_policy = (600, 0.2),
+										   entropy_coeff_init_state_policy = 1,
+										   entropy_annealing_coeffs_init_state_policy = (500, 0.4),
 										   epsilon_init_state_policy=0.1,
 
 										   num_preds_inner_layers_goal_nlm=goal_policy_nlm_inner_layers,
@@ -809,8 +809,8 @@ def test_train_init_and_goal_policy_logistics():
 										   extra_input_preds_goal_nlm=True,
 										   res_connections_goal_nlm=False,
 										   lr_goal_nlm = 1e-3,
-										   entropy_coeff_goal_policy = 0.1,
-										   entropy_annealing_coeffs_goal_policy = (300, 0.005),
+										   entropy_coeff_goal_policy = 1,
+										   entropy_annealing_coeffs_goal_policy = (500, 0.3),
 										   epsilon_goal_policy=0.1)
 
 	# Train the goal generation policy
@@ -836,8 +836,8 @@ def test_load_models_and_generate_problems_logistics():
 	goal_predicates = {('at', ('package','location'))}
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_125/init_policy_its-1240.ckpt"
-	goal_policy_path = "saved_models/both_policies_125/goal_policy_its-1240.ckpt"
+	init_policy_path = "saved_models/both_policies_132/init_policy_its-500.ckpt"
+	goal_policy_path = "saved_models/both_policies_132/goal_policy_its-500.ckpt"
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
@@ -890,9 +890,9 @@ def test_load_models_and_resume_training_logistics():
 	goal_predicates = {('at', ('package','location'))}
 
 	# Create the generator and load the trained models
-	curr_it = 370 # It of the loaded model, used to resume training
-	init_policy_path = "saved_models/both_policies_119/init_policy_its-{}.ckpt".format(curr_it)
-	goal_policy_path = "saved_models/both_policies_119/goal_policy_its-{}.ckpt".format(curr_it)
+	curr_it = 330 # It of the loaded model, used to resume training
+	init_policy_path = "saved_models/both_policies_130/init_policy_its-{}.ckpt".format(curr_it)
+	goal_policy_path = "saved_models/both_policies_130/goal_policy_its-{}.ckpt".format(curr_it)
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
@@ -1296,13 +1296,237 @@ def test_load_models_and_resume_training_logistics():
 	 No obstante, creo que tengo que aumentar la entropía y bajar mucho el rescale_factor.
 
 
+> init_policy_entropy_coeffs: 2, (600, 0.2)
+  goal_policy_entropy_coeffs: 0.1, (300, 0.005)
+  init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+  goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+  policy_entropy without masked values
+  init_policy_entropy_coeffs: 2, (600, 0.2)
+  goal_policy_entropy_coeffs: 0.1, (300, 0.005)
+  domain_with_exists
+  measure difficulty with heuristics
+  <rescale_factor = 0.005>
+
+  > logs: init_policy\ version_68
+  > saved_model: both_policies_126
+
+  > Entrenamiento:
+	> Tiempo de entrenamiento: 18h
+	> La r_eventual y r_continuous convergen a 0
+	> La r_difficulty llega hasta 0.25
+	> La term_cond_prob de la init policy converge a 0.03 y la de la goal policy a 0.005
+	> La init_policy_entropy baja hasta 0.27 y goal_policy_entropy baja hasta 0.35
+
+  > Problemas (its=1000)
+	- 20 atoms&actions - diff (lama-first) = 39.1 (dificultad muy alta, más que en el experimento anterior)
+		- diversidad baja
+		- no hay ningún objeto de tipo airplane
+		- solo hay una ciudad en cada problema
+
+	<La dificultad de los problemas es muy buena pero la diversidad muy baja!!!>
 
 
-> ...
+> init_policy_entropy_coeffs: 2, (600, 0.2)
+  goal_policy_entropy_coeffs: 0.1, (300, 0.005)
+  init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+  goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+  policy_entropy without masked values
+  init_policy_entropy_coeffs: 2, (600, 0.2)
+  goal_policy_entropy_coeffs: 0.1, (300, 0.005)
+  domain_with_exists
   <rescale_factor = 0.01>
+  <diff=np.mean(h_vals)*(1+np.sqrt(np.std(h_vals)))+1>
+
+  > Entrenamiento (interrumpido a mitad)
+	- Mismo problema que en el caso anterior (los problemas generados tienen poca diversidad)
+	- Creo que la diversidad de la init_policy cae demasiado rápido!!
+
+
+> init_policy_entropy_coeffs: 2, (600, 0.2)
+  goal_policy_entropy_coeffs: 0.1, (300, 0.005)
+  init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+  goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+  policy_entropy without masked values
+  <init_policy_entropy_coeffs: 2, (1000, 0.5)>
+  <goal_policy_entropy_coeffs: 0.05, (300, 0.005)>
+  domain_with_exists
+  <rescale_factor = 0.01>
+  <diff=np.mean(h_vals)*(1+np.sqrt(np.std(h_vals)))+1>
+
+  > logs: init_policy\ version_70
+  > saved_model: both_policies_128
+
+  > Entrenamiento:
+	> Tiempo de entrenamiento: 21h, 1.5k its
+	> La r_eventual y r_continuous convergen a casi 0
+	> La r_difficulty llega hasta 0.05
+	> La term_cond_prob de la init policy llega a 0.09 y la de la goal policy a 0.03
+	> La init_policy_entropy baja hasta 0.5 y goal_policy_entropy baja hasta 0.35
+
+  > Problemas:
+	- 20 atoms&actions - diff (lama-first) = 7.2 (dificultad baja), muchos problemas de dificultad 1
+	- problemas con distinto número de objetos
+	- no hay ningún objeto de tipo airplane
+	- la mayoría de problemas solo tienen una ciudad
+
+  <Los problemas son demasiado sencillos (en muchos el goal es True en el init state) y tienen pocos objetos.>
+
+
+> init_policy_entropy_coeffs: 2, (600, 0.2)
+  goal_policy_entropy_coeffs: 0.1, (300, 0.005)
+  init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+  goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+  policy_entropy without masked values
+  init_policy_entropy_coeffs: 2, (1000, 0.5)
+  <goal_policy_entropy_coeffs: 0, None> -> no entropy loss for goal policy
+  domain_with_exists
+  rescale_factor = 0.01
+  diff=np.mean(h_vals)*(1+np.sqrt(np.std(h_vals)))+1
+
+  > logs: init_policy\ version_71
+  > saved_model: both_policies_129
+
+  > Entrenamiento:
+	> Tiempo de entrenamiento: 12h, 950 its (entrenamiento parado a mitad)
+	> La r_eventual y r_continuous se acercan muy lentamente a 0
+	> La r_difficulty llega hasta 0.04
+	> La term_cond_prob de la init policy llega a 0.09 y la de la goal policy a casi 0
+	> La init_policy_entropy baja lentamente hasta 0.5 (es muy alta!) y goal_policy_entropy baja hasta 0.35
+
+  > Problemas:
+	- 20 atoms&actions - diff (lama-first) = todos los problemas tienen diff 1, menos uno que tiene 5 y otro que tiene 8
+	- problemas con distinto número de objetos, aunque pocos en general
+	- solo un problema tiene un objeto de tipo airplane
+	- hay problemas con una y dos ciudades
+	- en la mayoría de problemas, el goal coincide con el init state (aunque no en todos) -> la goal policy no aprende mucho!
+
+	<Curiosamente, aunque la entropy_loss de la goal_policy es 0, su entropía no baja tanto! De hecho, sube de 0.5 a 0.6 desde la it 150 a 600
+	 (y ya después vuelve a empezar a bajar)>
+
+
+> init_policy_entropy_coeffs: 2, (600, 0.2)
+  goal_policy_entropy_coeffs: 0.1, (300, 0.005)
+  init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+  goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+  policy_entropy without masked values
+  <init_policy_entropy_coeffs: 1, (500, 0.4)>
+  goal_policy_entropy_coeffs: 0, None -> no entropy loss for goal policy
+  domain_with_exists
+  rescale_factor = 0.01
+  diff=np.mean(h_vals)*(1+np.sqrt(np.std(h_vals)))+1
+
+  > logs: init_policy\ version_72 y version_73 (se cortó a mitad y tuve que cargar checkpoint)
+  > saved_model: both_policies_130 and 131
+
+  > Entrenamiento:
+	> Tiempo de entrenamiento: 11h, 1400 its
+	> La r_eventual y r_continuous convergen a casi 0
+	> La r_difficulty llega hasta 0.045
+	> La term_cond_prob de la init policy llega a 0.09 y la de la goal policy a casi 0
+	> La init_policy_entropy converge a 0.45. La goal_policy_entropy baja hasta 0.6, después aumentar un poco y después va bajando hasta
+	  0.35 (y seguía bajando)
+
+	<Gráficas de entrenamiento muy parecidas al experimento anterior>
+
+  > Problemas:
+	- 20 atoms&actions - diff (lama-first) = 5.1 (dificultad muy baja), 7 problemas de 10 con diff=1
+	- problemas con distinto número de objetos (y de tamaño medio)
+	- no hay ningún objeto de tipo airplane
+	- La goal policy aprende más o menos, pero en muchos problemas da igual lo que haga que la dificultad será 0
+	  (ej.: cada ciudad solo tiene una location, por lo que no se pueden mover los paquetes a otro sitio)
+
+  <La init_policy genera problemas bastante diversos (aunque sin "airplane") pero muchos son muy sencillos de resolver! (sin importar
+   lo que haga la goal_policy)>
+
+
+ > init_policy_entropy_coeffs: 2, (600, 0.2)
+  goal_policy_entropy_coeffs: 0.1, (300, 0.005)
+  init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+  goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+  policy_entropy without masked values
+  init_policy_entropy_coeffs: 1, (500, 0.4)
+  goal_policy_entropy_coeffs: 0, None -> no entropy loss for goal policy
+  domain_with_exists
+  <rescale_factor = 1>
+  <diff=np.mean(h_vals) + np.sqrt(np.std(h_vals)) + 1>
+
+  > logs: init_policy\ version_74
+  > saved_model: both_policies_132
+
+  > Entrenamiento
+	> Tiempo de entrenamiento: 22h 30min (lo paré a mitad, pero la dificultad seguía aumentando)
+	> La r_eventual converge a 0 y la r_continuous a -0.35
+	> La r_difficulty llega hasta 16 (rescale_factor=1)
+	> La term_cond_prob de la init policy llega a 0.05 y la de la goal policy a 0
+	> La init_policy_entropy converge a 0.65 y la goal_policy_entropy a 0.25
+  
+  > Problemas (20 atoms&actions, its=1190)
+	- diff (lama-first) = 26.6 (dificultad media-alta)
+	- diversidad (media-baja):
+		- Ningún problema con objetos de tipo airplane
+		- Todos los problemas tienen una única ciudad
+		- Distinto número de locations y airports en la ciudad
+		- Paquetes y camiones en distintas locations/airports en el init state
+		- En muchos goals (la mitad aprox.), los paquetes están todos en la misma location/airport -> el goal necesita más entropía!
+
+  > Problemas (20 atoms&actions, its=600)
+	- diff (lama-first) = 15.1 (dificultad media-baja)
+	- diversidad (media):
+		> Hay objetos de tipo airplane en algunos init states! (en otros hay de tipo truck)
+		- Problemas con distinto número de objetos (num objs medio)
+		> Todos los problemas tienen una única ciudad
+		- Paquetes y camiones en distintas locations/airports en el init state
+		- En algunos goals, los paquetes están todos en la misma location/airport. En otros, muchos paquetes
+		  están en la misma location/airport que en el init state. -> Parece que el goal no ha aprendido todavía en esta it y, que,
+		  lo que ha aprendido, es a dejar todos los paquetes en el mismo sitio!!
+		  <El goal necesita más entropía!!>
+
+  > Problemas (20 atoms&actions, its=500)
+	- diff (lama-first) = 7 (dificultad baja, muchos problemas de dificultad 1)
+		- La dificultad parece que no es baja porque los init_states sean "malos" (la mayoría),
+		  sino porque la goal_policy no ha aprendido aún!
+	- diversidad (alta):
+		> Hay objetos de tipo airplane en un init_state
+		- Los estados iniciales son muy diversos! (con distintas locations, trucks, airplanes, ciudades, etc.)
+		- En muchos problemas, los goals son True en el init state.
+
+   <Conforme avanza el entrenamiento, se va reduciendo la diversidad de los init_states. No obstante,
+    es posible generar problemas difíciles de resolver usando los init_states generados al principio del entrenamiento.
+	El problema es que, al principio del entrenamiento, la goal_policy no sabe generar goals difíciles!!!>
+	<Hipótesis:> Los init_states se vuelven menos diversos para que así la goal_policy pueda aprender a generar problemas
+	difíciles de manera más sencilla -> la goal_policy solo aprende a generar problemas difíciles para un tipo
+	determinado de init_state (ej.: sin aviones, ya que no sabe usar las acciones "fly" para mover paquetes entre varias
+	ciudades).
+	<Nota>: otro aspecto importante es que, a pesar de que los init_states parecen ser menos diversos, en realidad
+	        la init_policy_entropy no ha variado mucho! -> quizás la forma de calcular la entropy_loss no es la mejor,
+			y debería también tener en cuenta la object entropy o quitar la lifted_action_entropy
+		
+  
+ > init_policy_entropy_coeffs: 2, (600, 0.2)
+   goal_policy_entropy_coeffs: 0.1, (300, 0.005)
+   init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+   goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+   policy_entropy without masked values
+   init_policy_entropy_coeffs: 1, (500, 0.4)
+   <goal_policy_entropy_coeffs: 1, (500, 0.3)>
+   domain_with_exists
+   rescale_factor = 1
+   diff=np.mean(h_vals) + np.sqrt(np.std(h_vals)) + 1
 
 
 
+   >>> VER QUE TRAS LOS CAMBIOS DEL SEARCH ALGORITHM TODO SIGUE FUNCIONANDO BIEN!!! (REPETIR ÚLTIMA EJECUCIÓN)
+
+
+
+	> Siguientes experimentos:
+		- Aumentar goal_policy_entropy
+		- Aumentar init_policy_entropy aún más
+		- Probar NLM con predicados de ariedad 3
+		- Cambiar forma de calcular la entropía:
+			- Probar a usar solo ground action entropy (quitar lifted entropy)
+			- Añadir object entropy
+				- También puedo dar mucha importancia a que haya objetos de distintos tipos en el search algorithm
 
 
 
@@ -1429,6 +1653,6 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems()
 
 	#test_generate_random_problems_logistics()
-	#test_train_init_and_goal_policy_logistics()
-	test_load_models_and_generate_problems_logistics()	
+	test_train_init_and_goal_policy_logistics()
+	#test_load_models_and_generate_problems_logistics()	
 	#test_load_models_and_resume_training_logistics()

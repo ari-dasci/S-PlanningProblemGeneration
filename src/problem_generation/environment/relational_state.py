@@ -355,7 +355,7 @@ class RelationalState():
                 else:
                     curr_tensor_shape = [num_objs]*r + [num_preds_each_arity[r]]
 
-                    atoms_list.append(torch.zeros(curr_tensor_shape, dtype=torch.float32)) # Change to float16 to increase efficiency
+                    atoms_list.append(torch.zeros(curr_tensor_shape, dtype=torch.float32)) # Change to float16 to increase efficiency -> NO!, it is slower
                     
             # Change tensor values associated with state atoms
             for atom in self._atoms:

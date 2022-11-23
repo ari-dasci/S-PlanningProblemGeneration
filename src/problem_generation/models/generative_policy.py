@@ -20,7 +20,7 @@ class GenerativePolicy(pl.LightningModule):
 	@nlm_residual_connections Whether the NLM must use residual connections
 	@action_entropy_coeff Coefficient for the entropy loss, used when calculating the Actor loss
 	@epsilon PPO parameter that controls how much the policy can diverge from the old one
-	@epsilon_annealing_coeffs If None, we do not change the entropy coefficient during training.
+	@entropy_annealing_coeffs If None, we do not change the entropy coefficient during training.
 	                          Else, if it is a tuple (i, final_entropy),
 							  we linearly anneal (reduce) @action_entropy_coeff so that it becomes
 							  final_entropy.
@@ -48,6 +48,7 @@ class GenerativePolicy(pl.LightningModule):
 			self.register_buffer('_final_iteration_entropy_annealing', torch.tensor(entropy_annealing_coeffs[0], dtype=torch.int32))
 
 		self._actor_nlm = NLM(num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_extra_preds_each_arity, nlm_residual_connections)
+
 
 		# The NLM for the critic has the same shape as the actor NLM except for the output layer, where it only has
 		# a single nullary predicate corresponding to the value function prediction V(s)
@@ -234,7 +235,6 @@ class GenerativePolicy(pl.LightningModule):
 		# tensor_lifted_entropy[tensor_lifted_entropy==float("inf")] = 0
 		# tensor_lifted_entropy = torch.where(tensor_lifted_entropy==float("inf"),torch.tensor(0.0),tensor_lifted_entropy)
 
-
 		return 0.5*tensor_ground_entropy + 0.5*tensor_lifted_entropy
 
 		
@@ -280,7 +280,7 @@ class GenerativePolicy(pl.LightningModule):
 	
 		# Get prob to sample each arity
 		# If preds_curr_arr is None, that means there are no predicates for that arity, so we assign a probability of 0 to that predicate arity
-		arity_probs = np.array([np.sum(preds_curr_arr) if preds_curr_arr is not None else 0 for preds_curr_arr in pred_tensors_np], dtype='float16')
+		arity_probs = np.array([np.sum(preds_curr_arr) if preds_curr_arr is not None else 0 for preds_curr_arr in pred_tensors_np], dtype='float32')
 		arity_probs /= np.sum(arity_probs) # Normalize so that the sum of probabilities is equal to 1
 
 		# Sample an arity
