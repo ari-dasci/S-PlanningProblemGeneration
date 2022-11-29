@@ -46,7 +46,7 @@ class ProblemGenerator():
 		# Get hash of the goal state
 		if problem.goal_state is None:
 			goal_hash = 0
-		else
+		else:
 			objs_goal = tuple(problem.goal_state.objects)
 			atoms_goal = frozenset(problem.goal_state.atoms)
 			goal_hash = hash((objs_goal, atoms_goal))
@@ -114,7 +114,7 @@ class ProblemGenerator():
 
 
 	def _generate_successors_init_phase_random(self, state_set, num_successors, max_successor_tries, min_atoms_init_state):
-		if len(state_set) == 0
+		if len(state_set) == 0:
 			print("Empty state set!")
 			return state_set
 
@@ -196,7 +196,7 @@ class ProblemGenerator():
 
 			curr_list_ind = curr_list_ind % len(states_and_atoms) # Circular list
 
- 			# Stop condition
+			# Stop condition
 			if num_tries >= max_successor_tries or len(new_state_set) >= num_successors or len(states_and_atoms) == 0:
 				successors_generated = True
 
@@ -205,7 +205,7 @@ class ProblemGenerator():
 
 
 	def _generate_successors_init_phase_directed(self, directed_generator, state_set, num_successors, max_successor_tries, min_atoms_init_state, max_atoms_init_state):
-		if len(state_set) == 0
+		if len(state_set) == 0:
 			print("Empty state set!")
 			return state_set	
 			
@@ -247,7 +247,7 @@ class ProblemGenerator():
 					# See if we can end the initial state generation phase, i.e., if the init_state contains enough atoms and it is eventual-consistent
 					if s.initial_state.num_atoms >= min_atoms_init_state and s.get_eventual_consistency_reward_of_init_state() == 0:
 						s.end_initial_state_generation_phase()
-				   		new_state_set.add(s) # No need to add the hash
+						new_state_set.add(s) # No need to add the hash
 
 				else:
 					# < Transform the chosen atom index into a proper atom -> atom and objects to add >
@@ -290,7 +290,7 @@ class ProblemGenerator():
 
 	def _generate_successors_goal_phase_directed(self, directed_generator, state_set, num_successors, max_successor_tries, min_actions_goal_state,
 												 max_actions_goal_state, num_actions_executed, state_hash_set=None):
-		if len(state_set) == 0
+		if len(state_set) == 0:
 			print("Empty state set!")
 			return state_set	
 			
@@ -336,7 +336,7 @@ class ProblemGenerator():
 					# See if we can end the goal state generation phase, i.e., if we have executed enough actions
 					if num_actions_executed >= min_actions_goal_state:
 						s.end_goal_state_generation_phase()
-				   		new_state_set.add(s) # No need to add the hash
+						new_state_set.add(s) # No need to add the hash
 
 				else:
 					# < Transform the action index into a proper action>
@@ -366,7 +366,7 @@ class ProblemGenerator():
 
 	# Note: @num_actions_executed is the number of actions which have been executed for ProblemStates in @state_set where is_goal_state_generated is False
 	def _generate_successors_goal_phase_random(self, state_set, num_successors, max_successor_tries, min_actions_goal_state, num_actions_executed, state_hash_set=None):
-		if len(state_set) == 0
+		if len(state_set) == 0:
 			print("Empty state set!")
 			return state_set
 
@@ -600,7 +600,7 @@ class ProblemGenerator():
 
 	@num_problems Number of problems to generate
 	@num_atoms_init_state A tuple (min, max) where min is the minimum number of atoms a problem can have in its initial state,
-	                      and max the maximum.
+						  and max the maximum.
 	@num_actions_goal_state A tuple (min, max) where min is the minimum number of actions we can execute to obtain the goal of a problem
 							from its initial state, and max the maximum.
 	@num_successors Number of successor problems which we try to generate at each step of the algorithm.
@@ -608,7 +608,7 @@ class ProblemGenerator():
 						 At each step, we sample successors until 1) there are @num_sucessors or
 						 2) we have tried to sample @max_successor_tries successors.
 	@directed_generator An instance of DirectedGenerator used to generate the init_state and goal_state of the problems.
-	                    If None, they are generated at random.
+						If None, they are generated at random.
 	"""
 	def generate_problems(self, num_problems, num_atoms_init_state, num_actions_goal_state, num_successors, max_successor_tries,
 						  directed_generator=None):

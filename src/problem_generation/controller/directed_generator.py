@@ -94,6 +94,7 @@ class DirectedGenerator():
 
 		self._dummy_rel_state_actions = RelationalState(self._parser.types, self._parser.type_hierarchy,
 		                                                parser_actions) 
+		dummy_rel_state_predicates = RelationalState(self._parser.types, self._parser.type_hierarchy, self._parser.predicates)
 
 		# <Goal predicates, as a list of predicates (with name and parameters)>
 		if predicates_to_consider_for_goal is None: # Consider every predicate for the goal
@@ -136,7 +137,8 @@ class DirectedGenerator():
 												        extra_preds_each_arity_initial_state_nlm,
 												        res_connections_initial_state_nlm, lr_initial_state_nlm,
 													    entropy_coeff_init_state_policy,
-														entropy_annealing_coeffs_init_state_policy, epsilon_init_state_policy)
+														entropy_annealing_coeffs_init_state_policy, epsilon_init_state_policy,
+														dummy_rel_state_predicates)
 		else: # Load initial state policy from checkpoint
 			self._initial_state_policy = GenerativePolicy.load_from_checkpoint(checkpoint_path=load_init_state_policy_checkpoint_name,
 																		         num_preds_layers_nlm=num_preds_all_layers_initial_state_nlm, 
@@ -146,7 +148,8 @@ class DirectedGenerator():
 																				 lr=lr_initial_state_nlm,
 																				 action_entropy_coeff=entropy_coeff_init_state_policy,
 																				 entropy_annealing_coeffs=entropy_annealing_coeffs_init_state_policy, 
-																				 epsilon=epsilon_init_state_policy)
+																				 epsilon=epsilon_init_state_policy,
+																				 dummy_rel_state=dummy_rel_state_predicates)
 
 		# Goal generation policy
 		num_preds_all_layers_goal_nlm = self._num_preds_all_layers_goal_nlm(num_preds_inner_layers_goal_nlm)
@@ -158,7 +161,8 @@ class DirectedGenerator():
 														extra_preds_each_arity_goal_nlm,
 												        res_connections_goal_nlm, lr_goal_nlm,
 													    entropy_coeff_goal_policy,
-														entropy_annealing_coeffs_goal_policy, epsilon_goal_policy)
+														entropy_annealing_coeffs_goal_policy, epsilon_goal_policy,
+														dummy_rel_state_predicates)
 		else: # Load initial state policy from checkpoint
 			self._goal_policy = GenerativePolicy.load_from_checkpoint(checkpoint_path=load_goal_policy_checkpoint_name,
 																		         num_preds_layers_nlm=num_preds_all_layers_goal_nlm, 
@@ -168,7 +172,8 @@ class DirectedGenerator():
 																				 lr=lr_goal_nlm,
 																				 action_entropy_coeff=entropy_coeff_goal_policy,
 																				 entropy_annealing_coeffs=entropy_annealing_coeffs_goal_policy, 
-																				 epsilon=epsilon_goal_policy)
+																				 epsilon=epsilon_goal_policy,
+																				 dummy_rel_state=dummy_rel_state_predicates)
 
 
 		# QUITAR
@@ -640,7 +645,7 @@ class DirectedGenerator():
 
 	<Note>: This method also selects the goal atoms corresponding to the goal predicates given by the user
 	"""
-	def get_problem_difficulty(self, problem, use_epm, max_difficulty=1e3, rescale_factor=1, max_planning_time=60):
+	def get_problem_difficulty(self, problem, use_epm, max_difficulty=1e3, rescale_factor=0.1, max_planning_time=60):
 		# Encode the problem in PDDL
 		# > This method also selects the goal atoms corresponding to the goal predicates given by the user
 		pddl_problem = problem.obtain_pddl_problem()
@@ -1060,6 +1065,7 @@ class DirectedGenerator():
 
 			# Create training dataset and dataloader with the collected trajectories
 			trajectory_dataset_init_policy = ReinforceDataset(init_policy_trajectories)
+
 			trajectory_dataloader_init_policy = torch.utils.data.DataLoader(dataset=trajectory_dataset_init_policy, batch_size=minibatch_size,
 																collate_fn=TransformReinforceDatasetSample(), shuffle=True,
 																num_workers=0) # Change to shuffle=False if we need to keep the order in the transitions (s,a,s')

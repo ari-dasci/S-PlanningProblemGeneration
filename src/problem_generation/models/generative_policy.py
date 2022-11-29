@@ -24,14 +24,15 @@ class GenerativePolicy(pl.LightningModule):
 	                          Else, if it is a tuple (i, final_entropy),
 							  we linearly anneal (reduce) @action_entropy_coeff so that it becomes
 							  final_entropy.
-		Note: reduce_entropy() method must be manually called after each trainer.fit() in order to reduce the entropy.
-	
+		Note: reduce_entropy() method must be manually called after each trainer.fit() in order to reduce the entropy.	
+	@dummy_rel_state An instance of RelationalState, containing information about the types and predicates in the domain.
+
 	Note: @num_preds_layers_nlm needs to include the extra nullary predicate for the termination condition (in the output layer)
 	      and the number of atoms already added to the initial state (perc_actions_executed, a number between 0 and 1), in case these are needed.
 	      Also, it needs to include the extra unary predicates representing object types, if needed.
 	"""
 	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_extra_preds_each_arity, nlm_residual_connections, lr,
-			     action_entropy_coeff, entropy_annealing_coeffs, epsilon):
+			     action_entropy_coeff, entropy_annealing_coeffs, epsilon, dummy_rel_state):
 		super().__init__()
 
 		self._lr = lr
@@ -62,7 +63,10 @@ class GenerativePolicy(pl.LightningModule):
 		# Used to track the current logging iteration in order to save the logs correctly
 		self.register_buffer('curr_log_iteration', torch.tensor(0, dtype=torch.int32))	
 
-		self.register_buffer('_curr_entropy_annealing_it', torch.tensor(0, dtype=torch.int32))	
+		self.register_buffer('_curr_entropy_annealing_it', torch.tensor(0, dtype=torch.int32))
+		
+		# RelationalState used to obtain information about the object types and domain predicates
+		self._dummy_rel_state = dummy_rel_state
 
 
 	# ------- Getters
@@ -171,16 +175,16 @@ class GenerativePolicy(pl.LightningModule):
 		# Transform log_probs to probs (by using torch.exp)
 		# Ignore None tensors, as they correspond to non-existent actions
 		# Ignore the last predicate of arity 0, corresponding to the termination condition
-		# list_prob_tensors = [ [torch.exp(sample_output[r][:-1])  if r==0 else  torch.exp(sample_output[r]) \
-		#				       for r in range(len(sample_output)) if sample_output[r] is not None] \
-        #                      for sample_output in list_nlm_output_samples ]
+		list_prob_tensors = [ [torch.exp(sample_output[r][:-1])  if r==0 else  torch.exp(sample_output[r]) \
+						      for r in range(len(sample_output)) if sample_output[r] is not None] \
+                              for sample_output in list_nlm_output_samples ]
 
 		# Transform log_probs to probs (by using torch.exp)
 		# Ignore None tensors, as they correspond to non-existent actions
 		# IF WE IGNORE THE TERMINATION CONDITION (last predicate of arity 0) IT STOPS WORKING! (termination condition prob. converges a 1)
-		list_prob_tensors = [ [torch.exp(tensor) \
-						       for tensor in sample_output if tensor is not None] \
-                               for sample_output in list_nlm_output_samples ]
+		# list_prob_tensors = [ [torch.exp(tensor) \
+		#				       for tensor in sample_output if tensor is not None] \
+        #                      for sample_output in list_nlm_output_samples ]
 		
 
 		# For each sample, obtain a list of tensors corresponding to the different predicates (instead of the different arities)
@@ -204,7 +208,7 @@ class GenerativePolicy(pl.LightningModule):
 		# <Ground action entropy>
 		# Calculate entropy of the prob distribution of all the ground actions
 
-		list_prob_tensors_ground = [ torch.cat(sample_output) for sample_output in list_prob_tensors_each_pred_filter ]
+		list_prob_tensors_ground = [ torch.cat(sample_output) for sample_output in list_prob_tensors_each_pred_filter if len(sample_output) > 0 ]
 
 		# We need the +1e-6 because, otherwise, we obtain an entropy of inf for tensors with a single value (probs_preds.shape[0] in that case is 1, 
 		# np.log(1)=0 and when we divide by 0 we get inf)
@@ -220,7 +224,7 @@ class GenerativePolicy(pl.LightningModule):
 		# (i.e., adding ontable, on, clear, handempty or holding regardless of the objects the predicate is instantiated on)
 
 		list_probs_each_pred = [ torch.cat([torch.sum(tensor).reshape(1) for tensor in sample_output]) 
-						         for sample_output in list_prob_tensors_each_pred_filter ]
+						         for sample_output in list_prob_tensors_each_pred_filter if len(sample_output) > 0 ]
 
 		# Ignore termination condition prob when calculating lifted action entropy
 		# for i in range(len(list_probs_each_pred)):
@@ -506,7 +510,6 @@ class GenerativePolicy(pl.LightningModule):
 		# < Actor + Critic loss >
 		loss = actor_loss + critic_loss
 
-
 		# < Logs >
 		# Store the logs
 		# self.current_epoch == 0 and self.global_step == 0 -> only store the logs for the first training iteration of PPO
@@ -519,6 +522,24 @@ class GenerativePolicy(pl.LightningModule):
 											   global_step=self.curr_log_iteration)
 			self.logger.experiment.add_scalar("Critic Loss", critic_loss, global_step=self.curr_log_iteration)
 			self.logger.experiment.add_scalar("Termination Condition Probability", mean_term_cond_prob, global_step=self.curr_log_iteration)
+
+			# <Log number of objects of each type>
+
+			with torch.no_grad():
+				num_types = self._dummy_rel_state.num_types
+				obj_types = self._dummy_rel_state.types
+				obj_types_to_indices_dict = self._dummy_rel_state.obj_types_to_indices_dict
+
+				list_tensors_unary_preds = list_state_tensors_nlm_encoding[1] # Tensors of unary predicates encode obj_types (and also other unary predicates)
+
+				# Obtain a torch.tensor where each row corresponds to a different sample and each column corresponds to the number of objects of the
+				# corresponding type for that sample
+				mean_objs_each_type = torch.mean(torch.stack([torch.sum(tensor[:, -num_types:], axis=0) \
+												  for tensor in list_tensors_unary_preds],axis=0),axis=0) 
+
+				dict_mean_objs_each_type = {t : mean_objs_each_type[obj_types_to_indices_dict[t]].item() for t in obj_types}
+
+			self.logger.experiment.add_scalars('Object types', dict_mean_objs_each_type, global_step=self.curr_log_iteration)
 
 			self.curr_log_iteration += 1
 

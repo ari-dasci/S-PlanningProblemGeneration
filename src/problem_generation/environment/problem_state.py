@@ -24,22 +24,22 @@ class ProblemState:
 									 and the type of each object it is instantiated on must inherit from the corresponding param type
 									 in the goal predicate.
 									 Example: if goal_predicates contains ['at',['vehicle','location']], then we will only consider for the goal
-									          those atoms of type "at" which correspond to vehicles (and locations), but not to packages (and locations).
+											  those atoms of type "at" which correspond to vehicles (and locations), but not to packages (and locations).
 	@initial_state_info Information used to create the initial state of the generation process. 
-	                    If None, the initial state is empty (contains no objects or atoms).
-                        If str (e.g., 'block'), the initial state contains a single object of such type. 
+						If None, the initial state is empty (contains no objects or atoms).
+						If str (e.g., 'block'), the initial state contains a single object of such type. 
 						If an instance of RelationalState, the initial state will be the state passed as parameter.
 	@penalization_continuous_consistency Penalization if the initial state generation policy selects an action that produces a state 
-	                                     which does not meet the continous consistency rules.
+										 which does not meet the continous consistency rules.
 	@penalization_eventual_consistency Penalization if the initial state has been completely generated but it does not meet the eventual consistency
-	                                   rules.
+									   rules.
 	@penalization_non_applicable_action Penalization if the goal generation policy selects a ground domain action not applicable at the current 
-	                                    state (i.e., the preconditions are not met)
+										state (i.e., the preconditions are not met)
 	@consistency_validator ValidatorPredOrder class that checks if a given initial state is consistent or not.
-	                       If None, we assume all the initial states are consistent (we do not check for consistency).
+						   If None, we assume all the initial states are consistent (we do not check for consistency).
 	"""
 	def __init__(self, parser, predicates_to_consider_for_goal, initial_state_info=None, penalization_continuous_consistency=-1, 
-			     penalization_eventual_consistency=-1, penalization_non_applicable_action=-1, consistency_validator=None):
+				 penalization_eventual_consistency=-1, penalization_non_applicable_action=-1, consistency_validator=None):
 		self._parser = parser
 
 		# Rewards
@@ -61,20 +61,20 @@ class ProblemState:
 
 
 	def __copy__(self):
-        new_copy = ProblemState(self._parser, self._predicates_to_consider_for_goal.copy(), None, self._penalization_continuous_consistency,
-                                self._penalization_eventual_consistency, self._penalization_non_applicable_action, self._consistency_validator)
+		new_copy = ProblemState(self._parser, self._predicates_to_consider_for_goal.copy(), None, self._penalization_continuous_consistency,
+								self._penalization_eventual_consistency, self._penalization_non_applicable_action, self._consistency_validator)
 
-        # Copy current init_state and goal_state information
-        new_copy._initial_state = self._initial_state.copy()
-        new_copy._goal_state = self._goal_state.copy()
+		# Copy current init_state and goal_state information
+		new_copy._initial_state = self._initial_state.copy()
+		new_copy._goal_state = None if self._goal_state is None else self._goal_state.copy()
 
-        new_copy._is_initial_state_generated = self._is_initial_state_generated
-        new_copy._is_goal_state_generated = self._is_goal_state_generated
+		new_copy._is_initial_state_generated = self._is_initial_state_generated
+		new_copy._is_goal_state_generated = self._is_goal_state_generated
 
-        return new_copy
+		return new_copy
 
-    def copy(self):
-        return self.__copy__()
+	def copy(self):
+		return self.__copy__()
 
 	@property
 	def initial_state(self):
@@ -278,7 +278,7 @@ class ProblemState:
 	@action_name Name of the action (e.g., "pick-up")
 	@action_objs The instantiated parameters of the action, as a tuple/list of indexes corresponding to objects in @state (e.g., [0,1])
 	@check_action_applicability If True, we check if the action passed as argument can be applied at the current goal state, i.e., if its
-	                            preconditions are met. If False, we assume the action is applicable and return an action_reward of 0.
+								preconditions are met. If False, we assume the action is applicable and return an action_reward of 0.
 	"""
 	def apply_action_to_goal_state(self, action_name, action_objs, check_action_applicability=True):
 		# Make sure we are in the goal generation phase
@@ -356,7 +356,7 @@ class ProblemState:
 	"""
 	Obtains a list with all the actions that can be applied to the initial state.
 	Example: [('on', (1, 0)), ('on', (1, -1)), ('handempty', ())]
-	         An index of -1 corresponds to a new object/non-existing object in the current state
+			 An index of -1 corresponds to a new object/non-existing object in the current state
 	This method does NOT check the consistency (as it is very expensive to do for every existing init_state action).
 	However, it does check some things:
 		> The atoms returned only correspond to predicates of the current phase 
@@ -396,8 +396,8 @@ class ProblemState:
 
 				# We instantiate on objects whose type inherits from the corresponding predicate param types (pred_types)
 				possible_instantiations = [ list(map(lambda y: y[0], \
-				                            (filter(lambda x: x[1] in self._parser.type_hierarchy[t], enumerate(state_objs))))) + [-1] \
-				                            for t in pred_types ]
+											(filter(lambda x: x[1] in self._parser.type_hierarchy[t], enumerate(state_objs))))) + [-1] \
+											for t in pred_types ]
 
 				# [(0, 0), (0, 1), (0, 2), (0, -1), (1, 0), (1, 1), (1, 2), (1, -1), (2, 0), (2, 1), (2, 2), (2, -1), (-1, 0), (-1, 1), (-1, 2), (-1, -1)]
 				possible_instantiations = list(itertools.product(*possible_instantiations)) # Do the cartesian product of the list of lists
@@ -419,7 +419,7 @@ class ProblemState:
 	@new_objs The objects to add to the state (e.g., ['block', 'circle'])
 	@new_atom The atom to add to the state (e.g., ('on', (1,2)))
 	Note: The atom indices ((1,2)) can refer to new objects not present in the current state but which are added as part of the next
-	      state. Example: current state has only one block, new_objs=['block'] and new_atom= ('on', (0,1)).
+		  state. Example: current state has only one block, new_objs=['block'] and new_atom= ('on', (0,1)).
 	@obj_types The type of each object in @new_atom[1], whether it is in the state or corresponds to a virtual object (an object in @new_objs)
 	@check_consistency If True, we check that the atom to add results in a consistent state.
 	"""
@@ -492,7 +492,7 @@ class ProblemState:
 	Both initial and goal state generation phases must have concluded.
 
 	Note: this method also converts the goal state to the problem goal, by only selecting the goal atoms corresponding
-	      to predicates given by the user (self._predicates_to_consider_for_goal)
+		  to predicates given by the user (self._predicates_to_consider_for_goal)
 
 	@problem_name If not None, the name of the problem generated
 	"""
