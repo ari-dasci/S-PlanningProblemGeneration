@@ -645,7 +645,7 @@ class DirectedGenerator():
 
 	<Note>: This method also selects the goal atoms corresponding to the goal predicates given by the user
 	"""
-	def get_problem_difficulty(self, problem, use_epm, max_difficulty=1e3, rescale_factor=0.1, max_planning_time=60):
+	def get_problem_difficulty(self, problem, use_epm, max_difficulty=1e3, rescale_factor=0.05, max_planning_time=60):
 		# Encode the problem in PDDL
 		# > This method also selects the goal atoms corresponding to the goal predicates given by the user
 		pddl_problem = problem.obtain_pddl_problem()
@@ -654,6 +654,12 @@ class DirectedGenerator():
 		self._fd_temp_problem.seek(0)
 		self._fd_temp_problem.write(pddl_problem)
 		self._fd_temp_problem.truncate()
+
+
+		# QUITAR
+		use_epm = False
+
+
 
 		# Obtain its difficulty
 		if use_epm:
@@ -957,7 +963,7 @@ class DirectedGenerator():
 	It returns a tuple (init_policy_trajectory, goal_policy_trajectory).
 	"""
 	def _obtain_trajectory_and_preprocess_for_PPO(self, max_atoms_init_state=-1, max_actions_init_state=-1, max_actions_goal_state=-1,
-											   disc_factor_cont_consistency=0, disc_factor_event_consistency=0.9, disc_factor_difficulty=0.99):
+											   disc_factor_cont_consistency=0, disc_factor_event_consistency=0.9, disc_factor_difficulty=0.995):
 
 		# <Obtain a trajectory with the initial policy>
 

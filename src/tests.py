@@ -838,7 +838,7 @@ def test_train_init_and_goal_policy_logistics():
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
 										   extra_input_preds_initial_state_nlm=True,
 										   res_connections_initial_state_nlm=False,
-										   lr_initial_state_nlm = 2e-3,
+										   lr_initial_state_nlm = 1e-3,
 										   entropy_coeff_init_state_policy = 1,
 										   entropy_annealing_coeffs_init_state_policy = (500, 0.4),
 										   epsilon_init_state_policy=0.1,
@@ -847,7 +847,7 @@ def test_train_init_and_goal_policy_logistics():
 										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
 										   extra_input_preds_goal_nlm=True,
 										   res_connections_goal_nlm=False,
-										   lr_goal_nlm = 2e-3,
+										   lr_goal_nlm = 1e-3,
 										   entropy_coeff_goal_policy = 0.0,
 										   entropy_annealing_coeffs_goal_policy = None,
 										   epsilon_goal_policy=0.1)
@@ -1813,6 +1813,7 @@ def test_load_models_and_resume_training_logistics():
 		> Todos los problemas tienen una única ciudad!
 		> La goal_policy aprende a mover a todos los paquetes a la misma location!!
 
+	<Los resultados mejoran al ignorar la term_cond al calcular la policy_entropy!!>
 	<Creo que quizás estoy usando demasiado pocas acciones para la goal_policy!!>
 	Ej.: si un problema tiene 5 paquetes y quiero moverlos a todos de sitio, necesitaré al menos
 	5 acciones (load), 1 drive (para moverme de una location a otra de la misma ciudad) y 5 unload.
@@ -1828,12 +1829,142 @@ def test_load_models_and_resume_training_logistics():
    diff=np.mean(h_vals) + np.sqrt(np.std(h_vals)) + 1
    lr_init_policy y lr_goal_policy = 2e-3 (it was 1e-3 before)
    ignore term_cond_prob for calculating entropy
-   <>
+   <disc_factor_difficulty=0.995>
+   <max_actions_goal_state=60 (antes era 20)>
+
+   > logs: init_policy\ version_85
+
+   > Entrenamiento:
+	- 9h (lo paré a mitad)
+	- El num_cities vuelve a converger a 1!!
+	- El num_airplanes al final del entrenamiento era de 0.4, aunque seguía bajando un poco
+	- La r_difficulty crece muy rápido (era 0.7 al final del entrenamiento)
+	- La r_eventual converge a 0 pero la r_continuous diverge a -0.15!!
+		- La init_policy escoge acciones inconsistentes a propósito para aumentar la entropía
+	- La goal_policy entropy se mantiene muy alta durante todo el entrenamiento, y al final
+	  empieza a bajar un poco
+	- La init_policy entropy baja hasta 0.45 y después empieza a subir de nuevo (cuando
+	  empieza a escoger acciones inconsistentes)
+
+	<Aumentar el max_actions_goal_state ayuda bastante a la dificultad de los problemas, pero aun así
+	 se siguen generando problemas con una sola ciudad!!!>
 
 
-    
+>  init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+   goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+   init_policy_entropy_coeffs: 1, (500, 0.4)
+   goal_policy_entropy_coeffs: 0, None -> no entropy loss for goal policy
+   domain_with_exists
+   <rescale_factor = 0.05>
+   lr_init_policy y lr_goal_policy = 2e-3 (it was 1e-3 before)
+   ignore term_cond_prob for calculating entropy
+   disc_factor_difficulty=0.995
+   max_actions_goal_state=60 (antes era 20)
+   <diff measured using lama>
+
+   > logs: init_policy\ version_86
+
+   >> El learning_rate era demasiado alto (algunas de las gráficas de entrenamiento oscilaban un poco)
+
+  
+>  init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+   goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+   init_policy_entropy_coeffs: 1, (500, 0.4)
+   goal_policy_entropy_coeffs: 0, None -> no entropy loss for goal policy
+   domain_with_exists
+   <rescale_factor = 0.05>
+   <lr_init_policy y lr_goal_policy = 1e-3>
+   ignore term_cond_prob for calculating entropy
+   disc_factor_difficulty=0.995
+   max_actions_goal_state=60 (antes era 20)
+   <diff measured using lama>
+
+   > logs: init_policy\ version_87
+
+   >>> No aprende!!
+
+   > Entrenamiento:
+		> La r_continuous converge a 0, pero la r_eventual diverge a -0.5!!!
+		> La r_difficulty converge a 0!!
+		> El número de ciudades es muy alto (4 o así), pero el número de 
+		  objetos de tipo truck, airplane y package converge a 0!!!
+		  (es por esto que casi ningún problema es eventual_consistent)
+
+		> A pesar de esto, la init_policy_entropy termina en alrededor de 0.4
+
+
+
+
+	<< HACER EXPERIMENTOS MIDIENDO LA DIFICULTAD CON LAMA >>
+	Una vez que las generative_policies aprendan, intentar estimar la dificultad
+	con las heurísticas!
+
+   >> Quizás el learning rate siga siendo muy alto para la goal_policy!!
+
+   <Al generar problemas, evaluar la generalización para problemas más grandes!>
 
    
+   >> A la hora de comparar la dificultad con el instance generator de logistics,
+	   ver si debería limitar el número de trucks, airplanes, etc. en el estado inicial
+	   para así comparar en "igualdad de condiciones" los problemas de mi método
+	   con los del instance generator -> SI LOS PROBLEMAS GENERADOS POR MI MÉTODO
+	   SON DIVERSOS ESTO NO DEBERÍA SER UN PROBLEMA (ej.: habrá problemas con muchos
+	   trucks, packages, etc. pero otros con un número menor)
+
+
+   >> Si esta ejecución funciona, hacer lo siguiente:
+	- Ver si puedo obtener los mismos resultado usando las heurísticas en vez del planner
+	  para medir la dificultad (usar una fórmula diferente, cambiar el rescale_factor...)
+		- Poner rescale_factor a 0.05 en vez de 0.1
+	- Intentar reducir el tiempo de entrenamiento!!
+		- Reducir num_trajectories_per_train_it
+		- Cambiar batch_size...
+	- Probar a usar NLM con preds arity 3, a ver si mejoran los resultados
+
+	- Si no, probar a usar varios planners en vez de solo LAMA (ir alternando entre varios
+	  satisficing planners durante el entrenamiento, normalizando las dificultades para
+	  que todas estén en el mismo rango)
+	>> PROBAR QUE LAS GENERATIVE_POLICIES GENERALIZAN A PROBLEMAS MÁS GRANDES!!!
+
+
+
+
+   <<Volver a poner rescale_factor=0.1>>
+   <<QUITAR use_epm = False>>
+
+
+	<Si no funciona, probar a entrenar con una NLM con preds de ariedad 3 y
+	solo entrenar la init policy durante las primeras 70 its (para que así
+	no pueda aprender a generar problemas con una sola ciudad)>
+
+	>>Nota: si se generan problemas con una sola ciudad puede ser por esto.
+		- Como ahora max_actions_goal es alto (60), eso significa que es complicado
+		  que la goal_policy aprenda
+		- Por tanto, al principio del entrenamiento la goal policy es casi random
+		  (por eso tiene una entropía tan alta)
+		- Al ser random la goal_policy, la init_policy aprende a generar problemas
+		  que resultan en alta dificultad usando una goal_policy aleatoria, i.e.,
+		  ejecutando acciones al azar para generar el goal state
+			>>> Estos problemas son aquellos con una única ciudad y muchos paquetes y trucks!!!
+
+		- Una vez que se generan problemas con ese tipo de init_state (una única ciudad),
+		  la goal_policy ya aprende a generar problemas difíciles para ese tipo de init_state
+		  en específico -> no se sale del óptimo local
+
+		<Posible solución:> Entrenar por fases:
+			1. La init_policy aprende a generar problemas consistentes (aunque no difíciles)
+			2. La goal_policy aprende a generar problemas difíciles dado el init_state generado por la init_state_policy (LA INIT_STATE_POLICY ESTÁ CONGELADA AHORA)
+			3. Una vez que hemos entrenado la goal_policy, se entrena la init_policy
+		
+		<Opción 2>: que la goal_policy aprenda más rápido que la init_policy (ej.: mayor learning rate o entrenar 10 its la goal_policy
+		            por cada it de la init_policy)
+
+		<Opción 3>: Hacer que, al intentar subir la policy_entropy de la init_policy, se vuelvan a generar problemas
+		            con más de una ciudad (después de que se hayan dejado de generar)
+					
+					- aumentar la penalization continuous consistency (para que no escoja acciones inconsistentes a propósito para aumentar la entropía)
+		
+		<Opción 4>: Usar NLM con predicados de ariedad 3, para ver si así sí aprende la goal_policy
 
 
 
@@ -1859,6 +1990,7 @@ def test_load_models_and_resume_training_logistics():
 		4. Probar a bajar la init_policy_entropy si no aprende
 
 		5. Hacer prueba con NLM con predicados de ariedad 3
+			- También probar a usar más hidden_units en el MLP de la NLM
 
 		6. Probar un menor learning rate (quizás aprenda más rápido, al ser más estable)
 
@@ -1917,7 +2049,7 @@ def test_load_models_and_resume_training_logistics():
 	  para facilitar el entrenamiento
 
 > Testear método en sokoban
-	- Añadir soporte para constantes -> Quizás no sea necesario!!!!
+	- Actualizar lifted_pddl a la versión 2
 	- Hacer pruebas en sokoban para ver si mi método funciona bien en un dominio tan complejo
 	- Si no, usar un dominio más sencillo en vez de sokoban (como zenotravel)
 
