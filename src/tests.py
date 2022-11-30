@@ -839,8 +839,8 @@ def test_train_init_and_goal_policy_logistics():
 										   extra_input_preds_initial_state_nlm=True,
 										   res_connections_initial_state_nlm=False,
 										   lr_initial_state_nlm = 1e-3,
-										   entropy_coeff_init_state_policy = 1,
-										   entropy_annealing_coeffs_init_state_policy = (500, 0.4),
+										   entropy_coeff_init_state_policy = 0.0,
+										   entropy_annealing_coeffs_init_state_policy = None,
 										   epsilon_init_state_policy=0.1,
 
 										   num_preds_inner_layers_goal_nlm=goal_policy_nlm_inner_layers,
@@ -1895,16 +1895,21 @@ def test_load_models_and_resume_training_logistics():
 
 >  init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
    goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
-   init_policy_entropy_coeffs: 1, (500, 0.4)
+   <init_policy_entropy_coeffs: 0, None> -> Use diversity reward instead of entropy
    goal_policy_entropy_coeffs: 0, None -> no entropy loss for goal policy
    domain_with_exists
-   <rescale_factor = 0.05>
-   <lr_init_policy y lr_goal_policy = 1e-3>
+   lr_init_policy y lr_goal_policy = 1e-3
    ignore term_cond_prob for calculating entropy
    max_actions_goal_state=60 (antes era 20)
-   <diff measured using lama>
+   diff measured using lama
+   <rescale_factor = 0.1>
    <disc_factor_event_consistency=1>
    <disc_factor_difficulty=1>
+   <use diversity_reward>
+   <diversity_scale_factor = 1>
+
+
+
 
 
 

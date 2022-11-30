@@ -645,7 +645,7 @@ class DirectedGenerator():
 
 	<Note>: This method also selects the goal atoms corresponding to the goal predicates given by the user
 	"""
-	def get_problem_difficulty(self, problem, use_epm, max_difficulty=1e3, rescale_factor=0.05, max_planning_time=60):
+	def get_problem_difficulty(self, problem, use_epm, max_difficulty=1e3, rescale_factor=0.1, max_planning_time=60):
 		# Encode the problem in PDDL
 		# > This method also selects the goal atoms corresponding to the goal predicates given by the user
 		pddl_problem = problem.obtain_pddl_problem()
@@ -804,8 +804,17 @@ class DirectedGenerator():
 		# Obtain the indexes which delimit each individual trajectory in init_policy_trajectories
 		list_delims = [sum(init_policy_trajectories_lens[:i+1]) for i in range(len(init_policy_trajectories_lens))]
 
+		#print("list_delims", list_delims)
+
+
 		# Obtain the initial_state of the last sample of each trajectory
 		init_state_list = [init_policy_trajectories[i-1][0] for i in list_delims]
+
+		#print("\init_state_list:")
+		#for s in init_state_list:
+		#	print("\n--------", s.objects, s.atoms)
+
+
 
 		# For each init_state in init_state_list, obtain its associated features
 		# (number of objects of each type and number of atoms of each predicate)
@@ -816,15 +825,30 @@ class DirectedGenerator():
 		init_state_feature_vectors = [self._obtain_dist_features(init_state, types, pred_names) for init_state in init_state_list]
 		feature_matrix = np.array(init_state_feature_vectors, dtype=np.float32)
 
+
+		#print("\n\n> feature_matrix", feature_matrix)
+
+
 		# Obtain the distance matrix between pairs of init_states, according to init_state_feature_vectors
 		distance_matrix = self._get_distance_matrix(feature_matrix)
+
+
+		#print("\n\n> distance_matrix", distance_matrix)
+
 
 		# Given the distance_matrix, obtain the diversity score of each state when compared to the rest
 		# Diversity_score = mean distance of the state with the rest
 		# Also, rescale the diversity scores according to @diversity_rescale_factor
 		diversity_scores = [np.mean(distance_matrix[i,:])*diversity_rescale_factor for i in range(len(init_state_list))]
 
+		#print("\n\n> diversity_scores", diversity_scores)
+
+
 		# <For each init_state trajectory, add to each sample of the trajectory the corresponding diversity_score>
+
+
+		#print("\n\n Rewards before diversity", [sample[-2] for sample in init_policy_trajectories])
+
 
 		l_begin = [0] + list_delims[:-1]
 		l_end = list_delims
@@ -835,6 +859,8 @@ class DirectedGenerator():
 			for i in range(begin, end): # Iterate over all the samples associated with the current init_state_policy trajectory
 				init_policy_trajectories[i][-2] += score
 
+		# QUITAR
+		print("\n> Average diversity:", np.mean(diversity_scores), '\n')
 
 
 	# ------- Main Methods --------
@@ -1159,9 +1185,14 @@ class DirectedGenerator():
 					\n\t>Goal policy trajectories: {len(goal_policy_trajectories)}")
 
 
+			#print("\n\nlen(init_policy_trajectories)", len(init_policy_trajectories))
+			#print("init_policy_trajectories_lens", init_policy_trajectories_lens)
+
+
 			# Obtain diversity reward for the init_policy_trajectories
 			self._add_diversity_reward(init_policy_trajectories, init_policy_trajectories_lens)
 
+			#print("\n\n Rewards after diversity", [sample[-2] for sample in init_policy_trajectories])
 
 			# Normalize the rewards
 
