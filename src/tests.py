@@ -1893,7 +1893,25 @@ def test_load_models_and_resume_training_logistics():
 		> A pesar de esto, la init_policy_entropy termina en alrededor de 0.4
 
 
+>  init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+   goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+   init_policy_entropy_coeffs: 1, (500, 0.4)
+   goal_policy_entropy_coeffs: 0, None -> no entropy loss for goal policy
+   domain_with_exists
+   <rescale_factor = 0.05>
+   <lr_init_policy y lr_goal_policy = 1e-3>
+   ignore term_cond_prob for calculating entropy
+   max_actions_goal_state=60 (antes era 20)
+   <diff measured using lama>
+   <disc_factor_event_consistency=1>
+   <disc_factor_difficulty=1>
 
+
+
+-------
+
+   <<Volver a poner rescale_factor=0.1>>
+   <<QUITAR use_epm = False>>
 
 	<< HACER EXPERIMENTOS MIDIENDO LA DIFICULTAD CON LAMA >>
 	Una vez que las generative_policies aprendan, intentar estimar la dificultad
@@ -1929,8 +1947,7 @@ def test_load_models_and_resume_training_logistics():
 
 
 
-   <<Volver a poner rescale_factor=0.1>>
-   <<QUITAR use_epm = False>>
+
 
 
 	<Si no funciona, probar a entrenar con una NLM con preds de ariedad 3 y

@@ -435,25 +435,25 @@ class GenerativePolicy(pl.LightningModule):
 		train_batch_np = np.array(train_batch, dtype=object) 
 
 		# Obtain a list (or tensor) with the sample information
-		list_num_objs = train_batch_np[:,1].tolist()
-		list_mask_tensors = train_batch_np[:,2].tolist()
-		list_chosen_action_index = train_batch_np[:,3].tolist()
+		list_num_objs = train_batch_np[:,2].tolist()
+		list_mask_tensors = train_batch_np[:,3].tolist()
+		list_chosen_action_index = train_batch_np[:,4].tolist()
 
-		tensor_action_prob_old_policy = torch.tensor(train_batch_np[:,4].tolist(), dtype=torch.float32, requires_grad=False)
-		tensor_r_total_norm = torch.tensor(train_batch_np[:,9].tolist(), dtype=torch.float32, requires_grad=False)	
-		tensor_state_values = torch.tensor(train_batch_np[:,10].tolist(), dtype=torch.float32, requires_grad=False)
+		tensor_action_prob_old_policy = torch.tensor(train_batch_np[:,5].tolist(), dtype=torch.float32, requires_grad=False)
+		tensor_r_total_norm = torch.tensor(train_batch_np[:,10].tolist(), dtype=torch.float32, requires_grad=False)	
+		tensor_state_values = torch.tensor(train_batch_np[:,11].tolist(), dtype=torch.float32, requires_grad=False)
 
 		# Represent the state tensors in a suitable encoding for the NLMs
-		num_preds_state_tensors = len(train_batch[0][0]) # The number of elements in state_tensors (equal to the max predicate arity - 1)
-		list_state_tensors_nlm_encoding = [[sample[0][r] for sample in train_batch] for r in range(num_preds_state_tensors)]
+		num_preds_state_tensors = len(train_batch[0][1]) # The number of elements in state_tensors (equal to the max predicate arity - 1)
+		list_state_tensors_nlm_encoding = [[sample[1][r] for sample in train_batch] for r in range(num_preds_state_tensors)]
 
 
 		# < Obtain the average rewards for the logs >
-		reward_continuous = np.mean(train_batch_np[:,5])
-		reward_eventual = np.mean(train_batch_np[:,6])
-		reward_difficulty = np.mean(train_batch_np[:,7])
-		reward_total = np.mean(train_batch_np[:,8])
-		reward_total_norm = np.mean(train_batch_np[:,9])
+		reward_continuous = np.mean(train_batch_np[:,6])
+		reward_eventual = np.mean(train_batch_np[:,7])
+		reward_difficulty = np.mean(train_batch_np[:,8])
+		reward_total = np.mean(train_batch_np[:,9])
+		reward_total_norm = np.mean(train_batch_np[:,10])
 
 		# < Critic >
 
@@ -501,12 +501,6 @@ class GenerativePolicy(pl.LightningModule):
 		# Calculate the actor loss
 		actor_loss = PPO_loss + entropy_loss
 
-		# Calculate probability of termination condition
-		with torch.no_grad():
-			term_cond_prob_tensor = torch.tensor([ np.exp(action_log_probs_list[0][i][-1].detach().numpy()) for i in range(train_batch_len) ])
-			mean_term_cond_prob = torch.mean(term_cond_prob_tensor)
-
-
 		# < Actor + Critic loss >
 		loss = actor_loss + critic_loss
 
@@ -514,6 +508,11 @@ class GenerativePolicy(pl.LightningModule):
 		# Store the logs
 		# self.current_epoch == 0 and self.global_step == 0 -> only store the logs for the first training iteration of PPO
 		if self.current_epoch == 0 and self.global_step == 0:
+			# Calculate probability of termination condition
+			with torch.no_grad():
+				term_cond_prob_tensor = torch.tensor([ np.exp(action_log_probs_list[0][i][-1].detach().numpy()) for i in range(train_batch_len) ])
+				mean_term_cond_prob = torch.mean(term_cond_prob_tensor)
+	
 			self.logger.experiment.add_scalar("Total Reward Normalized", reward_total_norm, global_step=self.curr_log_iteration)
 			self.logger.experiment.add_scalars('Rewards', {'Reward Continuous': reward_continuous, 'Reward Eventual': reward_eventual, 'Reward Difficulty': reward_difficulty},
 											   global_step=self.curr_log_iteration)
