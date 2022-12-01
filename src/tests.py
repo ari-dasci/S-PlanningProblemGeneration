@@ -838,16 +838,16 @@ def test_train_init_and_goal_policy_logistics():
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
 										   extra_input_preds_initial_state_nlm=True,
 										   res_connections_initial_state_nlm=False,
-										   lr_initial_state_nlm = 1e-3,
-										   entropy_coeff_init_state_policy = 0.0,
-										   entropy_annealing_coeffs_init_state_policy = None,
+										   lr_initial_state_nlm = 2e-3,
+										   entropy_coeff_init_state_policy = 1,
+										   entropy_annealing_coeffs_init_state_policy = (500, 0.4),
 										   epsilon_init_state_policy=0.1,
 
 										   num_preds_inner_layers_goal_nlm=goal_policy_nlm_inner_layers,
 										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
 										   extra_input_preds_goal_nlm=True,
 										   res_connections_goal_nlm=False,
-										   lr_goal_nlm = 1e-3,
+										   lr_goal_nlm = 2e-3,
 										   entropy_coeff_goal_policy = 0.0,
 										   entropy_annealing_coeffs_goal_policy = None,
 										   epsilon_goal_policy=0.1)
@@ -1892,6 +1892,10 @@ def test_load_models_and_resume_training_logistics():
 
 		> A pesar de esto, la init_policy_entropy termina en alrededor de 0.4
 
+		<Creo que el rescale_factor es demasiado bajo (la r_difficulty es muy baja)>
+
+	<<Volver a este experimento>> -> Intentar que salga bien antes de pasar al siguiente
+
 
 >  init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
    goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
@@ -1908,6 +1912,135 @@ def test_load_models_and_resume_training_logistics():
    <use diversity_reward>
    <diversity_scale_factor = 1>
 
+   > logs: init_policy\ version_88
+
+   >> No aprende!
+	> La r_continuous converge a 0, la r_difficulty a 0, la r_eventual a -1
+	> Num_objs para airplane, truck y package converge a 0
+
+
+>> Igual que anterior menos:
+   <diversity_scale_factor = 0>
+
+    > logs: init_policy\ version_89
+
+   >> No aprende (mismos resultados que en el experimento anterior)
+
+>> Igual que anterior menos:
+   <diversity_scale_factor = 0>
+   <init_policy_entropy_coeffs: 1, None>
+
+   > logs: init_policy version_90
+
+   >> Mismos resultados
+
+>> Igual que anterior menos:
+   <diversity_scale_factor = 0>
+   <init_policy_entropy_coeffs: 2, None>
+
+   > logs: init_policy version_91
+
+
+ >> Igual que anterior menos:
+   <diversity_scale_factor = 0>
+   <init_policy_entropy_coeffs: 10, None>
+
+   > logs: init_policy version_92
+
+   >> No aprende
+
+ >> Igual que anterior menos:
+   <diversity_scale_factor = 0>
+   <init_policy_entropy_coeffs: 0.5, None>
+
+   > logs: init_policy version_93
+
+   La r_continuous converge a 0 y la r_eventual a -1 (como en los experimentos anteriores).
+   No obstante, parece que los objetos package y truck convergen a 0.1
+   (hay de media uno por cada diez problemas).
+
+ >> Igual que anterior menos:
+   <diversity_scale_factor = 0>
+   <init_policy_entropy_coeffs: 0.5, None>
+   <diff measured with heuristics > (no usamos lama)
+   
+   > logs: init_policy version_94
+
+   >>> Mismos resultados que en los experimentos anteriores!!!
+	(quizás haya un bug en mi código)
+
+
+
+   <Repetición experimento anterior>
+>  init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+   goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+   init_policy_entropy_coeffs: 1, (500, 0.4)
+   goal_policy_entropy_coeffs: 0, None -> no entropy loss for goal policy
+   domain_with_exists
+   rescale_factor = 0.1
+   diff=np.mean(h_vals) + np.sqrt(np.std(h_vals)) + 1
+   lr_init_policy y lr_goal_policy = 2e-3 (it was 1e-3 before)
+   ignore term_cond_prob for calculating entropy
+   <max_actions_goal_state=60 (antes era 20)>
+
+   <no diversity_reward (la he comentado)>
+   <disc_factor_difficulty=0.995>
+   <disc_factor_event_consistency=0.9>
+
+   > logs (previo): init_policy\ version_85
+   > logs (actual): init_policy\ version_95
+
+   >>> Ahora sí aprende (r_diff llega hasta 0.9)
+	- Los logs son bastante parecidos a los del experimento con los mismos parámetros
+	  (init_policy\ version_85)
+
+
+
+
+
+
+   >>> PASOS A SEGUIR
+	> Probar también a ejecutar con rescale_factor=0 (sin r_difficulty)
+
+	> Si no aprende
+		- Volver al commit antes de añadir diversity_reward
+		- Comprobar que los experimentos se ejecutan bien en ese commit (se obtienen los mismos resultados
+		  que en experimentos anteriores)
+		- Añadir diversity reward solucionando el bug
+			- Comprobar que tras este commit los experimentos siguen saliendo bien
+		- Realizar experimentos con diversity reward y lama
+	> Si aprende
+		- Ir cambiando parámetros (para que se parezca a los últimos experimentos) hasta que
+		  deje de aprender:
+			- Bajar lr a 1e-3
+			- Medir dificultad con LAMA
+				- Nota: si al usar las heurísticas para medir la dificultad aprende y con LAMA, no,
+				        probar a aumentar bastante el rescale_factor (quizás sea más complicado
+						generar problemas que sean díficiles para LAMA que para las heuristics)
+			- Cambiar disc_factor_difficulty y disc_factor_event_consistency
+			- Probar a añadir diversity_reward
+
+
+
+   >>> AQUI-
+
+
+   
+   >> Hacer prueba con rescale_factor = 0
+   >>> Ver si mi código tiene algún bug!! (puedo probar a hacer revert a un commit previo)
+	- También puedo probar a repetir alguna ejecución anterior (usando heurísticas para medir la diff)
+	  con exactamente los mismos parámetros
+   # Quitar comentario use_epm = False
+
+
+
+   
+
+
+   >>> Hacer pruebas hasta que LAMA con lr=1e-3 sea capaz de aprender
+	- A partir de ahí, intentar mejorar los resultados (que se añadan
+	  airplanes y cities a los problemas, etc.)
+
 
 
 
@@ -1915,7 +2048,6 @@ def test_load_models_and_resume_training_logistics():
 
 -------
 
-   <<Volver a poner rescale_factor=0.1>>
    <<QUITAR use_epm = False>>
 
 	<< HACER EXPERIMENTOS MIDIENDO LA DIFICULTAD CON LAMA >>

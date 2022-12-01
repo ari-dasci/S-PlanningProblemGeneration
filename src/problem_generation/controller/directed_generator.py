@@ -657,7 +657,7 @@ class DirectedGenerator():
 
 
 		# QUITAR
-		use_epm = False
+		# use_epm = False
 
 
 
@@ -800,7 +800,7 @@ class DirectedGenerator():
 
 	<Note>: init_policy_trajectories is modified in-place
 	"""
-	def _add_diversity_reward(self, init_policy_trajectories, init_policy_trajectories_lens, diversity_rescale_factor=1):
+	def _add_diversity_reward(self, init_policy_trajectories, init_policy_trajectories_lens, diversity_rescale_factor=0):
 		# Obtain the indexes which delimit each individual trajectory in init_policy_trajectories
 		list_delims = [sum(init_policy_trajectories_lens[:i+1]) for i in range(len(init_policy_trajectories_lens))]
 
@@ -860,7 +860,7 @@ class DirectedGenerator():
 				init_policy_trajectories[i][-2] += score
 
 		# QUITAR
-		print("\n> Average diversity:", np.mean(diversity_scores), '\n')
+		print("\n> Average diversity (rescaled):", np.mean(diversity_scores), '\n')
 
 
 	# ------- Main Methods --------
@@ -1081,7 +1081,7 @@ class DirectedGenerator():
 	It returns a tuple (init_policy_trajectory, goal_policy_trajectory).
 	"""
 	def _obtain_trajectory_and_preprocess_for_PPO(self, max_atoms_init_state=-1, max_actions_init_state=-1, max_actions_goal_state=-1,
-											   disc_factor_cont_consistency=0, disc_factor_event_consistency=1, disc_factor_difficulty=1):
+											   disc_factor_cont_consistency=0, disc_factor_event_consistency=0.9, disc_factor_difficulty=0.995):
 
 		# <Obtain a trajectory with the init_state policy>
 		problem, init_policy_trajectory = self._obtain_trajectory_init_policy(max_atoms_init_state, max_actions_init_state)
@@ -1190,7 +1190,8 @@ class DirectedGenerator():
 
 
 			# Obtain diversity reward for the init_policy_trajectories
-			self._add_diversity_reward(init_policy_trajectories, init_policy_trajectories_lens)
+			# QUITAR
+			# self._add_diversity_reward(init_policy_trajectories, init_policy_trajectories_lens)
 
 			#print("\n\n Rewards after diversity", [sample[-2] for sample in init_policy_trajectories])
 
