@@ -838,7 +838,7 @@ def test_train_init_and_goal_policy_logistics():
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
 										   extra_input_preds_initial_state_nlm=True,
 										   res_connections_initial_state_nlm=False,
-										   lr_initial_state_nlm = 2e-3,
+										   lr_initial_state_nlm = 1e-3,
 										   entropy_coeff_init_state_policy = 1,
 										   entropy_annealing_coeffs_init_state_policy = (500, 0.4),
 										   epsilon_init_state_policy=0.1,
@@ -847,7 +847,7 @@ def test_train_init_and_goal_policy_logistics():
 										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
 										   extra_input_preds_goal_nlm=True,
 										   res_connections_goal_nlm=False,
-										   lr_goal_nlm = 2e-3,
+										   lr_goal_nlm = 1e-3,
 										   entropy_coeff_goal_policy = 0.0,
 										   entropy_annealing_coeffs_goal_policy = None,
 										   epsilon_goal_policy=0.1)
@@ -1995,12 +1995,64 @@ def test_load_models_and_resume_training_logistics():
 	  (init_policy\ version_85)
 
 
+>> Mismo experimento que init_policy\ version_95 menos:
+	<lr_init_policy y lr_goal_policy = 1e-3>
+
+	> logs: init_policy\ version_96
+
+	>> También aprende con lr=1e-3!! (De hecho aprende mejor)
+		- Se obtienen gráficas muy parecidas al experimento anterior
+
+
+>  init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+   goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+   init_policy_entropy_coeffs: 1, (500, 0.4)
+   goal_policy_entropy_coeffs: 0, None -> no entropy loss for goal policy
+   domain_with_exists
+   rescale_factor = 0.1
+   <diff=LAMA>
+   <lr_init_policy y lr_goal_policy = 1e-3>
+   ignore term_cond_prob for calculating entropy
+   max_actions_goal_state=60 (antes era 20)
+
+   <no diversity_reward (la he comentado)>
+   <disc_factor_difficulty=0.995>
+   <disc_factor_event_consistency=0.9>
+
+	> logs: init_policy\ version_97
+
+	> Entrenamiento
+		- Tiempo: 1h 46min (lo paré al inicio del entrenamiento)
+		- r_continuous converge a casi 0 y después converge a -0.1
+		- r_eventual al principio diverge a -0.7 pero después rápidamente sube hasta converge a 0
+		- r_diff a 0 al principio del entrenamiento. Después empieza a subir (al final del entrenamiento era 0.3)
+		- init_policy_entropy baja hasta 0.45 (seguía bajando)
+		- goal_policy_entropy sube hasta 0.9
+		- Object types:
+			- Airplane, package y truck convergen a 0 al principio del entrenamiento! Después el número de
+			  packages y trucks crece muy rápido (hasta 4 y seguía subiendo). Airplane crece un poco (hasta 0.05).
+			- Resto de objetos fluctúan alrededor de 1.4
+
+	<<Con estos parámetros las generative_policies sí aprenden>>
 
 
 
+	
+	>> Quitar use_epm = False
+
+
+
+	>>> AQUI-
 
    >>> PASOS A SEGUIR
-	> Probar también a ejecutar con rescale_factor=0 (sin r_difficulty)
+
+	>>> INTENTAR MEJORAR LA EFICIENCIA DE LA NLM
+		- Bajar num_trajectories_per_train_it, etc.
+		- Si no es suficiente, usar la NLM de los autores del paper
+			(ver correo)
+
+	>>> Ver si puedo generar problemas difíciles y diversos con LAMA (una vez que lo consiga, pasar a usar heuristics)
+		- Probar también a usar diversity_reward
 
 	> Si no aprende
 		- Volver al commit antes de añadir diversity_reward
@@ -2019,22 +2071,8 @@ def test_load_models_and_resume_training_logistics():
 						generar problemas que sean díficiles para LAMA que para las heuristics)
 			- Cambiar disc_factor_difficulty y disc_factor_event_consistency
 			- Probar a añadir diversity_reward
-
-
-
-   >>> AQUI-
-
-
    
-   >> Hacer prueba con rescale_factor = 0
-   >>> Ver si mi código tiene algún bug!! (puedo probar a hacer revert a un commit previo)
-	- También puedo probar a repetir alguna ejecución anterior (usando heurísticas para medir la diff)
-	  con exactamente los mismos parámetros
-   # Quitar comentario use_epm = False
 
-
-
-   
 
 
    >>> Hacer pruebas hasta que LAMA con lr=1e-3 sea capaz de aprender
