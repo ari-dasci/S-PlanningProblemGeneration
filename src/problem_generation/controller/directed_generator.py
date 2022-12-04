@@ -1135,6 +1135,8 @@ class DirectedGenerator():
 	def train_generative_policies(self, training_iterations, start_it=0, epochs_per_train_it=3, trajectories_per_train_it=50, minibatch_size=125,
 								  its_per_model_checkpoint=10, checkpoint_folder="saved_models/both_policies", logs_name="both_policies"):
 
+		# trajectories_per_train_it=50
+
 		# Obtain folder name to save the model checkpoints in
 		folders = glob.glob(checkpoint_folder + r'_*')
 		folder_inds = [f.split('_')[-1] for f in folders]
@@ -1214,7 +1216,7 @@ class DirectedGenerator():
 
 			# Train the policy
 
-			trainer_init_policy = pl.Trainer(max_epochs=epochs_per_train_it, logger=logger_init_policy) # We need to reset the trainer, so we create a new one
+			trainer_init_policy = pl.Trainer(max_epochs=epochs_per_train_it, logger=logger_init_policy, enable_checkpointing=False) # We need to reset the trainer, so we create a new one
 			trainer_init_policy.fit(self._initial_state_policy, trajectory_dataloader_init_policy)
 
 
@@ -1244,7 +1246,7 @@ class DirectedGenerator():
 				if len(goal_policy_trajectories) > 3*10*trajectories_per_train_it / 4:
 					goal_policy_train_epochs += 1
 
-				trainer_goal_policy = pl.Trainer(max_epochs=goal_policy_train_epochs, logger=logger_goal_policy)
+				trainer_goal_policy = pl.Trainer(max_epochs=goal_policy_train_epochs, logger=logger_goal_policy, enable_checkpointing=False)
 				trainer_goal_policy.fit(self._goal_policy, trajectory_dataloader_goal_policy)
 
 				# Linearly anneal the entropy regularization of the policy

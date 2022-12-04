@@ -875,8 +875,8 @@ def test_load_models_and_generate_problems_logistics():
 	goal_predicates = {('at', ('package','location'))}
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_144/init_policy_its-500.ckpt"
-	goal_policy_path = "saved_models/both_policies_144/goal_policy_its-500.ckpt"
+	init_policy_path = "saved_models/both_policies_164/init_policy_its-770.ckpt"
+	goal_policy_path = "saved_models/both_policies_164/goal_policy_its-770.ckpt"
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
@@ -929,9 +929,9 @@ def test_load_models_and_resume_training_logistics():
 	goal_predicates = {('at', ('package','location'))}
 
 	# Create the generator and load the trained models
-	curr_it = 330 # It of the loaded model, used to resume training
-	init_policy_path = "saved_models/both_policies_130/init_policy_its-{}.ckpt".format(curr_it)
-	goal_policy_path = "saved_models/both_policies_130/goal_policy_its-{}.ckpt".format(curr_it)
+	curr_it = 350 # It of the loaded model, used to resume training
+	init_policy_path = "saved_models/both_policies_163/init_policy_its-{}.ckpt".format(curr_it)
+	goal_policy_path = "saved_models/both_policies_163/goal_policy_its-{}.ckpt".format(curr_it)
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
@@ -2034,96 +2034,197 @@ def test_load_models_and_resume_training_logistics():
 			- Resto de objetos fluctúan alrededor de 1.4
 
 	<<Con estos parámetros las generative_policies sí aprenden>>
-
-
-
+	<Aunque creo que sigue el problema de generar problemas con pocos cities y airplanes (no estoy seguro)>
 	
-	>> Quitar use_epm = False
 
+>  init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+   goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+   init_policy_entropy_coeffs: 1, (500, 0.4)
+   goal_policy_entropy_coeffs: 0, None -> no entropy loss for goal policy
+   domain_with_exists
+   rescale_factor = 0.1
+   <diff=LAMA>
+   <lr_init_policy y lr_goal_policy = 1e-3>
+   ignore term_cond_prob for calculating entropy
+   max_actions_goal_state=60 (antes era 20)
+   <trajectories_per_train_it=25> (antes era 50)
+
+   <no diversity_reward (la he comentado)>
+   <disc_factor_difficulty=0.995>
+   <disc_factor_event_consistency=0.9>
+
+   > logs: init_policy\ version_98
+
+   >> Al bajar el trajectories_per_train_it sigue aprendiendo!!
+		> Tarda más its, pero es más eficiente en training time total
+
+
+>  init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+   goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+   init_policy_entropy_coeffs: 1, (500, 0.4)
+   goal_policy_entropy_coeffs: 0, None -> no entropy loss for goal policy
+   domain_with_exists
+   rescale_factor = 0.1
+   <diff=LAMA>
+   <lr_init_policy y lr_goal_policy = 1e-3>
+   ignore term_cond_prob for calculating entropy
+   max_actions_goal_state=60 (antes era 20)
+   <trajectories_per_train_it=25> (antes era 50)
+   <disc_factor_difficulty=1>
+   <disc_factor_event_consistency=1>
+
+   <no diversity_reward (la he comentado)>
+	
+   > logs: init_policy\ version_99
+
+   >>> NO APRENDE!!!
+	Parece que cuando pongo disc_factor_difficulty=1 y disc_factor_event_consistency=1
+	no aprende!
+
+	La r_eventual converge a -1 y no se mueve de ahí.
+
+
+>  init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+   goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+   init_policy_entropy_coeffs: 1, (500, 0.4)
+   goal_policy_entropy_coeffs: 0, None -> no entropy loss for goal policy
+   domain_with_exists
+   rescale_factor = 0.1
+   <diff=LAMA>
+   <lr_init_policy y lr_goal_policy = 1e-3>
+   ignore term_cond_prob for calculating entropy
+   max_actions_goal_state=60 (antes era 20)
+   <trajectories_per_train_it=25> (antes era 50)
+   <disc_factor_difficulty=0.995>
+   <disc_factor_event_consistency=0.9>
+
+   <no diversity_reward (la he comentado)>
+   
+   > logs anterior: init_policy\ version_98
+   > logs: init_policy\ version_100
+
+   >>> No aprende (r_eventual no converge a 0 (al menos en 2h de entrenamiento))
+   <Quizás necesite aumentar el número de trajectories_per_train_it al inicio del entrenamiento!!!>
+
+
+>  init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+   goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+   init_policy_entropy_coeffs: 1, (500, 0.4)
+   goal_policy_entropy_coeffs: 0, None -> no entropy loss for goal policy
+   domain_with_exists
+   rescale_factor = 0.1
+   <diff=LAMA>
+   <lr_init_policy y lr_goal_policy = 1e-3>
+   ignore term_cond_prob for calculating entropy
+   max_actions_goal_state=60 (antes era 20)
+   <trajectories_per_train_it=25> (antes era 50)
+   <disc_factor_difficulty=0.995>
+   <disc_factor_event_consistency=0.9>
+
+   <no diversity_reward (la he comentado)>
+   
+   > logs anterior: init_policy\ version_98
+   > logs: init_policy\ version_101
+
+   >>> Mismos resultados que en el experimento anterior!! (no aprende)
+
+
+>  init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+   goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+   init_policy_entropy_coeffs: 1, (500, 0.4)
+   goal_policy_entropy_coeffs: 0, None -> no entropy loss for goal policy
+   domain_with_exists
+   rescale_factor = 0.1
+   <diff=LAMA>
+   <lr_init_policy y lr_goal_policy = 1e-3>
+   ignore term_cond_prob for calculating entropy
+   max_actions_goal_state=60 (antes era 20)
+   <trajectories_per_train_it=50> (antes era 25)
+   <disc_factor_difficulty=0.995>
+   <disc_factor_event_consistency=0.9>
+
+   <no diversity_reward (la he comentado)>
+
+   > logs: init_policy\ version_102 y 103
+   > saved_models: both_policies_163 y 164
+
+   > Entrenamiento
+	- Tiempo de entrenamiento: 2 días 6 horas!!! (el entrenamiento lo ejecuté hasta que la diff dejó de aumentar)
+	- r_eventual converge a 0, r_continuous converge a -0.2
+	- r_diff llega hasta 3.5 (medida con LAMA y rescale_factor 0.1)
+	- init_policy_entropy converge a 0.65. goal_policy_entropy converge a 0.72 (seguía bajando, pero ya muy lentamente)
+	- term_cond_prob converge a 0, tanto para la init como goal policies
+	- num_cities converge a 1, y num_airplanes alrededor de 0.1
+
+   > Problemas (its=770, diff=LAMA)
+	- diff=51.35 - difficultad muy alta!!! (la del logistics instance generator es de 40.8)
+		- Aun así, creo que la dificultad sigue sin ser suficiente (quizás cambie al medir con otros planners)
+		- Casi todos los problemas tienen 20 átomos!!!
+
+	- diversidad (media-baja)
+		- Todos los problemas con una única ciudad!
+		- Solo un problema con airplane!
+		- Número de locations y airports varía bastante entre problemas
+		- Goals diversos!!! (los paquetes están en distintas locations (no todos en la misma!!))
+
+	<Creo que las generative policies no aprenden "de verdad" -> NECESITO NLM CON PREDICADOS DE ARIEDAD 3!!!>
+	
+
+
+
+
+
+
+   <<COMPROBAR QUE SE SIGUEN GUARDANDO CHECKPOINTS EN SAVE MODELS!!>>
+   >>> Mirar
+   https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html
+   Ver cómo hacer que no se guarden checkpoints automáticamente en los logs (ya los guardo yo manualmente en saved_models)
+   Creo que puedo usar enable_checkpointing=False en Trainer.fit()
+	
 
 
 	>>> AQUI-
 
-   >>> PASOS A SEGUIR
+--------------------- Siguientes experimentos
+
+	> Repetir experimento disc_factors=1 pero con 50 trajectories_per_train_it (a ver si ahora sí aprende)
+
+	> Probar a variar num_trajectories durante el entrenamiento (num_min samples y nun_max_trajectories)
+
+	> NLM con predicados de ariedad 3
+
+	> diversity_reward
+
+--------------------- Siguientes pasos 
+	
+	<<<Diff logistics instance generator: 40.8>>>
+	<Responder al correo de Mauro>
+	>> Quitar use_epm = False
 
 	>>> INTENTAR MEJORAR LA EFICIENCIA DE LA NLM
-		- Bajar num_trajectories_per_train_it, etc.
+		- Bajar num_trajectories_per_train_it, etc. -> HECHO
 		- Si no es suficiente, usar la NLM de los autores del paper
 			(ver correo)
+		- Probar a usar GPU
+			- Ver consejos para no quedarse sin GPU memory: https://pytorch.org/docs/stable/notes/faq.html
 
 	>>> Ver si puedo generar problemas difíciles y diversos con LAMA (una vez que lo consiga, pasar a usar heuristics)
 		- Probar también a usar diversity_reward
 
-	> Si no aprende
-		- Volver al commit antes de añadir diversity_reward
-		- Comprobar que los experimentos se ejecutan bien en ese commit (se obtienen los mismos resultados
-		  que en experimentos anteriores)
-		- Añadir diversity reward solucionando el bug
-			- Comprobar que tras este commit los experimentos siguen saliendo bien
-		- Realizar experimentos con diversity reward y lama
-	> Si aprende
-		- Ir cambiando parámetros (para que se parezca a los últimos experimentos) hasta que
-		  deje de aprender:
-			- Bajar lr a 1e-3
-			- Medir dificultad con LAMA
-				- Nota: si al usar las heurísticas para medir la dificultad aprende y con LAMA, no,
-				        probar a aumentar bastante el rescale_factor (quizás sea más complicado
-						generar problemas que sean díficiles para LAMA que para las heuristics)
-			- Cambiar disc_factor_difficulty y disc_factor_event_consistency
-			- Probar a añadir diversity_reward
-   
+	>>> Si al final termino midiendo la dificultad con el planner, debo ir alternando entre LAMA y otros planners
+	    durante el entrenamiento!!! (ir alternando entre varios
+	    satisficing planners durante el entrenamiento, normalizando las dificultades para
+	    que todas estén en el mismo rango)
 
+	>>> Evaluar generalización en problemas más grandes
+		- Si es capaz de generalizar a problemas más grandes, no es necesario medir la dificultad con heurísticas
 
+	>>> Integrar search algorithm con el código!!!
 
-   >>> Hacer pruebas hasta que LAMA con lr=1e-3 sea capaz de aprender
-	- A partir de ahí, intentar mejorar los resultados (que se añadan
-	  airplanes y cities a los problemas, etc.)
+	>>> Ver si añado reglas al state_validator de logistics (las que se usan en el pddl generator)
+		- Ej.: que cada ciudad tenga al menos un aeropuerto y camión (truck)
 
-
-
-
-
-
--------
-
-   <<QUITAR use_epm = False>>
-
-	<< HACER EXPERIMENTOS MIDIENDO LA DIFICULTAD CON LAMA >>
-	Una vez que las generative_policies aprendan, intentar estimar la dificultad
-	con las heurísticas!
-
-   >> Quizás el learning rate siga siendo muy alto para la goal_policy!!
-
-   <Al generar problemas, evaluar la generalización para problemas más grandes!>
-
-   
-   >> A la hora de comparar la dificultad con el instance generator de logistics,
-	   ver si debería limitar el número de trucks, airplanes, etc. en el estado inicial
-	   para así comparar en "igualdad de condiciones" los problemas de mi método
-	   con los del instance generator -> SI LOS PROBLEMAS GENERADOS POR MI MÉTODO
-	   SON DIVERSOS ESTO NO DEBERÍA SER UN PROBLEMA (ej.: habrá problemas con muchos
-	   trucks, packages, etc. pero otros con un número menor)
-
-
-   >> Si esta ejecución funciona, hacer lo siguiente:
-	- Ver si puedo obtener los mismos resultado usando las heurísticas en vez del planner
-	  para medir la dificultad (usar una fórmula diferente, cambiar el rescale_factor...)
-		- Poner rescale_factor a 0.05 en vez de 0.1
-	- Intentar reducir el tiempo de entrenamiento!!
-		- Reducir num_trajectories_per_train_it
-		- Cambiar batch_size...
-	- Probar a usar NLM con preds arity 3, a ver si mejoran los resultados
-
-	- Si no, probar a usar varios planners en vez de solo LAMA (ir alternando entre varios
-	  satisficing planners durante el entrenamiento, normalizando las dificultades para
-	  que todas estén en el mismo rango)
-	>> PROBAR QUE LAS GENERATIVE_POLICIES GENERALIZAN A PROBLEMAS MÁS GRANDES!!!
-
-
-
-
-
-
+---------------------
 
 	<Si no funciona, probar a entrenar con una NLM con preds de ariedad 3 y
 	solo entrenar la init policy durante las primeras 70 its (para que así
@@ -2158,93 +2259,17 @@ def test_load_models_and_resume_training_logistics():
 		
 		<Opción 4>: Usar NLM con predicados de ariedad 3, para ver si así sí aprende la goal_policy
 
-
-
-    >> Siguientes experimentos:
-		<Si veo que escoge muchas veces acciones que violan la continuous_consistency,
-		puedo limitar el número de acciones por trajectory>
-		<PROBAR QUE LOS PROBLEMAS GENERADOS GENERALIZAN A TAMAÑOS MAYORES!!!>
-		<RESPONDER CORREO DE MAURO>
-
-		1. Probar con distintos rescale_factor -> Done
-			- Quizás tenga que bajar la init_policy entropy o subir un poco la goal_policy entropy
-
-		2. Hacer prueba usando min_num_atoms y min_actions_goal. -> NO
-			- Si no se han añadido el número suficiente de átomos o ejecutado el min número de acciones,
-			  no se puede samplear la termination condition
-
-		3. Si no aprende, probar otra forma de motivar la diversidad en vez de la entropía.
-			- Dado un conjunto N de trayectorias, calcular la diversidad de estas N trayectorias
-			  (tal y como hago en el algoritmo de búsqueda) y añadir esta diversidad como una
-			  recompensa auxiliar para la init_policy (para la goal_policy, seguir usando
-			  la entropía).
-
-		4. Probar a bajar la init_policy_entropy si no aprende
-
-		5. Hacer prueba con NLM con predicados de ariedad 3
-			- También probar a usar más hidden_units en el MLP de la NLM
-
-		6. Probar un menor learning rate (quizás aprenda más rápido, al ser más estable)
-
-		7. Hacer prueba usando el planner para medir la dificultad durante el entrenamiento
-
-		8. Cambiar forma de calcular la entropía:
-			- Probar a usar solo ground action entropy (quitar lifted entropy)
-			- Añadir object entropy
-				- También puedo dar mucha importancia a que haya objetos de distintos tipos en el search algorithm
-
 ----- TODO
-
-> Ver si añado a las consistency rules de logistics las restricciones que tiene el logistics instance generator
-	- En cada ciudad siempre hay un aeropuerto y un camión
-	- Cada problema tiene al menos un avión
-	- Si las añado, "ayudo" a mi problem generator, ya que le estoy dando pistas sobre cómo generar los problemas.
-	  No obstante, si es capaz de generar problemas difíciles y diversos sin estas reglas adicionales, es mejor
-	  no añadirlas. La razón es que 1) puede que así los problemas generados sean más diversos (ej.: generar
-	  problemas donde hay ciudades sin camiones) y 2) el usuario tiene que codificar menos reglas de consistencia
-	  (puedo argumentar que mi método require menos esfuerzo que el instance generator de logistics, ya que algunas
-	  de las reglas (como que cada ciudad tiene un truck) las aprende por sí solas mi método) -> MI MÉTODO
-	  APRENDE AUTOMÁTICAMENTE AQUELLAS CONSISTENCY RULES QUE RESULTAN EN PROBLEMAS COMPLEJOS!!!
-
-> Ver si se generan problemas con varios tipos en el init state (específicamente, que tengan objetos de tipo "airplane")
-	- Si no, cambiar cálculo entropy_loss para motivar que se añadan objetos de distintos tipos
-	- Probar si ahora sí se añaden objetos de tipo airplane
 
 > <Opcional> Mejorar eficiencia NLM
 	- Ejecutar sobre GPU -> no merece la pena (se queda sin memoria la GPU y el entrenamiento es más lento)
 	- Mantener constante el número de samples_per_train_it en vez de trajectories_per_train_it
 	  <<NO FUNCIONA (el modelo no aprende)>>
 
-	>> Si necesito mejorar la eficiencia, lo que debería de hacer es reducir el número de parámetros de las acciones.
-	   Para ello, debería añadir soporte para :when :forall y :exists en el parser y cambiar el dominio de logistics
-	   para que las acciones tengan menos parámetros (quitar el parámetro "city" de las acciones)
-
->> Añadir algoritmo de búsqueda
-	- Leer sobre diversity planning y ver cómo puedo hacer el algoritmo de búsqueda
-		- Ver si integro el algoritmo de búsqueda con el entrenamiento (de manera parecida a AlphaZero)
-		  o si entreno la política como hasta ahora y solo uso el algoritmo de búsqueda en test
-	- Ver cómo medir la diversidad entre los problemas generados (incluidos aquellos que solo tienen estado inicial pero no goal)
-		- Tengo que ver cómo medir la diversidad en 1) init state generation phase y 2) goal state generation phase
-		- Creo que puedo usar un subconjunto de las planning features usadas para medir la dificultad
-		  (ver txt escritorio "Cómo medir la diversidad...")
-	- Implementar algoritmo de búsqueda (tanto para random_generator como directed_generator) y comparar resultados vs
-	  cuando no se usa el algoritmo de búsqueda (para esto, creo que puedo crear un parámetro en el algoritmo de búsqueda
-	  para que la open_list tenga espacio para un solo nodo (problema))
-		- Ver si mejora la dificultad y la diversidad
-		- Ver si mejora la generalización a problemas más grandes (con un mayor número de átomos)
-			- Si no, simplemente aumentar el max_atoms_init_state por encima del número de átomos que realmente queremos generar
-
-> Comparar dificultad de los problemas generados con mi método (para logistics) con los generados mediante el instance generator
-  de logistics (ver github AIPlanning)
-	- Mi método debería ser capaz de generar problemas más difíciles!!
-	- Si no es capaz, quizás debería simplificar el dominio de logistics (añadir :exists y quitar action parameters)
-	  para facilitar el entrenamiento
-
 > Testear método en sokoban
 	- Actualizar lifted_pddl a la versión 2
 	- Hacer pruebas en sokoban para ver si mi método funciona bien en un dominio tan complejo
-	- Si no, usar un dominio más sencillo en vez de sokoban (como zenotravel)
-
+	- Si no, usar un dominio más sencillo en vez de sokoban
 
 > Escritura paper
 	- En la experimentación del paper, añadir un apartado donde genere problemas muy difíciles (aunque con poca diversidad)
@@ -2255,8 +2280,6 @@ def test_load_models_and_resume_training_logistics():
 	  Los hard constraints estarían relacionados con la validez (que sean resolubles y consistentes) y los soft constraints
 	  con la calidad (otras preferencias del usuario, como que los problemas sean lo más difíciles posible)
 
------- OTRO
-
 > Facilitar la codificación de las reglas de consistencia
 	- Añadir métodos para poder codificar reglas del tipo "num-preds(pred, [list-objs])" de manera declarativa
 	  Mirar cómo lo hace ESSENCE
@@ -2264,7 +2287,7 @@ def test_load_models_and_resume_training_logistics():
 
 -----------------------------
 
-> Comparación directed_generator con random_generator en blocksworld
+> Comparación directed_generator con random_generator en blocksworld ---> COMPARAR CON EL INSTANCE GENERATOR DE BLOCKSWORLD
 	- Mi método genera problemas mucho más difíciles (CON EL MISMO NÚMERO DE ÁTOMOS)
 		- Ej.: para 50 átomos, el random_generator obtiene dificulty 100 y mi método 1100
 
@@ -2275,26 +2298,11 @@ def test_load_models_and_resume_training_logistics():
 > Consigo generar problemas más o menos diversos y difíciles con las generative policies
   También consigo que generalicen a problemas más grandes aumentando el max_actions_init_state por encima del número
   de átomos que quiero obtener
-  No obstante, el método se ralentiza cuando tiene que generar problemas con un gran número de átomos (debido al pddl_parser)
-
-  Cosas a mejorar:
-	- La diversidad de los problemas debería ser un poco mayor (el init state generalmente tiene una sola torre y nunca tiene handempty)
-	- La generalización a problemas más grandes (tengo que poner max_actions_init_state más alto de lo necesario para que generalice)
-	- El tiempo en generar el goal para problemas grandes (el método groundify del pddl_parser es muy lento)
 
 ------
 
 >>> Solucionar bug timeout a la hora de llamar al planificador (a veces no da timeout) -> 
       Ver https://stackoverflow.com/questions/73024049/timeout-for-subprocess-run-not-working-for-python-3-8-13-on-windows
-
-<TODO>: Intentar ejecutar la NLM sobre gpu en vez de cpu (básicamente mover todos los datos a gpu) -> Dejarlo para más adelante (probablemente no haga
-          que mi código sea más eficiente y hay que cambiar mucho código para que se pueda entrenar en gpu)
-
-# ------------------------------------------------------ TODO
-
-
-# MIRAR LINK: https://vitalab.github.io/article/2020/01/14/Implementation_Matters.html
-# HAY MUCHOS "CODE-LEVEL OPTIMIZATIONS" QUE PUEDEN SER IMPORTANTES DE CARA A TRABAJAR CON PPO!!!
 
 """
 
@@ -2319,8 +2327,8 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems()
 
 	#test_generate_random_problems_logistics()
-	test_train_init_and_goal_policy_logistics()
-	#test_load_models_and_generate_problems_logistics()	
+	#test_train_init_and_goal_policy_logistics()
+	test_load_models_and_generate_problems_logistics()	
 	#test_load_models_and_resume_training_logistics()
 
 

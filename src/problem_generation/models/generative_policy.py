@@ -447,6 +447,7 @@ class GenerativePolicy(pl.LightningModule):
 		num_preds_state_tensors = len(train_batch[0][1]) # The number of elements in state_tensors (equal to the max predicate arity - 1)
 		list_state_tensors_nlm_encoding = [[sample[1][r] for sample in train_batch] for r in range(num_preds_state_tensors)]
 
+		# Ver cómo hacer padding de manera eficiente
 
 		# < Obtain the average rewards for the logs >
 		reward_continuous = np.mean(train_batch_np[:,6])
@@ -516,11 +517,11 @@ class GenerativePolicy(pl.LightningModule):
 			self.logger.experiment.add_scalar("Total Reward Normalized", reward_total_norm, global_step=self.curr_log_iteration)
 			self.logger.experiment.add_scalars('Rewards', {'Reward Continuous': reward_continuous, 'Reward Eventual': reward_eventual, 'Reward Difficulty': reward_difficulty},
 											   global_step=self.curr_log_iteration)
-			self.logger.experiment.add_scalar("Actor Policy Entropy", policy_entropy, global_step=self.curr_log_iteration)
-			self.logger.experiment.add_scalars('Actor Losses', {'Total Loss': actor_loss, 'PPO Loss': PPO_loss, 'Entropy Loss': entropy_loss},
+			self.logger.experiment.add_scalar("Actor Policy Entropy", policy_entropy.item(), global_step=self.curr_log_iteration)
+			self.logger.experiment.add_scalars('Actor Losses', {'Total Loss': actor_loss.item(), 'PPO Loss': PPO_loss.item(), 'Entropy Loss': entropy_loss.item()},
 											   global_step=self.curr_log_iteration)
-			self.logger.experiment.add_scalar("Critic Loss", critic_loss, global_step=self.curr_log_iteration)
-			self.logger.experiment.add_scalar("Termination Condition Probability", mean_term_cond_prob, global_step=self.curr_log_iteration)
+			self.logger.experiment.add_scalar("Critic Loss", critic_loss.item(), global_step=self.curr_log_iteration)
+			self.logger.experiment.add_scalar("Termination Condition Probability", mean_term_cond_prob.item(), global_step=self.curr_log_iteration)
 
 			# <Log number of objects of each type>
 
