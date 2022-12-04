@@ -54,14 +54,16 @@ class DirectedGenerator():
 				 predicates_to_consider_for_goal=None, initial_state_info=None, consistency_validator=ValidatorPredOrderBW,
 				 penalization_continuous_consistency=-1, penalization_eventual_consistency=-1,
 				 max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
-				
-				 num_preds_inner_layers_initial_state_nlm=[[4,4,4,4]], mlp_hidden_layers_initial_state_nlm=[0,0], 
-				 extra_input_preds_initial_state_nlm=True, res_connections_initial_state_nlm=False,
+							 
+				 depth_initial_state_nlm=4, breadth_initial_state_nlm=3,
+				 num_preds_inner_layers_initial_state_nlm=[4,4,4,4], mlp_hidden_layers_initial_state_nlm=None, 
+				 res_connections_initial_state_nlm=False, io_residual_initial_state_nlm=True,
 				 lr_initial_state_nlm=5e-4, entropy_coeff_init_state_policy=1.0,
 				 entropy_annealing_coeffs_init_state_policy = None, epsilon_init_state_policy=0.2, load_init_state_policy_checkpoint_name=None,
 				 
-				 num_preds_inner_layers_goal_nlm=[[4,4,4,4]], mlp_hidden_layers_goal_nlm=[0,0], 
-				 extra_input_preds_goal_nlm=True, res_connections_goal_nlm=False,
+				 depth_goal_nlm=4, breadth_goal_nlm=3,
+				 num_preds_inner_layers_goal_nlm=[4,4,4,4], mlp_hidden_layers_goal_nlm=None, 
+				 res_connections_goal_nlm=False, io_residual_goal_nlm=True,
 				 lr_goal_nlm=5e-4, entropy_coeff_goal_policy = 1.0,
 				 entropy_annealing_coeffs_goal_policy = None, epsilon_goal_policy=0.2, load_goal_policy_checkpoint_name=None):
 				 
@@ -70,9 +72,9 @@ class DirectedGenerator():
 		warnings.filterwarnings('ignore', category=FutureWarning) # Numpy warning
 		warnings.filterwarnings("ignore", ".*Consider increasing the value of the `num_workers` argument*") # Pytorch warning about increasing number of workers for dataloader
 
-		if (extra_input_preds_initial_state_nlm and res_connections_initial_state_nlm) or \
-		   (extra_input_preds_goal_nlm and res_connections_goal_nlm):
-			raise Exception("The NLM cannot use extra_input_preds and residual_connections at the same time.")
+		if (res_connections_initial_state_nlm and io_residual_initial_state_nlm) or \
+		   (res_connections_goal_nlm and io_residual_goal_nlm):
+			raise Exception("The NLM cannot use residual_connections and io_residual at the same time.")
 
 		self._parser = parser
 		self._planner = planner
@@ -124,57 +126,64 @@ class DirectedGenerator():
 		# <Generative policies>
 
 		# Initial state generation policy
-		num_preds_all_layers_initial_state_nlm = self._num_preds_all_layers_init_nlm(num_preds_inner_layers_initial_state_nlm)
+		num_input_preds_initial_state_nlm, num_output_preds_initial_state_nlm = self._num_preds_all_layers_init_nlm(num_preds_inner_layers_initial_state_nlm)
 
-		extra_preds_each_arity_initial_state_nlm = self._extra_preds_each_arity_init_nlm(num_preds_all_layers_initial_state_nlm[0]) if extra_input_preds_initial_state_nlm else None
+		#extra_preds_each_arity_initial_state_nlm = self._extra_preds_each_arity_init_nlm(num_preds_all_layers_initial_state_nlm[0]) if extra_input_preds_initial_state_nlm else None
 
 		# QUITAR
 		#print("num_preds_all_layers_initial_state_nlm", num_preds_all_layers_initial_state_nlm)
 		#print("extra_preds_each_arity_initial_state_nlm", extra_preds_each_arity_initial_state_nlm)
 
 		if load_init_state_policy_checkpoint_name is None:
-			self._initial_state_policy = GenerativePolicy(num_preds_all_layers_initial_state_nlm, mlp_hidden_layers_initial_state_nlm, 
-														extra_preds_each_arity_initial_state_nlm,
-														res_connections_initial_state_nlm, lr_initial_state_nlm,
-														entropy_coeff_init_state_policy,
-														entropy_annealing_coeffs_init_state_policy, epsilon_init_state_policy,
-														dummy_rel_state_predicates)
+			self._initial_state_policy = GenerativePolicy(depth_initial_state_nlm, breadth_initial_state_nlm, num_input_preds_initial_state_nlm,
+														  num_preds_inner_layers_initial_state_nlm, num_output_preds_initial_state_nlm,
+														  mlp_hidden_layers_initial_state_nlm, lr_initial_state_nlm,
+														  entropy_coeff_init_state_policy, entropy_annealing_coeffs_init_state_policy,
+														  epsilon_init_state_policy, dummy_rel_state_predicates,
+														  res_connections_initial_state_nlm, io_residual_initial_state_nlm)
 		else: # Load initial state policy from checkpoint
 			self._initial_state_policy = GenerativePolicy.load_from_checkpoint(checkpoint_path=load_init_state_policy_checkpoint_name,
-																				 num_preds_layers_nlm=num_preds_all_layers_initial_state_nlm, 
-																				 mlp_hidden_sizes_nlm=mlp_hidden_layers_initial_state_nlm,
-																				 nlm_extra_preds_each_arity=extra_preds_each_arity_initial_state_nlm,
-																				 nlm_residual_connections=res_connections_initial_state_nlm, 
-																				 lr=lr_initial_state_nlm,
-																				 action_entropy_coeff=entropy_coeff_init_state_policy,
-																				 entropy_annealing_coeffs=entropy_annealing_coeffs_init_state_policy, 
-																				 epsilon=epsilon_init_state_policy,
-																				 dummy_rel_state=dummy_rel_state_predicates)
-
+																		depth=depth_initial_state_nlm,
+																		breadth=breadth_initial_state_nlm,
+																		num_input_preds=num_input_preds_initial_state_nlm,
+																		num_inner_preds=num_preds_inner_layers_initial_state_nlm,
+																		num_output_preds=num_output_preds_initial_state_nlm,
+																		mlp_hidden_size=mlp_hidden_layers_initial_state_nlm,
+																		lr=lr_initial_state_nlm,
+																		action_entropy_coeff=entropy_coeff_init_state_policy,
+																		entropy_annealing_coeffs=entropy_annealing_coeffs_init_state_policy, 
+																		epsilon=epsilon_init_state_policy,
+																		dummy_rel_state=dummy_rel_state_predicates,
+																		residual_connections=res_connections_initial_state_nlm,
+																		io_residual=io_residual_initial_state_nlm)
+		
 		# Goal generation policy
-		num_preds_all_layers_goal_nlm = self._num_preds_all_layers_goal_nlm(num_preds_inner_layers_goal_nlm)
+		num_input_preds_goal_nlm, num_output_preds_goal_nlm = self._num_preds_all_layers_goal_nlm(num_preds_inner_layers_goal_nlm)
 
-		extra_preds_each_arity_goal_nlm = self._extra_preds_each_arity_goal_nlm(num_preds_all_layers_goal_nlm[0]) if extra_input_preds_goal_nlm else None
+		# extra_preds_each_arity_goal_nlm = self._extra_preds_each_arity_goal_nlm(num_preds_all_layers_goal_nlm[0]) if extra_input_preds_goal_nlm else None
 
 		if load_goal_policy_checkpoint_name is None:
-			self._goal_policy = GenerativePolicy(num_preds_all_layers_goal_nlm, mlp_hidden_layers_goal_nlm,
-														extra_preds_each_arity_goal_nlm,
-														res_connections_goal_nlm, lr_goal_nlm,
-														entropy_coeff_goal_policy,
-														entropy_annealing_coeffs_goal_policy, epsilon_goal_policy,
-														dummy_rel_state_predicates)
+			self._goal_policy = GenerativePolicy(depth_goal_nlm, breadth_goal_nlm, num_input_preds_goal_nlm,
+														  num_preds_inner_layers_goal_nlm, num_output_preds_goal_nlm,
+														  mlp_hidden_layers_goal_nlm, lr_goal_nlm,
+														  entropy_coeff_goal_policy, entropy_annealing_coeffs_goal_policy,
+														  epsilon_goal_policy, dummy_rel_state_predicates,
+														  res_connections_goal_nlm, io_residual_goal_nlm)
 		else: # Load initial state policy from checkpoint
 			self._goal_policy = GenerativePolicy.load_from_checkpoint(checkpoint_path=load_goal_policy_checkpoint_name,
-																				 num_preds_layers_nlm=num_preds_all_layers_goal_nlm, 
-																				 mlp_hidden_sizes_nlm=mlp_hidden_layers_goal_nlm,
-																				 nlm_extra_preds_each_arity=extra_preds_each_arity_goal_nlm,
-																				 nlm_residual_connections=res_connections_goal_nlm, 
-																				 lr=lr_goal_nlm,
-																				 action_entropy_coeff=entropy_coeff_goal_policy,
-																				 entropy_annealing_coeffs=entropy_annealing_coeffs_goal_policy, 
-																				 epsilon=epsilon_goal_policy,
-																				 dummy_rel_state=dummy_rel_state_predicates)
-
+																		depth=depth_goal_nlm,
+																		breadth=breadth_goal_nlm,
+																		num_input_preds=num_input_preds_goal_nlm,
+																		num_inner_preds=num_preds_inner_layers_goal_nlm,
+																		num_output_preds=num_output_preds_goal_nlm,
+																		mlp_hidden_size=mlp_hidden_layers_goal_nlm,
+																		lr=lr_goal_nlm,
+																		action_entropy_coeff=entropy_coeff_goal_policy,
+																		entropy_annealing_coeffs=entropy_annealing_coeffs_goal_policy, 
+																		epsilon=epsilon_goal_policy,
+																		dummy_rel_state=dummy_rel_state_predicates,
+																		residual_connections=res_connections_goal_nlm,
+																		io_residual=io_residual_goal_nlm)
 
 		# QUITAR
 		#print("num_preds_all_layers_goal_nlm", num_preds_all_layers_goal_nlm)
@@ -224,16 +233,13 @@ class DirectedGenerator():
 
 
 	"""
-	Receives @num_preds_inner_layers_initial_state_nlm and returns the number of predicates of ALL the layers in the NLM 
-	(it adds the shapes corresponding to the input and output layers).
+	Receives @num_preds_inner_layers_initial_state_nlm and returns the number of predicates in the input and output NLM layers.
 
 	This function also adds the extra input nullary predicate corresponding to the number of atoms already added to the initial state,
 	the extra input unary predicates encoding object types and the extra output nullary predicate (in the last position) corresponding 
 	to the termination condition.
 	"""
 	def _num_preds_all_layers_init_nlm(self, num_preds_inner_layers_initial_state_nlm):
-		num_preds_inner_layers_initial_state_nlm = np.array(num_preds_inner_layers_initial_state_nlm, dtype=np.int) # Convert to np array in case it was a list
-		
 		# Get domain predicates
 		domain_types = self._parser.types
 		domain_type_hierarchy = self._parser.type_hierarchy
@@ -241,48 +247,26 @@ class DirectedGenerator():
 		
 		dummy_rel_state = RelationalState(domain_types, domain_type_hierarchy, domain_preds)
 
-		if len(num_preds_inner_layers_initial_state_nlm) == 0: # Don't use inner layers
-			input_nlm_layer_shape = np.array(dummy_rel_state.num_preds_each_arity_for_nlm(-1)).reshape(1,-1)
-			output_nlm_layer_shape = np.array(dummy_rel_state.num_preds_each_arity_for_nlm(-1)).reshape(1,-1)
+		max_nlm_arity = len(num_preds_inner_layers_initial_state_nlm)-1
 
-			# Input predicates
-			input_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate for perc_actions_executed
-			input_nlm_layer_shape[0][1] += len(domain_types) # Add extra unary predicates to represent the object types
+		input_nlm_layer_shape = dummy_rel_state.num_preds_each_arity_for_nlm(max_nlm_arity)
+		output_nlm_layer_shape = dummy_rel_state.num_preds_each_arity_for_nlm(max_nlm_arity)
 
-			# Output predicates
-			output_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate for the termination condition probability
+		input_nlm_layer_shape[0] += 1 # Add one extra nullary predicate for perc_actions_executed
+		input_nlm_layer_shape[1] += len(domain_types) # Add extra unary predicates to represent the object types
 
-			num_preds_all_layers_initial_state_nlm = np.concatenate((input_nlm_layer_shape, output_nlm_layer_shape))
+		output_nlm_layer_shape[0] += 1 # Add one extra nullary predicate for the termination condition probability
 
-		else: # Use inner layers, as given by @num_preds_inner_layers_initial_state_nlm
-			max_nlm_arity = len(num_preds_inner_layers_initial_state_nlm[0])-1
-
-			# Input predicates
-			input_nlm_layer_shape = np.array(dummy_rel_state.num_preds_each_arity_for_nlm(max_nlm_arity)).reshape(1,-1)
-			output_nlm_layer_shape = np.array(dummy_rel_state.num_preds_each_arity_for_nlm(max_nlm_arity)).reshape(1,-1)
-
-			# Output predicates
-			input_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate for perc_actions_executed
-			input_nlm_layer_shape[0][1] += len(domain_types) # Add extra unary predicates to represent the object types
-
-			output_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate for the termination condition probability
-
-			num_preds_all_layers_initial_state_nlm = np.concatenate((input_nlm_layer_shape, num_preds_inner_layers_initial_state_nlm,
-																	 output_nlm_layer_shape))
-
-		return num_preds_all_layers_initial_state_nlm
+		return input_nlm_layer_shape, output_nlm_layer_shape
 
 	"""
-	Receives @num_preds_inner_layers_goal_nlm and returns the number of predicates of ALL the layers in the NLM 
-	(it adds the shapes corresponding to the input and output layers).
+	Receives @num_preds_inner_layers_goal_nlm and returns the number of predicates in the input and output NLM layers.
 
 	This function also adds the extra input nullary predicate corresponding to the number of actions already executed to obtain
 	the current goal state, the extra input unary predicates encoding object types and the extra output nullary predicate 
 	(in the last position) corresponding to the termination condition.
 	"""
 	def _num_preds_all_layers_goal_nlm(self, num_preds_inner_layers_goal_nlm):
-		num_preds_inner_layers_goal_nlm = np.array(num_preds_inner_layers_goal_nlm, dtype=np.int) # Convert to np array in case it was a list
-		
 		# Get domain types and actions (with their parameters types) -> e.g.: ['stack', ['block', 'block']]
 		domain_types = self._parser.types
 		domain_type_hierarchy = self._parser.type_hierarchy
@@ -291,32 +275,17 @@ class DirectedGenerator():
 		dummy_rel_state_input = RelationalState(domain_types, domain_type_hierarchy, domain_preds)
 		dummy_rel_state_output = self._dummy_rel_state_actions
 
-		if len(num_preds_inner_layers_goal_nlm) == 0: # Don't use inner layers
-			input_nlm_layer_shape = np.array(dummy_rel_state_input.num_preds_each_arity_for_nlm(-1)).reshape(1,-1)
-			input_nlm_layer_shape *= 2 # The number of input predicates is actually twice, as it corresponds to both the predicates of the initial and goal states	
-			input_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate representing the percentage of actions executed
-			input_nlm_layer_shape[0][1] += len(domain_types) # Add extra unary predicates to represent the object types
+		max_nlm_arity = len(num_preds_inner_layers_goal_nlm)-1
 
-			output_nlm_layer_shape = np.array(dummy_rel_state_output.num_preds_each_arity_for_nlm(-1)).reshape(1,-1)
-			output_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate representing the termination condition
+		input_nlm_layer_shape = np.array(dummy_rel_state_input.num_preds_each_arity_for_nlm(max_nlm_arity))
+		input_nlm_layer_shape *= 2 # The number of input predicates is actually twice, as it corresponds to both the predicates of the initial and goal states	
+		input_nlm_layer_shape[0] += 1 # Add one extra nullary predicate representing the percentage of actions executed
+		input_nlm_layer_shape[1] += len(domain_types) # Add extra unary predicates to represent the object types
 
-			num_preds_all_layers_goal_nlm = np.concatenate((input_nlm_layer_shape, output_nlm_layer_shape)) # Both the input and output layers have the same shape, as they correspond to state predicates
+		output_nlm_layer_shape = dummy_rel_state_output.num_preds_each_arity_for_nlm(max_nlm_arity)
+		output_nlm_layer_shape[0] += 1 # Add one extra nullary predicate representing the termination condition
 
-		else: # Use inner layers, as given by @num_preds_inner_layers_initial_state_nlm
-			max_nlm_arity = len(num_preds_inner_layers_goal_nlm[0])-1
-
-			input_nlm_layer_shape = np.array(dummy_rel_state_input.num_preds_each_arity_for_nlm(max_nlm_arity)).reshape(1,-1)
-			input_nlm_layer_shape *= 2 # The number of input predicates is actually twice, as it corresponds to both the predicates of the initial and goal states	
-			input_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate representing the percentage of actions executed
-			input_nlm_layer_shape[0][1] += len(domain_types) # Add extra unary predicates to represent the object types
-
-			output_nlm_layer_shape = np.array(dummy_rel_state_output.num_preds_each_arity_for_nlm(max_nlm_arity)).reshape(1,-1)
-			output_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate representing the termination condition
-
-			num_preds_all_layers_goal_nlm = np.concatenate((input_nlm_layer_shape, num_preds_inner_layers_goal_nlm,
-																	 output_nlm_layer_shape))
-
-		return num_preds_all_layers_goal_nlm
+		return input_nlm_layer_shape.tolist(), output_nlm_layer_shape
 
 	"""
 	Assuming extra_input_preds_goal_nlm is True, this method obtains a list with the extra predicates to add as inputs
@@ -616,10 +585,10 @@ class DirectedGenerator():
 
 		# Estimate state-value V(s) with the Critic NLM of the initial state policy
 		if policy == 'initial_state_policy':
-			critic_output = self._initial_state_policy.critic_nlm(list_state_tensors_nlm_encoding, \
+			critic_output = self._initial_state_policy.forward_critic_NLM(list_state_tensors_nlm_encoding, \
 																  list_num_objs_with_virtuals)[0] # [0] to obtain the tensors for the nullary predicates
 		elif policy == 'goal_policy':
-			critic_output = self._goal_policy.critic_nlm(list_state_tensors_nlm_encoding, \
+			critic_output = self._goal_policy.forward_critic_NLM(list_state_tensors_nlm_encoding, \
 														 list_num_objs_with_virtuals)[0] # [0] to obtain the tensors for the nullary predicates
 		else:
 			raise ValueError("Policy parameter must be either 'initial_state_policy' or 'goal_policy'")
@@ -883,7 +852,7 @@ class DirectedGenerator():
 
 		# Information about the NLM of the initial state policy
 		init_nlm_max_pred_arity = self._initial_state_policy.actor_nlm.max_arity # This value corresponds to the breadth of the NLM
-		init_nlm_output_layer_shape = self._initial_state_policy.actor_nlm.num_output_preds_layers[-1]
+		init_nlm_output_layer_shape = self._initial_state_policy.actor_nlm.num_output_preds
 
 		trajectory = []
 
@@ -988,7 +957,7 @@ class DirectedGenerator():
 
 		# Information about the NLM of the goal policy
 		goal_nlm_max_pred_arity = self._goal_policy.actor_nlm.max_arity # This value corresponds to the breadth of the NLM
-		goal_nlm_output_layer_shape = self._goal_policy.actor_nlm.num_output_preds_layers[-1]
+		goal_nlm_output_layer_shape = self._goal_policy.actor_nlm.num_output_preds
 
 		trajectory = []
 
@@ -1401,7 +1370,7 @@ class DirectedGenerator():
 	def get_log_probs_init_state_policy(self, problem_state, max_atoms_init_state):
 		# Information about the NLM of the initial state policy
 		init_nlm_max_pred_arity = self._initial_state_policy.actor_nlm.max_arity # This value corresponds to the breadth of the NLM
-		init_nlm_output_layer_shape = self._initial_state_policy.actor_nlm.num_output_preds_layers[-1]
+		init_nlm_output_layer_shape = self._initial_state_policy.actor_nlm.num_output_preds
 
 		# Information about the initial state
 		init_state = problem_state.initial_state
@@ -1425,7 +1394,7 @@ class DirectedGenerator():
 	def get_log_probs_goal_state_policy(self, problem_state, num_actions_executed, max_actions_goal_state):
 		# Information about the NLM of the goal policy
 		goal_nlm_max_pred_arity = self._goal_policy.actor_nlm.max_arity # This value corresponds to the breadth of the NLM
-		goal_nlm_output_layer_shape = self._goal_policy.actor_nlm.num_output_preds_layers[-1]
+		goal_nlm_output_layer_shape = self._goal_policy.actor_nlm.num_output_preds
 
 		# Information about the goal state
 		goal_state = problem_state.goal_state

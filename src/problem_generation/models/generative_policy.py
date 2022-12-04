@@ -3,6 +3,7 @@
 # with some related functionality.
 
 import torch
+import torch.nn.functional as F
 import numpy as np
 import pytorch_lightning as pl
 from itertools import chain
@@ -16,8 +17,6 @@ class GenerativePolicy(pl.LightningModule):
 	"""
 	Constructor. Creates the NLMs (actor and critic) used for the initial state and goal policies.
 
-	@nlm_extra_preds_each_arity The extra predicates which must be given as inputs to every NLM layer except for the first one
-	@nlm_residual_connections Whether the NLM must use residual connections
 	@action_entropy_coeff Coefficient for the entropy loss, used when calculating the Actor loss
 	@epsilon PPO parameter that controls how much the policy can diverge from the old one
 	@entropy_annealing_coeffs If None, we do not change the entropy coefficient during training.
@@ -27,12 +26,15 @@ class GenerativePolicy(pl.LightningModule):
 		Note: reduce_entropy() method must be manually called after each trainer.fit() in order to reduce the entropy.	
 	@dummy_rel_state An instance of RelationalState, containing information about the types and predicates in the domain.
 
-	Note: @num_preds_layers_nlm needs to include the extra nullary predicate for the termination condition (in the output layer)
+	Note: @num_input_preds and @num_output_preds need to include the extra nullary predicate for the termination condition (in the output layer)
 	      and the number of atoms already added to the initial state (perc_actions_executed, a number between 0 and 1), in case these are needed.
 	      Also, it needs to include the extra unary predicates representing object types, if needed.
 	"""
-	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_extra_preds_each_arity, nlm_residual_connections, lr,
-			     action_entropy_coeff, entropy_annealing_coeffs, epsilon, dummy_rel_state):
+	def __init__(self, depth, breadth, num_input_preds, num_inner_preds, num_output_preds, mlp_hidden_size,
+	 			 lr, action_entropy_coeff, entropy_annealing_coeffs, epsilon, dummy_rel_state,
+				 residual_connections=False, io_residual=True):
+	#def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_extra_preds_each_arity, nlm_residual_connections, lr,
+	#		     action_entropy_coeff, entropy_annealing_coeffs, epsilon, dummy_rel_state):
 		super().__init__()
 
 		self._lr = lr
@@ -48,16 +50,19 @@ class GenerativePolicy(pl.LightningModule):
 																          dtype=torch.float32))
 			self.register_buffer('_final_iteration_entropy_annealing', torch.tensor(entropy_annealing_coeffs[0], dtype=torch.int32))
 
-		self._actor_nlm = NLM(num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_extra_preds_each_arity, nlm_residual_connections)
+		# self._actor_nlm = NLM(num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_extra_preds_each_arity, nlm_residual_connections)
+		self._actor_nlm = NLM(depth, breadth, num_input_preds.copy(), num_inner_preds.copy(), num_output_preds.copy(),
+		                      mlp_hidden_size, residual_connections, io_residual)
 
 
 		# The NLM for the critic has the same shape as the actor NLM except for the output layer, where it only has
 		# a single nullary predicate corresponding to the value function prediction V(s)
-		num_preds_layers_nlm_critic = np.copy(num_preds_layers_nlm) # We can't share reference!
-		num_preds_layers_nlm_critic[-1, :] = 0
-		num_preds_layers_nlm_critic[-1, 0] = 1
+		num_output_preds_critic = num_output_preds
+		num_output_preds_critic[:] = 0
+		num_output_preds_critic[0] = 1
 
-		self._critic_nlm = NLM(num_preds_layers_nlm_critic, mlp_hidden_sizes_nlm, nlm_extra_preds_each_arity, nlm_residual_connections)
+		self._critic_nlm = NLM(depth, breadth, num_input_preds.copy(), num_inner_preds.copy(), num_output_preds_critic.copy(),
+		                       mlp_hidden_size, residual_connections, io_residual)
 
 		# Variables used to keep track of the current iteration
 		# Used to track the current logging iteration in order to save the logs correctly
@@ -100,6 +105,47 @@ class GenerativePolicy(pl.LightningModule):
 		return self._critic_nlm
 
 	# ------- Auxiliar methods
+
+	"""
+	Receives a list of tensors @list_tensors, where @list_tensors[r][i] contains the tensors associated with the predicates
+	of arity r for sample i in the batch.
+	It returns @list_tensors in an encoding suitable for the NLM, where list_tensors[r] is now a torch.Tensor containing
+	the stacked tensors for predicates of arity r for the whole batch.
+
+	@list_num_objs List with the number of objects for each sample in the batch
+	"""
+	def _pad_and_stack_tensors(self, list_tensors, list_num_objs):
+		max_objs = max(list_num_objs)
+
+		# Pad the tensors
+		# Example: if max_objs = 5 and we have a tensor of shape [3][3][7] (3 objs), then it must be padded to [5][5][7]
+		list_tensors_padded = [ [F.pad(tensor, (0,0)+(0,max_objs-num_objs)*r, mode='constant', value=0.0) for tensor, num_objs in zip(list_tensors[r], list_num_objs)] \
+		   						if r > 0 and list_tensors[r][0] is not None else list_tensors[r]
+								for r in range(len(list_tensors)) ]
+
+		# For each arity, stack the tensors along a new dimension
+		# Additionally, substitute [None, None, ...] by None (a list of Nones for a single None)
+		list_tensors_stacked = [torch.stack(tensors_r) if tensors_r[0] is not None else None for tensors_r in list_tensors_padded]
+
+		return list_tensors_stacked
+		
+	"""
+	Inverts the results of applying _pad_and_stack_tensors().
+	"""
+	def _unpad_and_unstack_tensors(self, list_tensors, list_num_objs):
+		# Unstack tensors in order to obtain a list of tensors for each arity
+		# Also, substitute None by [None, None, ...] (a single None for a list of Nones)
+		list_tensors_unstacked = [torch.unbind(tensor) if tensor is not None else [None]*len(list_num_objs) for tensor in list_tensors]
+
+		# Unpad the tensors
+		# tuple([slice(num_objs) for _ in range(r)])+(slice(None),) -> Used to obtain the indixes without padding
+		# For example, if [3][3][7] was padded to [5][5][7] -> tensor[:3,:3,:] (':' encodes a slice object)
+		list_tensors_unpadded = [[tensor[tuple([slice(num_objs) for _ in range(r)])+(slice(None),)] for tensor, num_objs in zip(list_tensors_unstacked[r], list_num_objs)] 	\
+								 if r > 0 and list_tensors_unstacked[r][0] is not None else list_tensors_unstacked[r] \
+								 for r in range(len(list_tensors_unstacked))]
+
+		return list_tensors_unpadded
+
 
 	"""
 	Uses @list_mask_tensors to mask (i.e., set to -inf) those tensor values (@list_nlm_output) corresponding to invalid atoms, i.e.,
@@ -358,11 +404,21 @@ class GenerativePolicy(pl.LightningModule):
 	those output values corresponding to invalid atoms.
 	Outputs a list of probabilities (as tensors) for each sample in the batch, where invalid actions (atoms) have a probability of -inf.
 
+	@list_state_tensors A list where list_state_tensors[r] contains a list with the predicates of arity r for all the samples in the batch.
 	@list_mask_tensors If None or [None, ...], we do not mask the nlm_output
 	"""
 	def forward(self, list_state_tensors, list_num_objs, list_mask_tensors=None):	
+		# list_state_tensors_nlm_encoding = [[sample[1][r] for sample in train_batch] for r in range(num_preds_state_tensors)]
+		tensor_num_objs = torch.tensor(list_num_objs, requires_grad=False)
+
+		# Represent list_state_tensors in an encoding suitable for the NLM
+		nlm_input = self._pad_and_stack_tensors(list_state_tensors, tensor_num_objs)
+
 		# NLM forward pass
-		list_nlm_output = self._actor_nlm(list_state_tensors, list_num_objs)
+		nlm_output = self._actor_nlm(nlm_input, list_num_objs)
+
+		# Unpad tensors to obtain the same encoding as in @list_state_tensors
+		list_nlm_output = self._unpad_and_unstack_tensors(nlm_output, list_num_objs)
 
 		# Mask NLM output (set to -inf values corresponding to invalid atoms)
 		if list_mask_tensors is not None and list_mask_tensors[0] is not None:
@@ -374,6 +430,26 @@ class GenerativePolicy(pl.LightningModule):
 		list_nlm_output_log_softmax = self._log_softmax(list_nlm_output_masked)
 
 		return list_nlm_output_log_softmax
+
+	"""
+	Compute a forward pass for the critic NLM, instead of the actor NLM.
+	Works the same as the forward method for the actor NLM, but does not mask the NLM output nor apply log_softmax.
+
+	@list_state_tensors A list where list_state_tensors[r] contains a list with the predicates of arity r for all the samples in the batch.
+	"""
+	def forward_critic_NLM(self, list_state_tensors, list_num_objs):
+		tensor_num_objs = torch.tensor(list_num_objs, requires_grad=False)
+
+		# Represent list_state_tensors in an encoding suitable for the NLM
+		nlm_input = self._pad_and_stack_tensors(list_state_tensors, list_num_objs)
+		
+		# Obtain NLM output
+		nlm_output = self._critic_nlm(nlm_input, tensor_num_objs)
+
+		# Unpad tensors to obtain the same encoding as in @list_state_tensors
+		list_state_tensors_output = self._unpad_and_unstack_tensors(nlm_output, list_num_objs)
+
+		return list_state_tensors_output
 
 	"""
 	Like forward, but it receives a single element (i.e., state) instead of a batch of samples.
@@ -447,7 +523,7 @@ class GenerativePolicy(pl.LightningModule):
 		num_preds_state_tensors = len(train_batch[0][1]) # The number of elements in state_tensors (equal to the max predicate arity - 1)
 		list_state_tensors_nlm_encoding = [[sample[1][r] for sample in train_batch] for r in range(num_preds_state_tensors)]
 
-		# Ver cómo hacer padding de manera eficiente
+		# >>>> PAD TENSORS
 
 		# < Obtain the average rewards for the logs >
 		reward_continuous = np.mean(train_batch_np[:,6])
@@ -458,7 +534,7 @@ class GenerativePolicy(pl.LightningModule):
 
 		# < Critic >
 
-		critic_output = self._critic_nlm(list_state_tensors_nlm_encoding, list_num_objs)[0] # [0] to obtain the tensors for the nullary predicates	
+		critic_output = self.forward_critic_NLM(list_state_tensors_nlm_encoding, list_num_objs)[0] # [0] to obtain the tensors for the nullary predicates	
 		#state_values_with_gradient = torch.tensor([tensor[0] for tensor in critic_output]) # If I create the tensor like this (tensor from list of tensors), the gradient can't flow
 		state_values_with_gradient = torch.cat([tensor[0].view(1) for tensor in critic_output]) # [0] to obtain the first predicate of the nullary predicates (corresponding to the state_value)
 

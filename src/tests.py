@@ -818,39 +818,43 @@ def test_train_init_and_goal_policy_logistics():
 	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]] # -> Preds arity 3
 	# nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]] # -> No preds arity 3
 
-	# The goal_nlm_layers need to account for arity 4, as one action has 4 parameters
-	# We also need to have some predicates of arity 3 in the last layer or, else, there will be no predicates to compute the action of arity 4
-	
 	# NLM layers without predicates of arity 3
-	init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
-	goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+	init_policy_nlm_inner_layers = [8,8,8,0]
+	goal_policy_nlm_inner_layers = [8,8,8,0]
 
 	# NLM layers with predicates of arity 3
 	#init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	#goal_policy_nlm_inner_layers = [[8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,4,0]]
 
-	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
+	nlm_hidden_layers_mlp = None
+
+	# Depth and breadth
+	breadth=3
+	depth_init_nlm=7
+	depth_goal_nlm=7
 
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=60,
+										   
+										depth_initial_state_nlm = depth_init_nlm,
+										breadth_initial_state_nlm = breadth,
+										num_preds_inner_layers_initial_state_nlm = init_policy_nlm_inner_layers,
+										mlp_hidden_layers_initial_state_nlm = nlm_hidden_layers_mlp,
+										io_residual_initial_state_nlm = True,
+										lr_initial_state_nlm = 1e-3,
+										entropy_coeff_init_state_policy = 1,
+										entropy_annealing_coeffs_init_state_policy = (500, 0.4),
+										epsilon_init_state_policy=0.1,
 
-										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
-										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
-										   extra_input_preds_initial_state_nlm=True,
-										   res_connections_initial_state_nlm=False,
-										   lr_initial_state_nlm = 1e-3,
-										   entropy_coeff_init_state_policy = 1,
-										   entropy_annealing_coeffs_init_state_policy = (500, 0.4),
-										   epsilon_init_state_policy=0.1,
-
-										   num_preds_inner_layers_goal_nlm=goal_policy_nlm_inner_layers,
-										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
-										   extra_input_preds_goal_nlm=True,
-										   res_connections_goal_nlm=False,
-										   lr_goal_nlm = 1e-3,
-										   entropy_coeff_goal_policy = 0.0,
-										   entropy_annealing_coeffs_goal_policy = None,
-										   epsilon_goal_policy=0.1)
+										depth_goal_nlm = depth_goal_nlm,
+										breadth_goal_nlm = breadth,
+										num_preds_inner_layers_goal_nlm = goal_policy_nlm_inner_layers,
+										mlp_hidden_layers_goal_nlm = nlm_hidden_layers_mlp,
+										io_residual_goal_nlm = True,
+										lr_goal_nlm = 1e-3,
+										entropy_coeff_goal_policy = 0.0,
+										entropy_annealing_coeffs_goal_policy = None,
+										epsilon_goal_policy=0.1)
 
 	# Train the goal generation policy
 	directed_generator.train_generative_policies(training_iterations = 10000)
@@ -2327,8 +2331,8 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems()
 
 	#test_generate_random_problems_logistics()
-	#test_train_init_and_goal_policy_logistics()
-	test_load_models_and_generate_problems_logistics()	
+	test_train_init_and_goal_policy_logistics()
+	#test_load_models_and_generate_problems_logistics()	
 	#test_load_models_and_resume_training_logistics()
 
 

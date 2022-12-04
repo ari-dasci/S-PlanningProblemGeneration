@@ -448,8 +448,7 @@ class RelationalState():
                 for obj_ind, obj_type in enumerate(object_types):
                     both_states_nlm_encoding[1][obj_ind][num_unary_preds*2 + self._obj_types_to_indices_dict[obj_type]] = 1.0
                     # num_unary_preds*2 since we need to account for the unary_preds of the initial state and the goal state
-
-            
+        
         return both_states_nlm_encoding
 
 
