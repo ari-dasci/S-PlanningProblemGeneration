@@ -138,11 +138,14 @@ class GenerativePolicy(pl.LightningModule):
 		list_tensors_unstacked = [torch.unbind(tensor) if tensor is not None else [None]*len(list_num_objs) for tensor in list_tensors]
 
 		# Unpad the tensors
-		# tuple([slice(num_objs) for _ in range(r)])+(slice(None),) -> Used to obtain the indixes without padding
+		# (slice(num_objs),)*r + (slice(None),) -> Used to obtain the indixes without padding
 		# For example, if [3][3][7] was padded to [5][5][7] -> tensor[:3,:3,:] (':' encodes a slice object)
-		list_tensors_unpadded = [[tensor[tuple([slice(num_objs) for _ in range(r)])+(slice(None),)] for tensor, num_objs in zip(list_tensors_unstacked[r], list_num_objs)] 	\
+		list_tensors_unpadded = [[tensor[(slice(num_objs),)*r + (slice(None),)] for tensor, num_objs in zip(list_tensors_unstacked[r], list_num_objs)] 	\
 								 if r > 0 and list_tensors_unstacked[r][0] is not None else list_tensors_unstacked[r] \
 								 for r in range(len(list_tensors_unstacked))]
+
+		# tuple([slice(num_objs) for _ in range(r)])+(slice(None),)
+		# (slice(num_objs),)*r + (slice(None),)
 
 		return list_tensors_unpadded
 
@@ -457,7 +460,7 @@ class GenerativePolicy(pl.LightningModule):
 	def forward_single_state(self, state_tensors, num_objs, mask_tensors=None):
 		# Add one nesting level so that the encoding is as the NLM expects (i.e., a single-element batch in this case)
 		state_tensors_batch = [[tensor] for tensor in state_tensors]
-		
+
 		# Obtain (masked) log probabilities for each action (atom)
 		action_log_probs = self.forward(state_tensors_batch, [num_objs], [mask_tensors])	
 
@@ -522,8 +525,6 @@ class GenerativePolicy(pl.LightningModule):
 		# Represent the state tensors in a suitable encoding for the NLMs
 		num_preds_state_tensors = len(train_batch[0][1]) # The number of elements in state_tensors (equal to the max predicate arity - 1)
 		list_state_tensors_nlm_encoding = [[sample[1][r] for sample in train_batch] for r in range(num_preds_state_tensors)]
-
-		# >>>> PAD TENSORS
 
 		# < Obtain the average rewards for the logs >
 		reward_continuous = np.mean(train_batch_np[:,6])
