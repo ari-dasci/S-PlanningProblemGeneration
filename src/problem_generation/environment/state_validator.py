@@ -458,7 +458,7 @@ class DummyValidatorBW(ValidatorPredOrder):
 
 
 
-	"""
+"""
 Consistency validator for the blocksworld domain. It guides the initial state generation process by establishing
 an order in which atoms must be added to the state.
 """

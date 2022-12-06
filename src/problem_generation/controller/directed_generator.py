@@ -379,11 +379,12 @@ class DirectedGenerator():
 					  take into account the extra nullary predicate added for the termination condition (in case it is added).
 	@rel_state Instance of RelationalState representing the state the NLM is applied to. Used to obtain the state objects (with their types)
 			   and the domain predicates (with their variable types).
+	@allowed_predicates Predicates which can be added to the state in the next action.
 	"""
-	def _get_mask_tensors_init_policy(self, nlm_output_shape, rel_state):  
+	def _get_mask_tensors_init_policy(self, nlm_output_shape, rel_state, allowed_predicates):  
 		# Get the objects (including virtuals)
 		# Example: ['truck', 'airplane', 'package']
-		objs_with_virtuals = rel_state.objects + rel_state.virtual_objs_with_type
+		objs_with_virtuals = rel_state.objects + rel_state.virtual_objs_with_type(allowed_predicates)
 		num_objs_with_virtuals = len(objs_with_virtuals)
 		predicates = rel_state.predicates # Get the state predicates
 		pred_to_index_dict = rel_state.pred_names_to_indices_dict_each_arity
@@ -505,11 +506,11 @@ class DirectedGenerator():
 	Example: if the state contains two objects and we are going to add a new virtual object, we need to change @atom_to_add from
 			 ['on', [3, 0]] to ['on', [2,0]]
 	"""
-	def get_objs_to_add_and_atom_with_correct_indexes(self, rel_state, atom_to_add):
+	def get_objs_to_add_and_atom_with_correct_indexes(self, rel_state, atom_to_add, allowed_predicates):
 		state_preds = rel_state.predicates
 		objs_without_virtuals = rel_state.objects
 		num_objs_without_virtuals = len(objs_without_virtuals)
-		objs_with_virtuals = objs_without_virtuals + rel_state.virtual_objs_with_type
+		objs_with_virtuals = objs_without_virtuals + rel_state.virtual_objs_with_type(allowed_predicates)
 		num_objs_with_virtuals = len(objs_with_virtuals)
 
 		# <Obtain the types of the objects atom_to_add is instantiated on>
@@ -903,14 +904,16 @@ class DirectedGenerator():
 			# Information about the current state
 			curr_state = problem.initial_state	
 			curr_state_copy = curr_state.copy() # Copy the state so that, when curr_state is modified, curr_state_copy is not
-			perc_actions_executed = curr_state.num_atoms / max_atoms_init_state # Obtain percentage of actions executed/atoms added (with respect to the max number of actions/atoms)
-			curr_state_tensors = curr_state.atoms_nlm_encoding(max_arity=init_nlm_max_pred_arity, perc_actions_executed=perc_actions_executed)
+			perc_actions_executed = curr_state.num_atoms / max_atoms_init_state # Obtain percentage of actions executed/atoms added (with respect to the max number of actions/atoms)	
+			preds_curr_phase = self._consistency_validator.predicates_in_current_phase(curr_state)					
+			curr_state_tensors = curr_state.atoms_nlm_encoding(max_arity=init_nlm_max_pred_arity, allowed_predicates=preds_curr_phase,
+														 	   perc_actions_executed=perc_actions_executed)
 
 			# Calculate the number of objects in the state plus the number of virtual objects
-			num_objs_with_virtuals = curr_state.num_objects + curr_state.num_virtual_objects
+			num_objs_with_virtuals = curr_state.num_objects + curr_state.num_virtual_objects(preds_curr_phase)
 
 			# Mask tensors
-			mask_tensors = self._get_mask_tensors_init_policy(init_nlm_output_layer_shape, curr_state)
+			mask_tensors = self._get_mask_tensors_init_policy(init_nlm_output_layer_shape, curr_state, preds_curr_phase)
 
 			# Obtain an action (index) with the policy
 			chosen_action_index, chosen_action_prob = self._initial_state_policy.select_action(curr_state_tensors, num_objs_with_virtuals,
@@ -940,7 +943,7 @@ class DirectedGenerator():
 				chosen_action = [chosen_action_name, chosen_action_index[1:-1]] # To form the chosen action, we add the action name and obj indexes like ['on', [1, 0]]
 
 				# Obtain the object types and objects to add as part of the chosen action. Also change the obj indexes of chosen_action
-				chosen_action, objs_to_add, obj_types = self.get_objs_to_add_and_atom_with_correct_indexes(curr_state, chosen_action)
+				chosen_action, objs_to_add, obj_types = self.get_objs_to_add_and_atom_with_correct_indexes(curr_state, chosen_action, preds_curr_phase)
 
 				# Represent the action (atom) as a tuple
 				chosen_action = (chosen_action[0], tuple(chosen_action[1]))
@@ -1406,10 +1409,12 @@ class DirectedGenerator():
 		# Information about the initial state
 		init_state = problem_state.initial_state
 		perc_actions_executed = init_state.num_atoms / max_atoms_init_state
-		init_state_tensors = init_state.atoms_nlm_encoding(max_arity=init_nlm_max_pred_arity, perc_actions_executed=perc_actions_executed)
-		num_objs_with_virtuals = init_state.num_objects + init_state.num_virtual_objects
+		preds_curr_phase = self._consistency_validator.predicates_in_current_phase(init_state)		
+		init_state_tensors = init_state.atoms_nlm_encoding(max_arity=init_nlm_max_pred_arity, allowed_predicates=preds_curr_phase,
+														   perc_actions_executed=perc_actions_executed)
+		num_objs_with_virtuals = init_state.num_objects + init_state.num_virtual_objects(preds_curr_phase)
 
-		mask_tensors = self._get_mask_tensors_init_policy(init_nlm_output_layer_shape, init_state)
+		mask_tensors = self._get_mask_tensors_init_policy(init_nlm_output_layer_shape, init_state, preds_curr_phase)
 
 		# Obtain masked log probs for problem_state.initial_state, using the initial_state_policy
 		action_log_probs = self._initial_state_policy.forward_single_state(init_state_tensors, num_objs_with_virtuals, mask_tensors)

@@ -909,7 +909,7 @@ def test_load_models_and_generate_problems_logistics():
 	num_problems = 10
 
 	directed_generator.generate_problems(num_problems, max_atoms_init_state=30, max_actions_init_state=60,
-									     max_actions_goal_state=90, max_planning_time=600, verbose=True)
+									     max_actions_goal_state=60, max_planning_time=600, verbose=True)
 
 
 def test_load_models_and_resume_training_logistics():
@@ -2238,8 +2238,13 @@ def test_load_models_and_resume_training_logistics():
 
 
 
+
+
+
+
 	>>> TODO hoy
 		- Añadir tipos obj_virtuals manualmente
+		- Añadir unary_predicates que indique si un objeto es virtual o no
 		- Obtener trayectorias en paralelo
 
 	>>> Si no se generan problemas con airplanes, añadir a las reglas de consistencia que

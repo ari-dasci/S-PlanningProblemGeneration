@@ -112,35 +112,6 @@ class RelationalState():
             ind_list[p_arity] += 1 # Add 1 to the index, so that next predicate of the same arity gets a different associated index
         
 
-        # Store the virtual objects (with their corresponding type) which are added to the NLM encoding
-        # of the state (when necessary)
-        # Used in self.atoms_nlm_encoding()
-        self._virtual_objs_with_type = []
-
-        num_virtual_objs_each_type = [0]*self.num_types
-
-        # Calculate how many virtual objects need to be added for each type
-        for p in sorted_predicates:
-            num_virtual_objs_each_type_p = [0]*self.num_types
-
-            # See how many objects of each type appear in p
-            for param_type in p[1]:
-                # We need to consider both the type "param_type" and all its children types (types which inherit from it)
-                child_types = self._type_hierarchy[param_type] # It includes param_type
-
-                for t in child_types:
-                    num_virtual_objs_each_type_p[self._obj_types_to_indices_dict[t]] += 1
-
-            # Calculate element-wise maximum of the two lists
-            num_virtual_objs_each_type = [max(i, j) for i, j in \
-                                      zip(num_virtual_objs_each_type, num_virtual_objs_each_type_p)]
-
-        # Add needed virtual objects of each type
-        for type_ind in range(self.num_types):
-            self._virtual_objs_with_type.extend( [self._indices_to_obj_types_dict[type_ind]]*num_virtual_objs_each_type[type_ind] )
-
-
-
     def __copy__(self):
         new_copy = RelationalState(self._types.copy(), self._type_hierarchy.copy(), self._predicates.copy(), self._objects.copy(),
                                    self._atoms.copy())
@@ -155,10 +126,6 @@ class RelationalState():
     @property
     def num_objects(self):     
         return len(self._objects)
-
-    @property
-    def num_virtual_objects(self):
-        return len(self._virtual_objs_with_type)
 
     @property
     def num_atoms(self):
@@ -229,10 +196,6 @@ class RelationalState():
         return self._objects
 
     @property
-    def virtual_objs_with_type(self):
-        return self._virtual_objs_with_type
-
-    @property
     def atoms(self):
         return self._atoms
     
@@ -256,7 +219,6 @@ class RelationalState():
     def get_predicate_by_arity_and_ind(self, arity, index):
         return self._arity_and_ind_to_predicate_dict[(arity, index)]
 
-
     """
     Returns a list with the number of predicates of each arity, from r=0 to r=max_arity.
     Example: max_arity=3 -> [1,3,1,0] for blocksworld
@@ -271,29 +233,46 @@ class RelationalState():
 
         return num_preds_each_arity_for_nlm
 
-
     """
-    Returns the state atoms in the encoding the AC-GNN class uses.
-    Example: [('on', (1, 0)), ('on', (2, 1)) ('clear', (2))] -> 
-             ({0 : torch.tensor([1,0,2,1], dtype=torch.int64), 1 : torch.tensor([2], dtype=torch.int64)}, [3])
-    >>> NOTE: if there is a predicate for which there exists no atom in the state, that predicate will not appear in the 
-              atom_dictionary (instead of having an element like "1 : []", simply don't put it in the dictionary)
+    Returns the list of virtual objects of the state. They are returned as a list with their types, e.g., ['truck','truck','city']
+
+    @allowed_predicates List of predicates names representing the predicate types of atoms which can be added to the state
+                        in the current phase. Obtained by calling StateValidator.predicates_in_current_phase().
+                        If None, all the predicates are allowed.
     """
-    @property
-    def atoms_gnn_encoding(self):
-        num_objs = [self.num_objects]
-        atom_dict = dict()
+    def virtual_objs_with_type(self, allowed_predicates=None):
+        if allowed_predicates is None:
+            sorted_predicates = sorted(self._predicates)
+        else:
+            sorted_predicates = sorted([p for p in self._predicates if p[0] in allowed_predicates])
+  
+        virtual_objs_with_type = []
+        num_virtual_objs_each_type = [0]*self.num_types
 
-        for atom in self._atoms:
-            pred_ind = self._pred_names_to_indices_dict[atom[0]]
+        # Calculate how many virtual objects need to be added for each type
+        for p in sorted_predicates:
+            num_virtual_objs_each_type_p = [0]*self.num_types
 
-            if pred_ind in atom_dict: # Append the atom objects to the entry in the dictionary corresponding to the same pred ind
-                atom_dict[pred_ind] = torch.cat( [atom_dict[pred_ind], torch.tensor(atom[1], dtype=torch.int64)] )
+            # See how many objects of each type appear in p
+            for param_type in p[1]:
+                # We need to consider both the type "param_type" and all its children types (types which inherit from it)
+                child_types = self._type_hierarchy[param_type] # It includes param_type
 
-            else: # Add the pred_ind and objects in the atom to the dict
-                atom_dict[pred_ind] = torch.tensor(atom[1], dtype=torch.int64)
+                for t in child_types:
+                    num_virtual_objs_each_type_p[self._obj_types_to_indices_dict[t]] += 1
 
-        return (atom_dict, num_objs)
+            # Calculate element-wise maximum of the two lists
+            num_virtual_objs_each_type = [max(i, j) for i, j in \
+                                      zip(num_virtual_objs_each_type, num_virtual_objs_each_type_p)]
+
+        # Add needed virtual objects of each type
+        for type_ind in range(self.num_types):
+            virtual_objs_with_type.extend( [self._indices_to_obj_types_dict[type_ind]]*num_virtual_objs_each_type[type_ind] )
+
+        return virtual_objs_with_type
+
+    def num_virtual_objects(self, allowed_predicates=None):
+        return len(self.virtual_objs_with_type(allowed_predicates))
 
     """
     Returns the state atoms in the encoding the NLM uses, as a list of tensors corresponding to predicates of different arities.
@@ -305,6 +284,7 @@ class RelationalState():
                       E.g., 'block' -> two because in on(block, block) there are two objects of type block.
                       If @add_object_types is False, we add n virtual objects in total, where n is the maximum
                       predicate arity (e.g., 2 in blocksworld).
+    @allowed_predicates Only used if add_virtual_objs = True. Determines which virtual objects are added to the state.
     @add_object_types Used to differentiate between objects of different type.
                          If True, we add additional unary predicates which encode the object type of each object
                          in the domain. These predicates are added after the unary predicates of the domain in the NLM tensor.
@@ -316,7 +296,7 @@ class RelationalState():
                            with respect to the maximum number of actions.
                            Examples: if we have executed 6 actions and the max number of actions is 10, then perc_actions_executed=0.6
     """
-    def atoms_nlm_encoding(self, max_arity = -1, add_virtual_objs = True, add_object_types=True, perc_actions_executed=-1):      
+    def atoms_nlm_encoding(self, max_arity = -1, add_virtual_objs = True, allowed_predicates = None, add_object_types=True, perc_actions_executed=-1):      
         atoms_list = []
         
         # Calculate NLM breadth
@@ -327,7 +307,7 @@ class RelationalState():
 
         # Add virtual objects
         if add_virtual_objs:
-            object_types.extend(self._virtual_objs_with_type)
+            object_types.extend(self.virtual_objs_with_type(allowed_predicates))
 
         # Calculate number of objects in the state (including virtuals if added)
         num_objs = len(object_types)
@@ -411,8 +391,8 @@ class RelationalState():
         # This extra predicate has to be added AFTER stacking init_state_nlm_encoding and goal_state_nlm_encoding
         # The same with the predicates representing object types
         with torch.no_grad():
-            init_state_nlm_encoding = self.atoms_nlm_encoding(max_arity, False, False, -1) # add_virtual_objs=False, as we do not need to add virtual objects
-            goal_state_nlm_encoding = goal_state.atoms_nlm_encoding(max_arity, False, False, -1)
+            init_state_nlm_encoding = self.atoms_nlm_encoding(max_arity, False, None, False, -1) # add_virtual_objs=False, as we do not need to add virtual objects
+            goal_state_nlm_encoding = goal_state.atoms_nlm_encoding(max_arity, False, None, False, -1)
 
             # Stack goal_state_nlm_encoding to init_state_nlm_encoding
             both_states_nlm_encoding = []

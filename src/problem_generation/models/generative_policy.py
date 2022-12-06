@@ -447,7 +447,7 @@ class GenerativePolicy(pl.LightningModule):
 		num_preds_state_tensors = len(train_batch[0][1]) # The number of elements in state_tensors (equal to the max predicate arity - 1)
 		list_state_tensors_nlm_encoding = [[sample[1][r] for sample in train_batch] for r in range(num_preds_state_tensors)]
 
-		# Ver cómo hacer padding de manera eficiente
+		# Ver cï¿½mo hacer padding de manera eficiente
 
 		# < Obtain the average rewards for the logs >
 		reward_continuous = np.mean(train_batch_np[:,6])
