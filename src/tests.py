@@ -818,45 +818,39 @@ def test_train_init_and_goal_policy_logistics():
 	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]] # -> Preds arity 3
 	# nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]] # -> No preds arity 3
 
+	# The goal_nlm_layers need to account for arity 4, as one action has 4 parameters
+	# We also need to have some predicates of arity 3 in the last layer or, else, there will be no predicates to compute the action of arity 4
+	
 	# NLM layers without predicates of arity 3
-	init_policy_nlm_inner_layers = [8,8,8,8]
-	goal_policy_nlm_inner_layers = [8,8,8,8]
+	init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+	goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
 
 	# NLM layers with predicates of arity 3
 	#init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	#goal_policy_nlm_inner_layers = [[8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,4,0]]
 
-	nlm_hidden_layers_mlp = None
-
-	# Depth and breadth
-	breadth=3
-	depth_init_nlm=4
-	depth_goal_nlm=4
+	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
 
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
-										   max_atoms_init_state=10, max_actions_init_state=30, max_actions_goal_state=20,
-										   
-										depth_initial_state_nlm = depth_init_nlm,
-										breadth_initial_state_nlm = breadth,
-										num_preds_inner_layers_initial_state_nlm = init_policy_nlm_inner_layers,
-										mlp_hidden_layers_initial_state_nlm = nlm_hidden_layers_mlp,
-										res_connections_initial_state_nlm=False,
-										io_residual_initial_state_nlm = False,
-										lr_initial_state_nlm = 1e-3,
-										entropy_coeff_init_state_policy = 0.0,
-										entropy_annealing_coeffs_init_state_policy = None,
-										epsilon_init_state_policy=0.1,
+										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=60,
 
-										depth_goal_nlm = depth_goal_nlm,
-										breadth_goal_nlm = breadth,
-										num_preds_inner_layers_goal_nlm = goal_policy_nlm_inner_layers,
-										mlp_hidden_layers_goal_nlm = nlm_hidden_layers_mlp,
-										res_connections_goal_nlm=False,
-										io_residual_goal_nlm = False,
-										lr_goal_nlm = 1e-3,
-										entropy_coeff_goal_policy = 0.0,
-										entropy_annealing_coeffs_goal_policy = None,
-										epsilon_goal_policy=0.1)
+										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
+										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
+										   extra_input_preds_initial_state_nlm=True,
+										   res_connections_initial_state_nlm=False,
+										   lr_initial_state_nlm = 1e-3,
+										   entropy_coeff_init_state_policy = 1,
+										   entropy_annealing_coeffs_init_state_policy = (500, 0.4),
+										   epsilon_init_state_policy=0.1,
+
+										   num_preds_inner_layers_goal_nlm=goal_policy_nlm_inner_layers,
+										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
+										   extra_input_preds_goal_nlm=True,
+										   res_connections_goal_nlm=False,
+										   lr_goal_nlm = 1e-3,
+										   entropy_coeff_goal_policy = 0.0,
+										   entropy_annealing_coeffs_goal_policy = None,
+										   epsilon_goal_policy=0.1)
 
 	# Train the goal generation policy
 	directed_generator.train_generative_policies(training_iterations = 10000)
@@ -885,35 +879,28 @@ def test_load_models_and_generate_problems_logistics():
 	goal_policy_path = "saved_models/both_policies_164/goal_policy_its-770.ckpt"
 
 	# NLM layers without predicates of arity 3
-	init_policy_nlm_inner_layers = [8,8,8,0]
-	goal_policy_nlm_inner_layers = [8,8,8,0]
+	init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+	goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
 
 	# NLM layers with predicates of arity 3
 	# init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	# goal_policy_nlm_inner_layers = [[8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,4,0]]
 
-	nlm_hidden_layers_mlp = None
-
-	# Depth and breadth
-	breadth=3
-	depth_init_nlm=7
-	depth_goal_nlm=7
+	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
 
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=60,
 										  
-										   depth_initial_state_nlm = depth_init_nlm,
-										   breadth_initial_state_nlm = breadth,
-										   num_preds_inner_layers_initial_state_nlm = init_policy_nlm_inner_layers,
-										   mlp_hidden_layers_initial_state_nlm = nlm_hidden_layers_mlp,
-										   io_residual_initial_state_nlm = True,
+										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
+										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
+										   extra_input_preds_initial_state_nlm=True,
+										   res_connections_initial_state_nlm=False,
 										   load_init_state_policy_checkpoint_name=init_policy_path,
 
-										   depth_goal_nlm = depth_goal_nlm,
-										   breadth_goal_nlm = breadth,
-										   num_preds_inner_layers_goal_nlm = goal_policy_nlm_inner_layers,
-										   mlp_hidden_layers_goal_nlm = nlm_hidden_layers_mlp,
-										   io_residual_goal_nlm = True,
+										   num_preds_inner_layers_goal_nlm=goal_policy_nlm_inner_layers,
+										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
+										   extra_input_preds_goal_nlm=True,
+										   res_connections_goal_nlm=False,
 										   load_goal_policy_checkpoint_name=goal_policy_path)
 
 	print(f">> Init model {init_policy_path} and goal model {goal_policy_path} loaded")
@@ -947,35 +934,28 @@ def test_load_models_and_resume_training_logistics():
 	goal_policy_path = "saved_models/both_policies_163/goal_policy_its-{}.ckpt".format(curr_it)
 
 	# NLM layers without predicates of arity 3
-	init_policy_nlm_inner_layers = [8,8,8,0]
-	goal_policy_nlm_inner_layers = [8,8,8,0]
+	init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+	goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
 
 	# NLM layers with predicates of arity 3
 	# init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	# goal_policy_nlm_inner_layers = [[8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,4,0]]
 
-	nlm_hidden_layers_mlp = None
-
-	# Depth and breadth
-	breadth=3
-	depth_init_nlm=7
-	depth_goal_nlm=7
+	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
 
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=60,
 										  
-										   depth_initial_state_nlm = depth_init_nlm,
-										   breadth_initial_state_nlm = breadth,
-										   num_preds_inner_layers_initial_state_nlm = init_policy_nlm_inner_layers,
-										   mlp_hidden_layers_initial_state_nlm = nlm_hidden_layers_mlp,
-										   io_residual_initial_state_nlm = True,
+										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
+										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
+										   extra_input_preds_initial_state_nlm=True,
+										   res_connections_initial_state_nlm=False,
 										   load_init_state_policy_checkpoint_name=init_policy_path,
 
-										   depth_goal_nlm = depth_goal_nlm,
-										   breadth_goal_nlm = breadth,
-										   num_preds_inner_layers_goal_nlm = goal_policy_nlm_inner_layers,
-										   mlp_hidden_layers_goal_nlm = nlm_hidden_layers_mlp,
-										   io_residual_goal_nlm = True,
+										   num_preds_inner_layers_goal_nlm=goal_policy_nlm_inner_layers,
+										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
+										   extra_input_preds_goal_nlm=True,
+										   res_connections_goal_nlm=False,
 										   load_goal_policy_checkpoint_name=goal_policy_path)
 
 	print(f">> Init model {init_policy_path} and goal model {goal_policy_path} loaded")
@@ -2190,125 +2170,17 @@ def test_load_models_and_resume_training_logistics():
 	<Creo que las generative policies no aprenden "de verdad" -> NECESITO NLM CON PREDICADOS DE ARIEDAD 3!!!>
 	
 
->  init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
-   goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
-   init_policy_entropy_coeffs: 1, (500, 0.4)
-   goal_policy_entropy_coeffs: 0, None -> no entropy loss for goal policy
-   domain_with_exists
-   rescale_factor = 0.1
-   <diff=LAMA>
-   <lr_init_policy y lr_goal_policy = 1e-3>
-   ignore term_cond_prob for calculating entropy
-   max_actions_goal_state=60 (antes era 20)
-   <trajectories_per_train_it=50> (antes era 25)
-   <disc_factor_difficulty=0.995>
-   <disc_factor_event_consistency=0.9>
-   <<NLM from paper authors>>
-
-   <no diversity_reward (la he comentado)>
-
-   > logs: init_policy\version_104
-   > saved_models: both_policies_165
-
-   >>> No aprende!!!
-
-
->  init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
-   goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
-   <init_policy_entropy_coeffs: 0, None>
-   goal_policy_entropy_coeffs: 0, None -> no entropy loss for goal policy
-   domain_with_exists
-   rescale_factor = 0.1
-   <diff=LAMA>
-   <<lr_init_policy y lr_goal_policy = 5e-4>>
-   ignore term_cond_prob for calculating entropy
-   max_actions_goal_state=60 (antes era 20)
-   <trajectories_per_train_it=50> (antes era 25)
-   <disc_factor_difficulty=0.995>
-   <disc_factor_event_consistency=0.9>
-   <<NLM from paper authors>>
-
-   <no diversity_reward (la he comentado)> 
-
-   > logs: init_policy\version_105
-   > saved_models: both_policies_166
-
-	>>> No aprende!
-
-
-> Igual que experimento anterior menos
-	- <lr_init_policy y lr_goal_policy = 1e-2>
-
-	>> No aprende
-
-> Igual que experimento anterior menos
-	- <lr_init_policy y lr_goal_policy = 1e-2>
-	- <no io_residual>
-
-	>> No aprende
-
->  <depth = 4>, breadth=3
-   <inner_layers=[8,8,8,8]>
-   <init_policy_entropy_coeffs: 0, None>
-   goal_policy_entropy_coeffs: 0, None -> no entropy loss for goal policy
-   domain_with_exists
-   rescale_factor = 0.1
-   diff=LAMA
-   <lr_init_policy y lr_goal_policy = 1e-3>
-   ignore term_cond_prob for calculating entropy
-   max_actions_goal_state=60 
-   trajectories_per_train_it=50 
-   disc_factor_difficulty=0.995
-   disc_factor_event_consistency=0.9
-   <<NLM from paper authors>>
-   <io_residual=False>
-   <select subset of predicates in NLM output layer>
-
-   <no diversity_reward (la he comentado)> 
-
-> Igual que experimento anterior pero
-	<lr_init_policy y lr_goal_policy = 5e-3>
-
-  > logs: init_policy\version_108
-
-> Igual que experimento anterior pero
-	<lr_init_policy y lr_goal_policy = 5e-3>
-	<10 atoms and 20 goal actions>
-
-  > logs: init_policy\version_109
-
-  >> El lr es demasiado alto!
-
-> Igual que experimento anterior pero
-	<lr_init_policy y lr_goal_policy = 1e-3>
-	<10 atoms and 20 goal actions>
-
-	> logs: init_policy\version_110
-
-	>>> Sigue sin aprender!!!!
 
 
 
 
-	>>> Tarda más el entrenamiento que obtener las trayectorias!!!
-		- Quizás deba cambiar el batch_size (o incluso no entrenar en paralelo en cada batch)
 
-
-	>>> VER SI CON MI IMPLEMENTACIÓN ESTE EXPERIMENTO ES MÁS RÁPIDO!!! (o más o menos igual)
-
-
-	>> He cambiado la init_policy entropy y el lr
-
-	>>> Ver posibles mejoras tiempo en run_nlm.py
-		- Disminuir num_trajectories_per_train_it (añadir min_num_samples y max num trajectories)
-		- Obtener trayectorias en paralelo y usando la GPU
-		- Disminuir el número de objetos y probar que generaliza a problemas más grandes
-		- Cambiar max_num_atoms por max_num_objects
-	>>> Probar eficiencia al añadir preds de ariedad 3
-	>>> Ver si uso sparse NLM -> NO
+   <<COMPROBAR QUE SE SIGUEN GUARDANDO CHECKPOINTS EN SAVE MODELS!!>>
+   >>> Mirar
+   https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html
+   Ver cómo hacer que no se guarden checkpoints automáticamente en los logs (ya los guardo yo manualmente en saved_models)
+   Creo que puedo usar enable_checkpointing=False en Trainer.fit()
 	
-
-
 
 
 	>>> AQUI-
@@ -2455,8 +2327,8 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems()
 
 	#test_generate_random_problems_logistics()
-	test_train_init_and_goal_policy_logistics()
-	#test_load_models_and_generate_problems_logistics()	
+	#test_train_init_and_goal_policy_logistics()
+	test_load_models_and_generate_problems_logistics()	
 	#test_load_models_and_resume_training_logistics()
 
 
