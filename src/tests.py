@@ -822,17 +822,17 @@ def test_train_init_and_goal_policy_logistics():
 	# We also need to have some predicates of arity 3 in the last layer or, else, there will be no predicates to compute the action of arity 4
 	
 	# NLM layers without predicates of arity 3
-	init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
-	goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+	#init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+	#goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
 
 	# NLM layers with predicates of arity 3
-	#init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
-	#goal_policy_nlm_inner_layers = [[8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,4,0]]
+	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 
 	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
 
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
-										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=60,
+										   max_atoms_init_state=10, max_actions_init_state=20, max_actions_goal_state=20,
 
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -875,12 +875,12 @@ def test_load_models_and_generate_problems_logistics():
 	goal_predicates = {('at', ('package','location'))}
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_164/init_policy_its-770.ckpt"
-	goal_policy_path = "saved_models/both_policies_164/goal_policy_its-770.ckpt"
+	init_policy_path = "saved_models/both_policies_165/init_policy_its-600.ckpt"
+	goal_policy_path = "saved_models/both_policies_165/goal_policy_its-600.ckpt"
 
 	# NLM layers without predicates of arity 3
-	init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
-	goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 
 	# NLM layers with predicates of arity 3
 	# init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
@@ -889,7 +889,7 @@ def test_load_models_and_generate_problems_logistics():
 	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
 
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
-										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=60,
+										   max_atoms_init_state=10, max_actions_init_state=20, max_actions_goal_state=20,
 										  
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -908,8 +908,8 @@ def test_load_models_and_generate_problems_logistics():
 	# Generate the set of problems with the trained initial policy
 	num_problems = 10
 
-	directed_generator.generate_problems(num_problems, max_atoms_init_state=20, max_actions_init_state=60,
-									     max_actions_goal_state=60, max_planning_time=600, verbose=True)
+	directed_generator.generate_problems(num_problems, max_atoms_init_state=30, max_actions_init_state=60,
+									     max_actions_goal_state=90, max_planning_time=600, verbose=True)
 
 
 def test_load_models_and_resume_training_logistics():
@@ -2170,17 +2170,102 @@ def test_load_models_and_resume_training_logistics():
 	<Creo que las generative policies no aprenden "de verdad" -> NECESITO NLM CON PREDICADOS DE ARIEDAD 3!!!>
 	
 
+==================================== Pruebas NLM breadth 3
+
+
+>  <init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]>
+   <goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]>
+   init_policy_entropy_coeffs: 1, (500, 0.4)
+   goal_policy_entropy_coeffs: 0, None -> no entropy loss for goal policy
+   domain_with_exists
+   rescale_factor = 0.1
+   diff=LAMA
+   lr_init_policy y lr_goal_policy = 1e-3
+   ignore term_cond_prob for calculating entropy
+   max_actions_goal_state=60
+   trajectories_per_train_it=50
+   disc_factor_difficulty=0.995
+   disc_factor_event_consistency=0.9
+   <max_atoms_init_state=10, max_actions_init_state=20, max_actions_goal_state=20>
+
+   <no diversity_reward (la he comentado)>
+
+	> logs: init_policy\version_111
+	> saved_models: both_policies_165
+
+	> Entrenamiento
+		- Tiempo: 17h (la dificultad seguía aumentando)
+		- r_eventual converge a 0, r_continuous converge a -0.1
+		- r_difficulty (init_policy) llega hasta 1.6 (seguía subiendo)
+		- term_con_prob de la init_policy y goal_policy convergen a 0
+		- init_policy_entropy termina alrededor de 0.55
+		- goal_policy_entropy baja hasta 0.3
+		- num_objects:
+			- airplanes converge a 0!
+			- city converge a 1!
+
+	> Problemas (600 its)
+		> 10 atoms, 20 max_actions_init_state, 20 max_actions_goal_state
+			- diff=19.8 (muy alta) -> diff instance generator = 6.54
+				- Todos los problemas con el máximo número de átomos (10)
+			- diversity (media)
+				> Ningún problema con objetos de tipo airplane!
+				> Todos los problemas con una única ciudad!
+				- Los paquetes en el init_state están en distintas locations la mayoría de veces
+				- En el goal_state, los paquetes también suelen estar en distintas locations!
+
+		> 20 atoms, 40 max_actions_init_state, 40 max_actions_goal_state 
+			- diff=63.1 (bastante alta) -> diff instance generator = 17.86 (o 40 con los parámetros de autoescale)
+				- Los problemas tienen casi siempre el número máximo de átomos (20)!
+			- diversidad (baja)
+				> Solo un problema generado tiene un airplane!
+				- Todos los problemas tienen una única ciudad
+
+		> 30 atoms, 60 max_actions_init_state, 60 max_actions_goal_state
+			- diff=115.8 (media-alta) -> diff instance generator = 98.95
+			- diversidad (baja)
+				> Solo un problema tiene un airplane!
+				- Todos los problemas tienen una única ciudad
+
+		<La generalización a problemas más grandes es limitada!!>
+		Conforme aumento el número de átomos, la diferencia en dificultad entre el directed_generator
+		y el instance_generator se reduce!!
+		Creo que si generara problemas con varias ciudades la generalización sería mejor!!!
 
 
 
 
 
-   <<COMPROBAR QUE SE SIGUEN GUARDANDO CHECKPOINTS EN SAVE MODELS!!>>
-   >>> Mirar
-   https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html
-   Ver cómo hacer que no se guarden checkpoints automáticamente en los logs (ya los guardo yo manualmente en saved_models)
-   Creo que puedo usar enable_checkpointing=False en Trainer.fit()
-	
+
+
+	>>> TODO hoy
+		- Añadir tipos obj_virtuals manualmente
+		- Obtener trayectorias en paralelo
+
+	>>> Si no se generan problemas con airplanes, añadir a las reglas de consistencia que
+	    tiene que haber al menos un objeto de tipo airplane!!
+
+	> Ver si implemento NLM con exists y exclude_self
+
+	> Ver cómo mejorar la eficiencia
+		- Obtener training trajectories en paralelo
+		- Ver si cambio el tamaño de batch usado en entrenamiento
+		> Permitir que se definan manualmente los virtual objs (así podría quitarme un objeto de tipoç
+	      vehicle y thing!)
+		- Opción alternativa: crear solo 2 virtual objects y que el tipo del átomo a instanciar
+		  se elija con otro átomo!!! -> No es buena idea (aprendería peor y esta estrategia sería
+		  inutil en blocksworld y sokoban)
+		- Ver si merece la pena quitar las critic NLMs (usar otra forma de obtener el advantage sin usar critic!!)
+			- Ver si las critic NLMs aprende bien! (quizás tenga que variar el lr)
+		- Si veo que la goal policy no aprende
+			- Quizás debo entrenar más a la goal policy que a la init policy!
+			  Ej.: hacer que se obtengan un min num de samples de la goal policy e init policy y variar el learning rate
+			       o num epochs de manera dinámica -> Ej.: si hay el doble de samples de la init policy que de la goal policy,
+				   entonces a la goal policy debería entrenarla durante el doble de épocas que la init policy!!!
+
+	>>> Obtener las trayectorias es mucho más rápido que entrenar la NLM!!! (30 s trayectoria, 1min 20s entrenamiento)
+		- Bajar num epochs per train it de 3 a 2
+		- Quizás puedo usar GPU solo cuando entreno la NLM
 
 
 	>>> AQUI-
@@ -2198,6 +2283,14 @@ def test_load_models_and_resume_training_logistics():
 --------------------- Siguientes pasos 
 	
 	<<<Diff logistics instance generator: 40.8>>>
+		- 10 atoms
+			- 6.54
+		- 20 atoms
+			- 40.8 (si uso valores "razonables" de parámetros, obtenidos a partir de autoescale)
+			- 17.86 (si uso valores "aleatorios" de parámetros (desde 1 o 0 hasta max_num_atoms))
+		- 30 atoms
+			- 98.95 (si uso valores "aleatorios" de parámetros (desde 1 o 0 hasta max_num_atoms))
+
 	<Responder al correo de Mauro>
 	>> Quitar use_epm = False
 

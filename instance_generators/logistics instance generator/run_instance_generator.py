@@ -9,19 +9,42 @@ import re
 
 # Generator parameters
 
+# Parameters for problems with 10 atoms
+"""num_airplanes_vals = list(range(1, 10))
+num_cities_vals = list(range(1, 10))
+city_size_vals = list(range(1, 10))
+num_packages_vals = list(range(1, 10))
+extra_trucks_vals = list(range(0, 10))"""
+
 # These ranges represent "reasonable" values, which have been selected from the values
 # used by Autoescale (see https://github.com/AI-Planning/autoscale-benchmarks)
-num_airplanes_vals = list(range(1,5))
+
+# Parameters for problems with 20 atoms - OLD
+"""num_airplanes_vals = list(range(1,5))
 num_cities_vals = list(range(2, 10))
 city_size_vals = list(range(2, 15))
 num_packages_vals = list(range(1, 15)) # In Autoescale, it was [1,30] but since we are generating problems with 20 atoms, we can't have more than 15 maximum approx.
-extra_trucks_vals = list(range(1, 10))
+extra_trucks_vals = list(range(1, 10))"""
+
+# Parameters for problems with 20 atoms
+"""num_airplanes_vals = list(range(1,20))
+num_cities_vals = list(range(1, 20))
+city_size_vals = list(range(1, 20))
+num_packages_vals = list(range(1, 20))
+extra_trucks_vals = list(range(0, 20))"""
+
+# Parameters for problems with 30 atoms
+num_airplanes_vals = list(range(1,30))
+num_cities_vals = list(range(1, 30))
+city_size_vals = list(range(1, 30))
+num_packages_vals = list(range(1, 30))
+extra_trucks_vals = list(range(0, 30))
 
 # Problem size
-min_atoms = 15
-max_atoms = 20
+min_atoms = 25 # 8 # 15 # 25
+max_atoms = 30 # 10 # 20 # 30
 
-seed = 1349
+seed = 7911
 
 generator_path = './logistics_typed'
 planner_path = '../fast-downward/fast-downward.py'
@@ -29,7 +52,9 @@ domain_path = 'logistics-domain.pddl'
 problems_folder = 'problems/'
 metrics_file = 'problems_difficulty_logistics_generator.txt'
 
-num_problems = 10 # Number of problems to generate (meeting all the requirements)
+# >>> DELETE PROBLEMS FROM FOLDER BEFORE GENERATING NEW ONES!!!
+
+num_problems = 20 # Number of problems to generate (meeting all the requirements)
 
 def solve_problems_and_write_difficulty():
 	# Obtain the name of all the problem files
