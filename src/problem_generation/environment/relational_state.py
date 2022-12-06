@@ -239,8 +239,9 @@ class RelationalState():
     @allowed_predicates List of predicates names representing the predicate types of atoms which can be added to the state
                         in the current phase. Obtained by calling StateValidator.predicates_in_current_phase().
                         If None, all the predicates are allowed.
+    @allowed_virtual_objects List of object types which can be added as virtual objects.
     """
-    def virtual_objs_with_type(self, allowed_predicates=None):
+    def virtual_objs_with_type(self, allowed_predicates, allowed_virtual_objects):
         if allowed_predicates is None:
             sorted_predicates = sorted(self._predicates)
         else:
@@ -269,10 +270,14 @@ class RelationalState():
         for type_ind in range(self.num_types):
             virtual_objs_with_type.extend( [self._indices_to_obj_types_dict[type_ind]]*num_virtual_objs_each_type[type_ind] )
 
+        # Remove objects of types which cannot be added
+        if allowed_virtual_objects is not None:
+            virtual_objs_with_type = [obj for obj in virtual_objs_with_type if obj in allowed_virtual_objects]
+
         return virtual_objs_with_type
 
-    def num_virtual_objects(self, allowed_predicates=None):
-        return len(self.virtual_objs_with_type(allowed_predicates))
+    def num_virtual_objects(self, allowed_predicates, allowed_virtual_objects):
+        return len(self.virtual_objs_with_type(allowed_predicates, allowed_virtual_objects))
 
     """
     Returns the state atoms in the encoding the NLM uses, as a list of tensors corresponding to predicates of different arities.
@@ -285,6 +290,7 @@ class RelationalState():
                       If @add_object_types is False, we add n virtual objects in total, where n is the maximum
                       predicate arity (e.g., 2 in blocksworld).
     @allowed_predicates Only used if add_virtual_objs = True. Determines which virtual objects are added to the state.
+    @allowed_virtual_objects Onlye used if add_virtual_objs = True. Determines which virtual objects are added to the state.
     @add_object_types Used to differentiate between objects of different type.
                          If True, we add additional unary predicates which encode the object type of each object
                          in the domain. These predicates are added after the unary predicates of the domain in the NLM tensor.
@@ -296,7 +302,8 @@ class RelationalState():
                            with respect to the maximum number of actions.
                            Examples: if we have executed 6 actions and the max number of actions is 10, then perc_actions_executed=0.6
     """
-    def atoms_nlm_encoding(self, max_arity = -1, add_virtual_objs = True, allowed_predicates = None, add_object_types=True, perc_actions_executed=-1):      
+    def atoms_nlm_encoding(self, max_arity = -1, add_virtual_objs = True, allowed_predicates = None, allowed_virtual_objects = None,
+                           add_object_types=True, perc_actions_executed=-1):      
         atoms_list = []
         
         # Calculate NLM breadth
@@ -307,7 +314,7 @@ class RelationalState():
 
         # Add virtual objects
         if add_virtual_objs:
-            object_types.extend(self.virtual_objs_with_type(allowed_predicates))
+            object_types.extend(self.virtual_objs_with_type(allowed_predicates, allowed_virtual_objects))
 
         # Calculate number of objects in the state (including virtuals if added)
         num_objs = len(object_types)
@@ -391,8 +398,8 @@ class RelationalState():
         # This extra predicate has to be added AFTER stacking init_state_nlm_encoding and goal_state_nlm_encoding
         # The same with the predicates representing object types
         with torch.no_grad():
-            init_state_nlm_encoding = self.atoms_nlm_encoding(max_arity, False, None, False, -1) # add_virtual_objs=False, as we do not need to add virtual objects
-            goal_state_nlm_encoding = goal_state.atoms_nlm_encoding(max_arity, False, None, False, -1)
+            init_state_nlm_encoding = self.atoms_nlm_encoding(max_arity, False, None, None, False, -1) # add_virtual_objs=False, as we do not need to add virtual objects
+            goal_state_nlm_encoding = goal_state.atoms_nlm_encoding(max_arity, False, None, None, False, -1)
 
             # Stack goal_state_nlm_encoding to init_state_nlm_encoding
             both_states_nlm_encoding = []

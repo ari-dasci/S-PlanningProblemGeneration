@@ -52,6 +52,7 @@ class DirectedGenerator():
 	"""
 	def __init__(self, parser, planner, 
 				 predicates_to_consider_for_goal=None, initial_state_info=None, consistency_validator=ValidatorPredOrderBW,
+				 allowed_virtual_objects=None,
 				 penalization_continuous_consistency=-1, penalization_eventual_consistency=-1,
 				 max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
 				
@@ -78,6 +79,7 @@ class DirectedGenerator():
 		self._planner = planner
 		self._initial_state_info = initial_state_info
 		self._consistency_validator = consistency_validator
+		self._allowed_virtual_objects = allowed_virtual_objects
 		self._penalization_continuous_consistency = penalization_continuous_consistency
 		self._penalization_eventual_consistency = penalization_eventual_consistency
 		self._max_atoms_init_state = max_atoms_init_state
@@ -203,6 +205,10 @@ class DirectedGenerator():
 	@property
 	def penalization_eventual_consistency(self):
 		return self._penalization_eventual_consistency
+
+	@property
+	def allowed_virtual_objects(self):
+		return self._allowed_virtual_objects
 
 	@property
 	def max_atoms_init_state(self):
@@ -384,7 +390,7 @@ class DirectedGenerator():
 	def _get_mask_tensors_init_policy(self, nlm_output_shape, rel_state, allowed_predicates):  
 		# Get the objects (including virtuals)
 		# Example: ['truck', 'airplane', 'package']
-		objs_with_virtuals = rel_state.objects + rel_state.virtual_objs_with_type(allowed_predicates)
+		objs_with_virtuals = rel_state.objects + rel_state.virtual_objs_with_type(allowed_predicates, self._allowed_virtual_objects)
 		num_objs_with_virtuals = len(objs_with_virtuals)
 		predicates = rel_state.predicates # Get the state predicates
 		pred_to_index_dict = rel_state.pred_names_to_indices_dict_each_arity
@@ -510,7 +516,7 @@ class DirectedGenerator():
 		state_preds = rel_state.predicates
 		objs_without_virtuals = rel_state.objects
 		num_objs_without_virtuals = len(objs_without_virtuals)
-		objs_with_virtuals = objs_without_virtuals + rel_state.virtual_objs_with_type(allowed_predicates)
+		objs_with_virtuals = objs_without_virtuals + rel_state.virtual_objs_with_type(allowed_predicates, self._allowed_virtual_objects)
 		num_objs_with_virtuals = len(objs_with_virtuals)
 
 		# <Obtain the types of the objects atom_to_add is instantiated on>
@@ -907,10 +913,19 @@ class DirectedGenerator():
 			perc_actions_executed = curr_state.num_atoms / max_atoms_init_state # Obtain percentage of actions executed/atoms added (with respect to the max number of actions/atoms)	
 			preds_curr_phase = self._consistency_validator.predicates_in_current_phase(curr_state)					
 			curr_state_tensors = curr_state.atoms_nlm_encoding(max_arity=init_nlm_max_pred_arity, allowed_predicates=preds_curr_phase,
+															   allowed_virtual_objects=self._allowed_virtual_objects,
 														 	   perc_actions_executed=perc_actions_executed)
 
 			# Calculate the number of objects in the state plus the number of virtual objects
-			num_objs_with_virtuals = curr_state.num_objects + curr_state.num_virtual_objects(preds_curr_phase)
+			num_objs_with_virtuals = curr_state.num_objects + curr_state.num_virtual_objects(preds_curr_phase, self._allowed_virtual_objects)
+
+
+			# QUITAR
+			#print("-------------------")
+			#print("preds_curr_phase", preds_curr_phase)
+			#print("virtual_objects", curr_state.virtual_objs_with_type(preds_curr_phase, self._allowed_virtual_objects))
+			#print("num_virtual_objects", curr_state.num_virtual_objects(preds_curr_phase, self._allowed_virtual_objects))
+
 
 			# Mask tensors
 			mask_tensors = self._get_mask_tensors_init_policy(init_nlm_output_layer_shape, curr_state, preds_curr_phase)
@@ -971,7 +986,11 @@ class DirectedGenerator():
 								chosen_action_index, chosen_action_prob,
 								r_continuous_consistency, r_eventual_consistency, 0.0] ) 
 			# The 0.0 in the last position corresponds to r_difficulty
-			
+
+
+
+		sys.exit()
+
 		return problem, trajectory
 
 
@@ -1411,6 +1430,7 @@ class DirectedGenerator():
 		perc_actions_executed = init_state.num_atoms / max_atoms_init_state
 		preds_curr_phase = self._consistency_validator.predicates_in_current_phase(init_state)		
 		init_state_tensors = init_state.atoms_nlm_encoding(max_arity=init_nlm_max_pred_arity, allowed_predicates=preds_curr_phase,
+														   allowed_virtual_objects=self._allowed_virtual_objects,
 														   perc_actions_executed=perc_actions_executed)
 		num_objs_with_virtuals = init_state.num_objects + init_state.num_virtual_objects(preds_curr_phase)
 

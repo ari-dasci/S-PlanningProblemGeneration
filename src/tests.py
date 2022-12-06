@@ -814,6 +814,9 @@ def test_train_init_and_goal_policy_logistics():
 	# Goal predicates
 	goal_predicates = {('at', ('package','location'))}
 
+	# Virtual objects
+	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
+
 	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]] # -> Preds arity 3
 	# nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]] # -> No preds arity 3
@@ -832,6 +835,7 @@ def test_train_init_and_goal_policy_logistics():
 	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
 
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
+										   allowed_virtual_objects=virtual_objects,
 										   max_atoms_init_state=10, max_actions_init_state=20, max_actions_goal_state=20,
 
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
@@ -874,6 +878,9 @@ def test_load_models_and_generate_problems_logistics():
 	# Goal predicates
 	goal_predicates = {('at', ('package','location'))}
 
+	# Virtual objects
+	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
+
 	# Create the generator and load the trained models
 	init_policy_path = "saved_models/both_policies_165/init_policy_its-600.ckpt"
 	goal_policy_path = "saved_models/both_policies_165/goal_policy_its-600.ckpt"
@@ -889,6 +896,7 @@ def test_load_models_and_generate_problems_logistics():
 	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
 
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
+										   allowed_virtual_objects=virtual_objects,
 										   max_atoms_init_state=10, max_actions_init_state=20, max_actions_goal_state=20,
 										  
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
@@ -928,6 +936,9 @@ def test_load_models_and_resume_training_logistics():
 	# Goal predicates
 	goal_predicates = {('at', ('package','location'))}
 
+	# Virtual objects
+	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
+
 	# Create the generator and load the trained models
 	curr_it = 350 # It of the loaded model, used to resume training
 	init_policy_path = "saved_models/both_policies_163/init_policy_its-{}.ckpt".format(curr_it)
@@ -944,6 +955,7 @@ def test_load_models_and_resume_training_logistics():
 	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
 
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
+										   allowed_virtual_objects=virtual_objects,
 										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=60,
 										  
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
@@ -2425,8 +2437,8 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems()
 
 	#test_generate_random_problems_logistics()
-	#test_train_init_and_goal_policy_logistics()
-	test_load_models_and_generate_problems_logistics()	
+	test_train_init_and_goal_policy_logistics()
+	#test_load_models_and_generate_problems_logistics()	
 	#test_load_models_and_resume_training_logistics()
 
 
