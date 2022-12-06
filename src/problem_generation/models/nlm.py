@@ -10,6 +10,7 @@
 
 import torch
 import torch.nn as nn
+import sys
 
 # from jacinle.logging import get_logger
 # from jactorch.functional import length2mask, mask_meshgrid
@@ -109,8 +110,8 @@ class NeuralLogicLayer(nn.Module):
             if i + 1 < len(inputs) and self.input_dims[i + 1] > 0:
                 mask = None
                 if inputs_length_mask is not None:
-                    # mask = mask_meshgrid(inputs_length_mask, i + 1)
-                    mask = mask_meshgrid(inputs_length_mask, i + 1).cuda()
+                    # mask = mask_meshgrid(inputs_length_mask, i + 1).cuda()
+                    mask = mask_meshgrid(inputs_length_mask, i + 1)
                 f.append(self.dim_reducers[i](inputs[i + 1], mask))
 
             if len(f) == 0 or self.output_dims[i] == 0:
@@ -207,10 +208,12 @@ class NLM(nn.Module):
             if i > 0 and io_residual:
                 add_(current_dims, input_dims)
 
-            if i == depth-1:
-                curr_layer_output_dims = output_dims.copy() # .copy() because, otherwise, it is modified by NeuralLogicLayer!
-            else:
-                curr_layer_output_dims = inner_dims.copy()
+            #if i == depth-1:
+            #    curr_layer_output_dims = output_dims.copy() # .copy() because, otherwise, it is modified by NeuralLogicLayer!
+            #else:
+            #    curr_layer_output_dims = inner_dims.copy()
+
+            curr_layer_output_dims = inner_dims.copy()
 
             layer = NeuralLogicLayer(
                 breadth, current_dims, curr_layer_output_dims, logic_model, logic_hidden_dim, exclude_self, residual,
@@ -224,7 +227,9 @@ class NLM(nn.Module):
 
             self.layers.append(layer)
 
-        self.output_dims = current_dims
+        # self.output_dims = current_dims
+
+        print("> NLM output dims:", self.output_dims)
 
     # Getters
     @property
@@ -265,6 +270,9 @@ class NLM(nn.Module):
     def forward(self, inputs, inputs_length_or_mask=None, depth=None):
         f = inputs
 
+       # print(">>>> Inside NLM")
+       # print("inputs[0]", inputs[0])
+
         if depth is None:
             depth = self.depth
             assert depth <= self.depth
@@ -283,11 +291,29 @@ class NLM(nn.Module):
                 for j, inp in enumerate(inputs):
                     f[j] = merge(f[j], inp)
 
+           # print("BEFORE LAYER")
             layer = self.layers[i]
-            f = layer(f, inputs_length_or_mask)
-            f = self._mask(f, i, None)
+            f = layer(f, inputs_length_or_mask) # EXCEPTION HERE WHEN I USE RESIDUAL_CONNECTIONS, FOR THE LAST LAYER
 
-        return f
+            #print(f"{i} f[0]", f[0])
+
+            #print("BEFORE MASK")
+            f = self._mask(f, i, None)
+            #print("AFTER MASK")
+
+            #print(f"{i} f[0]", f[0])
+
+        # Only select the predicates given by self.output_dims
+
+        #print("Previous output shape", [o.shape if o is not None else None for o in f])
+
+        outputs = [tensor[..., :num_preds] if tensor is not None and num_preds>0 else None for tensor, num_preds in zip(f, self.output_dims)]
+
+        #print("Final outputs[0]", outputs[0])
+
+        #print("Final output shape", [o.shape if o is not None else None for o in outputs])
+
+        return outputs
 
     __hyperparams__ = (
         'depth', 'breadth', 'input_dims', 'output_dims', 'logic_model', 'logic_hidden_dim',

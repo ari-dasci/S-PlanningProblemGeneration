@@ -57,8 +57,7 @@ class GenerativePolicy(pl.LightningModule):
 
 		# The NLM for the critic has the same shape as the actor NLM except for the output layer, where it only has
 		# a single nullary predicate corresponding to the value function prediction V(s)
-		num_output_preds_critic = num_output_preds
-		num_output_preds_critic[:] = 0
+		num_output_preds_critic = [0 for _ in num_output_preds]
 		num_output_preds_critic[0] = 1
 
 		self._critic_nlm = NLM(depth, breadth, num_input_preds.copy(), num_inner_preds.copy(), num_output_preds_critic.copy(),
@@ -72,7 +71,6 @@ class GenerativePolicy(pl.LightningModule):
 		
 		# RelationalState used to obtain information about the object types and domain predicates
 		self._dummy_rel_state = dummy_rel_state
-
 
 	# ------- Getters
 
@@ -118,10 +116,13 @@ class GenerativePolicy(pl.LightningModule):
 		max_objs = max(list_num_objs)
 
 		# Pad the tensors
-		# Example: if max_objs = 5 and we have a tensor of shape [3][3][7] (3 objs), then it must be padded to [5][5][7]
-		list_tensors_padded = [ [F.pad(tensor, (0,0)+(0,max_objs-num_objs)*r, mode='constant', value=0.0) for tensor, num_objs in zip(list_tensors[r], list_num_objs)] \
-		   						if r > 0 and list_tensors[r][0] is not None else list_tensors[r]
-								for r in range(len(list_tensors)) ]
+		# Example: if max_objs = 5 and we have a tensor of shape [3][3][7] (3 objs), then it must be padded to [5][5][7]	
+		if len(list_num_objs) > 1:
+			list_tensors_padded = [ [F.pad(tensor, (0,0)+(0,max_objs-num_objs)*r, mode='constant', value=0.0) for tensor, num_objs in zip(list_tensors[r], list_num_objs)] \
+									if r > 0 and list_tensors[r][0] is not None else list_tensors[r]
+									for r in range(len(list_tensors)) ]
+		else:
+			list_tensors_padded = list_tensors
 
 		# For each arity, stack the tensors along a new dimension
 		# Additionally, substitute [None, None, ...] by None (a list of Nones for a single None)
@@ -141,7 +142,7 @@ class GenerativePolicy(pl.LightningModule):
 		# (slice(num_objs),)*r + (slice(None),) -> Used to obtain the indixes without padding
 		# For example, if [3][3][7] was padded to [5][5][7] -> tensor[:3,:3,:] (':' encodes a slice object)
 		list_tensors_unpadded = [[tensor[(slice(num_objs),)*r + (slice(None),)] for tensor, num_objs in zip(list_tensors_unstacked[r], list_num_objs)] 	\
-								 if r > 0 and list_tensors_unstacked[r][0] is not None else list_tensors_unstacked[r] \
+								 if r > 0 and list_tensors_unstacked[r][0] is not None else list(list_tensors_unstacked[r]) \
 								 for r in range(len(list_tensors_unstacked))]
 
 		# tuple([slice(num_objs) for _ in range(r)])+(slice(None),)
@@ -414,14 +415,26 @@ class GenerativePolicy(pl.LightningModule):
 		# list_state_tensors_nlm_encoding = [[sample[1][r] for sample in train_batch] for r in range(num_preds_state_tensors)]
 		tensor_num_objs = torch.tensor(list_num_objs, requires_grad=False)
 
+		#print("\n----------------------------")
+		#print("list_num_objs", list_num_objs)
+		#print("list_state_tensors[0][0]",list_state_tensors[0][0])
+
 		# Represent list_state_tensors in an encoding suitable for the NLM
-		nlm_input = self._pad_and_stack_tensors(list_state_tensors, tensor_num_objs)
+		nlm_input = self._pad_and_stack_tensors(list_state_tensors, list_num_objs)
+
+		#print("nlm_input[0]", nlm_input[0])
 
 		# NLM forward pass
-		nlm_output = self._actor_nlm(nlm_input, list_num_objs)
+		nlm_output = self._actor_nlm(nlm_input, tensor_num_objs)
+		
+		#print("nlm_output[0]", nlm_output[0])
+
+		# sys.exit()
 
 		# Unpad tensors to obtain the same encoding as in @list_state_tensors
 		list_nlm_output = self._unpad_and_unstack_tensors(nlm_output, list_num_objs)
+		
+		#print("list_nlm_output[0][0]", list_nlm_output[0][0])
 
 		# Mask NLM output (set to -inf values corresponding to invalid atoms)
 		if list_mask_tensors is not None and list_mask_tensors[0] is not None:
@@ -539,8 +552,11 @@ class GenerativePolicy(pl.LightningModule):
 		#state_values_with_gradient = torch.tensor([tensor[0] for tensor in critic_output]) # If I create the tensor like this (tensor from list of tensors), the gradient can't flow
 		state_values_with_gradient = torch.cat([tensor[0].view(1) for tensor in critic_output]) # [0] to obtain the first predicate of the nullary predicates (corresponding to the state_value)
 
+		#print("state_values_with_gradient", state_values_with_gradient)	
+
 		critic_loss = torch.mean( (state_values_with_gradient - tensor_r_total_norm)**2 )
 
+		#print("critic_loss", critic_loss)
 
 		# < Actor >
 
@@ -564,6 +580,8 @@ class GenerativePolicy(pl.LightningModule):
 		# Calculate the probability ratios r_t
 		prob_ratio_tensor = chosen_action_prob_tensor / tensor_action_prob_old_policy
 
+		#print("prob_ratio_tensor", prob_ratio_tensor)
+
 		# Calculate the advantages
 		# This resulting tensor (advantage_tensor) has no grad!
 		advantage_tensor = tensor_r_total_norm - tensor_state_values # A(s,a) = R(s,a) - V(s)
@@ -572,15 +590,22 @@ class GenerativePolicy(pl.LightningModule):
 		PPO_loss = torch.mean( -torch.min(prob_ratio_tensor * advantage_tensor, \
 						       torch.clip(prob_ratio_tensor, 1-self._epsilon, 1+self._epsilon) * advantage_tensor) )
 
+		#print("PPO_loss", PPO_loss)
+
 		# Calculate the entropy loss
 		policy_entropy = torch.mean(self._policy_entropy(action_log_probs_list))
 		entropy_loss = -policy_entropy*self._action_entropy_coeff
+
+		#print("policy_entropy", policy_entropy)
+		#print("entropy_loss", entropy_loss)
 
 		# Calculate the actor loss
 		actor_loss = PPO_loss + entropy_loss
 
 		# < Actor + Critic loss >
 		loss = actor_loss + critic_loss
+
+		#print("loss", loss)
 
 		# < Logs >
 		# Store the logs

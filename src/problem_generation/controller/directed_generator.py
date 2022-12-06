@@ -135,6 +135,8 @@ class DirectedGenerator():
 		#print("extra_preds_each_arity_initial_state_nlm", extra_preds_each_arity_initial_state_nlm)
 
 		if load_init_state_policy_checkpoint_name is None:
+			print("INIT POLICY")
+			
 			self._initial_state_policy = GenerativePolicy(depth_initial_state_nlm, breadth_initial_state_nlm, num_input_preds_initial_state_nlm,
 														  num_preds_inner_layers_initial_state_nlm, num_output_preds_initial_state_nlm,
 														  mlp_hidden_layers_initial_state_nlm, lr_initial_state_nlm,
@@ -163,6 +165,20 @@ class DirectedGenerator():
 		# extra_preds_each_arity_goal_nlm = self._extra_preds_each_arity_goal_nlm(num_preds_all_layers_goal_nlm[0]) if extra_input_preds_goal_nlm else None
 
 		if load_goal_policy_checkpoint_name is None:
+			# QUITAR
+			print("GOAL POLICY")
+			"""print("depth_goal_nlm",depth_goal_nlm)
+			print("breadth_goal_nlm",breadth_goal_nlm)
+			print("num_input_preds_goal_nlm",num_input_preds_goal_nlm)
+			print("num_preds_inner_layers_goal_nlm",num_preds_inner_layers_goal_nlm)
+			print("num_output_preds_goal_nlm",num_output_preds_goal_nlm)
+			print("mlp_hidden_layers_goal_nlm",mlp_hidden_layers_goal_nlm)
+			print("lr_goal_nlm",lr_goal_nlm)
+			print("res_connections_goal_nlm",res_connections_goal_nlm)
+			print("io_residual_goal_nlm",io_residual_goal_nlm)
+			print(entropy_coeff_goal_policy, entropy_annealing_coeffs_goal_policy, epsilon_goal_policy)"""
+			
+
 			self._goal_policy = GenerativePolicy(depth_goal_nlm, breadth_goal_nlm, num_input_preds_goal_nlm,
 														  num_preds_inner_layers_goal_nlm, num_output_preds_goal_nlm,
 														  mlp_hidden_layers_goal_nlm, lr_goal_nlm,
@@ -937,7 +953,7 @@ class DirectedGenerator():
 								chosen_action_index, chosen_action_prob,
 								r_continuous_consistency, r_eventual_consistency, 0.0] ) 
 			# The 0.0 in the last position corresponds to r_difficulty
-			
+
 		return problem, trajectory
 
 
