@@ -411,6 +411,45 @@ class GenerativePolicy(pl.LightningModule):
 		return chosen_action_index, chosen_action_prob
 
 
+	"""
+	Like select_action() but for a batch instead of a single sample.
+
+	@list_state_tensors A list with state_tensors. The format is NOT the one used by the NLM.
+	                    Instead, list_state_tensors[i] contains a list with the state_tensors for the i-th
+						sample.
+						If list_state_tensors[i] is None, we ignore sample i.
+	"""
+	def select_actions(self, list_state_tensors, list_num_objs_with_virtuals, list_mask_tensors):
+		# Store the indexes of those samples with None
+		none_samples_inds = [ind for ind, sample in enumerate(list_state_tensors) if sample is None]
+
+		# Remove None samples
+		list_state_tensors_no_None = [sample for sample in list_state_tensors if sample is not None]
+		list_num_objs_with_virtuals_no_None = [x for x in list_num_objs_with_virtuals if x is not None]
+		list_mask_tensors_no_None = [x for x in list_mask_tensors if x is not None]
+
+		# Represent samples in the NLM encoding -> [r][ind_sample]
+		num_samples = len(list_state_tensors_no_None)
+		num_arities = len(list_state_tensors_no_None[0])
+		list_state_tensors_nlm_encoding = [ [list_state_tensors_no_None[i][r] for i in range(num_samples)] for r in range(num_arities)] # num_arities is max_arity+1
+		
+		# Forward pass of the NLM to obtain log_probabilities
+		list_nlm_output_log_softmax = self.forward(list_state_tensors_nlm_encoding, list_num_objs_with_virtuals_no_None, list_mask_tensors_no_None)
+
+		# Revert to the encoding used by @list_state_tensors ([ind_sample][r])
+		list_nlm_output_log_softmax_encoded = [ [list_nlm_output_log_softmax[r][i] for r in range(num_arities)] for i in range(num_samples)]
+
+		# Sample the actions
+		# chosen_action_index, chosen_action_prob = self.sample_action(action_log_probs_no_nesting)
+		list_output_sample_action = [self.sample_action(log_probs_sample) for log_probs_sample in list_nlm_output_log_softmax_encoded]
+
+		# Interleave Nones corresponding to positions where list_state_tensors is None (i.e., none_sample_inds)
+		list_output_sample_action_iter = iter(list_output_sample_action)
+		list_output_sample_action_with_Nones = [None if i in none_samples_inds else next(list_output_sample_action_iter) for i in range(len(list_state_tensors))]
+		
+		return list_output_sample_action_with_Nones
+
+
 	def configure_optimizers(self):
 		optimizer = torch.optim.Adam(self.parameters(), lr=self._lr)
 		return optimizer

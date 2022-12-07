@@ -2245,9 +2245,13 @@ def test_load_models_and_resume_training_logistics():
 		Creo que si generara problemas con varias ciudades la generalización sería mejor!!!
 
 
+> Mismo experimento que el anterior menos:
+	<set allowed virtual objects>
 
+	> logs: init_policy\version_112, init_policy\version_113
 
-
+	>>> Funciona la segunda vez pero la primera no aprende!!!
+		- Creo que tengo que aumentar el número de samples per train_epoch!
 
 
 
@@ -2255,7 +2259,6 @@ def test_load_models_and_resume_training_logistics():
 
 
 	>>> TODO hoy
-		- Añadir tipos obj_virtuals manualmente
 		- Añadir unary_predicates que indique si un objeto es virtual o no
 		- Obtener trayectorias en paralelo
 
@@ -2267,18 +2270,16 @@ def test_load_models_and_resume_training_logistics():
 	> Ver cómo mejorar la eficiencia
 		- Obtener training trajectories en paralelo
 		- Ver si cambio el tamaño de batch usado en entrenamiento
-		> Permitir que se definan manualmente los virtual objs (así podría quitarme un objeto de tipoç
-	      vehicle y thing!)
-		- Opción alternativa: crear solo 2 virtual objects y que el tipo del átomo a instanciar
-		  se elija con otro átomo!!! -> No es buena idea (aprendería peor y esta estrategia sería
-		  inutil en blocksworld y sokoban)
 		- Ver si merece la pena quitar las critic NLMs (usar otra forma de obtener el advantage sin usar critic!!)
 			- Ver si las critic NLMs aprende bien! (quizás tenga que variar el lr)
+		- Usar min_num_samples y max_trajectories durante el entrenamiento
 		- Si veo que la goal policy no aprende
 			- Quizás debo entrenar más a la goal policy que a la init policy!
 			  Ej.: hacer que se obtengan un min num de samples de la goal policy e init policy y variar el learning rate
 			       o num epochs de manera dinámica -> Ej.: si hay el doble de samples de la init policy que de la goal policy,
 				   entonces a la goal policy debería entrenarla durante el doble de épocas que la init policy!!!
+		- Si no aprende
+			- Aumentar depth de la NLM
 
 	>>> Obtener las trayectorias es mucho más rápido que entrenar la NLM!!! (30 s trayectoria, 1min 20s entrenamiento)
 		- Bajar num epochs per train it de 3 a 2
