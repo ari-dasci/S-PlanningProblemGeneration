@@ -944,6 +944,12 @@ class DirectedGenerator():
 					list_mask_tensors.append(mask_tensors)
 					list_preds_curr_phase.append(preds_curr_phase)
 
+
+			# quitar
+			#print("\n----------------")
+			#print(  [[tensor.shape if tensor is not None else None for tensor in sample_tensors ] if sample_tensors is not None else None for sample_tensors in list_state_tensors]           )
+
+
 			# Sample the action in parallel for all the trajectories
 			list_chosen_action_index_and_prob = self._initial_state_policy.select_actions(list_state_tensors, list_num_objs_with_virtuals, list_mask_tensors)
 
@@ -957,6 +963,9 @@ class DirectedGenerator():
 
 				chosen_action_index, chosen_action_prob = list_chosen_action_index_and_prob[i]
 
+				curr_state = problems[i].initial_state
+				curr_state_copy = curr_state.copy() # Copy the state so that, when curr_state is modified, curr_state_copy is not
+
 				# Check if the chosen action corresponds to the termination condition
 				# chosen_action_index[0] == 0 -> predicate of arity 0
 				# chosen_action_index[-1] == init_nlm_output_layer_shape[0]-1 -> the last predicate of arity 0 (which corresponds to the termination condition)
@@ -969,9 +978,6 @@ class DirectedGenerator():
 					r_continuous_consistency = 0
 					r_eventual_consistency = problems[i].get_eventual_consistency_reward_of_init_state()
 				else:
-					curr_state = problems[i].initial_state
-					curr_state_copy = curr_state.copy() # Copy the state so that, when curr_state is modified, curr_state_copy is not
-
 					# < Transform the chosen action index into a proper action -> atom and objects to add >
 					# chosen_action_index[0] is the predicate arity and chosen_action_index[-1] is the predicate index
 					# The indexes in between correspond to the object indeces the action/pred is instantiated on (if arity >= 1)
@@ -1006,7 +1012,10 @@ class DirectedGenerator():
 										chosen_action_index, chosen_action_prob,
 										r_continuous_consistency, r_eventual_consistency, 0.0] ) 
 				# The 0.0 in the last position corresponds to r_difficulty
-				
+
+
+		# QUITAR
+		#sys.exit()	
 		return problems, trajectories
 
 
@@ -1058,9 +1067,9 @@ class DirectedGenerator():
 				else:
 					curr_goal_state = problems[i].goal_state
 					perc_actions_executed = actions_executed[i] / max_actions_goal_state # Obtain percentage of actions executed (with respect to the max number of actions)
-					curr_goal_and_init_state_tensors = problems[i].init_state.atoms_nlm_encoding_with_goal_state(curr_goal_state, 
+					curr_goal_and_init_state_tensors = problems[i].initial_state.atoms_nlm_encoding_with_goal_state(curr_goal_state, 
 																	goal_nlm_max_pred_arity, True, perc_actions_executed) # True for adding object types as extra unary predicates	
-					
+
 					# Mask tensors
 					mask_tensors = self._get_mask_tensors_goal_policy(goal_nlm_output_layer_shape, problems[i])
 
@@ -1080,6 +1089,9 @@ class DirectedGenerator():
 					continue
 
 				chosen_action_index, chosen_action_prob = list_chosen_action_index_and_prob[i]
+
+				curr_goal_state = problems[i].goal_state
+				curr_goal_state_copy = curr_goal_state.copy() # Copy the state so that, when curr_goal_state is modified, curr_goal_state_copy is not
 
 				# Check if the chosen action corresponds to the termination condition
 				# chosen_action_index[0] == 0 -> action of arity 0
@@ -1101,9 +1113,6 @@ class DirectedGenerator():
 
 				# If the selected action is not the termination condition, execute it
 				else:
-					curr_goal_state = problems[i].goal_state
-					curr_goal_state_copy = curr_goal_state.copy() # Copy the state so that, when curr_goal_state is modified, curr_goal_state_copy is not
-
 					# Transform the action index into a proper action
 					action_name = self._dummy_rel_state_actions.get_predicate_by_arity_and_ind(chosen_action_index[0], chosen_action_index[-1])[0] # [0] to get the name
 					action_params = chosen_action_index[1:-1]
@@ -1154,7 +1163,7 @@ class DirectedGenerator():
 		problems, init_policy_trajectories = self._obtain_trajectories_init_policy(num_trajectories, max_atoms_init_state, max_actions_init_state)
 
 		# <Obtain trajectories with the goal policy>
-		_, _, goal_policy_trajectories = self._obtain_trajectory_goal_policy(problems, True, max_actions_goal_state)
+		_, _, goal_policy_trajectories = self._obtain_trajectories_goal_policy(problems, True, max_actions_goal_state)
 
 		# <Sum the rewards to obtain the return>
 		# For this operation, we need to append the init and goal policy trajectories
@@ -1228,9 +1237,7 @@ class DirectedGenerator():
 			# < Obtain the trajectories for the current PPO iteration >
 
 			print("\n> Collecting trajectories")
-
-			for _ in range(trajectories_per_train_it):
-				init_policy_trajectories, goal_policy_trajectories = self._obtain_trajectories_and_preprocess_for_PPO(trajectories_per_train_it)
+			init_policy_trajectories, goal_policy_trajectories = self._obtain_trajectories_and_preprocess_for_PPO(trajectories_per_train_it)
 
 			# It contains the length of each individual trajectory in init_policy_trajectories
 			# Example: trajectory_1 -> [a,b,c], trajectory_2 -> [d,e]
@@ -1360,7 +1367,7 @@ class DirectedGenerator():
 
 		# <Generate a goal state with the goal policy>
 		# False -> we don't use an EPM to obtain the problem difficulty when we are in the test phase
-		final_problem, problem_difficulty, _ = self._obtain_trajectory_goal_policy([init_problem], False, max_actions_goal_state, max_planning_time=max_planning_time, verbose=verbose)
+		final_problem, problem_difficulty, _ = self._obtain_trajectories_goal_policy([init_problem], False, max_actions_goal_state, max_planning_time=max_planning_time, verbose=verbose)
 		final_problem = final_problem[0]
 		problem_difficulty = problem_difficulty[0]
 

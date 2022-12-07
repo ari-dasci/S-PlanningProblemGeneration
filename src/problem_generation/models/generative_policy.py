@@ -425,8 +425,8 @@ class GenerativePolicy(pl.LightningModule):
 
 		# Remove None samples
 		list_state_tensors_no_None = [sample for sample in list_state_tensors if sample is not None]
-		list_num_objs_with_virtuals_no_None = [x for x in list_num_objs_with_virtuals if x is not None]
-		list_mask_tensors_no_None = [x for x in list_mask_tensors if x is not None]
+		list_num_objs_with_virtuals_no_None = [x for x, sample in zip(list_num_objs_with_virtuals, list_state_tensors) if sample is not None]
+		list_mask_tensors_no_None = [x for x, sample in zip(list_mask_tensors, list_state_tensors) if sample is not None]
 
 		# Represent samples in the NLM encoding -> [r][ind_sample]
 		num_samples = len(list_state_tensors_no_None)

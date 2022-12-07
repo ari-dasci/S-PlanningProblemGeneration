@@ -2253,7 +2253,11 @@ def test_load_models_and_resume_training_logistics():
 	>>> Funciona la segunda vez pero la primera no aprende!!!
 		- Creo que tengo que aumentar el número de samples per train_epoch!
 
+> Mismo experimento que el anterior menos:
+	<set allowed virtual objects>
+	<obtain training trajectories in parallel>
 
+	> logs: init_policy\version_114
 
 
 
