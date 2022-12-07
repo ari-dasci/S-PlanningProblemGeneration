@@ -836,7 +836,7 @@ def test_train_init_and_goal_policy_logistics():
 
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   allowed_virtual_objects=virtual_objects,
-										   max_atoms_init_state=10, max_actions_init_state=20, max_actions_goal_state=20,
+										   max_atoms_init_state=15, max_actions_init_state=30, max_actions_goal_state=30,
 
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -2257,17 +2257,57 @@ def test_load_models_and_resume_training_logistics():
 	<set allowed virtual objects>
 	<obtain training trajectories in parallel>
 
-	> logs: init_policy\version_114
+	> logs: init_policy\version_114 y version_115
+
+	>> La primera vez no aprende pero la segunda sí.
+
+>  init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   init_policy_entropy_coeffs: 1, (500, 0.4)
+   goal_policy_entropy_coeffs: 0, None -> no entropy loss for goal policy
+   domain_with_exists
+   rescale_factor = 0.1
+   diff=LAMA
+   lr_init_policy y lr_goal_policy = 1e-3
+   ignore term_cond_prob for calculating entropy
+   max_actions_goal_state=60
+   trajectories_per_train_it=50
+   disc_factor_difficulty=0.995
+   disc_factor_event_consistency=0.9
+   <max_atoms_init_state=15, max_actions_init_state=30, max_actions_goal_state=30>
+
+   <no diversity_reward (la he comentado)>
+
+	> logs: init_policy\version_116
+
+	> Entrenamiento
+		- Tiempo: 12h (paré el entrenamiento a mitad)
+		- r_eventual converge a 0, r_continuous a -0.3
+		- r_diff (init_policy) llega hasta 2.6 (seguía aumentando, aunque lentamente (paré el entrenamiento a mitad))
+		- init_policy_entropy termina en 0.75, la goal_policy en 0.45 (seguía bajando cuando paré el entrenamiento)
+		- term_cond_prob de la init y goal policies convergió a 0 
+		- num_objects:
+			> num_airplanes termina en 0.3 (no es 0!!)
+			> num_cities converge a 1
+
+		<<Entrenar sobre problemas con 15 átomos en vez de 10 es mejor!!>>
+
+	> Tiempo de obtener una trayectoria (con 15 átomos y 30 goal actions): 50s (bastante más rápido que el entrenamiento!!!)
+
+
 
 
 
 
 	>>> TODO hoy
 		- Añadir unary_predicates que indique si un objeto es virtual o no
-		- Obtener trayectorias en paralelo
+		- IMPLEMENTAR EXCLUDE_SELF (ver correo Jiayuan!!!)
+		- Aumentar el num_samples per trajectory para que así siempre aprenda (no ahora mismo que a veces la r_eventual no converge a 0)
 
 	>>> Si no se generan problemas con airplanes, añadir a las reglas de consistencia que
 	    tiene que haber al menos un objeto de tipo airplane!!
+
+	>>> Aumentar max_actions_goal_state
 
 	> Ver si implemento NLM con exists y exclude_self
 

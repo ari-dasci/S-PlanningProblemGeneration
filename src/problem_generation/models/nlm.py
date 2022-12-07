@@ -5,6 +5,7 @@ import torch
 import numpy as np
 from torch import nn
 import itertools
+import functools
 import math
 import sys
 
@@ -232,6 +233,36 @@ class _NLM_Layer(nn.Module):
         return expanded_tensors
         
     """
+    Obtains a mask used for self._reduce(). It contains 0 in positions where @tensor has repeated indexes (1 otherwise).
+    For example, for a binary tensor, mask[x][x] = 0
+    For a ternary tensor, mask[x][x][y] = 0, mask[y][x][x] = 0, mask[x][y][x] = 0
+
+    <Note>: since we are reducing, we know that the tensor arity is 1 or bigger (it can't be 0, since then we wouldn't be able to reduce it).
+    """
+    def _reduce_mask(self, tensor):
+        tensor_arity = tensor.dim()-1 # dim()-1 because the last dimension corresponds to the predicates
+        assert tensor_arity > 0, "We can't reduce nullary predicates"
+
+        if tensor_arity > 3:
+            raise NotImplementedError("No support for tensors of arity bigger than 3")
+
+        num_objs = tensor.shape[0]
+
+        # Unary predicates -> all the positions are valid (since there are no repeated objects)
+        if tensor_arity == 1:
+            return torch.ones(num_objs)
+        # Binary predicates -> mask has 1 in every position except for the diagonal
+        elif tensor_arity == 2:
+            return 1 - torch.eye(num_objs)
+        # Ternary predicates -> mask has 1 in every position except where two variables are the same (x==y, x==z or y==z)
+        else:
+            binary_mask = 1 - torch.eye(num_objs)
+            # binary_mask.unsqueeze(0)*binary_mask.unsqueeze(1)*binary_mask.unsqueeze(2)
+            ternary_mask = functools.reduce(lambda a,b: a*b, [torch.unsqueeze(binary_mask, dim=dim) for dim in range(3)])
+
+            return ternary_mask
+
+    """
     Reduction.
 
     We transform a tensor of predicates of arity a into predicate a-1, by deleting the last variable by taking the maximum
@@ -242,12 +273,34 @@ class _NLM_Layer(nn.Module):
     @X A list containing the tensors for each element in the batch (i.e., list[i] contains the tensors for i-th batch element).
     @reduce_type Either 'min' (corresponding to "forall") or 'max' (corresponding to "exists")
     """
-    def _reduce(self, X, reduce_type):
+    def _reduce(self, X, reduce_type, exclude_self=True):
         # If reduce_type=="min", we calculate the min along the -2 axis, else we take the maximum
-        reduced_tensors = [torch.amin(tensor, -2) for tensor in X] if reduce_type == 'min' else \
-                          [torch.amax(tensor, -2) for tensor in X]
+        # OLD -> reduce without exclude_self
+
+        if not exclude_self:
+            reduced_tensors = [torch.amin(tensor, -2) for tensor in X] if reduce_type == 'min' else \
+                              [torch.amax(tensor, -2) for tensor in X]
+
+            return reduced_tensors
         
-        return reduced_tensors
+        else:
+            reduced_tensors = []
+
+            if reduce_type == 'max':
+                for tensor in X:
+                    mask = self._reduce_mask(tensor).unsqueeze(-1)
+                    tensor_masked = tensor*mask
+                    reduced_tensor = torch.amax(tensor_masked, -2)
+                    reduced_tensors.append(reduced_tensor)
+            
+            else: # reduce_type == 'min'
+                for tensor in X:
+                    mask = self._reduce_mask(tensor).unsqueeze(-1)
+                    tensor_masked = tensor*mask + (1-mask)
+                    reduced_tensor = torch.amin(tensor_masked, -2)
+                    reduced_tensors.append(reduced_tensor)
+
+            return reduced_tensors
 
     """
     Permutation.
