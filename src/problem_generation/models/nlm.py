@@ -132,14 +132,15 @@ class _NLM_Layer(nn.Module):
     @apply_sigmoid Whether the MLPs should apply sigmoid to the output of the last layer.
     @residual_connections If True, we add residual connections. This means we append, for each different arity, the input
                           predicates to the output predicates.
-
+    @exclude_self If True, the NLM ignores tensor positions corresponding to repeated indexes (e.g., [5][5][3] or [2][2][0][1])
+				  when performing the reduce operation
 
     Note: if we use residual_connections, @num_in_preds_each_arity must consider the extra predicates (due to the residual
           connections) but @num_out_preds_each_arity must NOT consider the extra predicates.
     Note 2: if we use residual_connections for the NLM, all NLM layers <except for the last one> must use residual_connections
     """
     def __init__(self, num_in_preds_each_arity, num_out_preds_each_arity, mlp_hidden_size=0, apply_sigmoid = True,
-                 residual_connections=True):
+                 residual_connections=True, exclude_self=True):
         super().__init__()
         
         assert len(num_in_preds_each_arity) == len(num_out_preds_each_arity), \
@@ -149,7 +150,12 @@ class _NLM_Layer(nn.Module):
         self._num_out_preds_each_arity = num_out_preds_each_arity
         self._mlp_hidden_size = mlp_hidden_size
         self._residual_connections = residual_connections   
+        self._exclude_self = exclude_self
         
+
+        # QUITAR
+        print("> NLM exclude_self:", self._exclude_self)
+
         # Calculate the <real> number of input predicates for the inference mlp associated with each predicate arity
         # This <real> number takes into account the predicate number for the same arity r in the previous layer, 
         # the expand computation for arity r-1 in the previous layer, the reduce computation (with max and min) for
@@ -273,11 +279,10 @@ class _NLM_Layer(nn.Module):
     @X A list containing the tensors for each element in the batch (i.e., list[i] contains the tensors for i-th batch element).
     @reduce_type Either 'min' (corresponding to "forall") or 'max' (corresponding to "exists")
     """
-    def _reduce(self, X, reduce_type, exclude_self=True):
+    def _reduce(self, X, reduce_type):
         # If reduce_type=="min", we calculate the min along the -2 axis, else we take the maximum
-        # OLD -> reduce without exclude_self
 
-        if not exclude_self:
+        if not self._exclude_self:
             reduced_tensors = [torch.amin(tensor, -2) for tensor in X] if reduce_type == 'min' else \
                               [torch.amax(tensor, -2) for tensor in X]
 
@@ -473,9 +478,12 @@ class NLM(nn.Module):
                                      as additional inputs to every other NLM layer.
                             <Note>: the indices cannot be negative!!! (e.g., [[-1],[1,2],None,None] is not allowed)
     @residual_connections Whether to use residual connections for the NLM (i.e., all the layers except the last one)
+    @exclude_self If True, the NLM ignores tensor positions corresponding to repeated indexes (e.g., [5][5][3] or [2][2][0][1])
+				  when performing the reduce operation.
     <Note: we cannot use residual_connections and extra_preds_each_arity at the same time>
     """
-    def __init__(self, num_preds_layers, mlp_hidden_size_layers, extra_preds_each_arity=None, residual_connections=True):
+    def __init__(self, num_preds_layers, mlp_hidden_size_layers, extra_preds_each_arity=None, residual_connections=True,
+                 exclude_self=True):
         super().__init__()
         
         if extra_preds_each_arity is not None and residual_connections:
@@ -487,6 +495,7 @@ class NLM(nn.Module):
         self._mlp_hidden_size_layers = mlp_hidden_size_layers
         self._extra_preds_each_arity = extra_preds_each_arity
         self._residual_connections = residual_connections
+        self._exclude_self = exclude_self
           
         num_input_preds_layers = [num_preds_layers[i] for i in range(0, num_preds_layers.shape[0]-1)]
         num_output_preds_layers = [num_preds_layers[i] for i in range(1, num_preds_layers.shape[0])]
@@ -513,7 +522,8 @@ class NLM(nn.Module):
         # Do not apply sigmoid or residual connections to the last NLM layer
         self.layers = nn.ModuleList([_NLM_Layer(num_input_preds_layers_modified[i], num_output_preds_layers[i], mlp_hidden_size_layers[i],
                                                 apply_sigmoid = (i != num_preds_layers.shape[0]-2),
-                                                residual_connections = (residual_connections and i != num_preds_layers.shape[0]-2)) \
+                                                residual_connections = (residual_connections and i != num_preds_layers.shape[0]-2),
+                                                exclude_self = exclude_self) \
                                      for i in range(len(num_input_preds_layers))]) 
     
         self._num_input_preds_layers = num_input_preds_layers_modified

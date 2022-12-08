@@ -842,6 +842,7 @@ def test_train_init_and_goal_policy_logistics():
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
 										   extra_input_preds_initial_state_nlm=True,
 										   res_connections_initial_state_nlm=False,
+										   exclude_self_inital_state_nlm=True,
 										   lr_initial_state_nlm = 1e-3,
 										   entropy_coeff_init_state_policy = 1,
 										   entropy_annealing_coeffs_init_state_policy = (500, 0.4),
@@ -851,6 +852,7 @@ def test_train_init_and_goal_policy_logistics():
 										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
 										   extra_input_preds_goal_nlm=True,
 										   res_connections_goal_nlm=False,
+										   exclude_self_goal_nlm=True,
 										   lr_goal_nlm = 1e-3,
 										   entropy_coeff_goal_policy = 0.0,
 										   entropy_annealing_coeffs_goal_policy = None,
@@ -903,12 +905,14 @@ def test_load_models_and_generate_problems_logistics():
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
 										   extra_input_preds_initial_state_nlm=True,
 										   res_connections_initial_state_nlm=False,
+										   exclude_self_inital_state_nlm=True,
 										   load_init_state_policy_checkpoint_name=init_policy_path,
 
 										   num_preds_inner_layers_goal_nlm=goal_policy_nlm_inner_layers,
 										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
 										   extra_input_preds_goal_nlm=True,
 										   res_connections_goal_nlm=False,
+										   exclude_self_goal_nlm=True,
 										   load_goal_policy_checkpoint_name=goal_policy_path)
 
 	print(f">> Init model {init_policy_path} and goal model {goal_policy_path} loaded")
@@ -962,12 +966,14 @@ def test_load_models_and_resume_training_logistics():
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
 										   extra_input_preds_initial_state_nlm=True,
 										   res_connections_initial_state_nlm=False,
+										   exclude_self_inital_state_nlm=True,
 										   load_init_state_policy_checkpoint_name=init_policy_path,
 
 										   num_preds_inner_layers_goal_nlm=goal_policy_nlm_inner_layers,
 										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
 										   extra_input_preds_goal_nlm=True,
 										   res_connections_goal_nlm=False,
+										   exclude_self_goal_nlm=True,
 										   load_goal_policy_checkpoint_name=goal_policy_path)
 
 	print(f">> Init model {init_policy_path} and goal model {goal_policy_path} loaded")
@@ -2294,25 +2300,65 @@ def test_load_models_and_resume_training_logistics():
 
 	> Tiempo de obtener una trayectoria (con 15 átomos y 30 goal actions): 50s (bastante más rápido que el entrenamiento!!!)
 
+>  init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   init_policy_entropy_coeffs: 1, (500, 0.4)
+   goal_policy_entropy_coeffs: 0, None -> no entropy loss for goal policy
+   domain_with_exists
+   rescale_factor = 0.1
+   diff=LAMA
+   lr_init_policy y lr_goal_policy = 1e-3
+   ignore term_cond_prob for calculating entropy
+   max_actions_goal_state=60
+   trajectories_per_train_it=50
+   disc_factor_difficulty=0.995
+   disc_factor_event_consistency=0.9
+   max_atoms_init_state=15, max_actions_init_state=30, max_actions_goal_state=30
+   <reduce with exclude_self>
+
+   <no diversity_reward (la he comentado)>
+
+	> logs: init_policy\version_117
+
+	>>> NO APRENDE!!! (la r_difficulty no sube de 0.1, ya que todos los problemas generados tienen diff=1!!!)
+
+> Mismo experimento que el anterior pero:
+	<init_policy_entropy_coeffs: 1, None>
+
+	> logs: init_policy\version_118
+
+	>>> Tampoco aprende!!! (la r_difficulty no sube de 0.25)
+
+> Mismo experimento que el anterior pero:
+	<init_policy_entropy_coeffs: 1, (500, 0.4)>
+
+	> logs: init_policy\version_119
+
+	>>> Pasarle mi implementación a Masataro
+
 
 
 
 
 
 	>>> TODO hoy
-		- Añadir unary_predicates que indique si un objeto es virtual o no
-		- IMPLEMENTAR EXCLUDE_SELF (ver correo Jiayuan!!!)
-		- Aumentar el num_samples per trajectory para que así siempre aprenda (no ahora mismo que a veces la r_eventual no converge a 0)
+		- Añadir soporte para GPU
+		- Hacer pruebas con GPU (ver que no se quede sin memoria)
+		- Si exclude_self True no aprende
+			- Hacer experimento con exclude_self y un menor entropy_loss
+		- Si exclude_self aprende
+			- Hacer otro experimento (ej.: con diversity_reward)
+
+
+	>>> Siguientes pasos
+		- Probar a usar dos trajectories_per_train it en vez de 3
 
 	>>> Si no se generan problemas con airplanes, añadir a las reglas de consistencia que
 	    tiene que haber al menos un objeto de tipo airplane!!
 
 	>>> Aumentar max_actions_goal_state
 
-	> Ver si implemento NLM con exists y exclude_self
-
 	> Ver cómo mejorar la eficiencia
-		- Obtener training trajectories en paralelo
 		- Ver si cambio el tamaño de batch usado en entrenamiento
 		- Ver si merece la pena quitar las critic NLMs (usar otra forma de obtener el advantage sin usar critic!!)
 			- Ver si las critic NLMs aprende bien! (quizás tenga que variar el lr)
@@ -2328,6 +2374,8 @@ def test_load_models_and_resume_training_logistics():
 	>>> Obtener las trayectorias es mucho más rápido que entrenar la NLM!!! (30 s trayectoria, 1min 20s entrenamiento)
 		- Bajar num epochs per train it de 3 a 2
 		- Quizás puedo usar GPU solo cuando entreno la NLM
+
+	>>> Usar varios planners (y no solo LAMA) para medir la dificultad durante training!
 
 
 	>>> AQUI-

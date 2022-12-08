@@ -57,12 +57,12 @@ class DirectedGenerator():
 				 max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
 				
 				 num_preds_inner_layers_initial_state_nlm=[[4,4,4,4]], mlp_hidden_layers_initial_state_nlm=[0,0], 
-				 extra_input_preds_initial_state_nlm=True, res_connections_initial_state_nlm=False,
+				 extra_input_preds_initial_state_nlm=True, res_connections_initial_state_nlm=False, exclude_self_inital_state_nlm=True,
 				 lr_initial_state_nlm=5e-4, entropy_coeff_init_state_policy=1.0,
 				 entropy_annealing_coeffs_init_state_policy = None, epsilon_init_state_policy=0.2, load_init_state_policy_checkpoint_name=None,
 				 
 				 num_preds_inner_layers_goal_nlm=[[4,4,4,4]], mlp_hidden_layers_goal_nlm=[0,0], 
-				 extra_input_preds_goal_nlm=True, res_connections_goal_nlm=False,
+				 extra_input_preds_goal_nlm=True, res_connections_goal_nlm=False, exclude_self_goal_nlm=True,
 				 lr_goal_nlm=5e-4, entropy_coeff_goal_policy = 1.0,
 				 entropy_annealing_coeffs_goal_policy = None, epsilon_goal_policy=0.2, load_goal_policy_checkpoint_name=None):
 				 
@@ -137,8 +137,8 @@ class DirectedGenerator():
 		if load_init_state_policy_checkpoint_name is None:
 			self._initial_state_policy = GenerativePolicy(num_preds_all_layers_initial_state_nlm, mlp_hidden_layers_initial_state_nlm, 
 														extra_preds_each_arity_initial_state_nlm,
-														res_connections_initial_state_nlm, lr_initial_state_nlm,
-														entropy_coeff_init_state_policy,
+														res_connections_initial_state_nlm, exclude_self_inital_state_nlm,
+														lr_initial_state_nlm, entropy_coeff_init_state_policy,
 														entropy_annealing_coeffs_init_state_policy, epsilon_init_state_policy,
 														dummy_rel_state_predicates)
 		else: # Load initial state policy from checkpoint
@@ -147,6 +147,7 @@ class DirectedGenerator():
 																				 mlp_hidden_sizes_nlm=mlp_hidden_layers_initial_state_nlm,
 																				 nlm_extra_preds_each_arity=extra_preds_each_arity_initial_state_nlm,
 																				 nlm_residual_connections=res_connections_initial_state_nlm, 
+																				 nlm_exclude_self=exclude_self_inital_state_nlm,
 																				 lr=lr_initial_state_nlm,
 																				 action_entropy_coeff=entropy_coeff_init_state_policy,
 																				 entropy_annealing_coeffs=entropy_annealing_coeffs_init_state_policy, 
@@ -161,8 +162,8 @@ class DirectedGenerator():
 		if load_goal_policy_checkpoint_name is None:
 			self._goal_policy = GenerativePolicy(num_preds_all_layers_goal_nlm, mlp_hidden_layers_goal_nlm,
 														extra_preds_each_arity_goal_nlm,
-														res_connections_goal_nlm, lr_goal_nlm,
-														entropy_coeff_goal_policy,
+														res_connections_goal_nlm, exclude_self_goal_nlm,
+														lr_goal_nlm, entropy_coeff_goal_policy,
 														entropy_annealing_coeffs_goal_policy, epsilon_goal_policy,
 														dummy_rel_state_predicates)
 		else: # Load initial state policy from checkpoint
@@ -171,6 +172,7 @@ class DirectedGenerator():
 																				 mlp_hidden_sizes_nlm=mlp_hidden_layers_goal_nlm,
 																				 nlm_extra_preds_each_arity=extra_preds_each_arity_goal_nlm,
 																				 nlm_residual_connections=res_connections_goal_nlm, 
+																				 nlm_exclude_self=exclude_self_goal_nlm,
 																				 lr=lr_goal_nlm,
 																				 action_entropy_coeff=entropy_coeff_goal_policy,
 																				 entropy_annealing_coeffs=entropy_annealing_coeffs_goal_policy, 
