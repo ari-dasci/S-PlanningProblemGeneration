@@ -34,21 +34,21 @@ class GenerativePolicy(pl.LightningModule):
 	      Also, it needs to include the extra unary predicates representing object types, if needed.
 	"""
 	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_extra_preds_each_arity, nlm_residual_connections,
-	 			 nlm_exclude_self, lr, action_entropy_coeff, entropy_annealing_coeffs, epsilon, dummy_rel_state):
+	 			 nlm_exclude_self, lr, action_entropy_coeff, entropy_annealing_coeffs, epsilon, dummy_rel_state, device):
 		super().__init__()
 
 		self._lr = lr
 		self._epsilon = epsilon
-		self.register_buffer('_action_entropy_coeff', torch.tensor(action_entropy_coeff, dtype=torch.float32))	
+		self.register_buffer('_action_entropy_coeff', torch.tensor(action_entropy_coeff, dtype=torch.float32, device=device))	
 
 		# Calculate how much we need to reduce the entropy coeffs at each training iteration (in case we use linear annealing)
 		if entropy_annealing_coeffs is None:
-			self.register_buffer('_entropy_annealing_coeff', torch.tensor(0, dtype=torch.float32))
-			self.register_buffer('_final_iteration_entropy_annealing', torch.tensor(0, dtype=torch.int32))
+			self.register_buffer('_entropy_annealing_coeff', torch.tensor(0, dtype=torch.float32, device=device))
+			self.register_buffer('_final_iteration_entropy_annealing', torch.tensor(0, dtype=torch.int32, device=device))
 		else:
 			self.register_buffer('_entropy_annealing_coeff', torch.tensor((entropy_annealing_coeffs[1] - action_entropy_coeff) / entropy_annealing_coeffs[0],
-																          dtype=torch.float32))
-			self.register_buffer('_final_iteration_entropy_annealing', torch.tensor(entropy_annealing_coeffs[0], dtype=torch.int32))
+																          dtype=torch.float32, device=device))
+			self.register_buffer('_final_iteration_entropy_annealing', torch.tensor(entropy_annealing_coeffs[0], dtype=torch.int32, device=device))
 
 		self._actor_nlm = NLM(num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_extra_preds_each_arity, nlm_residual_connections, nlm_exclude_self)
 
@@ -63,12 +63,16 @@ class GenerativePolicy(pl.LightningModule):
 
 		# Variables used to keep track of the current iteration
 		# Used to track the current logging iteration in order to save the logs correctly
-		self.register_buffer('curr_log_iteration', torch.tensor(0, dtype=torch.int32))	
+		self.register_buffer('curr_log_iteration', torch.tensor(0, dtype=torch.int32, device=device))	
 
-		self.register_buffer('_curr_entropy_annealing_it', torch.tensor(0, dtype=torch.int32))
+		self.register_buffer('_curr_entropy_annealing_it', torch.tensor(0, dtype=torch.int32, device=device))
 		
 		# RelationalState used to obtain information about the object types and domain predicates
 		self._dummy_rel_state = dummy_rel_state
+
+		# <Move the model to cuda in case device==torch.device('cuda:0'). Else, it is on CPU.>
+		if device.type == 'cuda':
+			self.to('cuda')
 
 
 	# ------- Getters
@@ -144,7 +148,7 @@ class GenerativePolicy(pl.LightningModule):
 		# torch.cat() -> concatenate all the flattened tensors for each sample
 		# torch.logsumexp() -> calculate logsumexp for all the concatenated flattened tensors of each sample
 		log_sum_exp_list = [ torch.logsumexp(torch.cat( [list_nlm_output[r][i].flatten() if list_nlm_output[r][i] is not None \
-			                                               else torch.empty(0, dtype=torch.float32) for r in range(num_arities)] ), dim=-1) \
+			                                               else torch.empty(0, dtype=torch.float32, device=self.device) for r in range(num_arities)] ), dim=-1) \
 		                     for i in range(num_samples) ]
 
 		# Calculate log_softmax of each sample [i] in the batch by substracting log_sum_exp_list[i]
@@ -280,7 +284,7 @@ class GenerativePolicy(pl.LightningModule):
 	def sample_action(self, pred_tensors):		
 		# <Convert from torch to numpy>
 		# Use torch.exp to transform from log_softmax to softmax (i.e., from log_probs to probs)
-		pred_tensors_np = [np.exp(x.detach().numpy()) if x is not None else None for x in pred_tensors]
+		pred_tensors_np = [np.exp(x.cpu().detach().numpy()) if x is not None else None for x in pred_tensors]
 
 		# <Decide which arity to sample>
 	
@@ -480,9 +484,9 @@ class GenerativePolicy(pl.LightningModule):
 		list_mask_tensors = train_batch_np[:,3].tolist()
 		list_chosen_action_index = train_batch_np[:,4].tolist()
 
-		tensor_action_prob_old_policy = torch.tensor(train_batch_np[:,5].tolist(), dtype=torch.float32, requires_grad=False)
-		tensor_r_total_norm = torch.tensor(train_batch_np[:,10].tolist(), dtype=torch.float32, requires_grad=False)	
-		tensor_state_values = torch.tensor(train_batch_np[:,11].tolist(), dtype=torch.float32, requires_grad=False)
+		tensor_action_prob_old_policy = torch.tensor(train_batch_np[:,5].tolist(), dtype=torch.float32, requires_grad=False, device=self.device)
+		tensor_r_total_norm = torch.tensor(train_batch_np[:,10].tolist(), dtype=torch.float32, requires_grad=False, device=self.device)	
+		tensor_state_values = torch.tensor(train_batch_np[:,11].tolist(), dtype=torch.float32, requires_grad=False, device=self.device)
 
 		# Represent the state tensors in a suitable encoding for the NLMs
 		num_preds_state_tensors = len(train_batch[0][1]) # The number of elements in state_tensors (equal to the max predicate arity - 1)
@@ -522,7 +526,7 @@ class GenerativePolicy(pl.LightningModule):
 		# Convert from log_probs to probs
 		# Note: if the log_prob is NaN, then we assume the prob is 0 
 		chosen_action_prob_tensor = torch.cat([ torch.exp(log_prob).view(1) if not torch.isnan(log_prob) else \
-								                   torch.tensor([1e-5], dtype=torch.float32) \
+								                   torch.tensor([1e-5], dtype=torch.float32, device=self.device) \
 							                       for log_prob in chosen_action_log_prob_list ])
 
 		# Calculate the probability ratios r_t
@@ -552,7 +556,7 @@ class GenerativePolicy(pl.LightningModule):
 		if self.current_epoch == 0 and self.global_step == 0:
 			# Calculate probability of termination condition
 			with torch.no_grad():
-				term_cond_prob_tensor = torch.tensor([ np.exp(action_log_probs_list[0][i][-1].detach().numpy()) for i in range(train_batch_len) ])
+				term_cond_prob_tensor = torch.tensor([ torch.exp(action_log_probs_list[0][i][-1].detach()) for i in range(train_batch_len) ], device=self.device)
 				mean_term_cond_prob = torch.mean(term_cond_prob_tensor)
 	
 			self.logger.experiment.add_scalar("Total Reward Normalized", reward_total_norm, global_step=self.curr_log_iteration)

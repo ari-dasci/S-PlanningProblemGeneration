@@ -302,7 +302,7 @@ class RelationalState():
                            with respect to the maximum number of actions.
                            Examples: if we have executed 6 actions and the max number of actions is 10, then perc_actions_executed=0.6
     """
-    def atoms_nlm_encoding(self, max_arity = -1, add_virtual_objs = True, allowed_predicates = None, allowed_virtual_objects = None,
+    def atoms_nlm_encoding(self, device, max_arity = -1, add_virtual_objs = True, allowed_predicates = None, allowed_virtual_objects = None,
                            add_object_types=True, perc_actions_executed=-1):      
         atoms_list = []
         
@@ -343,7 +343,7 @@ class RelationalState():
                 else:
                     curr_tensor_shape = [num_objs]*r + [num_preds_each_arity[r]]
 
-                    atoms_list.append(torch.zeros(curr_tensor_shape, dtype=torch.float32)) # Change to float16 to increase efficiency -> NO!, it is slower
+                    atoms_list.append(torch.zeros(curr_tensor_shape, dtype=torch.float32, device=device)) # Change to float16 to increase efficiency -> NO!, it is slower
                     
             # Change tensor values associated with state atoms
             for atom in self._atoms:
@@ -384,7 +384,7 @@ class RelationalState():
     This method is used for the goal generation policy, to obtain a NLM encoding of the partially-generated problem (s_i, s_gc).
     To do this, this object (self) must correspond to the initial state (s_i) and @goal_state to the current goal state (s_gc).
     """
-    def atoms_nlm_encoding_with_goal_state(self, goal_state, max_arity = -1, add_object_types=True, perc_actions_executed=-1):
+    def atoms_nlm_encoding_with_goal_state(self, goal_state, device, max_arity = -1, add_object_types=True, perc_actions_executed=-1):
         # Check if the predicate types and number of objects are the same in both states (self and goal_state)
         if self.predicates != goal_state.predicates:
             raise ValueError("The initial and goal states contain different predicates")
@@ -398,8 +398,8 @@ class RelationalState():
         # This extra predicate has to be added AFTER stacking init_state_nlm_encoding and goal_state_nlm_encoding
         # The same with the predicates representing object types
         with torch.no_grad():
-            init_state_nlm_encoding = self.atoms_nlm_encoding(max_arity, False, None, None, False, -1) # add_virtual_objs=False, as we do not need to add virtual objects
-            goal_state_nlm_encoding = goal_state.atoms_nlm_encoding(max_arity, False, None, None, False, -1)
+            init_state_nlm_encoding = self.atoms_nlm_encoding(device, max_arity, False, None, None, False, -1) # add_virtual_objs=False, as we do not need to add virtual objects
+            goal_state_nlm_encoding = goal_state.atoms_nlm_encoding(device, max_arity, False, None, None, False, -1)
 
             # Stack goal_state_nlm_encoding to init_state_nlm_encoding
             both_states_nlm_encoding = []
@@ -414,7 +414,7 @@ class RelationalState():
 
             # Add the extra nullary predicate corresponding to perc_actions_executed (if needed)
             if perc_actions_executed != -1:
-                new_tensor = torch.full((1,), fill_value=perc_actions_executed, dtype=torch.float32)
+                new_tensor = torch.full((1,), fill_value=perc_actions_executed, dtype=torch.float32, device=device)
 
                 both_states_nlm_encoding[0] = new_tensor if both_states_nlm_encoding[0] is None else \
                                               torch.cat( (both_states_nlm_encoding[0], new_tensor), dim=-1)
@@ -422,7 +422,7 @@ class RelationalState():
             # Add the extra unary predicates corresponding to the object types (if needed)
             if add_object_types:
                 # Concatenate tensor containing extra unary predicates encoding object types
-                new_tensor = torch.zeros((self.num_objects,self.num_types), dtype=torch.float32)
+                new_tensor = torch.zeros((self.num_objects,self.num_types), dtype=torch.float32, device=device)
 
                 both_states_nlm_encoding[1] = new_tensor if both_states_nlm_encoding[1] is None else \
                                               torch.cat( (both_states_nlm_encoding[1], new_tensor), dim=-1)

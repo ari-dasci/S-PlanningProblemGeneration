@@ -37,6 +37,7 @@ class DirectedGenerator():
 	@max_actions_goal_state The maximum number of actions the goal policy can apply from @initial_state. If we reach this
 							number of actions and the goal policy hasn't chosen the termination condition, we assume
 							the current state corresponds to the completely-generated goal state.
+	@device Either 'cuda' or 'cpu'. Determines whether the models are trained on GPU or CPU.
 	@initial_state_info Information used to initialize the state s0 from which the initial state generation phase starts.
 	@num_preds_inner_layers_initial_state_nlm This corresponds to the number of predicates of the NLM layers EXCEPT FOR THE INPUT AND OUTPUT LAYERS,
 											  since the shapes of these two layers are calculated from the information about the predicates/actions in the domain.
@@ -55,6 +56,7 @@ class DirectedGenerator():
 				 allowed_virtual_objects=None,
 				 penalization_continuous_consistency=-1, penalization_eventual_consistency=-1,
 				 max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
+				 device='cuda',
 				
 				 num_preds_inner_layers_initial_state_nlm=[[4,4,4,4]], mlp_hidden_layers_initial_state_nlm=[0,0], 
 				 extra_input_preds_initial_state_nlm=True, res_connections_initial_state_nlm=False, exclude_self_inital_state_nlm=True,
@@ -85,6 +87,17 @@ class DirectedGenerator():
 		self._max_atoms_init_state = max_atoms_init_state
 		self._max_actions_init_state = max_actions_init_state
 		self._max_actions_goal_state = max_actions_goal_state
+
+		# Device
+		assert device in ('cuda', 'cpu'), "Device must be either 'cuda' or 'cpu'"
+	
+		if device == 'cuda':
+			if torch.cuda.is_available():
+				self.device = torch.device('cuda:0')
+			else:
+				raise Exception("No GPU available (torch.cuda.is_available() returned False). Either solve the issue or set device to 'cpu'")
+		else:
+			self.device = torch.device('cpu')
 
 		# <Relational State which contains the object types, type_hierarchy and actions in the domain>
 		# Used to convert from action name to index and vice versa (e.g.: "stack" <-> 1)
@@ -140,7 +153,8 @@ class DirectedGenerator():
 														res_connections_initial_state_nlm, exclude_self_inital_state_nlm,
 														lr_initial_state_nlm, entropy_coeff_init_state_policy,
 														entropy_annealing_coeffs_init_state_policy, epsilon_init_state_policy,
-														dummy_rel_state_predicates)
+														dummy_rel_state_predicates,
+														self.device)
 		else: # Load initial state policy from checkpoint
 			self._initial_state_policy = GenerativePolicy.load_from_checkpoint(checkpoint_path=load_init_state_policy_checkpoint_name,
 																				 num_preds_layers_nlm=num_preds_all_layers_initial_state_nlm, 
@@ -152,7 +166,8 @@ class DirectedGenerator():
 																				 action_entropy_coeff=entropy_coeff_init_state_policy,
 																				 entropy_annealing_coeffs=entropy_annealing_coeffs_init_state_policy, 
 																				 epsilon=epsilon_init_state_policy,
-																				 dummy_rel_state=dummy_rel_state_predicates)
+																				 dummy_rel_state=dummy_rel_state_predicates,
+																				 device=self.device)
 
 		# Goal generation policy
 		num_preds_all_layers_goal_nlm = self._num_preds_all_layers_goal_nlm(num_preds_inner_layers_goal_nlm)
@@ -165,7 +180,8 @@ class DirectedGenerator():
 														res_connections_goal_nlm, exclude_self_goal_nlm,
 														lr_goal_nlm, entropy_coeff_goal_policy,
 														entropy_annealing_coeffs_goal_policy, epsilon_goal_policy,
-														dummy_rel_state_predicates)
+														dummy_rel_state_predicates,
+														self.device)
 		else: # Load initial state policy from checkpoint
 			self._goal_policy = GenerativePolicy.load_from_checkpoint(checkpoint_path=load_goal_policy_checkpoint_name,
 																				 num_preds_layers_nlm=num_preds_all_layers_goal_nlm, 
@@ -177,7 +193,8 @@ class DirectedGenerator():
 																				 action_entropy_coeff=entropy_coeff_goal_policy,
 																				 entropy_annealing_coeffs=entropy_annealing_coeffs_goal_policy, 
 																				 epsilon=epsilon_goal_policy,
-																				 dummy_rel_state=dummy_rel_state_predicates)
+																				 dummy_rel_state=dummy_rel_state_predicates,
+																				 device=self.device)
 
 
 		# QUITAR
@@ -408,7 +425,7 @@ class DirectedGenerator():
 		term_cond_allowed = required_preds.issubset(preds_in_curr_state)
 
 		# Initialize mask tensors full of zeros
-		mask_tensors = [torch.zeros( (num_objs_with_virtuals,)*r + (num_preds,), dtype=torch.float32) \
+		mask_tensors = [torch.zeros( (num_objs_with_virtuals,)*r + (num_preds,), dtype=torch.float32, device=self.device) \
 						if num_preds != 0 else None for r, num_preds in enumerate(nlm_output_shape)]
 
 		# Iterate over each predicate in the domain
@@ -488,7 +505,7 @@ class DirectedGenerator():
 		# We mask all the NLM output positions except the ones corresponding to applicable_ground_actions_nlm_format
 		
 		# Initialize mask tensors full of -inf (all values are masked to -inf)
-		mask_tensors = [torch.full( (num_objs,)*r + (num_preds,), -float("inf"), dtype=torch.float32) \
+		mask_tensors = [torch.full( (num_objs,)*r + (num_preds,), -float("inf"), dtype=torch.float32, device=self.device) \
 						if num_preds != 0 else None for r, num_preds in enumerate(nlm_output_shape)]
 
 		# Unmask (set to 0) positions corresponding to applicable actions
@@ -614,8 +631,10 @@ class DirectedGenerator():
 
 		# Represent the trajectory as a numpy array. The row are the samples and the columns the different elements of each sample.
 		trajectory_len = len(trajectory)
-		trajectory_np = np.array(trajectory, dtype=object) 
-		list_num_objs_with_virtuals = trajectory_np[:, 2].tolist()
+		# trajectory_np = np.array(trajectory, dtype=object) 
+		#list_num_objs_with_virtuals = trajectory_np[:, 2].tolist()
+		list_num_objs_with_virtuals = [sample[2] for sample in trajectory]
+
 
 		# Represent the state tensors in a suitable encoding for the NLMs
 		num_preds_state_tensors = len(trajectory[0][1]) # The number of elements in state_tensors (equal to the max predicate arity - 1)
@@ -930,7 +949,8 @@ class DirectedGenerator():
 					curr_state = problems[i].initial_state
 					perc_actions_executed = curr_state.num_atoms / max_atoms_init_state # Obtain percentage of actions executed/atoms added (with respect to the max number of actions/atoms)
 					preds_curr_phase = self._consistency_validator.predicates_in_current_phase(curr_state)
-					curr_state_tensors = curr_state.atoms_nlm_encoding(max_arity=init_nlm_max_pred_arity, allowed_predicates=preds_curr_phase,
+					curr_state_tensors = curr_state.atoms_nlm_encoding(device=self.device, max_arity=init_nlm_max_pred_arity, 
+															allowed_predicates=preds_curr_phase,
 															allowed_virtual_objects=self._allowed_virtual_objects,
 															perc_actions_executed=perc_actions_executed)	
 					
@@ -1069,7 +1089,7 @@ class DirectedGenerator():
 				else:
 					curr_goal_state = problems[i].goal_state
 					perc_actions_executed = actions_executed[i] / max_actions_goal_state # Obtain percentage of actions executed (with respect to the max number of actions)
-					curr_goal_and_init_state_tensors = problems[i].initial_state.atoms_nlm_encoding_with_goal_state(curr_goal_state, 
+					curr_goal_and_init_state_tensors = problems[i].initial_state.atoms_nlm_encoding_with_goal_state(curr_goal_state, self.device,
 																	goal_nlm_max_pred_arity, True, perc_actions_executed) # True for adding object types as extra unary predicates	
 
 					# Mask tensors
@@ -1247,17 +1267,16 @@ class DirectedGenerator():
 			# First trajectory = trajectories[0:3], second trajectory = trajectories[3:5]
 			init_policy_trajectories_lens = [len(trajectory) for trajectory in init_policy_trajectories]
 		
-			print(f"> Trajectories collected. Num samples:\n\t>Init policy trajectories: {len(init_policy_trajectories)} \
-					\n\t>Goal policy trajectories: {len(goal_policy_trajectories)}")
-
 			# Flatten the trajectories (from list of lists to a single list)
 			init_policy_trajectories = [sample for trajectory in init_policy_trajectories for sample in trajectory]
 			goal_policy_trajectories = [sample for trajectory in goal_policy_trajectories for sample in trajectory]
 
+			print(f"> Trajectories collected. Num samples:\n\t>Init policy trajectories: {len(init_policy_trajectories)} \
+					\n\t>Goal policy trajectories: {len(goal_policy_trajectories)}")
+
 
 			#print("\n\nlen(init_policy_trajectories)", len(init_policy_trajectories))
 			#print("init_policy_trajectories_lens", init_policy_trajectories_lens)
-
 
 			# Obtain diversity reward for the init_policy_trajectories
 			# QUITAR
@@ -1284,9 +1303,20 @@ class DirectedGenerator():
 
 			# Train the policy
 
-			trainer_init_policy = pl.Trainer(max_epochs=epochs_per_train_it, logger=logger_init_policy, enable_checkpointing=False) # We need to reset the trainer, so we create a new one
+			# Train on GPU or CPU, according to self.device
+			if self.device.type == 'cuda':
+				trainer_init_policy = pl.Trainer(max_epochs=epochs_per_train_it, logger=logger_init_policy, accelerator='gpu',
+								 				 devices=1, enable_checkpointing=False) # We need to reset the trainer, so we create a new one
+			else:
+				trainer_init_policy = pl.Trainer(max_epochs=epochs_per_train_it, logger=logger_init_policy, accelerator='cpu',
+								 				 enable_checkpointing=False)
+						
 			trainer_init_policy.fit(self._initial_state_policy, trajectory_dataloader_init_policy)
 
+			# <CAMBIAR>
+			# Seems like we need to move the lightning_module back to the GPU after every call to Trainer.fit()
+			if self.device.type == 'cuda':
+				self._initial_state_policy.to('cuda')
 
 			# Linearly anneal the entropy regularization of the policy
 			self._initial_state_policy.reduce_entropy()
@@ -1294,6 +1324,8 @@ class DirectedGenerator():
 			# Save a checkpoint
 			if its_per_model_checkpoint != -1 and i > 0 and i % its_per_model_checkpoint == 0:
 				trainer_init_policy.save_checkpoint(checkpoints_folder + f'/init_policy_its-{i}.ckpt') # Both actor and critic NLMs are saved
+
+			del trainer_init_policy
 
 			# -- Goal state policy
 
@@ -1314,8 +1346,19 @@ class DirectedGenerator():
 				if len(goal_policy_trajectories) > 3*10*trajectories_per_train_it / 4:
 					goal_policy_train_epochs += 1
 
-				trainer_goal_policy = pl.Trainer(max_epochs=goal_policy_train_epochs, logger=logger_goal_policy, enable_checkpointing=False)
+
+				if self.device.type == 'cuda':
+					trainer_goal_policy = pl.Trainer(max_epochs=goal_policy_train_epochs, logger=logger_goal_policy,
+													 accelerator='gpu', devices=1, enable_checkpointing=False)
+				else:
+					trainer_goal_policy = pl.Trainer(max_epochs=goal_policy_train_epochs, logger=logger_goal_policy,
+													 accelerator='cpu', enable_checkpointing=False)
+
 				trainer_goal_policy.fit(self._goal_policy, trajectory_dataloader_goal_policy)
+
+				# <CAMBIAR>
+				if self.device.type == 'cuda':
+						self._goal_policy.to('cuda')
 
 				# Linearly anneal the entropy regularization of the policy
 				self._goal_policy.reduce_entropy()
@@ -1324,6 +1367,7 @@ class DirectedGenerator():
 				if its_per_model_checkpoint != -1 and i > 0 and i % its_per_model_checkpoint == 0:
 					trainer_goal_policy.save_checkpoint(checkpoints_folder + f'/goal_policy_its-{i}.ckpt') # Both actor and critic NLMs are saved
 
+				del trainer_goal_policy
 
 		# Close temporary file used for storing the problems generated during training
 		self._fd_temp_problem.close()
@@ -1478,7 +1522,7 @@ class DirectedGenerator():
 		init_state = problem_state.initial_state
 		perc_actions_executed = init_state.num_atoms / max_atoms_init_state
 		preds_curr_phase = self._consistency_validator.predicates_in_current_phase(init_state)		
-		init_state_tensors = init_state.atoms_nlm_encoding(max_arity=init_nlm_max_pred_arity, allowed_predicates=preds_curr_phase,
+		init_state_tensors = init_state.atoms_nlm_encoding(device=self.device, max_arity=init_nlm_max_pred_arity, allowed_predicates=preds_curr_phase,
 														   allowed_virtual_objects=self._allowed_virtual_objects,
 														   perc_actions_executed=perc_actions_executed)
 		num_objs_with_virtuals = init_state.num_objects + init_state.num_virtual_objects(preds_curr_phase)
@@ -1504,7 +1548,7 @@ class DirectedGenerator():
 		# Information about the goal state
 		goal_state = problem_state.goal_state
 		perc_actions_executed = num_actions_executed / max_actions_goal_state
-		init_and_goal_state_tensors = problem_state.initial_state.atoms_nlm_encoding_with_goal_state(goal_state, goal_nlm_max_pred_arity, 
+		init_and_goal_state_tensors = problem_state.initial_state.atoms_nlm_encoding_with_goal_state(goal_state, self.device, goal_nlm_max_pred_arity, 
 																									 True, perc_actions_executed) # True for adding object types as extra unary predicates
 		num_objs = goal_state.num_objects
 

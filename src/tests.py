@@ -837,6 +837,7 @@ def test_train_init_and_goal_policy_logistics():
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   allowed_virtual_objects=virtual_objects,
 										   max_atoms_init_state=15, max_actions_init_state=30, max_actions_goal_state=30,
+										   device='cuda',
 
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -900,6 +901,7 @@ def test_load_models_and_generate_problems_logistics():
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   allowed_virtual_objects=virtual_objects,
 										   max_atoms_init_state=10, max_actions_init_state=20, max_actions_goal_state=20,
+										   device='cuda',
 										  
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -961,6 +963,7 @@ def test_load_models_and_resume_training_logistics():
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   allowed_virtual_objects=virtual_objects,
 										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=60,
+										   device='cuda',
 										  
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -2344,6 +2347,9 @@ def test_load_models_and_resume_training_logistics():
 	>>> TODO hoy
 		- Añadir soporte para GPU
 		- Hacer pruebas con GPU (ver que no se quede sin memoria)
+			- Para comprobar si mi código tiene algún bug (que haga que se quede sin memoria),
+			  puedo hacer una prueba con muy pocos objetos (ej.: 5) y, si se queda sin memoria aún así,
+			  entonces mi código tiene un bug
 		- Si exclude_self True no aprende
 			- Hacer experimento con exclude_self y un menor entropy_loss
 		- Si exclude_self aprende
