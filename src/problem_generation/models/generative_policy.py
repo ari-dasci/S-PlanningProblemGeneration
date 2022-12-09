@@ -477,29 +477,27 @@ class GenerativePolicy(pl.LightningModule):
 		# < Represent the data in a suitable form for the calculations >
 
 		# Represent the batch as a numpy array. The row are the samples and the columns the different elements of each sample.
-		train_batch_np = np.array(train_batch, dtype=object) 
+		# train_batch_np = np.array(train_batch, dtype=object)
 
-		# Obtain a list (or tensor) with the sample information
-		list_num_objs = train_batch_np[:,2].tolist()
-		list_mask_tensors = train_batch_np[:,3].tolist()
-		list_chosen_action_index = train_batch_np[:,4].tolist()
+		list_rel_states = [sample[0] for sample in train_batch]
+		list_num_objs = [sample[2] for sample in train_batch]
+		list_mask_tensors = [sample[3] for sample in train_batch]
+		list_chosen_action_index = [sample[4] for sample in train_batch]
 
-		tensor_action_prob_old_policy = torch.tensor(train_batch_np[:,5].tolist(), dtype=torch.float32, requires_grad=False, device=self.device)
-		tensor_r_total_norm = torch.tensor(train_batch_np[:,10].tolist(), dtype=torch.float32, requires_grad=False, device=self.device)	
-		tensor_state_values = torch.tensor(train_batch_np[:,11].tolist(), dtype=torch.float32, requires_grad=False, device=self.device)
+		tensor_action_prob_old_policy = torch.tensor([sample[5] for sample in train_batch], dtype=torch.float32, requires_grad=False, device=self.device)
+		tensor_r_total_norm = torch.tensor([sample[10] for sample in train_batch], dtype=torch.float32, requires_grad=False, device=self.device)
+		tensor_state_values = torch.tensor([sample[11] for sample in train_batch], dtype=torch.float32, requires_grad=False, device=self.device)
 
 		# Represent the state tensors in a suitable encoding for the NLMs
 		num_preds_state_tensors = len(train_batch[0][1]) # The number of elements in state_tensors (equal to the max predicate arity - 1)
 		list_state_tensors_nlm_encoding = [[sample[1][r] for sample in train_batch] for r in range(num_preds_state_tensors)]
 
-		# Ver c�mo hacer padding de manera eficiente
-
 		# < Obtain the average rewards for the logs >
-		reward_continuous = np.mean(train_batch_np[:,6])
-		reward_eventual = np.mean(train_batch_np[:,7])
-		reward_difficulty = np.mean(train_batch_np[:,8])
-		reward_total = np.mean(train_batch_np[:,9])
-		reward_total_norm = np.mean(train_batch_np[:,10])
+		reward_continuous = np.mean([sample[6] for sample in train_batch])
+		reward_eventual = np.mean([sample[7] for sample in train_batch])
+		reward_difficulty = np.mean([sample[8] for sample in train_batch])
+		reward_total = np.mean([sample[9] for sample in train_batch])
+		reward_total_norm = np.mean([sample[10] for sample in train_batch])
 
 		# < Critic >
 
@@ -571,6 +569,17 @@ class GenerativePolicy(pl.LightningModule):
 			# <Log number of objects of each type>
 
 			with torch.no_grad():
+				types = sorted(list_rel_states[0].types)
+				num_objs_each_type = [0]*len(types)
+
+				for s in list_rel_states:
+					objects = s.objects
+					num_objs_each_type = [objects.count(t)+num_objs_t for t, num_objs_t in zip(types, num_objs_each_type)]
+				
+				dict_mean_objs_each_type = {t:num_objs_t/train_batch_len for t, num_objs_t in zip(types, num_objs_each_type)}
+
+				# ----- OLD
+				"""
 				num_types = self._dummy_rel_state.num_types
 				obj_types = self._dummy_rel_state.types
 				obj_types_to_indices_dict = self._dummy_rel_state.obj_types_to_indices_dict
@@ -583,6 +592,7 @@ class GenerativePolicy(pl.LightningModule):
 												  for tensor in list_tensors_unary_preds],axis=0),axis=0) 
 
 				dict_mean_objs_each_type = {t : mean_objs_each_type[obj_types_to_indices_dict[t]].item() for t in obj_types}
+				"""
 
 			self.logger.experiment.add_scalars('Object types', dict_mean_objs_each_type, global_step=self.curr_log_iteration)
 

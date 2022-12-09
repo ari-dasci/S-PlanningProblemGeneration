@@ -294,6 +294,7 @@ class RelationalState():
     @add_object_types Used to differentiate between objects of different type.
                          If True, we add additional unary predicates which encode the object type of each object
                          in the domain. These predicates are added after the unary predicates of the domain in the NLM tensor.
+                         Additionally, we add an unary predicate which encodes if an object is virtual or not.
     @max_arity If not -1, we assume that is the max arity of the predicates. This parameter is used to encode the relational
                state for a NLM which uses a higher max arity (for the inner layers) than the max arity of the relational
                state.
@@ -311,6 +312,7 @@ class RelationalState():
         
         # Obtain the type of each object in the domain
         object_types = self._objects.copy()
+        num_objs_no_virtuals = len(object_types)
 
         # Add virtual objects
         if add_virtual_objs:
@@ -318,6 +320,9 @@ class RelationalState():
 
         # Calculate number of objects in the state (including virtuals if added)
         num_objs = len(object_types)
+
+        # Store indexes corresponding to virtual objects
+        virtual_objs_inds = range(num_objs_no_virtuals, num_objs)
         
         with torch.no_grad():
             num_preds_each_arity = self._num_preds_each_arity.copy()
@@ -330,11 +335,12 @@ class RelationalState():
                     num_preds_each_arity[0] += 1
 
             # Add extra unary predicates used to represent the type of each object (including virtuals if added)
+            # Also, add an unary predicate to represent if an objects is virtual or not
             if add_object_types:
                 if 1 not in num_preds_each_arity:
-                    num_preds_each_arity[1] = self.num_types
+                    num_preds_each_arity[1] = self.num_types+1
                 else:
-                    num_preds_each_arity[1] += self.num_types 
+                    num_preds_each_arity[1] += self.num_types+1 
 
             # Initialize tensors full of zeros
             for r in range(nlm_breadth+1):
@@ -362,14 +368,19 @@ class RelationalState():
             if perc_actions_executed != -1:
                 atoms_list[0][-1] = perc_actions_executed
 
-            # Encode the type of each object
+            # Encode the type of each object (and also, if it's virtual or not)
             if add_object_types:
                 # Number of unary predicates without considering the extra predicates for object types
                 # self._num_preds_each_arity contains the number of predicates BEFORE adding the extra nullary and unary predicates
                 num_unary_preds = self._num_preds_each_arity[1] if 1 in self._num_preds_each_arity else 0
 
+                # Object types
                 for obj_ind, obj_type in enumerate(object_types):
                     atoms_list[1][obj_ind][num_unary_preds + self._obj_types_to_indices_dict[obj_type]] = 1.0
+
+                # Virtual objects
+                for obj_ind in virtual_objs_inds: 
+                    atoms_list[1][obj_ind][-1] = 1.0
 
         return atoms_list
         
@@ -383,6 +394,8 @@ class RelationalState():
 
     This method is used for the goal generation policy, to obtain a NLM encoding of the partially-generated problem (s_i, s_gc).
     To do this, this object (self) must correspond to the initial state (s_i) and @goal_state to the current goal state (s_gc).
+    <Note>: unlike atoms_nlm_encoding(), we do not add an extra unary predicate to represent if an object is virtual or not,
+            since there are no virtual objects.
     """
     def atoms_nlm_encoding_with_goal_state(self, goal_state, device, max_arity = -1, add_object_types=True, perc_actions_executed=-1):
         # Check if the predicate types and number of objects are the same in both states (self and goal_state)
@@ -420,6 +433,8 @@ class RelationalState():
                                               torch.cat( (both_states_nlm_encoding[0], new_tensor), dim=-1)
 
             # Add the extra unary predicates corresponding to the object types (if needed)
+            # <Note>:  unlike atoms_nlm_encoding(), we do not add an extra unary predicate to represent if an object is virtual or not,
+            #          since there are no virtual objects.
             if add_object_types:
                 # Concatenate tensor containing extra unary predicates encoding object types
                 new_tensor = torch.zeros((self.num_objects,self.num_types), dtype=torch.float32, device=device)

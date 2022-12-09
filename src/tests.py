@@ -2337,7 +2337,13 @@ def test_load_models_and_resume_training_logistics():
 
 	> logs: init_policy\version_119
 
-	>>> Pasarle mi implementación a Masataro
+	
+
+
+
+	
+
+
 
 
 
@@ -2345,16 +2351,13 @@ def test_load_models_and_resume_training_logistics():
 
 
 	>>> TODO hoy
-		- Añadir soporte para GPU
+		- Comprobar que sigue aprendido con el predicado extra que representa si un objeto es virtual o no
+			- Al hacer esta prueba, usar device="cpu"
+			- Poner print para ver que los objetos virtuales se codifican correctamente!
 		- Hacer pruebas con GPU (ver que no se quede sin memoria)
 			- Para comprobar si mi código tiene algún bug (que haga que se quede sin memoria),
 			  puedo hacer una prueba con muy pocos objetos (ej.: 5) y, si se queda sin memoria aún así,
 			  entonces mi código tiene un bug
-		- Si exclude_self True no aprende
-			- Hacer experimento con exclude_self y un menor entropy_loss
-		- Si exclude_self aprende
-			- Hacer otro experimento (ej.: con diversity_reward)
-
 
 	>>> Siguientes pasos
 		- Probar a usar dos trajectories_per_train it en vez de 3

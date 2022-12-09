@@ -272,7 +272,7 @@ class DirectedGenerator():
 
 			# Input predicates
 			input_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate for perc_actions_executed
-			input_nlm_layer_shape[0][1] += len(domain_types) # Add extra unary predicates to represent the object types
+			input_nlm_layer_shape[0][1] += len(domain_types)+1 # Add extra unary predicates to represent the object types (and one more to represent whether an object is virtual)
 
 			# Output predicates
 			output_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate for the termination condition probability
@@ -288,7 +288,7 @@ class DirectedGenerator():
 
 			# Output predicates
 			input_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate for perc_actions_executed
-			input_nlm_layer_shape[0][1] += len(domain_types) # Add extra unary predicates to represent the object types
+			input_nlm_layer_shape[0][1] += len(domain_types)+1 # Add extra unary predicates to represent the object types (and one more to represent whether an object is virtual)
 
 			output_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate for the termination condition probability
 
