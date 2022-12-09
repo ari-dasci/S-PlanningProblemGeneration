@@ -28,13 +28,17 @@ class GenerativePolicy(pl.LightningModule):
 							  final_entropy.
 		Note: reduce_entropy() method must be manually called after each trainer.fit() in order to reduce the entropy.	
 	@dummy_rel_state An instance of RelationalState, containing information about the types and predicates in the domain.
+	@device Either 'cuda' or 'cpu'. Determines whether the models are trained on GPU or CPU.
+	@max_objs_cache_reduce_masks The maximum number of objects for which to store in memory (cache) the reduced_maskes used by the NLMs
+	                             when exclude_self=True. If 0, we don't store the masks: they are calculated every time they are needed.
 
 	Note: @num_preds_layers_nlm needs to include the extra nullary predicate for the termination condition (in the output layer)
 	      and the number of atoms already added to the initial state (perc_actions_executed, a number between 0 and 1), in case these are needed.
 	      Also, it needs to include the extra unary predicates representing object types, if needed.
 	"""
 	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_extra_preds_each_arity, nlm_residual_connections,
-	 			 nlm_exclude_self, lr, action_entropy_coeff, entropy_annealing_coeffs, epsilon, dummy_rel_state, device):
+	 			 nlm_exclude_self, lr, action_entropy_coeff, entropy_annealing_coeffs, epsilon, dummy_rel_state, device,
+				 max_objs_cache_reduce_masks):
 		super().__init__()
 
 		self._lr = lr
@@ -50,7 +54,8 @@ class GenerativePolicy(pl.LightningModule):
 																          dtype=torch.float32, device=device))
 			self.register_buffer('_final_iteration_entropy_annealing', torch.tensor(entropy_annealing_coeffs[0], dtype=torch.int32, device=device))
 
-		self._actor_nlm = NLM(num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_extra_preds_each_arity, nlm_residual_connections, nlm_exclude_self)
+		self._actor_nlm = NLM(num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_extra_preds_each_arity, nlm_residual_connections, nlm_exclude_self,
+							  max_objs_cache_reduce_masks)
 
 
 		# The NLM for the critic has the same shape as the actor NLM except for the output layer, where it only has
@@ -59,7 +64,8 @@ class GenerativePolicy(pl.LightningModule):
 		num_preds_layers_nlm_critic[-1, :] = 0
 		num_preds_layers_nlm_critic[-1, 0] = 1
 
-		self._critic_nlm = NLM(num_preds_layers_nlm_critic, mlp_hidden_sizes_nlm, nlm_extra_preds_each_arity, nlm_residual_connections, nlm_exclude_self)
+		self._critic_nlm = NLM(num_preds_layers_nlm_critic, mlp_hidden_sizes_nlm, nlm_extra_preds_each_arity, nlm_residual_connections, nlm_exclude_self,
+							   max_objs_cache_reduce_masks)
 
 		# Variables used to keep track of the current iteration
 		# Used to track the current logging iteration in order to save the logs correctly

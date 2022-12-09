@@ -837,7 +837,7 @@ def test_train_init_and_goal_policy_logistics():
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   allowed_virtual_objects=virtual_objects,
 										   max_atoms_init_state=15, max_actions_init_state=30, max_actions_goal_state=30,
-										   device='cpu',
+										   device='cpu', max_objs_cache_reduce_masks=30,
 
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -885,8 +885,8 @@ def test_load_models_and_generate_problems_logistics():
 	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_173/init_policy_its-380.ckpt"
-	goal_policy_path = "saved_models/both_policies_173/goal_policy_its-380.ckpt"
+	init_policy_path = "saved_models/both_policies_175/init_policy_its-50.ckpt"
+	goal_policy_path = "saved_models/both_policies_175/goal_policy_its-50.ckpt"
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
@@ -901,7 +901,7 @@ def test_load_models_and_generate_problems_logistics():
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   allowed_virtual_objects=virtual_objects,
 										   max_atoms_init_state=10, max_actions_init_state=20, max_actions_goal_state=20,
-										   device='cpu',
+										   device='cpu', max_objs_cache_reduce_masks=0,
 										  
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -922,8 +922,8 @@ def test_load_models_and_generate_problems_logistics():
 	# Generate the set of problems with the trained initial policy
 	num_problems = 10
 
-	directed_generator.generate_problems(num_problems, max_atoms_init_state=30, max_actions_init_state=60,
-									     max_actions_goal_state=60, max_planning_time=600, verbose=True)
+	directed_generator.generate_problems(num_problems, max_atoms_init_state=15, max_actions_init_state=30,
+									     max_actions_goal_state=30, max_planning_time=600, verbose=True)
 
 
 def test_load_models_and_resume_training_logistics():
@@ -963,7 +963,7 @@ def test_load_models_and_resume_training_logistics():
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   allowed_virtual_objects=virtual_objects,
 										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=60,
-										   device='cuda',
+										   device='cuda', max_objs_cache_reduce_masks=30,
 										  
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -2375,64 +2375,79 @@ def test_load_models_and_resume_training_logistics():
 
    <no diversity_reward (la he comentado)>
 
+   > logs: init_policy\version_120 
+
 	>>> Aprende mucho más rápido!!!!
 		- La r_diff empieza a subir desde el principio del entrenamiento!!!
 
 
+>  init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   init_policy_entropy_coeffs: 1, (500, 0.4)
+   goal_policy_entropy_coeffs: 0, None -> no entropy loss for goal policy
+   domain_with_exists
+   rescale_factor = 0.1
+   diff=LAMA
+   lr_init_policy y lr_goal_policy = 1e-3
+   ignore term_cond_prob for calculating entropy
+   max_actions_goal_state=60
+   trajectories_per_train_it=50
+   disc_factor_difficulty=0.995
+   disc_factor_event_consistency=0.9
+   max_atoms_init_state=15, max_actions_init_state=30, max_actions_goal_state=30
+   exclude_self=True
+   <max_objs_cache_reduce_masks=30>
+   predicate obj_virtuals
 
-	>>> TODO hoy
-		- Comprobar que sigue aprendiendo con el predicado extra que representa si un objeto es virtual o no
-			- Al hacer esta prueba, usar device="cpu"
-			- Poner print para ver que los objetos virtuales se codifican correctamente!
+   <no diversity_reward (la he comentado)>
+	
+   > logs: init_policy\version_121 
+
+	>>> Aprende y es más rápido que no usando cache_reduce_mask!!
+
+
+
+
+   >>> PROBAR A GENERAR PROBLEMAS (para ver que todo funciona bien!)
+
+
+
+	>>> Siguientes pasos
 		- Probar a precalcular las máscaras (si exclude_self=True) y así poder hacer el reduce de manera más
 		  eficiente durante el entrenamiento!!
 		- Hacer pruebas con GPU (ver que no se quede sin memoria)
 			- Para comprobar si mi código tiene algún bug (que haga que se quede sin memoria),
 			  puedo hacer una prueba con muy pocos objetos (ej.: 5) y, si se queda sin memoria aún así,
 			  entonces mi código tiene un bug
+			  - Bajar también el training_batch!!
+		- Variar dinámicamente el numéro de trayectorias durante el entrenamiento
+			- Poner min_num_samples (para la init y goal_policies) (ej.: 500)
+			- Poner max_num_trajectories (ej.: 100)
+			- Ir obteniendo trayectorias de 25 en 25. En cuanto se generen suficientes samples (min_num_samples)
+			  o se hayan alcanzado max_num_trajectories, se dejan de generar trayecotrias.
+			- El número de trayectorias en paralelo (25 en este caso), se puede establecer para que la GPU
+			  no se quede sin memoria!!
+		- Probar epochs_per_train_it=2 en vez de 3
+		- Aumentar max_actions_goal_state a 45
+		- Ver si el critic aprende bien! (quizás deba bajar el lr de la goal_policy_critic, por ejemplo)
+		- Probar diversity_reward
+
+		- Si veo que la goal_policy no aprende
+			- Quizás debo entrenar más a la goal_policy que a la init_policy (ej.: usar el doble de lr o entrenar
+			  durante el doble de epochs). Así, la goal policy puede aprender a generar problemas difíciles
+			  antes de que la init_policy converge a problemas con una sola ciudad
+			- Aumentar depth de la NLM
+		
+		- Usar varios planners para medir la dificultad (no solo LAMA)
+
 		- Review
 			- Ver mensaje de Masataro
 
-	>>> Siguientes pasos
-		- Probar a usar dos trajectories_per_train it en vez de 3
-		- Aumentar max_actions_goal_state a 45
 
 	>>> Si no se generan problemas con airplanes, añadir a las reglas de consistencia que
 	    tiene que haber al menos un objeto de tipo airplane!!
 
-	>>> Aumentar max_actions_goal_state
-
-	> Ver cómo mejorar la eficiencia
-		- Ver si cambio el tamaño de batch usado en entrenamiento
-		- Ver si merece la pena quitar las critic NLMs (usar otra forma de obtener el advantage sin usar critic!!)
-			- Ver si las critic NLMs aprende bien! (quizás tenga que variar el lr)
-		- Usar min_num_samples y max_trajectories durante el entrenamiento
-		- Si veo que la goal policy no aprende
-			- Quizás debo entrenar más a la goal policy que a la init policy!
-			  Ej.: hacer que se obtengan un min num de samples de la goal policy e init policy y variar el learning rate
-			       o num epochs de manera dinámica -> Ej.: si hay el doble de samples de la init policy que de la goal policy,
-				   entonces a la goal policy debería entrenarla durante el doble de épocas que la init policy!!!
-		- Si no aprende
-			- Aumentar depth de la NLM
-
-	>>> Obtener las trayectorias es mucho más rápido que entrenar la NLM!!! (30 s trayectoria, 1min 20s entrenamiento)
-		- Bajar num epochs per train it de 3 a 2
-		- Quizás puedo usar GPU solo cuando entreno la NLM
-
-	>>> Usar varios planners (y no solo LAMA) para medir la dificultad durante training!
-
-
 	>>> AQUI-
-
---------------------- Siguientes experimentos
-
-	> Repetir experimento disc_factors=1 pero con 50 trajectories_per_train_it (a ver si ahora sí aprende)
-
-	> Probar a variar num_trajectories durante el entrenamiento (num_min samples y nun_max_trajectories)
-
-	> NLM con predicados de ariedad 3
-
-	> diversity_reward
 
 --------------------- Siguientes pasos 
 	
@@ -2445,18 +2460,7 @@ def test_load_models_and_resume_training_logistics():
 		- 30 atoms
 			- 98.95 (si uso valores "aleatorios" de parámetros (desde 1 o 0 hasta max_num_atoms))
 
-	<Responder al correo de Mauro>
 	>> Quitar use_epm = False
-
-	>>> INTENTAR MEJORAR LA EFICIENCIA DE LA NLM
-		- Bajar num_trajectories_per_train_it, etc. -> HECHO
-		- Si no es suficiente, usar la NLM de los autores del paper
-			(ver correo)
-		- Probar a usar GPU
-			- Ver consejos para no quedarse sin GPU memory: https://pytorch.org/docs/stable/notes/faq.html
-
-	>>> Ver si puedo generar problemas difíciles y diversos con LAMA (una vez que lo consiga, pasar a usar heuristics)
-		- Probar también a usar diversity_reward
 
 	>>> Si al final termino midiendo la dificultad con el planner, debo ir alternando entre LAMA y otros planners
 	    durante el entrenamiento!!! (ir alternando entre varios
@@ -2464,7 +2468,6 @@ def test_load_models_and_resume_training_logistics():
 	    que todas estén en el mismo rango)
 
 	>>> Evaluar generalización en problemas más grandes
-		- Si es capaz de generalizar a problemas más grandes, no es necesario medir la dificultad con heurísticas
 
 	>>> Integrar search algorithm con el código!!!
 

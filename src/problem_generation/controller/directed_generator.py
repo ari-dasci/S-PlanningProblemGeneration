@@ -38,6 +38,8 @@ class DirectedGenerator():
 							number of actions and the goal policy hasn't chosen the termination condition, we assume
 							the current state corresponds to the completely-generated goal state.
 	@device Either 'cuda' or 'cpu'. Determines whether the models are trained on GPU or CPU.
+	@max_objs_cache_reduce_masks The maximum number of objects for which to store in memory (cache) the reduced_maskes used by the NLMs
+	                             when exclude_self=True. If 0, we don't store the masks: they are calculated every time they are needed.
 	@initial_state_info Information used to initialize the state s0 from which the initial state generation phase starts.
 	@num_preds_inner_layers_initial_state_nlm This corresponds to the number of predicates of the NLM layers EXCEPT FOR THE INPUT AND OUTPUT LAYERS,
 											  since the shapes of these two layers are calculated from the information about the predicates/actions in the domain.
@@ -56,7 +58,7 @@ class DirectedGenerator():
 				 allowed_virtual_objects=None,
 				 penalization_continuous_consistency=-1, penalization_eventual_consistency=-1,
 				 max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
-				 device='cuda',
+				 device='cuda', max_objs_cache_reduce_masks=0,
 				
 				 num_preds_inner_layers_initial_state_nlm=[[4,4,4,4]], mlp_hidden_layers_initial_state_nlm=[0,0], 
 				 extra_input_preds_initial_state_nlm=True, res_connections_initial_state_nlm=False, exclude_self_inital_state_nlm=True,
@@ -154,7 +156,7 @@ class DirectedGenerator():
 														lr_initial_state_nlm, entropy_coeff_init_state_policy,
 														entropy_annealing_coeffs_init_state_policy, epsilon_init_state_policy,
 														dummy_rel_state_predicates,
-														self.device)
+														self.device, max_objs_cache_reduce_masks)
 		else: # Load initial state policy from checkpoint
 			self._initial_state_policy = GenerativePolicy.load_from_checkpoint(checkpoint_path=load_init_state_policy_checkpoint_name,
 																				 num_preds_layers_nlm=num_preds_all_layers_initial_state_nlm, 
@@ -167,7 +169,8 @@ class DirectedGenerator():
 																				 entropy_annealing_coeffs=entropy_annealing_coeffs_init_state_policy, 
 																				 epsilon=epsilon_init_state_policy,
 																				 dummy_rel_state=dummy_rel_state_predicates,
-																				 device=self.device)
+																				 device=self.device,
+																				 max_objs_cache_reduce_masks=max_objs_cache_reduce_masks)
 
 		# Goal generation policy
 		num_preds_all_layers_goal_nlm = self._num_preds_all_layers_goal_nlm(num_preds_inner_layers_goal_nlm)
@@ -181,7 +184,7 @@ class DirectedGenerator():
 														lr_goal_nlm, entropy_coeff_goal_policy,
 														entropy_annealing_coeffs_goal_policy, epsilon_goal_policy,
 														dummy_rel_state_predicates,
-														self.device)
+														self.device, max_objs_cache_reduce_masks)
 		else: # Load initial state policy from checkpoint
 			self._goal_policy = GenerativePolicy.load_from_checkpoint(checkpoint_path=load_goal_policy_checkpoint_name,
 																				 num_preds_layers_nlm=num_preds_all_layers_goal_nlm, 
@@ -194,7 +197,8 @@ class DirectedGenerator():
 																				 entropy_annealing_coeffs=entropy_annealing_coeffs_goal_policy, 
 																				 epsilon=epsilon_goal_policy,
 																				 dummy_rel_state=dummy_rel_state_predicates,
-																				 device=self.device)
+																				 device=self.device,
+																				 max_objs_cache_reduce_masks=max_objs_cache_reduce_masks)
 
 
 		# QUITAR

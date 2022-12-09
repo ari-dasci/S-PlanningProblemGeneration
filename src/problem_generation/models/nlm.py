@@ -140,7 +140,7 @@ class _NLM_Layer(nn.Module):
     Note 2: if we use residual_connections for the NLM, all NLM layers <except for the last one> must use residual_connections
     """
     def __init__(self, num_in_preds_each_arity, num_out_preds_each_arity, mlp_hidden_size=0, apply_sigmoid = True,
-                 residual_connections=True, exclude_self=True):
+                 residual_connections=True, exclude_self=True, reduce_masks_list=None):
         super().__init__()
         
         assert len(num_in_preds_each_arity) == len(num_out_preds_each_arity), \
@@ -151,10 +151,7 @@ class _NLM_Layer(nn.Module):
         self._mlp_hidden_size = mlp_hidden_size
         self._residual_connections = residual_connections   
         self._exclude_self = exclude_self
-        
-
-        # QUITAR
-        print("> NLM exclude_self:", self._exclude_self)
+        self._reduce_masks_list = reduce_masks_list
 
         # Calculate the <real> number of input predicates for the inference mlp associated with each predicate arity
         # This <real> number takes into account the predicate number for the same arity r in the previous layer, 
@@ -256,17 +253,17 @@ class _NLM_Layer(nn.Module):
 
         # Unary predicates -> all the positions are valid (since there are no repeated objects)
         if tensor_arity == 1:
-            return torch.ones(num_objs)
+            return torch.ones(num_objs).unsqueeze(-1)
         # Binary predicates -> mask has 1 in every position except for the diagonal
         elif tensor_arity == 2:
-            return 1 - torch.eye(num_objs)
+            return (1 - torch.eye(num_objs)).unsqueeze(-1)
         # Ternary predicates -> mask has 1 in every position except where two variables are the same (x==y, x==z or y==z)
         else:
             binary_mask = 1 - torch.eye(num_objs)
             # binary_mask.unsqueeze(0)*binary_mask.unsqueeze(1)*binary_mask.unsqueeze(2)
             ternary_mask = functools.reduce(lambda a,b: a*b, [torch.unsqueeze(binary_mask, dim=dim) for dim in range(3)])
 
-            return ternary_mask
+            return ternary_mask.unsqueeze(-1)
 
     """
     Reduction.
@@ -290,17 +287,28 @@ class _NLM_Layer(nn.Module):
         
         else:
             reduced_tensors = []
+            max_objs_cached_reduce_masks = 0 if self._reduce_masks_list is None else len(self._reduce_masks_list[0])-1
 
             if reduce_type == 'max':
                 for tensor in X:
-                    mask = self._reduce_mask(tensor).unsqueeze(-1)
+                    tensor_arity = tensor.dim()-1
+                    tensor_num_objs = tensor.shape[0]
+
+                    mask = self._reduce_masks_list[tensor_arity-1][tensor_num_objs] if tensor_num_objs <= max_objs_cached_reduce_masks \
+                           else self._reduce_mask(tensor)
+
                     tensor_masked = tensor*mask
                     reduced_tensor = torch.amax(tensor_masked, -2)
                     reduced_tensors.append(reduced_tensor)
             
             else: # reduce_type == 'min'
                 for tensor in X:
-                    mask = self._reduce_mask(tensor).unsqueeze(-1)
+                    tensor_arity = tensor.dim()-1
+                    tensor_num_objs = tensor.shape[0]
+
+                    mask = self._reduce_masks_list[tensor_arity-1][tensor_num_objs] if tensor_num_objs <= max_objs_cached_reduce_masks \
+                           else self._reduce_mask(tensor)
+
                     tensor_masked = tensor*mask + (1-mask)
                     reduced_tensor = torch.amin(tensor_masked, -2)
                     reduced_tensors.append(reduced_tensor)
@@ -483,7 +491,7 @@ class NLM(nn.Module):
     <Note: we cannot use residual_connections and extra_preds_each_arity at the same time>
     """
     def __init__(self, num_preds_layers, mlp_hidden_size_layers, extra_preds_each_arity=None, residual_connections=True,
-                 exclude_self=True):
+                 exclude_self=True, max_objs_cache_reduce_masks=0):
         super().__init__()
         
         if extra_preds_each_arity is not None and residual_connections:
@@ -495,7 +503,6 @@ class NLM(nn.Module):
         self._mlp_hidden_size_layers = mlp_hidden_size_layers
         self._extra_preds_each_arity = extra_preds_each_arity
         self._residual_connections = residual_connections
-        self._exclude_self = exclude_self
           
         num_input_preds_layers = [num_preds_layers[i] for i in range(0, num_preds_layers.shape[0]-1)]
         num_output_preds_layers = [num_preds_layers[i] for i in range(1, num_preds_layers.shape[0])]
@@ -518,12 +525,19 @@ class NLM(nn.Module):
             num_input_preds_layers_modified = num_input_preds_layers
 
 
+        # Store in memory (cache) the reduced masks used by the reduce operations when exclude_self=True
+        if exclude_self:
+            self._reduce_masks_list = self._get_reduce_masks(num_preds_layers.shape[1]-1, max_objs_cache_reduce_masks)
+        else:
+            self._reduce_masks_list = None
+
         # Create each NLM layer and add it to a module list
         # Do not apply sigmoid or residual connections to the last NLM layer
         self.layers = nn.ModuleList([_NLM_Layer(num_input_preds_layers_modified[i], num_output_preds_layers[i], mlp_hidden_size_layers[i],
                                                 apply_sigmoid = (i != num_preds_layers.shape[0]-2),
                                                 residual_connections = (residual_connections and i != num_preds_layers.shape[0]-2),
-                                                exclude_self = exclude_self) \
+                                                exclude_self = exclude_self,
+                                                reduce_masks_list=self._reduce_masks_list) \
                                      for i in range(len(num_input_preds_layers))]) 
     
         self._num_input_preds_layers = num_input_preds_layers_modified
@@ -550,7 +564,30 @@ class NLM(nn.Module):
     @property
     def mlp_hidden_size_layers(self):
         return self._mlp_hidden_size_layers
-    
+
+    def _get_reduce_masks(self, max_arity, max_objs):
+        if max_arity > 3:
+            raise NotImplementedError("Can't use exclude_self=True for NLMs with breadth > 3")
+
+        reduce_masks_list = [[None] for _ in range(max_arity)]
+
+        with torch.no_grad():
+            for curr_num_objs in range(1, max_objs+1):
+                for curr_arity in range(1, max_arity+1):
+                    if curr_arity == 1:
+                        mask = torch.ones(curr_num_objs)
+                    # Binary predicates -> mask has 1 in every position except for the diagonal
+                    elif curr_arity == 2:
+                        mask = 1 - torch.eye(curr_num_objs)
+                    # Ternary predicates -> mask has 1 in every position except where two variables are the same (x==y, x==z or y==z)
+                    else:
+                        binary_mask = 1 - torch.eye(curr_num_objs)
+                        mask = functools.reduce(lambda a,b: a*b, [torch.unsqueeze(binary_mask, dim=dim) for dim in range(3)])
+
+                    reduce_masks_list[curr_arity-1].append(mask.unsqueeze(-1))
+
+        return reduce_masks_list
+
    
     """
     Computes a forward pass.
