@@ -837,7 +837,7 @@ def test_train_init_and_goal_policy_logistics():
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   allowed_virtual_objects=virtual_objects,
 										   max_atoms_init_state=15, max_actions_init_state=30, max_actions_goal_state=30,
-										   device='cuda',
+										   device='cpu',
 
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -885,8 +885,8 @@ def test_load_models_and_generate_problems_logistics():
 	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_165/init_policy_its-600.ckpt"
-	goal_policy_path = "saved_models/both_policies_165/goal_policy_its-600.ckpt"
+	init_policy_path = "saved_models/both_policies_173/init_policy_its-380.ckpt"
+	goal_policy_path = "saved_models/both_policies_173/goal_policy_its-380.ckpt"
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
@@ -901,7 +901,7 @@ def test_load_models_and_generate_problems_logistics():
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   allowed_virtual_objects=virtual_objects,
 										   max_atoms_init_state=10, max_actions_init_state=20, max_actions_goal_state=20,
-										   device='cuda',
+										   device='cpu',
 										  
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -2336,31 +2336,66 @@ def test_load_models_and_resume_training_logistics():
 	<init_policy_entropy_coeffs: 1, (500, 0.4)>
 
 	> logs: init_policy\version_119
+	> saved_models: both_policies_173
 
-	
+	<<A veces aprende y otras no!>>
+
+	> Entrenamiento:
+		- Tiempo: 23h
+		- r_eventual converge a 0, r_continuous converge a -0.3
+		- r_diff (init_policy) llega hasta 3.2, r_diff (goal_policy) llega hasta 4
+		- init_policy_entropy termina en 0.7 (aunque seguía disminuyendo)
+		- goal_policy_entropy termina en 0.45 (aunque estaba aumentando)
+		- term_cond_prob converge a 0 en la init_policy y a 0.004 para la goal_policy
+		- num_objs:
+			> num_cities converge a 1!
+			> num_airplanes converge a 0.2
+
+	<La r_difficulty es mejor que con exclude_self=False>
+	No obstante, el tiempo de entrenamiento es un 50% mayor!
+	<<Uso exclude_self = True>>
 
 
+>  init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   init_policy_entropy_coeffs: 1, (500, 0.4)
+   goal_policy_entropy_coeffs: 0, None -> no entropy loss for goal policy
+   domain_with_exists
+   rescale_factor = 0.1
+   diff=LAMA
+   lr_init_policy y lr_goal_policy = 1e-3
+   ignore term_cond_prob for calculating entropy
+   max_actions_goal_state=60
+   trajectories_per_train_it=50
+   disc_factor_difficulty=0.995
+   disc_factor_event_consistency=0.9
+   max_atoms_init_state=15, max_actions_init_state=30, max_actions_goal_state=30
+   exclude_self=True
+   <predicate obj_virtuals>
 
-	
+   <no diversity_reward (la he comentado)>
 
-
-
-
-
+	>>> Aprende mucho más rápido!!!!
+		- La r_diff empieza a subir desde el principio del entrenamiento!!!
 
 
 
 	>>> TODO hoy
-		- Comprobar que sigue aprendido con el predicado extra que representa si un objeto es virtual o no
+		- Comprobar que sigue aprendiendo con el predicado extra que representa si un objeto es virtual o no
 			- Al hacer esta prueba, usar device="cpu"
 			- Poner print para ver que los objetos virtuales se codifican correctamente!
+		- Probar a precalcular las máscaras (si exclude_self=True) y así poder hacer el reduce de manera más
+		  eficiente durante el entrenamiento!!
 		- Hacer pruebas con GPU (ver que no se quede sin memoria)
 			- Para comprobar si mi código tiene algún bug (que haga que se quede sin memoria),
 			  puedo hacer una prueba con muy pocos objetos (ej.: 5) y, si se queda sin memoria aún así,
 			  entonces mi código tiene un bug
+		- Review
+			- Ver mensaje de Masataro
 
 	>>> Siguientes pasos
 		- Probar a usar dos trajectories_per_train it en vez de 3
+		- Aumentar max_actions_goal_state a 45
 
 	>>> Si no se generan problemas con airplanes, añadir a las reglas de consistencia que
 	    tiene que haber al menos un objeto de tipo airplane!!
