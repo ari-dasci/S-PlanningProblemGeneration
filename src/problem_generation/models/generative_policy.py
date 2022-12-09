@@ -54,7 +54,7 @@ class GenerativePolicy(pl.LightningModule):
 																          dtype=torch.float32, device=device))
 			self.register_buffer('_final_iteration_entropy_annealing', torch.tensor(entropy_annealing_coeffs[0], dtype=torch.int32, device=device))
 
-		self._actor_nlm = NLM(num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_extra_preds_each_arity, nlm_residual_connections, nlm_exclude_self,
+		self._actor_nlm = NLM(device, num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_extra_preds_each_arity, nlm_residual_connections, nlm_exclude_self,
 							  max_objs_cache_reduce_masks)
 
 
@@ -64,7 +64,7 @@ class GenerativePolicy(pl.LightningModule):
 		num_preds_layers_nlm_critic[-1, :] = 0
 		num_preds_layers_nlm_critic[-1, 0] = 1
 
-		self._critic_nlm = NLM(num_preds_layers_nlm_critic, mlp_hidden_sizes_nlm, nlm_extra_preds_each_arity, nlm_residual_connections, nlm_exclude_self,
+		self._critic_nlm = NLM(device, num_preds_layers_nlm_critic, mlp_hidden_sizes_nlm, nlm_extra_preds_each_arity, nlm_residual_connections, nlm_exclude_self,
 							   max_objs_cache_reduce_masks)
 
 		# Variables used to keep track of the current iteration

@@ -242,7 +242,7 @@ class _NLM_Layer(nn.Module):
 
     <Note>: since we are reducing, we know that the tensor arity is 1 or bigger (it can't be 0, since then we wouldn't be able to reduce it).
     """
-    def _reduce_mask(self, tensor):
+    def _reduce_mask(self, tensor, device):
         tensor_arity = tensor.dim()-1 # dim()-1 because the last dimension corresponds to the predicates
         assert tensor_arity > 0, "We can't reduce nullary predicates"
 
@@ -253,13 +253,13 @@ class _NLM_Layer(nn.Module):
 
         # Unary predicates -> all the positions are valid (since there are no repeated objects)
         if tensor_arity == 1:
-            return torch.ones(num_objs).unsqueeze(-1)
+            return torch.ones(num_objs, device=device).unsqueeze(-1)
         # Binary predicates -> mask has 1 in every position except for the diagonal
         elif tensor_arity == 2:
-            return (1 - torch.eye(num_objs)).unsqueeze(-1)
+            return (1 - torch.eye(num_objs, device=device)).unsqueeze(-1)
         # Ternary predicates -> mask has 1 in every position except where two variables are the same (x==y, x==z or y==z)
         else:
-            binary_mask = 1 - torch.eye(num_objs)
+            binary_mask = 1 - torch.eye(num_objs, device=device)
             # binary_mask.unsqueeze(0)*binary_mask.unsqueeze(1)*binary_mask.unsqueeze(2)
             ternary_mask = functools.reduce(lambda a,b: a*b, [torch.unsqueeze(binary_mask, dim=dim) for dim in range(3)])
 
@@ -289,13 +289,16 @@ class _NLM_Layer(nn.Module):
             reduced_tensors = []
             max_objs_cached_reduce_masks = 0 if self._reduce_masks_list is None else len(self._reduce_masks_list[0])-1
 
+            # Obtain the torch_device from the input data (CPU or GPU)
+            data_device = X[0].device
+
             if reduce_type == 'max':
                 for tensor in X:
                     tensor_arity = tensor.dim()-1
                     tensor_num_objs = tensor.shape[0]
 
                     mask = self._reduce_masks_list[tensor_arity-1][tensor_num_objs] if tensor_num_objs <= max_objs_cached_reduce_masks \
-                           else self._reduce_mask(tensor)
+                           else self._reduce_mask(tensor, data_device)
 
                     tensor_masked = tensor*mask
                     reduced_tensor = torch.amax(tensor_masked, -2)
@@ -307,7 +310,7 @@ class _NLM_Layer(nn.Module):
                     tensor_num_objs = tensor.shape[0]
 
                     mask = self._reduce_masks_list[tensor_arity-1][tensor_num_objs] if tensor_num_objs <= max_objs_cached_reduce_masks \
-                           else self._reduce_mask(tensor)
+                           else self._reduce_mask(tensor, data_device)
 
                     tensor_masked = tensor*mask + (1-mask)
                     reduced_tensor = torch.amin(tensor_masked, -2)
@@ -473,7 +476,9 @@ class NLM(nn.Module):
     
     Initializes the NLM. The number of layers (also considering both the input and output ones)
     is equal to @num_preds_layers.shape[0].
-    
+
+    @device torch.device representing the device the NLM will be executed on.
+            Only used for setting the device (GPU or CPU) self._reduce_masks_list will be saved at.
     @num_preds_layers Numpy matrix where rows correspond to each layer and columns determine the number of predicates for each
                       arity in each layer. A value of 0 at @num_preds_layers[l][r] means that the layer "l" does not
                       output any predicate of arity r.
@@ -490,7 +495,7 @@ class NLM(nn.Module):
 				  when performing the reduce operation.
     <Note: we cannot use residual_connections and extra_preds_each_arity at the same time>
     """
-    def __init__(self, num_preds_layers, mlp_hidden_size_layers, extra_preds_each_arity=None, residual_connections=True,
+    def __init__(self, device, num_preds_layers, mlp_hidden_size_layers, extra_preds_each_arity=None, residual_connections=True,
                  exclude_self=True, max_objs_cache_reduce_masks=0):
         super().__init__()
         
@@ -499,7 +504,8 @@ class NLM(nn.Module):
 
         assert num_preds_layers.shape[0] >= 2, "The NLM must contain at least one layer"
         assert num_preds_layers.shape[0]-1 == len(mlp_hidden_size_layers), "Wrong length of mlp_hidden_size_layers"
-        
+
+        self._device = device  
         self._mlp_hidden_size_layers = mlp_hidden_size_layers
         self._extra_preds_each_arity = extra_preds_each_arity
         self._residual_connections = residual_connections
@@ -575,13 +581,13 @@ class NLM(nn.Module):
             for curr_num_objs in range(1, max_objs+1):
                 for curr_arity in range(1, max_arity+1):
                     if curr_arity == 1:
-                        mask = torch.ones(curr_num_objs)
+                        mask = torch.ones(curr_num_objs, device=self._device)
                     # Binary predicates -> mask has 1 in every position except for the diagonal
                     elif curr_arity == 2:
-                        mask = 1 - torch.eye(curr_num_objs)
+                        mask = 1 - torch.eye(curr_num_objs, device=self._device)
                     # Ternary predicates -> mask has 1 in every position except where two variables are the same (x==y, x==z or y==z)
                     else:
-                        binary_mask = 1 - torch.eye(curr_num_objs)
+                        binary_mask = 1 - torch.eye(curr_num_objs, device=self._device)
                         mask = functools.reduce(lambda a,b: a*b, [torch.unsqueeze(binary_mask, dim=dim) for dim in range(3)])
 
                     reduce_masks_list[curr_arity-1].append(mask.unsqueeze(-1))
@@ -607,8 +613,14 @@ class NLM(nn.Module):
 
         #print("input_tensors_list first sample", [x[0] if x is not None else None for x in input_tensors_list])
 
+        # Obtain the torch_device from the input data (CPU or GPU)
+        for x in input_tensors_list: # Iterate until we find an arity r for which input_tensors_list[r] is not a list of None.
+            if x[0] is not None:
+                data_device = x[0].device
+                break
+
         if add_extra_preds:          
-            extra_preds_each_arity = [torch.tensor(x, dtype=torch.long) if x is not None else None \
+            extra_preds_each_arity = [torch.tensor(x, dtype=torch.long, device=data_device) if x is not None else None \
                                       for x in self._extra_preds_each_arity] # We need to encapsulate every index list in a tensor for using the torch.index_select() method
             
             # Select the extra tensors which need to be added to each layer

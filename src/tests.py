@@ -837,7 +837,7 @@ def test_train_init_and_goal_policy_logistics():
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   allowed_virtual_objects=virtual_objects,
 										   max_atoms_init_state=15, max_actions_init_state=30, max_actions_goal_state=30,
-										   device='cpu', max_objs_cache_reduce_masks=30,
+										   device='cuda', max_objs_cache_reduce_masks=30,
 
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -2405,22 +2405,53 @@ def test_load_models_and_resume_training_logistics():
 
 	>>> Aprende y es más rápido que no usando cache_reduce_mask!!
 
+>  init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   init_policy_entropy_coeffs: 1, (500, 0.4)
+   goal_policy_entropy_coeffs: 0, None -> no entropy loss for goal policy
+   domain_with_exists
+   rescale_factor = 0.1
+   diff=LAMA
+   lr_init_policy y lr_goal_policy = 1e-3
+   ignore term_cond_prob for calculating entropy
+   max_actions_goal_state=60
+   trajectories_per_train_it=50
+   disc_factor_difficulty=0.995
+   disc_factor_event_consistency=0.9
+   max_atoms_init_state=15, max_actions_init_state=30, max_actions_goal_state=30
+   exclude_self=True
+   max_objs_cache_reduce_masks=30
+   predicate obj_virtuals
+   <device='cuda'>
+
+   <no diversity_reward (la he comentado)>
+	
+   > logs: init_policy\version_122 
+
+	>>> La GPU funciona!! (y no da out_of_memory error)
+
+	> El tiempo de entrenamiento es muy parecido a si se usa CPU
+		- Conforme avanza el entrenamiento, la GPU es cada vez mejor (funciona mejor
+		  con problemas con muchos objetos y trayectorias con muchos samples)
+
+
+>> 
+
+	>>> PONER TRAJECTORIES A 50!!
 
 
 
-   >>> PROBAR A GENERAR PROBLEMAS (para ver que todo funciona bien!)
+	>>> VER CÓMO MEJORAR EL TIEMPO DE GPU!!
+		- Usar tamaños de batch más grandes
+		- Ejecutar _calculate_state_values_trajectory en paralelo -> NO (el bottleneck es obtener las goal_policies (tarda mucho más que este método))
 
 
+
+	>>> Pruebas esta noche sin diversity_reward
+		- max_actions_goal_state=45
 
 	>>> Siguientes pasos
-		- Probar a precalcular las máscaras (si exclude_self=True) y así poder hacer el reduce de manera más
-		  eficiente durante el entrenamiento!!
-		- Hacer pruebas con GPU (ver que no se quede sin memoria)
-			- Para comprobar si mi código tiene algún bug (que haga que se quede sin memoria),
-			  puedo hacer una prueba con muy pocos objetos (ej.: 5) y, si se queda sin memoria aún así,
-			  entonces mi código tiene un bug
-			  - Bajar también el training_batch!!
-		- Variar dinámicamente el numéro de trayectorias durante el entrenamiento
+		- Variar dinámicamente el número de trayectorias durante el entrenamiento
 			- Poner min_num_samples (para la init y goal_policies) (ej.: 500)
 			- Poner max_num_trajectories (ej.: 100)
 			- Ir obteniendo trayectorias de 25 en 25. En cuanto se generen suficientes samples (min_num_samples)
@@ -2430,6 +2461,8 @@ def test_load_models_and_resume_training_logistics():
 		- Probar epochs_per_train_it=2 en vez de 3
 		- Aumentar max_actions_goal_state a 45
 		- Ver si el critic aprende bien! (quizás deba bajar el lr de la goal_policy_critic, por ejemplo)
+			- VER SI EL CRITIC DE LA GOAL_POLICY FLUCTÚA MUCHO!! (quizás por eso tarda tanto en aprender)
+			  Si es así, probar a usar un lr más bajo
 		- Probar diversity_reward
 
 		- Si veo que la goal_policy no aprende

@@ -1186,10 +1186,19 @@ class DirectedGenerator():
 											   disc_factor_cont_consistency=0, disc_factor_event_consistency=0.9, disc_factor_difficulty=0.995):
 
 		# <Obtain trajectories with the init_state policy>
+
+		start = time.time()
+
 		problems, init_policy_trajectories = self._obtain_trajectories_init_policy(num_trajectories, max_atoms_init_state, max_actions_init_state)
 
+		end = time.time()
+		print("> Init trajectories time:", end-start)
+
 		# <Obtain trajectories with the goal policy>
+		start = time.time()
 		_, _, goal_policy_trajectories = self._obtain_trajectories_goal_policy(problems, True, max_actions_goal_state)
+		end = time.time()
+		print("> Goal trajectories time:", end-start)
 
 		# <Sum the rewards to obtain the return>
 		# For this operation, we need to append the init and goal policy trajectories
@@ -1206,13 +1215,21 @@ class DirectedGenerator():
 		init_policy_trajectories = [trajectory[:length] for length, trajectory in zip(init_policy_trajectory_lengths, init_and_goal_policy_trajectories)]
 		goal_policy_trajectories = [trajectory[length:] for length, trajectory in zip(init_policy_trajectory_lengths, init_and_goal_policy_trajectories)]
 
+		start = time.time()
 		for i in range(num_trajectories):
 			self._calculate_state_values_trajectory(init_policy_trajectories[i], 'initial_state_policy')
 
 			if len(goal_policy_trajectories[i]) > 0: # Don't call the method if there is no goal_policy trajectory
 				self._calculate_state_values_trajectory(goal_policy_trajectories[i], 'goal_policy')
 
+		end = time.time()
+		print("> Calculate state values time:", end-start)
+
+		# QUITAR
+		sys.exit()
+
 		return init_policy_trajectories, goal_policy_trajectories
+
 
 		
 	"""
@@ -1317,7 +1334,6 @@ class DirectedGenerator():
 						
 			trainer_init_policy.fit(self._initial_state_policy, trajectory_dataloader_init_policy)
 
-			# <CAMBIAR>
 			# Seems like we need to move the lightning_module back to the GPU after every call to Trainer.fit()
 			if self.device.type == 'cuda':
 				self._initial_state_policy.to('cuda')
@@ -1360,7 +1376,6 @@ class DirectedGenerator():
 
 				trainer_goal_policy.fit(self._goal_policy, trajectory_dataloader_goal_policy)
 
-				# <CAMBIAR>
 				if self.device.type == 'cuda':
 						self._goal_policy.to('cuda')
 
