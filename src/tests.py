@@ -836,7 +836,7 @@ def test_train_init_and_goal_policy_logistics():
 
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   allowed_virtual_objects=virtual_objects,
-										   max_atoms_init_state=15, max_actions_init_state=30, max_actions_goal_state=30,
+										   max_atoms_init_state=15, max_actions_init_state=30, max_actions_goal_state=40,
 										   device='cuda', max_objs_cache_reduce_masks=30,
 
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
@@ -2435,34 +2435,139 @@ def test_load_models_and_resume_training_logistics():
 		  con problemas con muchos objetos y trayectorias con muchos samples)
 
 
->> 
+>  init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   init_policy_entropy_coeffs: 1, (500, 0.4)
+   goal_policy_entropy_coeffs: 0, None -> no entropy loss for goal policy
+   domain_with_exists
+   rescale_factor = 0.1
+   diff=LAMA
+   lr_init_policy y lr_goal_policy = 1e-3
+   ignore term_cond_prob for calculating entropy
+   max_actions_goal_state=60
+   trajectories_per_train_it=50
+   disc_factor_difficulty=0.995
+   disc_factor_event_consistency=0.9
+   max_atoms_init_state=15, max_actions_init_state=30, max_actions_goal_state=30
+   exclude_self=True
+   max_objs_cache_reduce_masks=30
+   predicate obj_virtuals
+   device='cuda'
+   <trajectories_per_train_it=100, minibatch_size=250>
 
-	>>> PONER TRAJECTORIES A 50!!
+   <no diversity_reward (la he comentado)>
+
+   >> Es más lento!!
+	- El tiempo de entrenamiento sube de 2s per train it a 4s per train it!!
+	  El tiempo de obtener las trayectorias es prácticamente el mismo
+
+
+>  Igual que experimento anterior menos:
+   <trajectories_per_train_it=50, minibatch_size=50>
+
+   >>> Tiempo de entrenamiento: 1s/it
+
+>  Igual que experimento anterior menos:
+   <trajectories_per_train_it=50, minibatch_size=100> 
+
+   >>> Tiempo de entrenamiento: 1.8s/it
+
+>  Igual que experimento anterior menos:
+   <trajectories_per_train_it=50, minibatch_size=200>  
+
+   >>> Tiempo de entrenamiento: 3.6s/it
+
+>  init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   init_policy_entropy_coeffs: 1, (500, 0.4)
+   goal_policy_entropy_coeffs: 0, None -> no entropy loss for goal policy
+   domain_with_exists
+   rescale_factor = 0.1
+   diff=LAMA
+   lr_init_policy y lr_goal_policy = 1e-3
+   ignore term_cond_prob for calculating entropy
+   max_actions_goal_state=60
+   trajectories_per_train_it=50
+   disc_factor_difficulty=0.995
+   disc_factor_event_consistency=0.9
+   max_atoms_init_state=15, max_actions_init_state=30, max_actions_goal_state=30
+   exclude_self=True
+   max_objs_cache_reduce_masks=30
+   predicate obj_virtuals
+   device='cuda'
+   <trajectories_per_train_it=50, minibatch_size=50>
+   <epochs_per_train_it=2> (antes 3)
+
+   > logs: init_policy\version_127
+
+	>>> Aprende!! Y el tiempo de entrenamiento se reduce mucho!!
+
+>  init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   init_policy_entropy_coeffs: 1, (500, 0.4)
+   goal_policy_entropy_coeffs: 0, None -> no entropy loss for goal policy
+   domain_with_exists
+   rescale_factor = 0.1
+   diff=LAMA
+   lr_init_policy y lr_goal_policy = 1e-3
+   ignore term_cond_prob for calculating entropy
+   max_actions_goal_state=60
+   trajectories_per_train_it=50
+   disc_factor_difficulty=0.995
+   disc_factor_event_consistency=0.9
+   max_atoms_init_state=15, max_actions_init_state=30, max_actions_goal_state=30
+   exclude_self=True
+   max_objs_cache_reduce_masks=30
+   predicate obj_virtuals
+   device='cuda'
+   <trajectories_per_train_it=50, minibatch_size=50>
+   <epochs_per_train_it=1> (antes 3)
+
+   > logs: init_policy\version_128
+
+	>>> Aprende y es más rápido que usando epochs_per_train_it=2!!!!
+
+
+>  init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   init_policy_entropy_coeffs: 1, (500, 0.4)
+   goal_policy_entropy_coeffs: 0, None -> no entropy loss for goal policy
+   domain_with_exists
+   rescale_factor = 0.1
+   diff=LAMA
+   lr_init_policy y lr_goal_policy = 1e-3
+   ignore term_cond_prob for calculating entropy
+   max_actions_goal_state=60
+   trajectories_per_train_it=50
+   disc_factor_difficulty=0.995
+   disc_factor_event_consistency=0.9
+   <max_atoms_init_state=15, max_actions_init_state=30, max_actions_goal_state=40>
+   exclude_self=True
+   max_objs_cache_reduce_masks=30
+   predicate obj_virtuals
+   device='cuda'
+   trajectories_per_train_it=50, minibatch_size=50
+   epochs_per_train_it=1 (antes 3)
+
+   > logs: init_policy\version_129
+
+	
 
 
 
-	>>> VER CÓMO MEJORAR EL TIEMPO DE GPU!!
-		- Usar tamaños de batch más grandes
-		- Ejecutar _calculate_state_values_trajectory en paralelo -> NO (el bottleneck es obtener las goal_policies (tarda mucho más que este método))
 
-
-
-	>>> Pruebas esta noche sin diversity_reward
-		- max_actions_goal_state=45
 
 	>>> Siguientes pasos
-		- Variar dinámicamente el número de trayectorias durante el entrenamiento
+		- Ver si el critic aprende bien! (quizás deba bajar el lr de la goal_policy_critic, por ejemplo)
+			- VER SI EL CRITIC DE LA GOAL_POLICY FLUCTÚA MUCHO!! (quizás por eso tarda tanto en aprender)
+			  Si es así, probar a usar un lr más bajo
+		- Variar dinámicamente el número de trayectorias durante el entrenamiento -> Creo que no hace falta!
 			- Poner min_num_samples (para la init y goal_policies) (ej.: 500)
 			- Poner max_num_trajectories (ej.: 100)
 			- Ir obteniendo trayectorias de 25 en 25. En cuanto se generen suficientes samples (min_num_samples)
 			  o se hayan alcanzado max_num_trajectories, se dejan de generar trayecotrias.
 			- El número de trayectorias en paralelo (25 en este caso), se puede establecer para que la GPU
 			  no se quede sin memoria!!
-		- Probar epochs_per_train_it=2 en vez de 3
-		- Aumentar max_actions_goal_state a 45
-		- Ver si el critic aprende bien! (quizás deba bajar el lr de la goal_policy_critic, por ejemplo)
-			- VER SI EL CRITIC DE LA GOAL_POLICY FLUCTÚA MUCHO!! (quizás por eso tarda tanto en aprender)
-			  Si es así, probar a usar un lr más bajo
 		- Probar diversity_reward
 
 		- Si veo que la goal_policy no aprende

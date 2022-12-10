@@ -1186,19 +1186,10 @@ class DirectedGenerator():
 											   disc_factor_cont_consistency=0, disc_factor_event_consistency=0.9, disc_factor_difficulty=0.995):
 
 		# <Obtain trajectories with the init_state policy>
-
-		start = time.time()
-
 		problems, init_policy_trajectories = self._obtain_trajectories_init_policy(num_trajectories, max_atoms_init_state, max_actions_init_state)
 
-		end = time.time()
-		print("> Init trajectories time:", end-start)
-
 		# <Obtain trajectories with the goal policy>
-		start = time.time()
 		_, _, goal_policy_trajectories = self._obtain_trajectories_goal_policy(problems, True, max_actions_goal_state)
-		end = time.time()
-		print("> Goal trajectories time:", end-start)
 
 		# <Sum the rewards to obtain the return>
 		# For this operation, we need to append the init and goal policy trajectories
@@ -1215,18 +1206,11 @@ class DirectedGenerator():
 		init_policy_trajectories = [trajectory[:length] for length, trajectory in zip(init_policy_trajectory_lengths, init_and_goal_policy_trajectories)]
 		goal_policy_trajectories = [trajectory[length:] for length, trajectory in zip(init_policy_trajectory_lengths, init_and_goal_policy_trajectories)]
 
-		start = time.time()
 		for i in range(num_trajectories):
 			self._calculate_state_values_trajectory(init_policy_trajectories[i], 'initial_state_policy')
 
 			if len(goal_policy_trajectories[i]) > 0: # Don't call the method if there is no goal_policy trajectory
 				self._calculate_state_values_trajectory(goal_policy_trajectories[i], 'goal_policy')
-
-		end = time.time()
-		print("> Calculate state values time:", end-start)
-
-		# QUITAR
-		sys.exit()
 
 		return init_policy_trajectories, goal_policy_trajectories
 
@@ -1246,10 +1230,8 @@ class DirectedGenerator():
 	Note: We add an index to the folder name given by @checkpoint_folder. Example: saved_models/both_policies_2
 		  (in case there are two other experiments ids=0, 1 before it).
 	"""
-	def train_generative_policies(self, training_iterations, start_it=0, epochs_per_train_it=3, trajectories_per_train_it=50, minibatch_size=125,
+	def train_generative_policies(self, training_iterations, start_it=0, epochs_per_train_it=1, trajectories_per_train_it=50, minibatch_size=50,
 								  its_per_model_checkpoint=10, checkpoint_folder="saved_models/both_policies", logs_name="both_policies"):
-
-		# trajectories_per_train_it=50
 
 		# Obtain folder name to save the model checkpoints in
 		folders = glob.glob(checkpoint_folder + r'_*')
@@ -1357,6 +1339,14 @@ class DirectedGenerator():
 																	num_workers=0) # Change to shuffle=False if we need to keep the order in the transitions (s,a,s')
 
 				# Train the policy
+
+				if len(goal_policy_trajectories) < minibatch_size / 2:
+					goal_policy_train_epochs = 0
+				else:
+					goal_policy_train_epochs = epochs_per_train_it
+
+				# OLD
+				"""
 				goal_policy_train_epochs = 0
 
 				if len(goal_policy_trajectories) > minibatch_size / 2:
@@ -1365,6 +1355,7 @@ class DirectedGenerator():
 					goal_policy_train_epochs += 1
 				if len(goal_policy_trajectories) > 3*10*trajectories_per_train_it / 4:
 					goal_policy_train_epochs += 1
+				"""
 
 
 				if self.device.type == 'cuda':
