@@ -832,7 +832,7 @@ class DirectedGenerator():
 
 	<Note>: init_policy_trajectories is modified in-place
 	"""
-	def _add_diversity_reward(self, init_policy_trajectories, init_policy_trajectories_lens, diversity_rescale_factor=0):
+	def _add_diversity_reward(self, init_policy_trajectories, init_policy_trajectories_lens, diversity_rescale_factor=0.0):
 		# Obtain the indexes which delimit each individual trajectory in init_policy_trajectories
 		list_delims = [sum(init_policy_trajectories_lens[:i+1]) for i in range(len(init_policy_trajectories_lens))]
 
@@ -892,7 +892,7 @@ class DirectedGenerator():
 				init_policy_trajectories[i][-2] += score
 
 		# QUITAR
-		print("\n> Average diversity (rescaled):", np.mean(diversity_scores), '\n')
+		# print("\n> Average diversity (rescaled):", np.mean(diversity_scores), '\n')
 
 
 	# ------- Main Methods --------
@@ -1230,7 +1230,7 @@ class DirectedGenerator():
 	Note: We add an index to the folder name given by @checkpoint_folder. Example: saved_models/both_policies_2
 		  (in case there are two other experiments ids=0, 1 before it).
 	"""
-	def train_generative_policies(self, training_iterations, start_it=0, epochs_per_train_it=1, trajectories_per_train_it=50, minibatch_size=50,
+	def train_generative_policies(self, training_iterations, start_it=0, epochs_per_train_it=1, trajectories_per_train_it=50, minibatch_size=100,
 								  its_per_model_checkpoint=10, checkpoint_folder="saved_models/both_policies", logs_name="both_policies"):
 
 		# Obtain folder name to save the model checkpoints in
@@ -1278,12 +1278,13 @@ class DirectedGenerator():
 					\n\t>Goal policy trajectories: {len(goal_policy_trajectories)}")
 
 
+			# QUITAR
 			#print("\n\nlen(init_policy_trajectories)", len(init_policy_trajectories))
 			#print("init_policy_trajectories_lens", init_policy_trajectories_lens)
+			#print("\n\n Rewards before diversity", [sample[-2] for sample in init_policy_trajectories])
 
 			# Obtain diversity reward for the init_policy_trajectories
-			# QUITAR
-			# self._add_diversity_reward(init_policy_trajectories, init_policy_trajectories_lens)
+			self._add_diversity_reward(init_policy_trajectories, init_policy_trajectories_lens)
 
 			#print("\n\n Rewards after diversity", [sample[-2] for sample in init_policy_trajectories])
 
@@ -1331,7 +1332,7 @@ class DirectedGenerator():
 
 			# -- Goal state policy
 
-			if len(goal_policy_trajectories) > minibatch_size / 2: # If we have very few samples to train the goal policy on, we skip the training
+			if len(goal_policy_trajectories) >= minibatch_size / 2:
 				# Create training dataset and dataloader with the collected trajectories
 				trajectory_dataset_goal_policy = ReinforceDataset(goal_policy_trajectories)
 				trajectory_dataloader_goal_policy= torch.utils.data.DataLoader(dataset=trajectory_dataset_goal_policy, batch_size=minibatch_size,
@@ -1340,10 +1341,7 @@ class DirectedGenerator():
 
 				# Train the policy
 
-				if len(goal_policy_trajectories) < minibatch_size / 2:
-					goal_policy_train_epochs = 0
-				else:
-					goal_policy_train_epochs = epochs_per_train_it
+				goal_policy_train_epochs = epochs_per_train_it
 
 				# OLD
 				"""
@@ -1360,10 +1358,10 @@ class DirectedGenerator():
 
 				if self.device.type == 'cuda':
 					trainer_goal_policy = pl.Trainer(max_epochs=goal_policy_train_epochs, logger=logger_goal_policy,
-													 accelerator='gpu', devices=1, enable_checkpointing=False)
+														accelerator='gpu', devices=1, enable_checkpointing=False)
 				else:
 					trainer_goal_policy = pl.Trainer(max_epochs=goal_policy_train_epochs, logger=logger_goal_policy,
-													 accelerator='cpu', enable_checkpointing=False)
+														accelerator='cpu', enable_checkpointing=False)
 
 				trainer_goal_policy.fit(self._goal_policy, trajectory_dataloader_goal_policy)
 
@@ -1371,7 +1369,8 @@ class DirectedGenerator():
 						self._goal_policy.to('cuda')
 
 				# Linearly anneal the entropy regularization of the policy
-				self._goal_policy.reduce_entropy()
+				if goal_policy_train_epochs > 0:
+					self._goal_policy.reduce_entropy()
 
 				# Save a checkpoint
 				if its_per_model_checkpoint != -1 and i > 0 and i % its_per_model_checkpoint == 0:

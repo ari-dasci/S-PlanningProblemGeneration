@@ -627,4 +627,9 @@ class ValidatorLogistics(ValidatorPredOrder):
 		if not ('package' in state_objs and ('truck' in state_objs or 'airplane' in state_objs)):
 			return False
 
+		# NEW
+		# <The problem must contain at least two cities>
+		if state_objs.count('city') < 2:
+			return False
+
 		return True

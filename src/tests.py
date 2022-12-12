@@ -836,7 +836,7 @@ def test_train_init_and_goal_policy_logistics():
 
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   allowed_virtual_objects=virtual_objects,
-										   max_atoms_init_state=15, max_actions_init_state=30, max_actions_goal_state=40,
+										   max_atoms_init_state=15, max_actions_init_state=30, max_actions_goal_state=30,
 										   device='cuda', max_objs_cache_reduce_masks=30,
 
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
@@ -2549,41 +2549,151 @@ def test_load_models_and_resume_training_logistics():
    trajectories_per_train_it=50, minibatch_size=50
    epochs_per_train_it=1 (antes 3)
 
-   > logs: init_policy\version_129
+   > logs: init_policy\version_129, version_130, version_131
 
-	
+	>>> En las dos primeras ejecuciones, la r_eventual llega hasta -0.7 (paré el entrenamiento a medias)
+
+	>>> VER SI APRENDE, SI NO, REPETIR EXPERIMENTO PERO USANDO MINIBATCH_SIZE=100!!
+		- También hacer experimento con minibatch size 250
+		- Creo que las gráficas tienen bastante ruido, pero parece que las gráficas del critic loss (sobretodo
+		  de la goal_policy son bastante buenas!!)
+		  - Nota: las asociadas con version_119 también son buenas!
+
+	<Nota>: quizás la goal_policy necesite un gran tamaño de batch (ej.: 250) para aprender bien!!!
+		(un gran tamaño de batch reduce la varianza de los samples, que es muy alta al corresponderse
+		 con distintos estados iniciales)
+
+
+>>> Igual que experimento anterior menos:
+	<minibatch_size=100>
+
+	> logs: init_policy\version_132, version_133
+
+	> En la primera ejecución, la r_diff llega a 0 al principio del entrenamiento
+	  En la segunda también. En cualquier caso, después aumenta.
+
+	>>> Aprende mejor y más rápido que usando minibatch_size=50!!!
+
+
+>>> Igual que experimento anterior menos:
+	<minibatch_size=200>
+
+	> logs: init_policy\version_134 y version_135
+
+	>>> En la primera ejecución, la r_diff converge a 0 durante las primeras 250 its (paré el entrenamiento a mitad)
+		En la segunda igual, pero después sube.
+
+	>>> Aprende más lento (y no mejor) que usando minibatch_size=100!!!
+		<<Uso minibatch_size=100>>
+
+
+>  init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   <init_policy_entropy_coeffs: 0, None>
+   goal_policy_entropy_coeffs: 0, None -> no entropy loss for goal policy
+   domain_with_exists
+   rescale_factor = 0.1
+   diff=LAMA
+   lr_init_policy y lr_goal_policy = 1e-3
+   disc_factor_difficulty=0.995
+   disc_factor_event_consistency=0.9
+   max_atoms_init_state=15, max_actions_init_state=30, max_actions_goal_state=40
+   exclude_self=True
+   max_objs_cache_reduce_masks=30
+   device='cuda'
+   trajectories_per_train_it=50, <minibatch_size=100>
+   epochs_per_train_it=1 (antes 3)
+   <diversity_rescale_factor=1>
+
+	> logs: init_policy\version_136
+
+	>>> El número de cities converge a 1 y airplanes converge a 0
+		- Además, la init_policy_entropy cae demasiado
+
+
+> Igual que experimento anterior menos:
+	<init_policy_entropy_coeffs: 1, (500, 0.4)>
+
+	> logs: init_policy\version_137
+
+	>>> El número de cities converge a 1 y airplanes converge a 0 
+
+
+> Igual que experimento anterior menos:
+	<init_policy_entropy_coeffs: 1, (500, 0.4)>
+	<diversity_rescale_factor=10>
+
+	> logs: init_policy\version_138
+
+	> Entrenamiento
+		- Tiempo: 12h (paré el entrenamiento a mitad, la r_diff seguía aumentando)
+		>>> Num_cities tarda más en bajar, pero al final del entrenamiento también termina
+		    convergiendo a 1!!!
+		- Num_airplanes estaba en 0.2 y seguía disminuyendo al acabar el entrenamiento
+		- r_diff (init_policy) llega hasta 4.2!! (y seguía aumentando)
+
+	<Los resultados son mejores que con diversity_rescale_factor=1 o 0!!!>
+
+
+>  init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   <init_policy_entropy_coeffs: 1, (500, 0.4)>
+   goal_policy_entropy_coeffs: 0, None -> no entropy loss for goal policy
+   domain_with_exists
+   rescale_factor = 0.1
+   diff=LAMA
+   lr_init_policy y lr_goal_policy = 1e-3
+   disc_factor_difficulty=0.995
+   disc_factor_event_consistency=0.9
+   max_atoms_init_state=15, max_actions_init_state=30, <max_actions_goal_state=30>
+   exclude_self=True
+   max_objs_cache_reduce_masks=30
+   device='cuda'
+   trajectories_per_train_it=50, minibatch_size=100
+   epochs_per_train_it=1 (antes 3)
+   <diversity_rescale_factor=0>
+   <eventual consistency 2 cities>
+
+	> logs: init_policy\version_139
 
 
 
 
+
+
+	>>>> CAMBIAR DIVERSITY_RESCALE_fACTOR Y STATE_VALIDATOR
 
 	>>> Siguientes pasos
-		- Ver si el critic aprende bien! (quizás deba bajar el lr de la goal_policy_critic, por ejemplo)
-			- VER SI EL CRITIC DE LA GOAL_POLICY FLUCTÚA MUCHO!! (quizás por eso tarda tanto en aprender)
-			  Si es así, probar a usar un lr más bajo
-		- Variar dinámicamente el número de trayectorias durante el entrenamiento -> Creo que no hace falta!
-			- Poner min_num_samples (para la init y goal_policies) (ej.: 500)
-			- Poner max_num_trajectories (ej.: 100)
-			- Ir obteniendo trayectorias de 25 en 25. En cuanto se generen suficientes samples (min_num_samples)
-			  o se hayan alcanzado max_num_trajectories, se dejan de generar trayecotrias.
-			- El número de trayectorias en paralelo (25 en este caso), se puede establecer para que la GPU
-			  no se quede sin memoria!!
-		- Probar diversity_reward
+		- Experimentos eventual consistency 2 cities
+			- Conseguir que las generative_policies sean capaces de generar problemas difíciles
+			  con 2 ciudades
 
-		- Si veo que la goal_policy no aprende
-			- Quizás debo entrenar más a la goal_policy que a la init_policy (ej.: usar el doble de lr o entrenar
-			  durante el doble de epochs). Así, la goal policy puede aprender a generar problemas difíciles
-			  antes de que la init_policy converge a problemas con una sola ciudad
-			- Aumentar depth de la NLM
-		
+			- QUIZÁS LA NLM NECESITA COMO INPUTS SABER CUÁNTOS OBJETOS HA AÑADIDO DE CADA TIPO!!!! (CREO QUE NO PUEDE CONTAR)
+				- Ver correo NLM authors
+				- Añadir num/proporción de átomos de cada tipo y objetos
+				- Ver si añado proporciones u objetos como tal, para intentar que generalice
+					- CREO QUE ES MEJOR AÑADIR PROPORCIONES (así, el número de cities crecerá con el tamaño
+					  del problema (max_atoms_init_state))
+
+			- Ver si añado una reduce operation que funcione como counting quantifier
+
+		- Ignorar diversity_reward para problemas que no son consistentes
+		- Aumentar diversity_rescale_factor aún más
+		- Aumentar init_policy_entropy
+		- Aumentar goal_policy_entropy
+		- Aumentar depth NLM
+
+		- Si no aprende, probar a entrenar más la goal_policy que la init_policy
+			- Bajar lr de los critic, para que aprendan mejor al inicio del entrenamiento
 		- Usar varios planners para medir la dificultad (no solo LAMA)
 
-		- Review
-			- Ver mensaje de Masataro
-
+	>>> PARA HACER LAS PRUEBAS PUEDO USAR UN MENOR NUM_ATOMS Y MAX_ACTIONS_GOAL_STATE
+	    Una vez haya encontrado los parámetros que funcionan mejor, entonces ya aumento
+		el tamaño de los problemas.
 
 	>>> Si no se generan problemas con airplanes, añadir a las reglas de consistencia que
 	    tiene que haber al menos un objeto de tipo airplane!!
+
 
 	>>> AQUI-
 
