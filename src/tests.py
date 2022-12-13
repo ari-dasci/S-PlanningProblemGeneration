@@ -841,7 +841,7 @@ def test_train_init_and_goal_policy_logistics():
 
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
-										   extra_input_preds_initial_state_nlm=True,
+										   io_residual_initial_state_nlm=True,
 										   res_connections_initial_state_nlm=False,
 										   exclude_self_inital_state_nlm=True,
 										   lr_initial_state_nlm = 1e-3,
@@ -851,7 +851,7 @@ def test_train_init_and_goal_policy_logistics():
 
 										   num_preds_inner_layers_goal_nlm=goal_policy_nlm_inner_layers,
 										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
-										   extra_input_preds_goal_nlm=True,
+										   io_residual_goal_nlm=True,
 										   res_connections_goal_nlm=False,
 										   exclude_self_goal_nlm=True,
 										   lr_goal_nlm = 1e-3,
@@ -905,14 +905,14 @@ def test_load_models_and_generate_problems_logistics():
 										  
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
-										   extra_input_preds_initial_state_nlm=True,
+										   io_residual_initial_state_nlm=True,
 										   res_connections_initial_state_nlm=False,
 										   exclude_self_inital_state_nlm=True,
 										   load_init_state_policy_checkpoint_name=init_policy_path,
 
 										   num_preds_inner_layers_goal_nlm=goal_policy_nlm_inner_layers,
 										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
-										   extra_input_preds_goal_nlm=True,
+										   io_residual_goal_nlm=True,
 										   res_connections_goal_nlm=False,
 										   exclude_self_goal_nlm=True,
 										   load_goal_policy_checkpoint_name=goal_policy_path)
@@ -967,14 +967,14 @@ def test_load_models_and_resume_training_logistics():
 										  
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
-										   extra_input_preds_initial_state_nlm=True,
+										   io_residual_initial_state_nlm=True,
 										   res_connections_initial_state_nlm=False,
 										   exclude_self_inital_state_nlm=True,
 										   load_init_state_policy_checkpoint_name=init_policy_path,
 
 										   num_preds_inner_layers_goal_nlm=goal_policy_nlm_inner_layers,
 										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
-										   extra_input_preds_goal_nlm=True,
+										   io_residual_goal_nlm=True,
 										   res_connections_goal_nlm=False,
 										   exclude_self_goal_nlm=True,
 										   load_goal_policy_checkpoint_name=goal_policy_path)

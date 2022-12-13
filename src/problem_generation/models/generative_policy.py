@@ -17,6 +17,7 @@ class GenerativePolicy(pl.LightningModule):
 	Constructor. Creates the NLMs (actor and critic) used for the initial state and goal policies.
 
 	@nlm_extra_preds_each_arity The extra predicates which must be given as inputs to every NLM layer except for the first one
+	@nlm_io_residual If True, append the NLM inputs as inputs to each intermediate layer
 	@nlm_residual_connections Whether the NLM must use residual connections
 	@nlm_exclude_self If True, the NLM ignores tensor positions corresponding to repeated indexes (e.g., [5][5][3] or [2][2][0][1])
 					  when performing the reduce operation.
@@ -36,7 +37,7 @@ class GenerativePolicy(pl.LightningModule):
 	      and the number of atoms already added to the initial state (perc_actions_executed, a number between 0 and 1), in case these are needed.
 	      Also, it needs to include the extra unary predicates representing object types, if needed.
 	"""
-	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_extra_preds_each_arity, nlm_residual_connections,
+	def __init__(self, num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_io_residual, nlm_residual_connections,
 	 			 nlm_exclude_self, lr, action_entropy_coeff, entropy_annealing_coeffs, epsilon, dummy_rel_state, device,
 				 max_objs_cache_reduce_masks):
 		super().__init__()
@@ -54,7 +55,7 @@ class GenerativePolicy(pl.LightningModule):
 																          dtype=torch.float32, device=device))
 			self.register_buffer('_final_iteration_entropy_annealing', torch.tensor(entropy_annealing_coeffs[0], dtype=torch.int32, device=device))
 
-		self._actor_nlm = NLM(device, num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_extra_preds_each_arity, nlm_residual_connections, nlm_exclude_self,
+		self._actor_nlm = NLM(device, num_preds_layers_nlm, mlp_hidden_sizes_nlm, nlm_io_residual, nlm_residual_connections, nlm_exclude_self,
 							  max_objs_cache_reduce_masks)
 
 
@@ -64,7 +65,7 @@ class GenerativePolicy(pl.LightningModule):
 		num_preds_layers_nlm_critic[-1, :] = 0
 		num_preds_layers_nlm_critic[-1, 0] = 1
 
-		self._critic_nlm = NLM(device, num_preds_layers_nlm_critic, mlp_hidden_sizes_nlm, nlm_extra_preds_each_arity, nlm_residual_connections, nlm_exclude_self,
+		self._critic_nlm = NLM(device, num_preds_layers_nlm_critic, mlp_hidden_sizes_nlm, nlm_io_residual, nlm_residual_connections, nlm_exclude_self,
 							   max_objs_cache_reduce_masks)
 
 		# Variables used to keep track of the current iteration
