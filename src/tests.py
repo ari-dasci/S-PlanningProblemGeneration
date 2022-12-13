@@ -2656,12 +2656,21 @@ def test_load_models_and_resume_training_logistics():
 
 	> logs: init_policy\version_139
 
+	>>> Tarda mucho más en aprender.
+		- La r_eventual se mantiene en -0.15
+		- La r_difficulty tarda mucho en aumentar y es bastante baja (llega hasta 1.2, aunque seguía aumentando
+		  cuando paré el entrenamiento, tras 10h)
+		- num_cities se mantiene alrededor de 2.75
+		- num_airplanes se mantiene bajo y aumenta hasta 1.5 al final del entrenamiento
+
+	<Parece que le cuesta generar problemas consistentes y difíciles con dos ciudades!!!>
 
 
 
 
 
-	>>>> CAMBIAR DIVERSITY_RESCALE_fACTOR Y STATE_VALIDATOR
+
+	>>>> CAMBIAR DIVERSITY_RESCALE_FACTOR Y STATE_VALIDATOR (consistency rules 2 cities)
 
 	>>> Siguientes pasos
 		- Experimentos eventual consistency 2 cities

@@ -40,7 +40,7 @@ class RelationalState():
 
 
         self._types = types # A set of types, e.g., {"plane", "car"}
-        sorted_types = sorted(self._types) # Sort the types in order to define some auxiliary data structures which depend on the order of types
+        self._sorted_types = sorted(self._types) # Sort the types in order to define some auxiliary data structures which depend on the order of types
         # Note: self._types must contain all the types, across all possible levels of hierarchy
         # Example: in logistics -> {'package', 'object', 'airport', 'truck', 'vehicle', 'city', 'airplane', 'thing', 'location'}
         # Use parser.types
@@ -53,18 +53,18 @@ class RelationalState():
         self._type_hierarchy = type_hierarchy
 
         # Create a dictionary to convert from object types to indices and vice versa
-        types_indices = list(range(len(sorted_types)))
-        self._obj_types_to_indices_dict = dict(zip(sorted_types, types_indices)) # ['truck', 'plane'] -> [0, 1]
-        self._indices_to_obj_types_dict = dict(zip(types_indices, sorted_types)) # [0, 1] -> ['truck', 'plane']
+        types_indices = list(range(len(self._sorted_types)))
+        self._obj_types_to_indices_dict = dict(zip(self._sorted_types, types_indices)) # ['truck', 'plane'] -> [0, 1]
+        self._indices_to_obj_types_dict = dict(zip(types_indices, self._sorted_types)) # [0, 1] -> ['truck', 'plane']
 
         # Predicates
         self._predicates = predicates # The name and parameter type of each predicate, where predicates[i] is
                                       # [name, list_of_types], e.g., ('on', ('block', 'block'))
-        sorted_predicates = sorted(self._predicates) # Sort the predicates in order to define some auxiliary data structures which depend on the order of predicates
+        self._sorted_predicates = sorted(self._predicates) # Sort the predicates in order to define some auxiliary data structures which depend on the order of predicates
 
         # Create a dictionary to convert from pred names to indices. Example: ['on', 'clear'] -> [0, 1]
-        pred_names = [p[0] for p in sorted_predicates] # ['on', 'clear']
-        pred_indices = list(range(len(sorted_predicates))) # [0, 1]
+        pred_names = [p[0] for p in self._sorted_predicates] # ['on', 'clear']
+        pred_indices = list(range(len(self._sorted_predicates))) # [0, 1]
         self._pred_names_to_indices_dict = dict(zip(pred_names, pred_indices)) # 'on' : 0, 'clear' : 1
 
         # State data
@@ -84,7 +84,7 @@ class RelationalState():
         # Store number of predicates of each arity -> keys: int corresponding to the arity, values: int representing the number of preds of such arity
         self._num_preds_each_arity = dict()
         
-        for p in sorted_predicates:
+        for p in self._sorted_predicates:
             p_arity = len(p[1])
             
             if p_arity in self._num_preds_each_arity:
@@ -102,7 +102,7 @@ class RelationalState():
         # E.g.: (2, 0) (pred number 0 of arity 2) -> ['on', ['block, block']]
         self._arity_and_ind_to_predicate_dict = dict()
         
-        for p in sorted_predicates:
+        for p in self._sorted_predicates:
             p_arity = len(p[1])
             p_ind = ind_list[p_arity]
             
@@ -136,6 +136,10 @@ class RelationalState():
         return self._types
 
     @property
+    def sorted_types(self):
+        return self._sorted_types
+
+    @property
     def type_hierarchy(self):
         return self._type_hierarchy
 
@@ -154,6 +158,10 @@ class RelationalState():
     @property
     def predicates(self):
         return self._predicates
+
+    @property
+    def sorted_predicates(self):
+        return self._sorted_predicates
 
     @property
     def predicate_names(self):
@@ -243,7 +251,7 @@ class RelationalState():
     """
     def virtual_objs_with_type(self, allowed_predicates, allowed_virtual_objects):
         if allowed_predicates is None:
-            sorted_predicates = sorted(self._predicates)
+            sorted_predicates = self._sorted_predicates
         else:
             sorted_predicates = sorted([p for p in self._predicates if p[0] in allowed_predicates])
   
@@ -302,9 +310,13 @@ class RelationalState():
                            0 and 1 (given by @perc_actions_executed), representing the percentage of actions which have been executed
                            with respect to the maximum number of actions.
                            Examples: if we have executed 6 actions and the max number of actions is 10, then perc_actions_executed=0.6
+    @dict_num_objs_each_type A dictionary where keys correspond to types and values are the number (or percentage) of objects of each type in the current
+                             state. They are added as extra nullary predicates.
+    @dict_num_atoms_each_type A dictionary where keys correspond to predicate names and values are the number (or percentage) of atoms of each predicate in the current
+                             state. They are added as extra nullary predicates.
     """
     def atoms_nlm_encoding(self, device, max_arity = -1, add_virtual_objs = True, allowed_predicates = None, allowed_virtual_objects = None,
-                           add_object_types=True, perc_actions_executed=-1):      
+                           add_object_types=True, perc_actions_executed=-1, dict_num_objs_each_type=None, dict_num_atoms_each_type=None):      
         atoms_list = []
         
         # Calculate NLM breadth
@@ -333,6 +345,19 @@ class RelationalState():
                     num_preds_each_arity[0] = 1
                 else:
                     num_preds_each_arity[0] += 1
+
+            # Add extra nullary predicates to represent the number/percentage of atoms and objects of each type
+            if dict_num_objs_each_type is not None:
+                if 0 not in num_preds_each_arity:
+                    num_preds_each_arity[0] = len(self._types)
+                else:
+                    num_preds_each_arity[0] += len(self._types)
+            
+            if dict_num_atoms_each_type is not None:
+                if 0 not in num_preds_each_arity:
+                    num_preds_each_arity[0] = len(self._predicates)
+                else:
+                    num_preds_each_arity[0] += len(self._predicates)
 
             # Add extra unary predicates used to represent the type of each object (including virtuals if added)
             # Also, add an unary predicate to represent if an objects is virtual or not
@@ -364,6 +389,25 @@ class RelationalState():
 
                     atoms_list[pred_arity][ind] = 1.0
               
+            # Add the extra nullary predicates that represent the number/percentage of atoms and objects of each type
+            if dict_num_objs_each_type is not None:
+                num_objs_list = [dict_num_objs_each_type[t] for t in self._sorted_types]
+                # self._num_preds_each_arity contains the number of predicates BEFORE adding the extra nullary and unary predicates
+                shift = self._num_preds_each_arity[0] if 0 in self._num_preds_each_arity else 0
+
+                for ind, num_objs in enumerate(num_objs_list):
+                    atoms_list[0][ind+shift] = num_objs
+
+            if dict_num_atoms_each_type is not None:
+                num_atoms_list = [dict_num_atoms_each_type[pred_name] for pred_name, _ in self._sorted_predicates]
+                shift = self._num_preds_each_arity[0] if 0 in self._num_preds_each_arity else 0
+
+                if dict_num_objs_each_type is not None:
+                    shift += self.num_types
+
+                for ind, num_atoms in enumerate(num_atoms_list):
+                    atoms_list[0][ind+shift] = num_atoms
+
             # Add the percentage of actions executed as the last nullary predicate 
             if perc_actions_executed != -1:
                 atoms_list[0][-1] = perc_actions_executed
@@ -382,6 +426,11 @@ class RelationalState():
                 for obj_ind in virtual_objs_inds: 
                     atoms_list[1][obj_ind][-1] = 1.0
 
+
+        # QUITAR
+        print("ATOMS_LIST", atoms_list)
+        sys.exit()
+
         return atoms_list
         
      
@@ -397,7 +446,9 @@ class RelationalState():
     <Note>: unlike atoms_nlm_encoding(), we do not add an extra unary predicate to represent if an object is virtual or not,
             since there are no virtual objects.
     """
-    def atoms_nlm_encoding_with_goal_state(self, goal_state, device, max_arity = -1, add_object_types=True, perc_actions_executed=-1):
+    def atoms_nlm_encoding_with_goal_state(self, goal_state, device, max_arity = -1, add_object_types=True, perc_actions_executed=-1,
+                                           dict_num_objs_each_type=None, dict_num_atoms_each_type_init_state=None,
+                                           dict_num_atoms_each_type_goal_state=None):
         # Check if the predicate types and number of objects are the same in both states (self and goal_state)
         if self.predicates != goal_state.predicates:
             raise ValueError("The initial and goal states contain different predicates")
@@ -411,8 +462,8 @@ class RelationalState():
         # This extra predicate has to be added AFTER stacking init_state_nlm_encoding and goal_state_nlm_encoding
         # The same with the predicates representing object types
         with torch.no_grad():
-            init_state_nlm_encoding = self.atoms_nlm_encoding(device, max_arity, False, None, None, False, -1) # add_virtual_objs=False, as we do not need to add virtual objects
-            goal_state_nlm_encoding = goal_state.atoms_nlm_encoding(device, max_arity, False, None, None, False, -1)
+            init_state_nlm_encoding = self.atoms_nlm_encoding(device, max_arity, False, None, None, False, -1, None, None) # add_virtual_objs=False, as we do not need to add virtual objects
+            goal_state_nlm_encoding = goal_state.atoms_nlm_encoding(device, max_arity, False, None, None, False, -1, None, None)
 
             # Stack goal_state_nlm_encoding to init_state_nlm_encoding
             both_states_nlm_encoding = []
@@ -424,6 +475,53 @@ class RelationalState():
                 else:
                     # Concatenate the initial state predicates of arity r and the goal state predicates of arity r (the last dimension (dim=-1) corresponds to the predicates)
                     both_states_nlm_encoding.append(torch.cat( (init_state_nlm_encoding[r], goal_state_nlm_encoding[r]), dim=-1))
+
+            # Add the extra nullary predicates that represent the number/percentage of atoms and objects of each type
+            if dict_num_objs_each_type is not None:
+                new_tensor = torch.zeros((self.num_types,), dtype=torch.float32, device=device)
+
+                both_states_nlm_encoding[0] = new_tensor if both_states_nlm_encoding[0] is None else \
+                                              torch.cat( (both_states_nlm_encoding[0], new_tensor), dim=-1)
+
+                num_objs_list = [dict_num_objs_each_type[t] for t in self._sorted_types]
+                # self._num_preds_each_arity contains the number of predicates BEFORE adding the extra nullary and unary predicates
+                shift = 2*self._num_preds_each_arity[0] if 0 in self._num_preds_each_arity else 0
+
+                for ind, num_objs in enumerate(num_objs_list):
+                    both_states_nlm_encoding[0][ind+shift] = num_objs
+
+            if dict_num_atoms_each_type_init_state is not None:
+                new_tensor = torch.zeros((len(self._sorted_predicates),), dtype=torch.float32, device=device)
+
+                both_states_nlm_encoding[0] = new_tensor if both_states_nlm_encoding[0] is None else \
+                                              torch.cat( (both_states_nlm_encoding[0], new_tensor), dim=-1)
+
+                num_atoms_list = [dict_num_atoms_each_type_init_state[pred_name] for pred_name, _ in self._sorted_predicates]
+                shift = 2*self._num_preds_each_arity[0] if 0 in self._num_preds_each_arity else 0
+
+                if dict_num_objs_each_type is not None:
+                    shift += self.num_types
+
+                for ind, num_atoms in enumerate(num_atoms_list):
+                    both_states_nlm_encoding[0][ind+shift] = num_atoms  
+
+            if dict_num_atoms_each_type_goal_state is not None:
+                new_tensor = torch.zeros((len(self._sorted_predicates),), dtype=torch.float32, device=device)
+
+                both_states_nlm_encoding[0] = new_tensor if both_states_nlm_encoding[0] is None else \
+                                              torch.cat( (both_states_nlm_encoding[0], new_tensor), dim=-1)
+
+                num_atoms_list = [dict_num_atoms_each_type_goal_state[pred_name] for pred_name, _ in self._sorted_predicates]
+                shift = 2*self._num_preds_each_arity[0] if 0 in self._num_preds_each_arity else 0
+
+                if dict_num_objs_each_type is not None:
+                    shift += self.num_types
+
+                if dict_num_atoms_each_type_init_state is not None:
+                    shift += len(self._sorted_predicates)
+
+                for ind, num_atoms in enumerate(num_atoms_list):
+                    both_states_nlm_encoding[0][ind+shift] = num_atoms        
 
             # Add the extra nullary predicate corresponding to perc_actions_executed (if needed)
             if perc_actions_executed != -1:
@@ -451,6 +549,10 @@ class RelationalState():
                     both_states_nlm_encoding[1][obj_ind][num_unary_preds*2 + self._obj_types_to_indices_dict[obj_type]] = 1.0
                     # num_unary_preds*2 since we need to account for the unary_preds of the initial state and the goal state
 
+
+        # QUITAR
+        print(">>> both_states_nlm_encoding", both_states_nlm_encoding)
+        sys.exit()
             
         return both_states_nlm_encoding
 

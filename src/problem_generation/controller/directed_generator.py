@@ -276,6 +276,8 @@ class DirectedGenerator():
 
 			# Input predicates
 			input_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate for perc_actions_executed
+			input_nlm_layer_shape[0][0] += len(domain_types) # Add extra nullary predicates to represent the number
+			input_nlm_layer_shape[0][0] += len(domain_preds) # of objects and atoms of each type				
 			input_nlm_layer_shape[0][1] += len(domain_types)+1 # Add extra unary predicates to represent the object types (and one more to represent whether an object is virtual)
 
 			# Output predicates
@@ -285,15 +287,17 @@ class DirectedGenerator():
 
 		else: # Use inner layers, as given by @num_preds_inner_layers_initial_state_nlm
 			max_nlm_arity = len(num_preds_inner_layers_initial_state_nlm[0])-1
-
-			# Input predicates
+			
 			input_nlm_layer_shape = np.array(dummy_rel_state.num_preds_each_arity_for_nlm(max_nlm_arity)).reshape(1,-1)
 			output_nlm_layer_shape = np.array(dummy_rel_state.num_preds_each_arity_for_nlm(max_nlm_arity)).reshape(1,-1)
 
-			# Output predicates
+			# Input predicates
 			input_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate for perc_actions_executed
+			input_nlm_layer_shape[0][0] += len(domain_types) # Add extra nullary predicates to represent the number
+			input_nlm_layer_shape[0][0] += len(domain_preds) # of objects and atoms of each type
 			input_nlm_layer_shape[0][1] += len(domain_types)+1 # Add extra unary predicates to represent the object types (and one more to represent whether an object is virtual)
 
+			# Output predicates
 			output_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate for the termination condition probability
 
 			num_preds_all_layers_initial_state_nlm = np.concatenate((input_nlm_layer_shape, num_preds_inner_layers_initial_state_nlm,
@@ -324,6 +328,8 @@ class DirectedGenerator():
 			input_nlm_layer_shape = np.array(dummy_rel_state_input.num_preds_each_arity_for_nlm(-1)).reshape(1,-1)
 			input_nlm_layer_shape *= 2 # The number of input predicates is actually twice, as it corresponds to both the predicates of the initial and goal states	
 			input_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate representing the percentage of actions executed
+			input_nlm_layer_shape[0][0] += len(domain_types)   # Add extra nullary predicates to represent the number
+			input_nlm_layer_shape[0][0] += 2*len(domain_preds) # of objects and atoms (for the init and goal states) of each type
 			input_nlm_layer_shape[0][1] += len(domain_types) # Add extra unary predicates to represent the object types
 
 			output_nlm_layer_shape = np.array(dummy_rel_state_output.num_preds_each_arity_for_nlm(-1)).reshape(1,-1)
@@ -337,6 +343,8 @@ class DirectedGenerator():
 			input_nlm_layer_shape = np.array(dummy_rel_state_input.num_preds_each_arity_for_nlm(max_nlm_arity)).reshape(1,-1)
 			input_nlm_layer_shape *= 2 # The number of input predicates is actually twice, as it corresponds to both the predicates of the initial and goal states	
 			input_nlm_layer_shape[0][0] += 1 # Add one extra nullary predicate representing the percentage of actions executed
+			input_nlm_layer_shape[0][0] += len(domain_types)   # Add extra nullary predicates to represent the number
+			input_nlm_layer_shape[0][0] += 2*len(domain_preds) # of objects and atoms (for the init and goal states) of each type
 			input_nlm_layer_shape[0][1] += len(domain_types) # Add extra unary predicates to represent the object types
 
 			output_nlm_layer_shape = np.array(dummy_rel_state_output.num_preds_each_arity_for_nlm(max_nlm_arity)).reshape(1,-1)
@@ -952,11 +960,33 @@ class DirectedGenerator():
 				else:
 					curr_state = problems[i].initial_state
 					perc_actions_executed = curr_state.num_atoms / max_atoms_init_state # Obtain percentage of actions executed/atoms added (with respect to the max number of actions/atoms)
+					
+					# Obtain percentage of num atoms and objects for each type
+					# Note: num_objs without considering virtual objects
+					state_objs = curr_state.objects
+					dict_num_objs_each_type = {t : state_objs.count(t) for t in curr_state.types}						
+					state_atoms = curr_state.atoms
+					state_atom_names = [atom[0] for atom in state_atoms]
+					dict_num_atoms_each_type = {pred_name : state_atom_names.count(pred_name) for pred_name, _ in curr_state.predicates}
+
 					preds_curr_phase = self._consistency_validator.predicates_in_current_phase(curr_state)
+
+
+					# QUITAR
+					print("----------------------------------------")
+					print("curr_state.objects", curr_state.objects)
+					print("curr_state.atoms", curr_state.atoms)
+					print("curr_state.sorted_types", curr_state.sorted_types)
+					print("curr_state.sorted_predicates", curr_state.sorted_predicates)
+					print("dict_num_objs_each_type", dict_num_objs_each_type)
+					print("dict_num_atoms_each_type", dict_num_atoms_each_type)
+
 					curr_state_tensors = curr_state.atoms_nlm_encoding(device=self.device, max_arity=init_nlm_max_pred_arity, 
 															allowed_predicates=preds_curr_phase,
 															allowed_virtual_objects=self._allowed_virtual_objects,
-															perc_actions_executed=perc_actions_executed)	
+															perc_actions_executed=perc_actions_executed,
+															dict_num_objs_each_type=dict_num_objs_each_type,
+															dict_num_atoms_each_type=dict_num_atoms_each_type)	
 					
 					# Calculate the number of objects in the state plus the number of virtual objects
 					num_objs_with_virtuals = curr_state.num_objects + curr_state.num_virtual_objects(preds_curr_phase, self._allowed_virtual_objects)
@@ -1091,10 +1121,26 @@ class DirectedGenerator():
 					list_state_tensors.append(None)
 					list_mask_tensors.append(None)
 				else:
+					curr_init_state = problems[i].initial_state
 					curr_goal_state = problems[i].goal_state
 					perc_actions_executed = actions_executed[i] / max_actions_goal_state # Obtain percentage of actions executed (with respect to the max number of actions)
+					
+					# Obtain percentage of num atoms and objects for each type
+					# Note: num_objs without considering virtual objects
+					state_objs = curr_goal_state.objects
+					dict_num_objs_each_type = {t : state_objs.count(t) for t in curr_goal_state.types}						
+					state_atoms_init_state = curr_init_state.atoms
+					state_atom_names_init_state = [atom[0] for atom in state_atoms_init_state]
+					dict_num_atoms_each_type_init_state = {pred_name : state_atom_names_init_state.count(pred_name) for pred_name, _ in curr_goal_state.predicates}			
+					state_atoms_goal_state = curr_goal_state.atoms
+					state_atom_names_goal_state = [atom[0] for atom in state_atoms_goal_state]
+					dict_num_atoms_each_type_goal_state = {pred_name : state_atom_names_goal_state.count(pred_name) for pred_name, _ in curr_goal_state.predicates}
+				
 					curr_goal_and_init_state_tensors = problems[i].initial_state.atoms_nlm_encoding_with_goal_state(curr_goal_state, self.device,
-																	goal_nlm_max_pred_arity, True, perc_actions_executed) # True for adding object types as extra unary predicates	
+																	goal_nlm_max_pred_arity, True, perc_actions_executed,
+																	dict_num_objs_each_type=dict_num_objs_each_type, 
+																	dict_num_atoms_each_type_init_state=dict_num_atoms_each_type_init_state,
+                                           							dict_num_atoms_each_type_goal_state=dict_num_atoms_each_type_goal_state)
 
 					# Mask tensors
 					mask_tensors = self._get_mask_tensors_goal_policy(goal_nlm_output_layer_shape, problems[i])
@@ -1530,10 +1576,22 @@ class DirectedGenerator():
 		# Information about the initial state
 		init_state = problem_state.initial_state
 		perc_actions_executed = init_state.num_atoms / max_atoms_init_state
+
+		# Obtain percentage of num atoms and objects for each type
+		# Note: num_objs without considering virtual objects
+		state_objs = init_state.objects
+		dict_num_objs_each_type = {t : state_objs.count(t) for t in init_state.types}						
+		state_atoms = init_state.atoms
+		state_atom_names = [atom[0] for atom in state_atoms]
+		dict_num_atoms_each_type = {pred_name : state_atom_names.count(pred_name) for pred_name, _ in init_state.predicates}
+
 		preds_curr_phase = self._consistency_validator.predicates_in_current_phase(init_state)		
 		init_state_tensors = init_state.atoms_nlm_encoding(device=self.device, max_arity=init_nlm_max_pred_arity, allowed_predicates=preds_curr_phase,
 														   allowed_virtual_objects=self._allowed_virtual_objects,
-														   perc_actions_executed=perc_actions_executed)
+														   perc_actions_executed=perc_actions_executed,
+														   dict_num_objs_each_type=dict_num_objs_each_type,
+														   dict_num_atoms_each_type=dict_num_atoms_each_type)
+
 		num_objs_with_virtuals = init_state.num_objects + init_state.num_virtual_objects(preds_curr_phase)
 
 		mask_tensors = self._get_mask_tensors_init_policy(init_nlm_output_layer_shape, init_state, preds_curr_phase)
@@ -1555,10 +1613,26 @@ class DirectedGenerator():
 		goal_nlm_output_layer_shape = self._goal_policy.actor_nlm.num_output_preds_layers[-1]
 
 		# Information about the goal state
+		init_state = problem_state.initial_state
 		goal_state = problem_state.goal_state
 		perc_actions_executed = num_actions_executed / max_actions_goal_state
+
+		# Obtain percentage of num atoms and objects for each type
+		# Note: num_objs without considering virtual objects
+		state_objs = goal_state.objects
+		dict_num_objs_each_type = {t : state_objs.count(t) for t in goal_state.types}						
+		state_atoms_init_state = init_state.atoms
+		state_atom_names_init_state = [atom[0] for atom in state_atoms_init_state]
+		dict_num_atoms_each_type_init_state = {pred_name : state_atom_names_init_state.count(pred_name) for pred_name, _ in goal_state.predicates}			
+		state_atoms_goal_state = goal_state.atoms
+		state_atom_names_goal_state = [atom[0] for atom in state_atoms_goal_state]
+		dict_num_atoms_each_type_goal_state = {pred_name : state_atom_names_goal_state.count(pred_name) for pred_name, _ in goal_state.predicates}
+				
 		init_and_goal_state_tensors = problem_state.initial_state.atoms_nlm_encoding_with_goal_state(goal_state, self.device, goal_nlm_max_pred_arity, 
-																									 True, perc_actions_executed) # True for adding object types as extra unary predicates
+																									 True, perc_actions_executed,
+																									 dict_num_objs_each_type=dict_num_objs_each_type, 
+																									 dict_num_atoms_each_type_init_state=dict_num_atoms_each_type_init_state,
+                                           															 dict_num_atoms_each_type_goal_state=dict_num_atoms_each_type_goal_state)
 		num_objs = goal_state.num_objects
 
 		mask_tensors = self._get_mask_tensors_goal_policy(goal_nlm_output_layer_shape, problem_state)
