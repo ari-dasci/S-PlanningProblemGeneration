@@ -2666,7 +2666,10 @@ def test_load_models_and_resume_training_logistics():
 	<Parece que le cuesta generar problemas consistentes y difíciles con dos ciudades!!!>
 
 
+>>> Igual que experimento anterior menos:
+	<add nullary predicates num atoms and objs each type>
 
+	> logs: init_policy\version_140
 
 
 

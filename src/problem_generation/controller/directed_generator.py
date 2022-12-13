@@ -361,6 +361,9 @@ class DirectedGenerator():
 	encoding perc_actions_executed and the unary predicates encoding the object types.
 
 	@num_preds_init_layer Number of predicates of each arity the init_state NLM receives as input.
+
+	<TODO>: add extra nullary predicates encoding the number of objects and atoms of each type.
+	""" # No need of this method, since we now use io_residual
 	"""
 	def _extra_preds_each_arity_init_nlm(self, num_preds_init_layer):
 		num_obj_types = len(self._parser.types)
@@ -374,7 +377,7 @@ class DirectedGenerator():
 		extra_preds_each_arity[1] = list(range(num_preds_init_layer[1] - num_obj_types, num_preds_init_layer[1]))
 
 		return extra_preds_each_arity
-
+	"""
 
 	"""
 	Assuming extra_input_preds_initial_state_nlm is True, this method obtains a list with the extra predicates to add as inputs
@@ -382,7 +385,10 @@ class DirectedGenerator():
 	encoding perc_actions_executed and the unary predicates encoding the object types.
 
 	@num_preds_init_layer Number of predicates of each arity the goal NLM receives as input.
+
+	<TODO>: add extra nullary predicates encoding the number of objects and atoms of each type.
 	"""
+	""" # No need of this method, since we now use io_residual
 	def _extra_preds_each_arity_goal_nlm(self, num_preds_init_layer):
 		num_obj_types = len(self._parser.types)
 		
@@ -395,6 +401,7 @@ class DirectedGenerator():
 		extra_preds_each_arity[1] = list(range(num_preds_init_layer[1] - num_obj_types, num_preds_init_layer[1]))
 
 		return extra_preds_each_arity
+	"""
 
 
 	"""
@@ -964,22 +971,23 @@ class DirectedGenerator():
 					# Obtain percentage of num atoms and objects for each type
 					# Note: num_objs without considering virtual objects
 					state_objs = curr_state.objects
-					dict_num_objs_each_type = {t : state_objs.count(t) for t in curr_state.types}						
+					dict_num_objs_each_type = {t : state_objs.count(t) / max_atoms_init_state for t in curr_state.types}						
 					state_atoms = curr_state.atoms
 					state_atom_names = [atom[0] for atom in state_atoms]
-					dict_num_atoms_each_type = {pred_name : state_atom_names.count(pred_name) for pred_name, _ in curr_state.predicates}
+					dict_num_atoms_each_type = {pred_name : state_atom_names.count(pred_name) / max_atoms_init_state for pred_name, _ in curr_state.predicates}
 
 					preds_curr_phase = self._consistency_validator.predicates_in_current_phase(curr_state)
 
-
 					# QUITAR
-					print("----------------------------------------")
-					print("curr_state.objects", curr_state.objects)
-					print("curr_state.atoms", curr_state.atoms)
-					print("curr_state.sorted_types", curr_state.sorted_types)
-					print("curr_state.sorted_predicates", curr_state.sorted_predicates)
-					print("dict_num_objs_each_type", dict_num_objs_each_type)
-					print("dict_num_atoms_each_type", dict_num_atoms_each_type)
+					#print("----------------------------------------")
+					#print("curr_state.objects", curr_state.objects)
+					#print("curr_state.atoms", curr_state.atoms)
+					#print("curr_state.sorted_types", curr_state.sorted_types)
+					#print("curr_state.sorted_predicates", curr_state.sorted_predicates)
+					#dict_num_objs_each_type = {'vehicle': 1, 'thing': 2, 'airport': 3, 'object': 4, 'city': 5, 'truck': 6, 'package': 7, 'location': 8, 'airplane': 9}
+					#dict_num_atoms_each_type = {'at': 10, 'in-city': 11, 'in': 12}	
+					#print("dict_num_objs_each_type", dict_num_objs_each_type)
+					#print("dict_num_atoms_each_type", dict_num_atoms_each_type)
 
 					curr_state_tensors = curr_state.atoms_nlm_encoding(device=self.device, max_arity=init_nlm_max_pred_arity, 
 															allowed_predicates=preds_curr_phase,
@@ -1128,14 +1136,27 @@ class DirectedGenerator():
 					# Obtain percentage of num atoms and objects for each type
 					# Note: num_objs without considering virtual objects
 					state_objs = curr_goal_state.objects
-					dict_num_objs_each_type = {t : state_objs.count(t) for t in curr_goal_state.types}						
+					dict_num_objs_each_type = {t : state_objs.count(t) / max_actions_goal_state for t in curr_goal_state.types}						
 					state_atoms_init_state = curr_init_state.atoms
 					state_atom_names_init_state = [atom[0] for atom in state_atoms_init_state]
-					dict_num_atoms_each_type_init_state = {pred_name : state_atom_names_init_state.count(pred_name) for pred_name, _ in curr_goal_state.predicates}			
+					dict_num_atoms_each_type_init_state = {pred_name : state_atom_names_init_state.count(pred_name) / max_actions_goal_state \
+														   for pred_name, _ in curr_goal_state.predicates}			
 					state_atoms_goal_state = curr_goal_state.atoms
 					state_atom_names_goal_state = [atom[0] for atom in state_atoms_goal_state]
-					dict_num_atoms_each_type_goal_state = {pred_name : state_atom_names_goal_state.count(pred_name) for pred_name, _ in curr_goal_state.predicates}
+					dict_num_atoms_each_type_goal_state = {pred_name : state_atom_names_goal_state.count(pred_name) / max_actions_goal_state \
+														   for pred_name, _ in curr_goal_state.predicates}
 				
+					# QUITAR
+					#print("----------------------------------------")
+					#print("curr_state.objects", curr_goal_state.objects)
+					#print("curr_init_state.atoms", curr_init_state.atoms)
+					#print("curr_goal_state.atoms", curr_goal_state.atoms)
+					#print("curr_state.sorted_types", curr_goal_state.sorted_types)
+					#print("curr_state.sorted_predicates", curr_goal_state.sorted_predicates)
+					#print("dict_num_objs_each_type", dict_num_objs_each_type)
+					#print("dict_num_atoms_each_type_init_state", dict_num_atoms_each_type_init_state)
+					#print("dict_num_atoms_each_type_goal_state", dict_num_atoms_each_type_goal_state)
+
 					curr_goal_and_init_state_tensors = problems[i].initial_state.atoms_nlm_encoding_with_goal_state(curr_goal_state, self.device,
 																	goal_nlm_max_pred_arity, True, perc_actions_executed,
 																	dict_num_objs_each_type=dict_num_objs_each_type, 
@@ -1580,10 +1601,10 @@ class DirectedGenerator():
 		# Obtain percentage of num atoms and objects for each type
 		# Note: num_objs without considering virtual objects
 		state_objs = init_state.objects
-		dict_num_objs_each_type = {t : state_objs.count(t) for t in init_state.types}						
+		dict_num_objs_each_type = {t : state_objs.count(t) / max_atoms_init_state  for t in init_state.types}						
 		state_atoms = init_state.atoms
 		state_atom_names = [atom[0] for atom in state_atoms]
-		dict_num_atoms_each_type = {pred_name : state_atom_names.count(pred_name) for pred_name, _ in init_state.predicates}
+		dict_num_atoms_each_type = {pred_name : state_atom_names.count(pred_name) / max_atoms_init_state for pred_name, _ in init_state.predicates}
 
 		preds_curr_phase = self._consistency_validator.predicates_in_current_phase(init_state)		
 		init_state_tensors = init_state.atoms_nlm_encoding(device=self.device, max_arity=init_nlm_max_pred_arity, allowed_predicates=preds_curr_phase,
@@ -1620,13 +1641,13 @@ class DirectedGenerator():
 		# Obtain percentage of num atoms and objects for each type
 		# Note: num_objs without considering virtual objects
 		state_objs = goal_state.objects
-		dict_num_objs_each_type = {t : state_objs.count(t) for t in goal_state.types}						
+		dict_num_objs_each_type = {t : state_objs.count(t) / max_actions_goal_state for t in goal_state.types}						
 		state_atoms_init_state = init_state.atoms
 		state_atom_names_init_state = [atom[0] for atom in state_atoms_init_state]
-		dict_num_atoms_each_type_init_state = {pred_name : state_atom_names_init_state.count(pred_name) for pred_name, _ in goal_state.predicates}			
+		dict_num_atoms_each_type_init_state = {pred_name : state_atom_names_init_state.count(pred_name) / max_actions_goal_state for pred_name, _ in goal_state.predicates}			
 		state_atoms_goal_state = goal_state.atoms
 		state_atom_names_goal_state = [atom[0] for atom in state_atoms_goal_state]
-		dict_num_atoms_each_type_goal_state = {pred_name : state_atom_names_goal_state.count(pred_name) for pred_name, _ in goal_state.predicates}
+		dict_num_atoms_each_type_goal_state = {pred_name : state_atom_names_goal_state.count(pred_name) / max_actions_goal_state for pred_name, _ in goal_state.predicates}
 				
 		init_and_goal_state_tensors = problem_state.initial_state.atoms_nlm_encoding_with_goal_state(goal_state, self.device, goal_nlm_max_pred_arity, 
 																									 True, perc_actions_executed,

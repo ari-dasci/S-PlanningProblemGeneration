@@ -426,11 +426,6 @@ class RelationalState():
                 for obj_ind in virtual_objs_inds: 
                     atoms_list[1][obj_ind][-1] = 1.0
 
-
-        # QUITAR
-        print("ATOMS_LIST", atoms_list)
-        sys.exit()
-
         return atoms_list
         
      
@@ -548,12 +543,7 @@ class RelationalState():
                 for obj_ind, obj_type in enumerate(object_types):
                     both_states_nlm_encoding[1][obj_ind][num_unary_preds*2 + self._obj_types_to_indices_dict[obj_type]] = 1.0
                     # num_unary_preds*2 since we need to account for the unary_preds of the initial state and the goal state
-
-
-        # QUITAR
-        print(">>> both_states_nlm_encoding", both_states_nlm_encoding)
-        sys.exit()
-            
+        
         return both_states_nlm_encoding
 
 
