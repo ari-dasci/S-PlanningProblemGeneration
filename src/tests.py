@@ -845,8 +845,8 @@ def test_train_init_and_goal_policy_logistics():
 										   res_connections_initial_state_nlm=False,
 										   exclude_self_inital_state_nlm=True,
 										   lr_initial_state_nlm = 1e-3,
-										   entropy_coeff_init_state_policy = 1,
-										   entropy_annealing_coeffs_init_state_policy = (500, 0.4),
+										   entropy_coeff_init_state_policy = 0.0,
+										   entropy_annealing_coeffs_init_state_policy = None,
 										   epsilon_init_state_policy=0.1,
 
 										   num_preds_inner_layers_goal_nlm=goal_policy_nlm_inner_layers,
@@ -885,8 +885,8 @@ def test_load_models_and_generate_problems_logistics():
 	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_175/init_policy_its-50.ckpt"
-	goal_policy_path = "saved_models/both_policies_175/goal_policy_its-50.ckpt"
+	init_policy_path = "saved_models/both_policies_194/init_policy_its-1370.ckpt"
+	goal_policy_path = "saved_models/both_policies_194/goal_policy_its-1370.ckpt"
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
@@ -900,7 +900,7 @@ def test_load_models_and_generate_problems_logistics():
 
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   allowed_virtual_objects=virtual_objects,
-										   max_atoms_init_state=10, max_actions_init_state=20, max_actions_goal_state=20,
+										   max_atoms_init_state=15, max_actions_init_state=30, max_actions_goal_state=30,
 										   device='cpu', max_objs_cache_reduce_masks=0,
 										  
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
@@ -946,13 +946,13 @@ def test_load_models_and_resume_training_logistics():
 	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
 
 	# Create the generator and load the trained models
-	curr_it = 350 # It of the loaded model, used to resume training
-	init_policy_path = "saved_models/both_policies_163/init_policy_its-{}.ckpt".format(curr_it)
-	goal_policy_path = "saved_models/both_policies_163/goal_policy_its-{}.ckpt".format(curr_it)
+	curr_it = 780 # It of the loaded model, used to resume training
+	init_policy_path = "saved_models/both_policies_192/init_policy_its-{}.ckpt".format(curr_it)
+	goal_policy_path = "saved_models/both_policies_192/goal_policy_its-{}.ckpt".format(curr_it)
 
 	# NLM layers without predicates of arity 3
-	init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
-	goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 
 	# NLM layers with predicates of arity 3
 	# init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
@@ -962,7 +962,7 @@ def test_load_models_and_resume_training_logistics():
 
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   allowed_virtual_objects=virtual_objects,
-										   max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=60,
+										   max_atoms_init_state=15, max_actions_init_state=30, max_actions_goal_state=30,
 										   device='cuda', max_objs_cache_reduce_masks=30,
 										  
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
@@ -2635,6 +2635,9 @@ def test_load_models_and_resume_training_logistics():
 	<Los resultados son mejores que con diversity_rescale_factor=1 o 0!!!>
 
 
+# Experimentos 2 cities ---------
+
+
 >  init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
    goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
    <init_policy_entropy_coeffs: 1, (500, 0.4)>
@@ -2665,11 +2668,165 @@ def test_load_models_and_resume_training_logistics():
 
 	<Parece que le cuesta generar problemas consistentes y difíciles con dos ciudades!!!>
 
+	
+>>> Igual que experimento anterior menos:
+	<add nullary predicates num atoms and objs each type>
+	<io_residual=True>
+
+	> logs: init_policy\version_140
+
+	>>> Los resultados son mucho mejores que los anteriores!
+		- La r_diff es mayor (al final del entrenamiento, tras 11h (aunque lo paré a medias)),
+		  es de 3 para la init_policy
+		- La r_eventual termina convergiendo a casi 0 pero tarda mucho (700 training its o 9h de training time)
+		- num_objs:
+			> num_cities converge a 3!
+			> num_airplanes converge a 3!
+			- No obstante, num_trucks disminuye durante el entrenamiento (llega hasta 0.3 y bajando)
+			  y num_location también
+
+	<CONTINUÉ EL EXPERIMENTO EN init_policy\version_142>
+
 
 >>> Igual que experimento anterior menos:
 	<add nullary predicates num atoms and objs each type>
+	<io_residual=True>
+	<init_policy_entropy_coeffs: 0.0, None>	-> No estoy usando ni entropía ni diversity_reward
 
-	> logs: init_policy\version_140
+	> logs: init_policy\version_141
+
+	Experimento anterior: init_policy\version_140
+	>>> Aprende un poco más rápido que en el experimento anterior (con init_policy_entropy) (tarda 9h vs 11h en el anterior)
+	    La dificultad es la misma
+		Los problemas son mucho menos diversos.
+		La r_eventual sube más rápido que en el experimento anterior, pero sigue sin converger a 0!!! (llega a -0.04)
+			Sube más rápido pero no es mejor que en el experimento anterior!!!
+		Ahora, num_airplanes converge a 0 (en vez de num_trucks!)
+
+
+>  init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   <init_policy_entropy_coeffs: 1, (500, 0.4)>
+   goal_policy_entropy_coeffs: 0, None -> no entropy loss for goal policy
+   domain_with_exists
+   rescale_factor = 0.1
+   diff=LAMA
+   lr_init_policy y lr_goal_policy = 1e-3
+   disc_factor_difficulty=0.995
+   disc_factor_event_consistency=0.9
+   max_atoms_init_state=15, max_actions_init_state=30, <max_actions_goal_state=30>
+   exclude_self=True
+   max_objs_cache_reduce_masks=30
+   device='cuda'
+   trajectories_per_train_it=50, minibatch_size=100
+   epochs_per_train_it=1 (antes 3)
+   <diversity_rescale_factor=0>
+   <eventual consistency 2 cities>
+   <add nullary predicates num atoms and objs each type>
+   <io_residual=True>
+
+   > logs: init_policy\version_140, version_142
+   > saved_models: both_policies_192, 194
+
+   > Entrenamiento
+	- Tiempo 1 día aprox.
+	- r_diff muy alta (llega hasta 4.5 en la init_policy y seguía aumentando!)
+	- r_eventual converge a -0.03 y r_continuous a -0.15
+	- init_policy_entropy converge a 0.6 y goal_policy_entropy termina en 0.3 (y seguía bajando)
+	- term_cond_prob converge a 0 para ambas policies
+	- object_types
+		- locations y trucks casi convergen a 0! (Los problemas solo tienen airplanes y airports)
+
+   > Problemas (its=1370)
+		- diff = 58.9 (muy alta!!!)
+		- diversidad baja!!!
+			- Ningún problema tiene ni truck ni location!! (solo airports y airplanes)
+			- El número de ciudades es bastante diverso (entre dos y cinco)
+
+
+>  init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   goal_policy_entropy_coeffs: 0, None -> no entropy loss for goal policy
+   domain_with_exists
+   rescale_factor = 0.1
+   diff=LAMA
+   lr_init_policy y lr_goal_policy = 1e-3
+   disc_factor_difficulty=0.995
+   disc_factor_event_consistency=0.9
+   max_atoms_init_state=15, max_actions_init_state=30, <max_actions_goal_state=30>
+   exclude_self=True
+   max_objs_cache_reduce_masks=30
+   device='cuda'
+   trajectories_per_train_it=50, minibatch_size=100
+   epochs_per_train_it=1 (antes 3)
+   <eventual consistency 2 cities>
+   <add nullary predicates num atoms and objs each type>
+   <io_residual=True>
+   <init_policy_entropy_coeffs: 0, None>
+   <diversity_rescale_factor=10>
+
+   > logs: init_policy\version_143
+   > saved_models: both_policies_195
+
+   >>> En este experimento, num_airplanes converge ahora a 0!!!
+	- Parece que o bien num_trucks converge a 0 o num_airplanes!
+
+
+>>> Igual que experimento anterior menos:
+	<diversity_rescale_factor=50>
+
+	> logs: init_policy\version_144
+	> saved_models: both_policies_196
+
+	>>> Ningún num_object_type converge a 0!! (ni airplanes ni trucks)
+	    No obstante, la r_difficulty de la init_policy solo llega a 0.6 (a 1.5 para la goal_policy)
+
+
+>>> Igual que experimento anterior menos:
+	<diversity_rescale_factor=20>
+
+	> logs: init_policy\version_145
+	> saved_models: both_policies_197
+	
+	 
+
+
+
+
+
+
+
+	>>> Si no aprende, hacer que los problemas inconsistentes no se tengan en cuenta para calcular la diversity_reward!!
+		- Se le asignen r=0 y se quiten del conjunto para calcular las distancias
+
+   	>>> Ver si los problemas generados son diversos (ver si tienen tanto trucks como airplanes) y las generative_policies generalizan a problemas
+       más grandes
+
+	>>> Objetivo
+		- Generar problemas con dos ciudades que sean difíciles, diversos y generalicen bien a distintos
+		  max_atoms_init_state
+		- Una vez conseguido, probar a quitar consistency_rule 2 ciudades
+			- Si aprende, pasamos a sokoban
+			- Si no aprende, quizás puedo mantener la consistency_rule de las 2 ciudades y
+			  cambiar los parámetros del instance generator para que genere problemas de al menos dos ciudades
+
+	> Parece que ahora ha pasado de generar problemas con una sola ciudad a problemas con varias ciudades pero
+	  sin camiones!!! (solo con aeropuertos y aviones)> Hay varias opciones:
+		- La diversidad no se calcula bien
+			- La init_policy_entropy no ayuda sino que perjudica (quizás es demasiado alta o aumentarla no hace
+			  que los problemas sean realmente diversos)
+			- Quizás debería usar solo diversity_reward
+				- Hacer que solo se tengan en cuenta los problemas eventual consistent
+
+		- La goal_policy es demasiado poco diversa (converge a solo saber resolver problemas de un tipo)
+			- Aumentar su entropía quizás
+
+		- La NLM es demasiado simple y no aprende a generar y resolver más que un tipo de problema
+			- Aumentar depth
+			- Aumentar hidden_layers_NLM
+
+		- Ver si añado reduce operation for counting (usar mean además de max y min aggregation),
+		  o usar sum+sigmoid (ver correo https://mail.google.com/mail/u/1/#inbox/FMfcgzGrbRPkVPNBMPrmprPdsMQmNhXr)
 
 
 
@@ -2679,18 +2836,17 @@ def test_load_models_and_resume_training_logistics():
 		- Experimentos eventual consistency 2 cities
 			- Conseguir que las generative_policies sean capaces de generar problemas difíciles
 			  con 2 ciudades
-
-			- QUIZÁS LA NLM NECESITA COMO INPUTS SABER CUÁNTOS OBJETOS HA AÑADIDO DE CADA TIPO!!!! (CREO QUE NO PUEDE CONTAR)
-				- Ver correo NLM authors
-				- Añadir num/proporción de átomos de cada tipo y objetos
-				- Ver si añado proporciones u objetos como tal, para intentar que generalice
-					- CREO QUE ES MEJOR AÑADIR PROPORCIONES (así, el número de cities crecerá con el tamaño
-					  del problema (max_atoms_init_state))
+			- Si no aprende:
+				- Aumentar depth NLM
+				- Aumentar num_hidden_layers MLP
+				- Bajar policy entropy (el diversity_rescale_factor ya es 0)
 
 			- Ver si añado una reduce operation que funcione como counting quantifier
 
 		- Ignorar diversity_reward para problemas que no son consistentes
 		- Aumentar diversity_rescale_factor aún más
+		- CREO QUE PUEDO HACER QUE LA DIVERSITY_REWARD ESCALE AUTOMÁTICAMENTE CON LA DIFICULTAD MEDIA DE LOS PROBLEMAS
+		  GENERADOS! (conforme los problemas se vuelven más difíciles, que la diversity_reward también sea mayor)
 		- Aumentar init_policy_entropy
 		- Aumentar goal_policy_entropy
 		- Aumentar depth NLM
@@ -2705,6 +2861,8 @@ def test_load_models_and_resume_training_logistics():
 
 	>>> Si no se generan problemas con airplanes, añadir a las reglas de consistencia que
 	    tiene que haber al menos un objeto de tipo airplane!!
+
+	
 
 
 	>>> AQUI-
