@@ -2787,9 +2787,13 @@ def test_load_models_and_resume_training_logistics():
 
 	> logs: init_policy\version_145
 	> saved_models: both_policies_197
-	
-	 
 
+
+	>>> TODO
+		> Generar problemas con el modelo (version_145), para ver si se generan problemas diversos
+		  (ver cuántos problemas tienen trucks y locations)
+		> Hacer nuevas pruebas con diversity_rescale_factor=25 y ignore_inconsitent_problems_for_diversity_reward
+		  (asegurarme de que el nuevo método _add_diversity_reward() funciona correctamente)
 
 
 

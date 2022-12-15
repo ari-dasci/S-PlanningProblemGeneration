@@ -808,15 +808,20 @@ class DirectedGenerator():
 
 	"""
 	Auxiliary method used by _add_diversity_reward(), in order to obtain the distances between init_states.
+
+	@list_consistent_inds List with the indexes (rows) of @feature_matrix corresponding to eventual-consistent problems.
+	                      If a problem is inconsistent, we assign a distance of 0 from it to any other problem.
 	"""
-	def _get_distance_matrix(self, feature_matrix):
+	def _get_distance_matrix(self, feature_matrix, list_consistent_inds):
 		epsilon = 0.01
 		num_states, num_features = feature_matrix.shape
 		distance_matrix = np.zeros((num_states,num_states), dtype=np.float32)
 
 		for i in range(num_states):
 			for j in range(i+1, num_states):
-				distance_matrix[i, j] = distance_matrix[j, i] = np.mean(np.abs(feature_matrix[i] - feature_matrix[j]) / (feature_matrix[i] + feature_matrix[j] + epsilon))
+				distance_matrix[i, j] = distance_matrix[j, i] = np.mean(np.abs(feature_matrix[i] - feature_matrix[j]) / (feature_matrix[i] + feature_matrix[j] + epsilon)) \
+																if (i in list_consistent_inds and j in list_consistent_inds) else 0.0
+			
 				# distance_matrix[i, j] = distance_matrix[j, i] = np.mean(np.abs(feature_matrix[i] - feature_matrix[j]) / (epsilon + np.minimum(feature_matrix[i], feature_matrix[j])))		
 
 		return distance_matrix
@@ -841,15 +846,24 @@ class DirectedGenerator():
 		# Obtain the indexes which delimit each individual trajectory in init_policy_trajectories
 		list_delims = [sum(init_policy_trajectories_lens[:i+1]) for i in range(len(init_policy_trajectories_lens))]
 
-		#print("list_delims", list_delims)
+		print("list_delims", list_delims)
 
 
 		# Obtain the initial_state of the last sample of each trajectory
-		init_state_list = [init_policy_trajectories[i-1][0] for i in list_delims]
+		last_sample_list = [init_policy_trajectories[i-1] for i in list_delims]
+		init_state_list = [sample[0] for sample in last_sample_list]
 
-		#print("\init_state_list:")
-		#for s in init_state_list:
-		#	print("\n--------", s.objects, s.atoms)
+		# Obtain which trajectories are eventual-consistent (the last sample in the trajectory has r_eventual=0)
+		consistent_inds = [i for i, sample in enumerate(last_sample_list) if sample[-4] == 0]
+		num_consistent_trajectories = len(consistent_inds)
+
+		print("consistent_inds", consistent_inds)
+
+
+
+		print("\init_state_list:")
+		for s in init_state_list:
+			print("\n--------", s.objects, s.atoms)
 
 
 
@@ -863,22 +877,25 @@ class DirectedGenerator():
 		feature_matrix = np.array(init_state_feature_vectors, dtype=np.float32)
 
 
-		#print("\n\n> feature_matrix", feature_matrix)
+		print("\n\n> feature_matrix", feature_matrix)
 
 
 		# Obtain the distance matrix between pairs of init_states, according to init_state_feature_vectors
-		distance_matrix = self._get_distance_matrix(feature_matrix)
+		distance_matrix = self._get_distance_matrix(feature_matrix, consistent_inds)
 
 
-		#print("\n\n> distance_matrix", distance_matrix)
+		print("\n\n> distance_matrix", distance_matrix)
 
 
 		# Given the distance_matrix, obtain the diversity score of each state when compared to the rest
 		# Diversity_score = mean distance of the state with the rest
 		# Also, rescale the diversity scores according to @diversity_rescale_factor
-		diversity_scores = [np.mean(distance_matrix[i,:])*diversity_rescale_factor for i in range(len(init_state_list))]
+		if num_consistent_trajectories > 0:
+			diversity_scores = [ (np.sum(distance_matrix[i,:])/num_consistent_trajectories)*diversity_rescale_factor for i in range(len(init_state_list))]
+		else:
+			diversity_scores = [0.0 for i in range(len(init_state_list))]
 
-		#print("\n\n> diversity_scores", diversity_scores)
+		print("\n\n> diversity_scores", diversity_scores)
 
 
 		# <For each init_state trajectory, add to each sample of the trajectory the corresponding diversity_score>
@@ -898,6 +915,9 @@ class DirectedGenerator():
 
 		# QUITAR
 		# print("\n> Average diversity (rescaled):", np.mean(diversity_scores), '\n')
+
+
+		sys.exit()
 
 
 	# ------- Main Methods --------
