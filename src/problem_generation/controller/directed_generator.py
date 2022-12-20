@@ -842,11 +842,11 @@ class DirectedGenerator():
 
 	<Note>: init_policy_trajectories is modified in-place
 	"""
-	def _add_diversity_reward(self, init_policy_trajectories, init_policy_trajectories_lens, diversity_rescale_factor=20.0):
+	def _add_diversity_reward(self, init_policy_trajectories, init_policy_trajectories_lens, diversity_rescale_factor=1.0):
 		# Obtain the indexes which delimit each individual trajectory in init_policy_trajectories
 		list_delims = [sum(init_policy_trajectories_lens[:i+1]) for i in range(len(init_policy_trajectories_lens))]
 
-		print("list_delims", list_delims)
+		#print("list_delims", list_delims)
 
 
 		# Obtain the initial_state of the last sample of each trajectory
@@ -857,13 +857,13 @@ class DirectedGenerator():
 		consistent_inds = [i for i, sample in enumerate(last_sample_list) if sample[-4] == 0]
 		num_consistent_trajectories = len(consistent_inds)
 
-		print("consistent_inds", consistent_inds)
+		#print("consistent_inds", consistent_inds)
 
 
 
-		print("\init_state_list:")
-		for s in init_state_list:
-			print("\n--------", s.objects, s.atoms)
+		#print("\init_state_list:")
+		#for s in init_state_list:
+		#	print("\n--------", s.objects, s.atoms)
 
 
 
@@ -877,14 +877,14 @@ class DirectedGenerator():
 		feature_matrix = np.array(init_state_feature_vectors, dtype=np.float32)
 
 
-		print("\n\n> feature_matrix", feature_matrix)
+		#print("\n\n> feature_matrix", feature_matrix)
 
 
 		# Obtain the distance matrix between pairs of init_states, according to init_state_feature_vectors
 		distance_matrix = self._get_distance_matrix(feature_matrix, consistent_inds)
 
 
-		print("\n\n> distance_matrix", distance_matrix)
+		#print("\n\n> distance_matrix", distance_matrix)
 
 
 		# Given the distance_matrix, obtain the diversity score of each state when compared to the rest
@@ -895,7 +895,7 @@ class DirectedGenerator():
 		else:
 			diversity_scores = [0.0 for i in range(len(init_state_list))]
 
-		print("\n\n> diversity_scores", diversity_scores)
+		#print("\n\n> diversity_scores", diversity_scores)
 
 
 		# <For each init_state trajectory, add to each sample of the trajectory the corresponding diversity_score>
@@ -915,9 +915,6 @@ class DirectedGenerator():
 
 		# QUITAR
 		# print("\n> Average diversity (rescaled):", np.mean(diversity_scores), '\n')
-
-
-		sys.exit()
 
 
 	# ------- Main Methods --------
@@ -1307,7 +1304,7 @@ class DirectedGenerator():
 	Note: We add an index to the folder name given by @checkpoint_folder. Example: saved_models/both_policies_2
 		  (in case there are two other experiments ids=0, 1 before it).
 	"""
-	def train_generative_policies(self, training_iterations, start_it=0, epochs_per_train_it=1, trajectories_per_train_it=50, minibatch_size=100,
+	def train_generative_policies(self, training_iterations, start_it=0, epochs_per_train_it=1, trajectories_per_train_it=50, minibatch_size=75,
 								  its_per_model_checkpoint=10, checkpoint_folder="saved_models/both_policies", logs_name="both_policies"):
 
 		# Obtain folder name to save the model checkpoints in

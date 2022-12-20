@@ -829,8 +829,8 @@ def test_train_init_and_goal_policy_logistics():
 	#goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
 
 	# NLM layers with predicates of arity 3
-	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
-	goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 
 	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
 
@@ -885,12 +885,12 @@ def test_load_models_and_generate_problems_logistics():
 	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_194/init_policy_its-1370.ckpt"
-	goal_policy_path = "saved_models/both_policies_194/goal_policy_its-1370.ckpt"
+	init_policy_path = "saved_models/both_policies_202/init_policy_its-540.ckpt"
+	goal_policy_path = "saved_models/both_policies_202/goal_policy_its-540.ckpt"
 
 	# NLM layers without predicates of arity 3
-	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
-	goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 
 	# NLM layers with predicates of arity 3
 	# init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
@@ -2782,26 +2782,260 @@ def test_load_models_and_resume_training_logistics():
 	    No obstante, la r_difficulty de la init_policy solo llega a 0.6 (a 1.5 para la goal_policy)
 
 
+
 >>> Igual que experimento anterior menos:
 	<diversity_rescale_factor=20>
 
 	> logs: init_policy\version_145
 	> saved_models: both_policies_197
 
+	> Entrenamiento
+		- Tiempo de entrenamiento: 1día 2h
+		- r_continuous converge rápidamente a 0, r_eventual converge a 0 pero tarda mucho más
+		>> r_diff (init_policy) llega muy alto, hasta 5!!!!
+		- term_cond_prob tanto de la init como goal policies convergen a alrededor de 2e-3 (no 0 del todo!)
+			- Creo que estoy significa que las generative policies saben cuándo es mejor parar de generar (sobretodo la goal policy)
+		- init_policy_entropy baja hasta 0.27 (seguía bajando un poco) y la goal_policy_entropy converge a alrededor de 0.45
+		- num_objs
+			> location y truck convergen a alrededor de 0.2, el resto de num_objs es mucho mayor!
 
-	>>> TODO
-		> Generar problemas con el modelo (version_145), para ver si se generan problemas diversos
-		  (ver cuántos problemas tienen trucks y locations)
-		> Hacer nuevas pruebas con diversity_rescale_factor=25 y ignore_inconsitent_problems_for_diversity_reward
-		  (asegurarme de que el nuevo método _add_diversity_reward() funciona correctamente)
+	<Parece que vuelve a generar problemas con solo airports y airplanes y muy pocos trucks y locations>
+
+
+>>> Igual que experimento anterior menos:
+	<diversity_rescale_factor=20>
+	<ignore inconsistent problems in diversity_reward>
+
+	> logs: init_policy\version_146
+	> saved_models: both_policies_198
+
+	>>> La r_eventual converge a 0 mucho más rápido!!!
+		- No obstante, parece que num_locations y num_trucks aún convergen a 0.
+
+
+>>> Igual que experimento anterior menos:
+	<diversity_rescale_factor=50>
+	<ignore inconsistent problems in diversity_reward>
+
+	> logs: init_policy\version_147
+	> saved_models: both_policies_199
+
+	>>> Da CUDA out of memory porque se generan problemas con muchas ciudades y, por tanto,
+	    con muchos objetos
+
+
+>>> Igual que experimento anterior menos:
+	<diversity_rescale_factor=50>
+	<ignore inconsistent problems in diversity_reward>
+	<minibatch_size=75>
+
+	> logs: init_policy\version_148
+	> saved_models: both_policies_200
+
+	>>> num_trucks y num_locations convergen a 0.6
+
+
+>>> Igual que experimento anterior menos:
+	<diversity_rescale_factor=50>
+	<ignore inconsistent problems in diversity_reward>
+	<minibatch_size=75>
+	<init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]> (depth=6)
+	<goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]>
+
+	> logs: init_policy\version_149
+	> saved_models: both_policies_201
+
+	- Da CUDA OUT OF MEMORY!! (se generan problemas con muchas ciudades!!)
+
+>>> Igual que experimento anterior menos:
+	<diversity_rescale_factor=50>
+	<ignore inconsistent problems in diversity_reward>
+	<minibatch_size=75>
+	<init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]> (depth=6)
+	<goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]>
+	<device=cpu> -> Train on CPU to avoid outofmemory error
+
+	> logs: init_policy\version_150
+	> saved_models: both_policies_202
+
+	>>> AL USAR CPU TARDA BASTANTE MÁS!!! (de 1.6s/it a 2.5s/it aprox.)
+
+
+>  <init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]> (depth=7)
+   <goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]>
+   init_policy_entropy_coeffs: 0, None
+   goal_policy_entropy_coeffs: 0, None
+   rescale_factor = 0.1
+   diff=LAMA
+   <device='cuda'>
+   trajectories_per_train_it=50, <minibatch_size=75>
+   epochs_per_train_it=1 (antes 3)
+   eventual consistency 2 cities
+   <diversity_rescale_factor=50>
+   <max_atoms_init_state=12, max_actions_init_state=25, max_actions_goal_state=25>
+
+	> logs: init_policy\version_151
+	> saved_models: both_policies_202
+
+	> r_diff algo baja (no sube de 1.7 la init r_diff (teniendo en cuenta que max_atoms es 12)), num_locations y trucks bajo (alrededor de 1)
+
+	<Aumentar la depth de la NLM no parece ayudar!>
+
+	> Entrenamiento
+		- Tiempo de entrenamiento: 12h
+		- r_continuous y r_eventual convergen a 0
+		- r_diff (init_policy, con 12 max_atoms) converge a 1.7
+		- num obj types
+			- cities: 4.5
+			- airport: 4
+			- location: 0.5
+			- packages: 4.5
+			- airplanes: 2.2
+			- trucks: 1
+
+	> Problemas (its=540, 12 max atoms)
+		- diff 16.6 (medio-alta)
+		- diversidad
+			- problemas con número de ciudades muy diferente
+			- problemas tanto con trucks como airplanes!!
+			- objetivos muy diversos!
+			- los trucks están en ciudades con una sola location/airport!!
+
+	<Los problemas son muy diversos y de dificultad aceptable!>
+	No obstante, en casi todos los trucks están en ciudades con una sola location.
+	Se generan problemas con demasiadas ciudades!!!
+	<<<Creo que esto sucede porque generar problemas con muchas ciudades permite
+	maximizar la r_diversity_reward!!!!>>> -> LA R_DIVERSITY_REWARD ES DEMASIADO ALTA!!
+
+
+>  <init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]> (depth=5)
+   <goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]>
+   init_policy_entropy_coeffs: 0, None
+   goal_policy_entropy_coeffs: 0, None
+   rescale_factor = 0.1
+   diff=LAMA
+   <device='cuda'>
+   trajectories_per_train_it=50, <minibatch_size=75>
+   epochs_per_train_it=1 (antes 3)
+   eventual consistency 2 cities
+   <<diversity_rescale_factor=100>>
+   <max_atoms_init_state=15, max_actions_init_state=30, max_actions_goal_state=30>
+
+	> logs: init_policy\version_152
+	> saved_models: both_policies_203
+
+	> Mismos resultados que en el experimento anterior:
+		num_cities demasiado alto, num_trucks y num_locations demasiado bajo
+
+
+>  <init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]> (depth=7)
+   <goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]>
+   init_policy_entropy_coeffs: 0, None
+   goal_policy_entropy_coeffs: 0, None
+   rescale_factor = 0.1
+   diff=LAMA
+   <device='cuda'>
+   trajectories_per_train_it=50, <minibatch_size=75>
+   epochs_per_train_it=1 (antes 3)
+   eventual consistency 2 cities
+   max_atoms_init_state=15, max_actions_init_state=30, max_actions_goal_state=30
+   <diversity_rescale_factor=10>
+
+	> logs: init_policy\version_153
+	> saved_models: both_policies_204
+
+	<Objetivo del experimento>: 
+	Bajo el diversity_rescale_factor para que se generen problemas
+	con menos ciudades y más trucks (usar un diversity_rescale_factor alto hace que se generen
+	problemas con muchas ciudades).
+	También aumento la depth de la NLM por si le costara aprender con menos.
+
+	>>> Da CUDA out of memory tras 3h 30 de entrenamiento
+		- Al final del entrenamiento, el número de ciudades estaba aumentando (por eso el outofmemory error)
+		  y el número de trucks disminuyendo y airplane aumentando
+		
+	<Creo que el diversity_reward_factor sigue siendo muy alto!!!>
+
+
+>  init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]] (depth=7)
+   goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   init_policy_entropy_coeffs: 0, None
+   goal_policy_entropy_coeffs: 0, None
+   rescale_factor = 0.1
+   diff=LAMA
+   device='cuda'
+   trajectories_per_train_it=50, <minibatch_size=75>
+   epochs_per_train_it=1 (antes 3)
+   eventual consistency 2 cities
+   max_atoms_init_state=15, max_actions_init_state=30, max_actions_goal_state=30
+   <diversity_rescale_factor=5>
+
+	> logs: init_policy\version_154
+	> saved_models: both_policies_205
+
+	>>> Se siguen generando problemas con muchas ciudades y solo airplanes y airports pero no trucks
+	    y locations (aunque al principio del entrenamiento es al revés, y se generan ciudades
+		solo con trucks y no airplanes)
+	    Se generan problemas donde cada ciudad tiene, por lo general, solo un location (airport)
+		y se usan aviones para mover los paquetes de un sitio a otro
+
+	
+>  init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]] (depth=7)
+   goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   init_policy_entropy_coeffs: 0, None
+   goal_policy_entropy_coeffs: 0, None
+   rescale_factor = 0.1
+   diff=LAMA
+   device='cuda'
+   trajectories_per_train_it=50, <minibatch_size=75>
+   epochs_per_train_it=1 (antes 3)
+   eventual consistency 2 cities
+   max_atoms_init_state=15, max_actions_init_state=30, max_actions_goal_state=30
+   <diversity_rescale_factor=1>
+
+	> logs: init_policy\version_155
+	> saved_models: both_policies_206
+
+	
 
 
 
 
 
+	>>> Quizás debería aplicar log, sqrt, etc. a la r_diff, para que num_objs no converja a 0 para trucks
+	    en cuanto la dificultad empieza a aumentar
 
-	>>> Si no aprende, hacer que los problemas inconsistentes no se tengan en cuenta para calcular la diversity_reward!!
-		- Se le asignen r=0 y se quiten del conjunto para calcular las distancias
+	>>> Diversity_rescale_factor=20 es demasiado grande (hace que se generen problemas con muchas ciudades)
+
+	> Parece que en cuanto uso diversity_reward, la NLM tiende a generar problemas solo con airplanes y airports
+		>>> Poca diversity_reward (ej.: 10) -> problemas con solo trucks (sin airplanes)
+		>>> Mucha diversity_reward (>=20) -> problemas con solo aviones (sin trucks)
+			- Aunque cuanto más aumenta la diversity_reward (ej.: 50vs20), el número medio de trucks y locations
+				es mayor (0.2, 0.6...) (aunque sigue siendo muy bajo)
+
+			PARECE QUE NO ES CAPAZ DE GENERAR PROBLEMAS TANTO CON TRUCKS COMO CON AIRPLANES!!! (donde para mover los paquetes
+			haya que intercalar airplanes y trucks) -> << NO APRENDE PATRONES COMPLEJOS (solo sigue reglas básicas para generar
+			problemas)>>
+
+	>>> Si no aprende, creo que tendría que cambiar cómo se calcula diversity_reward
+		- Hacer que tenga en cuenta el número de átomos medio, min, max, std... en el que aparece cada objeto
+		  de un tipo!!!
+
+	>>> Siguientes experimentos
+		- NLM más compleja (más depth, más hidden NLM units)
+			- Usando un menor max_atoms_init_state para que no de outofmemory error
+			- Ver si así se dejan de generar problemas con pocos trucks y locations
+		- Aumentar aún más la diversity reward (a 100)
+			- Si la NLM más compleja no ayuda, quitarle capas
+		- Probar a hacer experimento también con diversity_reward=10 (si es igual que anteriormente, debería generar problemas con solo trucks)
+		- Policy entropy + diversity reward
+		- Si aún no aprende, añadir consistency rule que cada problema tiene que tener trucks
+			- O probar a quitar la consistency rule de las dos ciudades
+			>>> O calcular la diversity_reward de otra forma
+
+
+
+
 
    	>>> Ver si los problemas generados son diversos (ver si tienen tanto trucks como airplanes) y las generative_policies generalizan a problemas
        más grandes
@@ -2820,7 +3054,6 @@ def test_load_models_and_resume_training_logistics():
 			- La init_policy_entropy no ayuda sino que perjudica (quizás es demasiado alta o aumentarla no hace
 			  que los problemas sean realmente diversos)
 			- Quizás debería usar solo diversity_reward
-				- Hacer que solo se tengan en cuenta los problemas eventual consistent
 
 		- La goal_policy es demasiado poco diversa (converge a solo saber resolver problemas de un tipo)
 			- Aumentar su entropía quizás
@@ -2836,28 +3069,7 @@ def test_load_models_and_resume_training_logistics():
 
 	>>>> CAMBIAR DIVERSITY_RESCALE_FACTOR Y STATE_VALIDATOR (consistency rules 2 cities)
 
-	>>> Siguientes pasos
-		- Experimentos eventual consistency 2 cities
-			- Conseguir que las generative_policies sean capaces de generar problemas difíciles
-			  con 2 ciudades
-			- Si no aprende:
-				- Aumentar depth NLM
-				- Aumentar num_hidden_layers MLP
-				- Bajar policy entropy (el diversity_rescale_factor ya es 0)
-
-			- Ver si añado una reduce operation que funcione como counting quantifier
-
-		- Ignorar diversity_reward para problemas que no son consistentes
-		- Aumentar diversity_rescale_factor aún más
-		- CREO QUE PUEDO HACER QUE LA DIVERSITY_REWARD ESCALE AUTOMÁTICAMENTE CON LA DIFICULTAD MEDIA DE LOS PROBLEMAS
-		  GENERADOS! (conforme los problemas se vuelven más difíciles, que la diversity_reward también sea mayor)
-		- Aumentar init_policy_entropy
-		- Aumentar goal_policy_entropy
-		- Aumentar depth NLM
-
-		- Si no aprende, probar a entrenar más la goal_policy que la init_policy
-			- Bajar lr de los critic, para que aprendan mejor al inicio del entrenamiento
-		- Usar varios planners para medir la dificultad (no solo LAMA)
+	>>> Usar varios planners (no solo LAMA) para medir la dificultad
 
 	>>> PARA HACER LAS PRUEBAS PUEDO USAR UN MENOR NUM_ATOMS Y MAX_ACTIONS_GOAL_STATE
 	    Una vez haya encontrado los parámetros que funcionan mejor, entonces ya aumento
