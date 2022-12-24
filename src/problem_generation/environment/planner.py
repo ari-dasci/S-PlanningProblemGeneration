@@ -26,6 +26,7 @@ class Planner():
 	@python_call Console command to call python (e.g., python3, python or py)
 	@planner_path Path to the executable of the planner
 	@alias An alias for calling one of the predefined planners. If not None, we use the alias and ignore @search_options.
+		   Note: a list of aliases can be found in https://github.com/danfis/fast-downward/blob/master/driver/aliases.py
 	@search_options Search options used by the planner (e.g., A*, greedy bfs, type of heuristic...)
 					'astar(blind())' -> A* with "blind heuristic"
 					'astar(lmcut())' -> A* with LM-cut heuristic

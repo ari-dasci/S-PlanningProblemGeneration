@@ -885,8 +885,8 @@ def test_load_models_and_generate_problems_logistics():
 	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_202/init_policy_its-540.ckpt"
-	goal_policy_path = "saved_models/both_policies_202/goal_policy_its-540.ckpt"
+	init_policy_path = "saved_models/both_policies_212/init_policy_its-2000.ckpt"
+	goal_policy_path = "saved_models/both_policies_212/goal_policy_its-2000.ckpt"
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
@@ -900,7 +900,7 @@ def test_load_models_and_generate_problems_logistics():
 
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   allowed_virtual_objects=virtual_objects,
-										   max_atoms_init_state=15, max_actions_init_state=30, max_actions_goal_state=30,
+										   max_atoms_init_state=15, max_actions_init_state=20, max_actions_goal_state=30,
 										   device='cpu', max_objs_cache_reduce_masks=0,
 										  
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
@@ -922,7 +922,7 @@ def test_load_models_and_generate_problems_logistics():
 	# Generate the set of problems with the trained initial policy
 	num_problems = 10
 
-	directed_generator.generate_problems(num_problems, max_atoms_init_state=15, max_actions_init_state=30,
+	directed_generator.generate_problems(num_problems, max_atoms_init_state=15, max_actions_init_state=20,
 									     max_actions_goal_state=30, max_planning_time=600, verbose=True)
 
 
@@ -3098,52 +3098,116 @@ def test_load_models_and_resume_training_logistics():
 	> logs: init_policy\version_161
 	> saved_models: both_policies_212
 
+	> Entrenamiento
+		- Tiempo: 2d 10h (la dificultad llega al máximo tras 2d aprox.)
+		- r_eventual converge a 0, aunque tarda mucho
+		- r_continuous converge a -0.3
+		- r_diff (init_policy) converge a 3.6, r_diff (goal_policy) a 4.5
+		- term_cond_prob converge a 0 para la init_policy y 0.03 (aprox.) para la goal_policy
+			- La goal_policy aprende a usar bien la condición de parada!!!
+		- init_policy entropy muy alta, converge a 0.8!
+		- goal_policy primero baja rápidamente y después lentamente hasta 0.25
+		- num_objs:
+			- cities: 2.4
+			- trucks: 1.1 (muy bajo, al ser más bajo que el número de ciudades!)
+			- airplanes: 1.6
+			- locations: 0.5
+			- airports: 3.8
+			- packages: 6.7
 
-	>>> TODO cuando termine el entrenamiento
-		- Guardar modelo en best_models (si es bueno)
-		- Probar a generar problemas tanto con 15 átomos como de mayor tamaño (para ver si generaliza)
-		- Medir dificultad problemas generados tanto con LAMA como con otros planners
-		- Comparar dificultad de los problemas con los del instance generator (CON 15 ÁTOMOS, NO 20),
-		  usando también distintos planners (LAMA, A*, FF...) para medir la dificultad
-		  	- Tengo que cambiar los generator parameters para que todos los problemas generados tengan
-			  al menos dos ciudades!!
+		<Se generan problemas tanto con airplanes como trucks y de una dificultad alta!!!>
 
-		>>> Quizás este modelo sea suficiente para logistics!!!!
-			- Quizás debería probar a quitar la consistency rule de las dos ciudades como mínimo
-			- Si es así, ver si ya empiezo la experimentación (solo en blocksworld y logistics) para el paper
+	> Problemas (both_policies_212, its=2000)
 
-	>>> Los problemas generados son muy diversos!!!! -> Algunos tienen trucks y otros airplanes!!!
-		La goal_policy sabe tanto mover paquetes con trucks como airplanes!!!
+		> directed_generator (both_policies_212, its=2000)
+			- max_atoms_init_state=15, max_actions_init_state=20, max_actions_goal_state=30
+				- diff (muy alta!!)
+					- LAMA: 53.7 
+					- a_star_lm_cut: 226.7 
+					- a_star_ff: 128.6
+				- diversidad extremadamente alta!!!
+					- problemas con trucks y airplanes (y con más de uno en el mismo problema)!
+					- mayoría de problemas con 2 o 3 ciudades, pero uno tenía 6!
+						- a pesar de tener 6 ciudades, el problema tenía alta dificultad!
+					- problemas con tanto locations como airports (aunque hay bastante más airports)
+					- goals muy diversos!!! (los paquete se llevan a locations/airports distintos!!!)
 
-	>>> Quizás el diversity_rescale_factor sea demasiado alto!!! (y por eso se generan tantos airplanes)
-		- Creo que se generan problemas con muchos airplanes para que el num objs varíe entre problemas y así
-		  la diversity_reward sea alta!!!
-		- HACER UNA EJECUCIÓN SIN DIVERSITY_REWARD A VER!! (diversity_rescale_factor=0)
-	>>> Quizás debería hacer un experimento usando un poco de goal_policy entropy, como 0.1
-		- Para así evitar que la goal_policy converja a solo saber resolver un tipo de problemas
+			- max_atoms_init_state=20, max_actions_init_state=30, max_actions_goal_state=40
+				-diff
+					- LAMA: 70.8 (alta!)
+					- a_star_lm_cut: <Da excepción "this configuration does not support axioms">
+					- a_star_ff: 198.6 (muy baja!! Más que el instance generator)
+
+					- solo se generan problemas con dos o tres ciudades!
+					- la mayoría de problemas no llegan a los 20 átomos! (se deja de generar el init_state antes)
+
+			- max_atoms_init_state=30, max_actions_init_state=45, max_actions_goal_state=60
+				-diff=151.7 (media-alta)
+					- solo se generan problemas con dos o tres ciudades!
+					- la mayoría de problemas no llegan a las 30 átomos!
+
+			- max_atoms_init_state=40, max_actions_init_state=60, max_actions_goal_state=80
+				-diff=183.4 (baja!)
+					- Parece que ya no generaliza bien a problemas de este tamaño!!!
+					- Sigue generando solo problemas con dos/tres ciudades!!!
+
+		> Diff logistics instance generator (min_cities=2, rest of parameters between 1 or 0 and problem size (we do not use autoescale params))
+			- 15 atoms (min_atoms=13)
+				- LAMA diff: 14.7, a_star_lm_cut: 45.9, a_star_ff: 32.9
+			- 20 atoms (min_atoms=18)
+				- LAMA diff: 28.85, a_star_lm_cut: 4905.35, a_star_ff: 551.25
+			- 30 atoms (min_atoms=25)
+				- LAMA diff: 84.2, a_star_lm_cut: <tarda mucho>, a_star_ff: 106510 
+
+
+		<Los problemas generados son diversos y muy difíciles, pero generaliza regular a problemas más grandes>
+			> Midiendo dificultad con LAMA, generaliza más o menos bien hasta problemas con 30 átomos
+				- El problema es que no escala (aumenta) el número de ciudades para problemas más grandes (solo genera problemas con 2/3 ciudades sin importar el tamaño)
+			> Midiendo la dificultad con otros planners, generaliza muy mal!!!
+
+
+>  init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]] (depth=7)
+   goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   rescale_factor = 0.1
+   diff=LAMA
+   device='cuda'
+   trajectories_per_train_it=50, <minibatch_size=75>
+   epochs_per_train_it=1 (antes 3)
+   eventual consistency 2 cities
+   max_atoms_init_state=15, max_actions_init_state=20, max_actions_goal_state=30
+   init_policy_entropy_coeffs: 1, None
+   goal_policy_entropy_coeffs: 0.0, None
+   <diversity_rescale_factor=0>
+
+	> logs: init_policy\version_162
+	> saved_models: both_policies_213
+
+	<Objetivo del experimento>:
+		Ver si al no usar diversity_reward aprende más rápido y se generan problemas con más trucks, menos airplanes y más ciudades (al menos para problemas más grandes).
 
 
 
 
 
 
-	>>> Si no funciona el experimento, bajar diversity_rescale_factor a 1
-		- O subir policy_entropy para la <goal policy> (creo que baja demasiado!!!!)
+	> Mejor modelo hasta la fecha:
+		> logs: init_policy\version_161
+		> saved_models: both_policies_212
 
 	>>> Siguientes experimentos
-		- Hacer experimentos con max_atoms=10 para que tarden menos
-		- Probar a entrenar solo la init_policy sin r_diff (ver si así sí se generan problemas muy diversos y consistentes!)
-			- Probar a calcular la r_diff con otro planner que no sea LAMA
-		- Añadir reduce operation con mean a la NLM
-		- Cambiar forma de calcular diversity reward
-		- Usar diversity reward + policy entropy
-			- Probar también a usar policy entropy para la goal policy
-			- Cambiar ground y lifted coeffs para la policy entropy
-		- "Suavizar" r_diff usando log, sqrt, etc.
-		- Cambiar consistency rules
-			- Quitar regla de las dos ciudades
-			- Añadir que cada city debe tener un truck al menos y cada problema al menos un avión
+		- No diversity_reward
+		- Quitar consistency rule 2 cities (ver si se siguen generando problemas con más de una ciudad)
+		- Medir dificultad con distintos planners (no solo LAMA)
+		- Si no generaliza bien a problemas de distintos tamaños (ej.: no aumenta el num_cities):
+			- Usar distintos tamaños de problemas (max_num_atoms...) durante el entrenamiento
 
+		> Opcionales:
+			- Probar a usar un poco de policy_entropy para la goal policy
+			- Cambiar forma de calcular diversity reward
+			- Añadir reduce operation con mean a la NLM
+			- Hacer experimentos con max_atoms=13 para que tarden menos
+			- "Suavizar" r_diff usando log, sqrt, etc.
+			- Añadir consistency rule para que cada city deba tener un truck al menos y cada problema al menos un avión	
 
 	>>> 2 tipos de problemas
 		- Diversity rescale factor >= 3:
@@ -3173,45 +3237,31 @@ def test_load_models_and_resume_training_logistics():
 			haya que intercalar airplanes y trucks) -> << NO APRENDE PATRONES COMPLEJOS (solo sigue reglas básicas para generar
 			problemas)>>
 
-	>>> Objetivo
-		- Generar problemas con dos ciudades que sean difíciles, diversos y generalicen bien a distintos
-		  max_atoms_init_state
-		- Una vez conseguido, probar a quitar consistency_rule 2 ciudades
-			- Si aprende, pasamos a sokoban
-			- Si no aprende, quizás puedo mantener la consistency_rule de las 2 ciudades y
-			  cambiar los parámetros del instance generator para que genere problemas de al menos dos ciudades
-
-		- Ver si añado reduce operation for counting (usar mean además de max y min aggregation),
-		  o usar sum+sigmoid (ver correo https://mail.google.com/mail/u/1/#inbox/FMfcgzGrbRPkVPNBMPrmprPdsMQmNhXr)
-
-
-
-	>>>> CAMBIAR DIVERSITY_RESCALE_FACTOR Y STATE_VALIDATOR (consistency rules 2 cities)
-
-	>>> Usar varios planners (no solo LAMA) para medir la dificultad
-
-	>>> PARA HACER LAS PRUEBAS PUEDO USAR UN MENOR NUM_ATOMS Y MAX_ACTIONS_GOAL_STATE
-	    Una vez haya encontrado los parámetros que funcionan mejor, entonces ya aumento
-		el tamaño de los problemas.
-
-	>>> Si no se generan problemas con airplanes, añadir a las reglas de consistencia que
-	    tiene que haber al menos un objeto de tipo airplane!!
-
-	
-
 
 	>>> AQUI-
 
 --------------------- Siguientes pasos 
 	
-	<<<Diff logistics instance generator: 40.8>>>
+	Diff logistics instance generator (LAMA and problemas can have one city)
 		- 10 atoms
 			- 6.54
 		- 20 atoms -> Ojo, no 15!
-			- 40.8 (si uso valores "razonables" de parámetros, obtenidos a partir de autoescale)
+			- 40.8 (si uso valores "razonables" de parámetros, obtenidos a partir de autoescale) -> min_cities = 2, entre otras cosas
 			- 17.86 (si uso valores "aleatorios" de parámetros (desde 1 o 0 hasta max_num_atoms))
 		- 30 atoms
 			- 98.95 (si uso valores "aleatorios" de parámetros (desde 1 o 0 hasta max_num_atoms))
+
+	Diff logistics instance generator (min_cities=2, rest of parameters between 1 or 0 and problem size (we do not use autoescale params))
+		- 15 atoms (min_atoms=13)
+			- LAMA diff: 14.7, a_star_lm_cut: 45.9, a_star_ff: 32.9
+		- 20 atoms (min_atoms=18)
+			- LAMA diff: 28.85, a_star_lm_cut: 4905.35, a_star_ff: 551.25
+		- 30 atoms (min_atoms=25)
+			- LAMA diff: 84.2, a_star_lm_cut: <tarda mucho>, a_star_ff: 106510 
+
+
+
+
 
 	>> Quitar use_epm = False
 
