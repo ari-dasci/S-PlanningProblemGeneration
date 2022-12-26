@@ -32,6 +32,11 @@ class Planner():
 					'astar(lmcut())' -> A* with LM-cut heuristic
 	Information about search_options can be found in: https://www.fast-downward.org/PlannerUsage
 	@path_epm Path to the EPM (trained random forest) used to predict planning times from features.
+
+	>>> Planners to use:
+		- Lama-first: ['python3', planner_path, '--alias', 'lama-first', domain_path, problem_path] -> mean_diff=25.9, mean_time=0.6
+		- FF: ['python3', planner_path, domain_path, problem_path, '--search', 'ehc(ff())'] -> mean_diff=132.3, mean_time=0.55
+		- weighted A*, lm_cut: ['python3', planner_path, domain_path, problem_path, '--search', 'eager_wastar([lmcut()], w=2)'] -> mean_diff=17.15, mean_time=0.56
 	"""
 	def __init__(self, domain_file_path, python_call='python', planner_path='./fast-downward', 
 				 alias='lama-first', search_options='', path_epm='./problem_generation/environment/epm/trained_model.joblib'):

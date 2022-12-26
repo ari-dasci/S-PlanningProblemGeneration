@@ -6,6 +6,7 @@ import subprocess
 import os
 import sys
 import re
+import time
 
 # Generator parameters
 
@@ -43,17 +44,17 @@ extra_trucks_vals = list(range(0, 30))
 """
 
 
-num_airplanes_vals = list(range(1, 30))
-num_cities_vals = list(range(2, 30))
-city_size_vals = list(range(1, 30))
-num_packages_vals = list(range(1, 30))
-extra_trucks_vals = list(range(0, 30))
+num_airplanes_vals = list(range(1, 20))
+num_cities_vals = list(range(2, 20))
+city_size_vals = list(range(1, 20))
+num_packages_vals = list(range(1, 20))
+extra_trucks_vals = list(range(0, 20))
 
 
 
 # Problem size
-min_atoms = 25 # 8 # 15 # 25
-max_atoms = 30 # 10 # 20 # 30
+min_atoms = 18 # 8 # 15 # 25
+max_atoms = 20 # 10 # 20 # 30
 
 seed = 1679
 
@@ -77,6 +78,7 @@ def solve_problems_and_write_difficulty():
 	metrics_file_path = f'{problems_folder}{metrics_file}'
 
 	mean_diff = 0
+	mean_time = 0
 
 	with open(metrics_file_path, 'a') as f:
 		f.write("\n-------------------\n")
@@ -85,13 +87,23 @@ def solve_problems_and_write_difficulty():
 			problem_path = f'{problems_folder}{problem_name}'
 
 			# Planner_commands:
-			# LAMA: ['python3', planner_path, '--alias', 'lama-first', domain_path, problem_path]
+			# Lama-first: ['python3', planner_path, '--alias', 'lama-first', domain_path, problem_path]
 			# LM_CUT (with A*): ['python3', planner_path, '--alias', 'seq-opt-lmcut', domain_path, problem_path]
 			# FF (with A*): ['python3', planner_path, domain_path, problem_path, '--search', 'astar(ff())']
+			# ---------------------------
+			# >>> Lama-first: ['python3', planner_path, '--alias', 'lama-first', domain_path, problem_path] -> mean_diff=25.9, mean_time=0.6
+			# Lama: ['python3', planner_path, '--alias', 'seq-sat-lama-2011', domain_path, problem_path] -> TOO SLOW!
+			# Fast Downward Autotune 1 (IPC 2011): ['python3', planner_path, '--alias', 'seq-sat-fd-autotune-1', domain_path, problem_path] -> TOO SLOW!
+			# >>> FF: ['python3', planner_path, domain_path, problem_path, '--search', 'ehc(ff())'] -> mean_diff=132.3, mean_time=0.55
+			# ehc + lm_cut: ['python3', planner_path, domain_path, problem_path, '--search', 'ehc(lmcut())'] -> mean_diff=159.65, mean_time=0.58
+			# >>> weighted A*, lm_cut: ['python3', planner_path, domain_path, problem_path, '--search', 'eager_wastar([lmcut()], w=2)'] -> mean_diff=17.15, mean_time=0.56
 
-			planner_command = ['python3', planner_path, '--alias', 'lama-first', domain_path, problem_path]
 
+			planner_command = ['python3', planner_path, domain_path, problem_path, '--search', 'eager_wastar([lmcut()], w=2)']
+
+			start = time.time()
 			planner_output = subprocess.run(planner_command, shell=False, stdout=subprocess.PIPE).stdout.decode('utf-8')
+			end = time.time()
 
 			# Check if the planner found a solution
 			if re.search("Solution found.", planner_output):
@@ -107,14 +119,17 @@ def solve_problems_and_write_difficulty():
 			print(f"> Solved problem {problem_name} - difficulty={expanded_nodes}")
 
 			mean_diff += expanded_nodes
+			mean_time += (end-start)
 
 			# Write difficulty
 			f.write(f'Problem: {problem_name} - difficulty (expanded nodes): {expanded_nodes}\n')
 
 		# Print mean difficulty
 		mean_diff /= len(problem_names)
+		mean_time /= len(problem_names)
 
 		print(f"\n> Mean problem difficulty: {mean_diff}")
+		print(f"\n> Mean planning time: {mean_time}")
 
 
 

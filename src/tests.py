@@ -885,8 +885,8 @@ def test_load_models_and_generate_problems_logistics():
 	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_212/init_policy_its-2000.ckpt"
-	goal_policy_path = "saved_models/both_policies_212/goal_policy_its-2000.ckpt"
+	init_policy_path = "saved_models/both_policies_215/init_policy_its-1080.ckpt"
+	goal_policy_path = "saved_models/both_policies_215/goal_policy_its-1080.ckpt"
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
@@ -946,9 +946,9 @@ def test_load_models_and_resume_training_logistics():
 	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
 
 	# Create the generator and load the trained models
-	curr_it = 340 # It of the loaded model, used to resume training
-	init_policy_path = "saved_models/both_policies_209/init_policy_its-{}.ckpt".format(curr_it)
-	goal_policy_path = "saved_models/both_policies_209/goal_policy_its-{}.ckpt".format(curr_it)
+	curr_it = 580 # It of the loaded model, used to resume training
+	init_policy_path = "saved_models/both_policies_210/init_policy_its-{}.ckpt".format(curr_it)
+	goal_policy_path = "saved_models/both_policies_210/goal_policy_its-{}.ckpt".format(curr_it)
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
@@ -963,7 +963,7 @@ def test_load_models_and_resume_training_logistics():
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   allowed_virtual_objects=virtual_objects,
 										   max_atoms_init_state=15, max_actions_init_state=20, max_actions_goal_state=30,
-										   device='cuda', max_objs_cache_reduce_masks=30,
+										   device='cuda', max_objs_cache_reduce_masks=25,
 										  
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -3042,15 +3042,40 @@ def test_load_models_and_resume_training_logistics():
    goal_policy_entropy_coeffs: 0, None
    <diversity_rescale_factor=2>
 
-	> logs: init_policy\version_158, 159
-	> saved_models: both_policies_209, 210
+	> logs: init_policy\version_158, 159, 164
+	> saved_models: both_policies_209, 210, 215
 
 	<Objetivo del experimento>:
 		- Ver si usando policy entropy y diversity reward se generan problemas tanto con camiones como aviones!!! (y sin demasiadas ciudades)
 			- También he bajado el max_actions_init_state a 20 para que la r_continuous no baje demasiado al haber aumentado la entropía
 
-	>>> Al final num_trucks termina bajando demasiado y num_airplanes subiendo demasiado (igual a num_cities).
-		- No obstante, num_cities no es tan alto como en otros experimentos (se mantiene alrededor de 3)
+	> Entrenamiento:
+		- Tiempo (total): 1d 4h
+		- r_diff (init_policy) llega hasta 4 (seguía subiendo) -> Aprende más rápido que usando init_entropy_coeffs=1
+		- r_continuous converge a -0.2 y r_eventual a -0.05 (casi 0)
+		- term_cond_prob de la init_policy converge a 0 y de la goal_policy un poco más alto, a 0.002
+		- init_policy_entropy baja en picado hasta 0.45 al principio del entrenamiento y después sube para converger a 0.65
+		- goal_policy_entropy baja hasta 0.35
+		- num_objs:
+			- cities: 2.8
+			- airplanes: 2
+			- trucks: 0.5
+			- locations: 0.25
+			- airports: 3.5
+			- packages: 8.5
+
+	> Problemas
+		- Problemas difíciles pero con muy pocos trucks! La goal_policy nunca usa una acción "drive", solo "fly"!!!
+
+	<Resultados parecidos al experimento con init_policy_entropy_coeffs=1 (init_policy\version_161)>
+	Es mejor en:
+		- Tarda bastante menos en aprender
+		- Un poco más de r_diff
+		- Se generan problemas con más ciudades
+	Es peor en:
+		- Se generan problemas con aún menos trucks y locations
+
+	<Creo que tiende a generar problemas con tan pocos trucks porque a lama-first le cuestan más los problemas con airplanes!!!>
 
 
 >  init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]] (depth=7)
@@ -3080,6 +3105,8 @@ def test_load_models_and_resume_training_logistics():
 			- trucks baja mucho mientras que airplane aumenta y num_cities se mantiene constante alrededor de 3
 
 	<Parece que la goal_policy entropy no es el problema de que se generen problemas con demasiados aviones y pocos camiones!!!>
+
+
 
 
 >  init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]] (depth=7)
@@ -3166,6 +3193,8 @@ def test_load_models_and_resume_training_logistics():
 			> Midiendo la dificultad con otros planners, generaliza muy mal!!!
 
 
+
+
 >  init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]] (depth=7)
    goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
    rescale_factor = 0.1
@@ -3185,19 +3214,63 @@ def test_load_models_and_resume_training_logistics():
 	<Objetivo del experimento>:
 		Ver si al no usar diversity_reward aprende más rápido y se generan problemas con más trucks, menos airplanes y más ciudades (al menos para problemas más grandes).
 
+	>>> No aprende! la r_eventual converge a -0.75 y no sube!!!
+
+>  init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]] (depth=7)
+   goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   rescale_factor = 0.1
+   diff=LAMA
+   device='cuda'
+   trajectories_per_train_it=50, <minibatch_size=75>
+   epochs_per_train_it=1 (antes 3)
+   eventual consistency 2 cities
+   max_atoms_init_state=15, max_actions_init_state=20, max_actions_goal_state=30
+   init_policy_entropy_coeffs: 1, None
+   goal_policy_entropy_coeffs: 0.0, None
+   <diversity_rescale_factor=0>
+   <penalization_continuous_consistency=-0.1>
+
+	> logs: init_policy\version_163
+	> saved_models: both_policies_214
+
+	<Objetivos del experimento>:
+		- Ver si al no usar diversity_reward aprende más rápido y se generan problemas con más trucks, menos airplanes y 
+		  más ciudades (al menos para problemas más grandes).
+		- He bajado la penalization por continuous consistency para que, en comparación, la penalization por eventual consistency sea mayor
+		  y se generen problemas que sean eventualmente consistentes (quiero ver si esto es posible sin usar diversity reward)
+
+	> Entrenamiento
+		- La r_diff (init_policy) no crece por encima de 1.6!!! (la dificultad es muy baja)
+		- Además, no parece que aprenda más rápido que usando diversity_rescale_factor=2
+		- num_objs es igual que cuando uso diversity_rescale_factor=2, excepto que num_trucks es menor!!
+			- num_objs es peor que usando diversity_rescale_factor=2!!!
+
+	<Los resultados son peores que usando diversity_rescale_factor=2>
+	Parece que la diversity_reward es necesaria!!!
 
 
 
+	<Ver ejecución (AQUI*)>
 
+
+	<CREO QUE SE GENERAN PROBLEMAS CON TANTOS AIRPLANES Y TAN POCOS TRUCKS DEBIDO A LAMA!!!! (si midiera la dificultad de otra forma
+	 quizás no pasaría esto)>
+	<Ver si los problemas generados generalizan mejor a problemas más grandes y a formas de medir la dificultad que no son LAMA!>
 
 	> Mejor modelo hasta la fecha:
 		> logs: init_policy\version_161
 		> saved_models: both_policies_212
 
 	>>> Siguientes experimentos
-		- No diversity_reward
-		- Quitar consistency rule 2 cities (ver si se siguen generando problemas con más de una ciudad)
 		- Medir dificultad con distintos planners (no solo LAMA)
+			- lama-first
+			- seq-sat-fd-autotune-1
+			- ehc(ff())
+		- Volver a usar batch_size=100 (al no generarse problemas con tantas ciudades, ya no da outofmemory error)
+		- No diversity_reward
+			- init_policy_entropy_coeffs: 1
+			- init_policy_entropy_coeffs: 0.5
+		- Quitar consistency rule 2 cities (ver si se siguen generando problemas con más de una ciudad)
 		- Si no generaliza bien a problemas de distintos tamaños (ej.: no aumenta el num_cities):
 			- Usar distintos tamaños de problemas (max_num_atoms...) durante el entrenamiento
 
