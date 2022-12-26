@@ -136,6 +136,9 @@ class DirectedGenerator():
 		self._reward_moving_std_goal_policy  = 1 # 1
 		self._initialize_reward_moving_mean_and_std_goal_policy  = True
 
+		# <Parameter used to normalize the difficulties obtained with the different planners>
+		self._moving_mean_diff_each_planner = None
+
 		# <Generative policies>
 
 		# Initial state generation policy
@@ -676,13 +679,12 @@ class DirectedGenerator():
 	If the planner uses more than @max_planning_time seconds to solve the problem, we assume
 	the difficulty of the problem is equal to @max_difficulty.
 
-	@use_epm If True, we predict the problem difficulty using the EPM. Otherwise, we solve it with a planner.
 	@rescale_factor We multiply the log_r_difficulty by this factor to rescale it, with respect to the other rewards
 					(r_continuous_consistency and r_eventual_consistency)
 
 	<Note>: This method also selects the goal atoms corresponding to the goal predicates given by the user
 	"""
-	def get_problem_difficulty(self, problem, use_epm, max_difficulty=1e3, rescale_factor=0.1, max_planning_time=60):
+	def get_problem_difficulty(self, problem, max_difficulty=1e3, rescale_factor=0.1, max_planning_time=60):
 		# Encode the problem in PDDL
 		# > This method also selects the goal atoms corresponding to the goal predicates given by the user
 		pddl_problem = problem.obtain_pddl_problem()
@@ -692,31 +694,27 @@ class DirectedGenerator():
 		self._fd_temp_problem.write(pddl_problem)
 		self._fd_temp_problem.truncate()
 
-
-		# QUITAR
-		use_epm = False
-
-
-
 		# Obtain its difficulty
-		if use_epm:
+		# OLD -> we no longer use an EPM
+		"""if use_epm:
 			# Obtain its difficulty by predicting it with an EPM from its planning features
 			# problem_difficulty = self._planner.predict_problem_difficulty_epm(self._temp_problem_path)
 
 			problem_difficulty = self._planner.predict_problem_difficulty_heuristics(self._temp_problem_path)
-		else:
-			# Obtain its difficulty with a planner (number of nodes expanded by the planner or -1 if it couldn't solve it under
-			# max_planning_time)
-			# Note: if the planner does not find a solution, it also returns -1, but this situation should not happen
-			#       as every problem is solvable.
-			problem_difficulty = self._planner.get_problem_difficulty(self._temp_problem_path, max_planning_time)
-			problem_difficulty = max_difficulty if problem_difficulty == -1 else problem_difficulty
+		else:"""
+		
+		# Obtain its difficulty with several planners (number of nodes expanded by the planner or -1 if it couldn't solve it under
+		# max_planning_time)
+		# Note: if the planner does not find a solution, it also returns -1, but this situation should not happen
+		#       as every problem is solvable.
+		problem_difficulty_list = self._planner.get_problem_difficulty(self._temp_problem_path, max_planning_time)		
+		problem_difficulty_list = [max_difficulty if diff == -1 else diff for diff in problem_difficulty_list]
 
 		# rescale problem_difficulty
-		scaled_difficulty = problem_difficulty*rescale_factor
+		scaled_difficulty_list = [diff*rescale_factor for diff in problem_difficulty_list]
 
 		# Return both the scaled and real difficulty
-		return problem_difficulty, scaled_difficulty
+		return problem_difficulty_list, scaled_difficulty_list
 
 	"""
 	This method normalizes the rewards in a trajectory (or set of trajectories) obtained by the initial policy so that they aproximately
@@ -787,6 +785,46 @@ class DirectedGenerator():
 			norm_reward = (trajectory[i][-2] - self._reward_moving_mean_goal_policy) / (self._reward_moving_std_goal_policy + 1e-10) # z-score normalization
 			trajectory[i] = trajectory[i][:-1] + [norm_reward] + trajectory[i][-1:] # Store the normalized reward in the trajectory[i][-2] position
 
+
+	"""
+	This method receives a list @goal_trajectories of goal_policy trajectories. For each sample in each trajectory, it then calculates
+	the normalized mean of the different planner difficulties. The difficulties are normalized so that they all have a similar mean.
+	"""
+	def _calculate_normalized_mean_planner_diffs(self, goal_trajectories, moving_avg_coeff=0.8):
+		# <Calculate the mean difficulty for each planner for the goal trajectories>
+
+		# trajectory[-1][-1] is the last element (r_diff_list) for the last sample of the trajectory
+		diff_non_empty_trajectories = [trajectory[-1][-1] for trajectory in goal_trajectories if len(trajectory)>0]
+
+		# If all the goal trajectories are empty, we do not need to calculate the normalized difficulty for any of them
+		if len(diff_non_empty_trajectories) == 0:
+			return
+
+		mean_diffs_curr_trajectory = np.array(diff_non_empty_trajectories).mean(axis=0) 
+
+		#print("mean_diffs_curr_trajectory", mean_diffs_curr_trajectory)
+
+		# First call to this method
+		# Initialize the (moving) means to the curr trajectory means
+		if self._moving_mean_diff_each_planner is None:
+			self._moving_mean_diff_each_planner = mean_diffs_curr_trajectory
+		else:
+			self._moving_mean_diff_each_planner = self._moving_mean_diff_each_planner*moving_avg_coeff + mean_diffs_curr_trajectory*(1-moving_avg_coeff)
+
+		#print("self._moving_mean_diff_each_planner", self._moving_mean_diff_each_planner)
+
+		# <Calculate the normalized difficulty mean>
+
+		# Rescale all the planner difficulties so that they all have the same mean as the first planner
+		# rescale_coeffs[0]=1, meaning that we don't need to rescale the difficulty for the first planner
+		rescale_coeffs = self._moving_mean_diff_each_planner / self._moving_mean_diff_each_planner[0]
+
+		#print("rescale_coeffs", rescale_coeffs)
+
+		for i in range(len(goal_trajectories)):
+			if len(goal_trajectories[i]) > 0:
+				diff_list = goal_trajectories[i][-1][-1]
+				goal_trajectories[i][-1][-1] = np.mean(diff_list / rescale_coeffs)
 
 	"""
 	Auxiliary method used by _add_diversity_reward(), in order to obtain the feature vector associated with each state.
@@ -1083,10 +1121,7 @@ class DirectedGenerator():
 										chosen_action_index, chosen_action_prob,
 										r_continuous_consistency, r_eventual_consistency, 0.0] ) 
 				# The 0.0 in the last position corresponds to r_difficulty
-
-
-		# QUITAR
-		#sys.exit()	
+		
 		return problems, trajectories
 
 
@@ -1110,7 +1145,7 @@ class DirectedGenerator():
 		goal_nlm_output_layer_shape = self._goal_policy.actor_nlm.num_output_preds_layers[-1]
 
 		list_num_objs = [problem.initial_state.num_objects for problem in problems]
-		list_r_difficulty_real = [0 for _ in range(num_trajectories)]
+		list_r_difficulties_real = [[] for _ in range(num_trajectories)]
 
 		trajectories = [[] for _ in range(num_trajectories)]
 
@@ -1208,8 +1243,8 @@ class DirectedGenerator():
 
 					# Call the planner to obtain the difficulty of the problem generated
 					# This method also selects the goal atoms corresponding to the goal predicates given by the user
-					r_difficulty_real, r_difficulty = self.get_problem_difficulty(problems[i], use_epm, max_planning_time=max_planning_time) # Difficulty scaled to real values between 0 and 1 (unless the problem difficulty surpasses the maximum difficulty)
-					list_r_difficulty_real[i] = r_difficulty_real
+					r_difficulty_real_list, r_difficulty_list = self.get_problem_difficulty(problems[i], use_epm, max_planning_time=max_planning_time) # Difficulty scaled to real values between 0 and 1 (unless the problem difficulty surpasses the maximum difficulty)
+					list_r_difficulties_real[i] = r_difficulty_real_list
 
 				# If the selected action is not the termination condition, execute it
 				else:
@@ -1234,20 +1269,19 @@ class DirectedGenerator():
 
 						# Call the planner to obtain the difficulty of the problem generated
 						# This method also selects the goal atoms corresponding to the goal predicates given by the user
-						r_difficulty_real, r_difficulty = self.get_problem_difficulty(problems[i], use_epm, max_planning_time=max_planning_time)
-						list_r_difficulty_real[i] = r_difficulty_real
+						r_difficulty_real_list, r_difficulty_list = self.get_problem_difficulty(problems[i], use_epm, max_planning_time=max_planning_time)
+						list_r_difficulties_real[i] = r_difficulty_real_list
 					else:
-						r_difficulty = 0.0 # Before calculating the problem difficulty, it must be fully generated
-
+						r_difficulty_list = 0.0 # Before calculating the problem difficulty, it must be fully generated
 
 				# Append sample to the trajectory
 				trajectories[i].append( [curr_goal_state_copy,
 										list_state_tensors[i], list_num_objs[i], list_mask_tensors[i],
 										chosen_action_index, chosen_action_prob,
-										0.0, 0.0, r_difficulty] ) 
+										0.0, 0.0, r_difficulty_list] ) 
 				# The two 0.0 correspond to the continuous and eventual consistency rewards, respectively
 				
-		return problems, list_r_difficulty_real, trajectories
+		return problems, list_r_difficulties_real, trajectories
 
 
 	"""
@@ -1264,6 +1298,13 @@ class DirectedGenerator():
 
 		# <Obtain trajectories with the goal policy>
 		_, _, goal_policy_trajectories = self._obtain_trajectories_goal_policy(problems, True, max_actions_goal_state)
+
+		#print("diffs", [trajectory[-1][-1] if len(trajectory)>0 else None for trajectory in goal_policy_trajectories])
+
+		# <Calculate the normalized mean of the planner difficulties in the goal policy trajectories>
+		self._calculate_normalized_mean_planner_diffs(goal_policy_trajectories)
+
+		#print("diffs after", [trajectory[-1][-1] if len(trajectory)>0 else None for trajectory in goal_policy_trajectories])
 
 		# <Sum the rewards to obtain the return>
 		# For this operation, we need to append the init and goal policy trajectories
@@ -1496,9 +1537,9 @@ class DirectedGenerator():
 
 		# <Generate a goal state with the goal policy>
 		# False -> we don't use an EPM to obtain the problem difficulty when we are in the test phase
-		final_problem, problem_difficulty, _ = self._obtain_trajectories_goal_policy([init_problem], False, max_actions_goal_state, max_planning_time=max_planning_time, verbose=verbose)
+		final_problem, problem_difficulties, _ = self._obtain_trajectories_goal_policy([init_problem], False, max_actions_goal_state, max_planning_time=max_planning_time, verbose=verbose)
 		final_problem = final_problem[0]
-		problem_difficulty = problem_difficulty[0]
+		problem_difficulties = problem_difficulties[0]
 
 		# <Obtain the PDDL encoding of the problem>
 		# Note: this method also selects at the goal state the predicates given by the user, in order to obtain the problem goal (:goal)
@@ -1507,7 +1548,7 @@ class DirectedGenerator():
 		if verbose:
 			print("> PDDL problem completely generated")
 
-		return pddl_problem, problem_difficulty
+		return pddl_problem, problem_difficulties
 
 
 	"""
@@ -1565,7 +1606,7 @@ class DirectedGenerator():
 			curr_problem_name = problems_name + '_' + str(ind)
 
 			# Generate problem
-			new_problem, new_problem_difficulty = self.generate_problem(max_atoms_init_state, max_actions_init_state, max_actions_goal_state, curr_problem_name, max_planning_time, verbose)
+			new_problem, new_problem_difficulties = self.generate_problem(max_atoms_init_state, max_actions_init_state, max_actions_goal_state, curr_problem_name, max_planning_time, verbose)
 
 			# Save it to disk
 			curr_prob_path = problems_path + curr_problem_name + '.pddl'
@@ -1577,10 +1618,10 @@ class DirectedGenerator():
 				print(f"> PDDL problem saved as {curr_prob_path}")
 
 			# Save the difficulty
-			f_metrics.write(f'Problem: {curr_problem_name} - difficulty (expanded nodes): {new_problem_difficulty}\n')
+			f_metrics.write(f'Problem: {curr_problem_name} - difficulty (expanded nodes): {new_problem_difficulties}\n')
 
 			if verbose:
-				print(f"> Problem difficulty (num expanded nodes): {new_problem_difficulty}")
+				print(f"> Problem difficulty (num expanded nodes): {new_problem_difficulties}")
 
 		f_metrics.close()
 

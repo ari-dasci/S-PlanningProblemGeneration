@@ -38,8 +38,8 @@ class Planner():
 		- FF: ['python3', planner_path, domain_path, problem_path, '--search', 'ehc(ff())'] -> mean_diff=132.3, mean_time=0.55
 		- weighted A*, lm_cut: ['python3', planner_path, domain_path, problem_path, '--search', 'eager_wastar([lmcut()], w=2)'] -> mean_diff=17.15, mean_time=0.56
 	"""
-	def __init__(self, domain_file_path, python_call='python', planner_path='./fast-downward', 
-				 alias='lama-first', search_options='', path_epm='./problem_generation/environment/epm/trained_model.joblib'):
+	def __init__(self, domain_file_path, python_call='python', planner_path='./fast-downward',
+	             path_epm='./problem_generation/environment/epm/trained_model.joblib'):
 
 		# planner_path=r'R:\RamDisk\fast-downward\fast-downward.py'
 		# search_options='astar(lmcut())'
@@ -47,15 +47,20 @@ class Planner():
 		self._domain_file_path = domain_file_path
 		self._python_call = python_call
 		self._planner_path = planner_path
-		self._alias=alias
-		self._search_options = search_options
 
-		# Load the EPM (random forest) used to predict planning times
-		self._epm = joblib.load(path_epm)
+		# Num of planners (search options) to use to calculate the problem difficulties
+		self._num_planners_for_diff = 3
+
+		# Load the EPM (random forest) used to predict planning times -> OLD
+		# self._epm = joblib.load(path_epm)
 
 	@property
 	def domain_file_path(self):
 		return self._domain_file_path
+
+	@property
+	def num_planners_for_diff(self):
+		return self._num_planners_for_diff
 
 	@domain_file_path.setter
 	def domain_file_path(self, new_domain_path):
@@ -77,23 +82,38 @@ class Planner():
 
 		planner_path = planner_path + 'fast-downward.py' # Path to the script to call fast downward
 
-		if self._alias is None:
+		# List of search options to use
+		# Lama-first, FF, weighted A* with lmcut
+		planner_command_list = [ [self._python_call, planner_path, '--alias', 'lama-first', self._domain_file_path, pddl_problem_path],
+						 		 [self._python_call, planner_path, self._domain_file_path, pddl_problem_path, '--search', 'ehc(ff())'],
+						 		 [self._python_call, planner_path, self._domain_file_path, pddl_problem_path, '--search', 'eager_wastar([lmcut()], w=2)'] ]
+		
+		if self._num_planners_for_diff != len(planner_command_list):
+			raise Exception("self._num_planners_for_diff must be equal to the number of planners used to measure the problem difficulties")
+
+		# OLD	
+		"""if self._alias is None:
 			planner_command = [self._python_call, planner_path, self._domain_file_path, pddl_problem_path,
 					'--search', self._search_options]
 		else:
 			planner_command = [self._python_call, planner_path, '--alias', self._alias, self._domain_file_path, 
-					  pddl_problem_path]
+					  pddl_problem_path]"""
 
 		# Call the planner and detect timeouts
 		# <TODO>
 		# Solve timeout bug (timeout option sometimes does not work)
-		try:
-			planner_output = subprocess.run(planner_command, timeout=max_planning_time, shell=False,
-										   stdout=subprocess.PIPE).stdout.decode('utf-8')
-		except TimeoutExpired as e:
-			planner_output = 'timeout'
+		planner_outputs = []
 
-		return planner_output
+		for planner_command in planner_command_list:	
+			try:
+				curr_planner_output = subprocess.run(planner_command, timeout=max_planning_time, shell=False,
+											stdout=subprocess.PIPE).stdout.decode('utf-8')
+			except TimeoutExpired as e:
+				curr_planner_output = 'timeout'
+
+			planner_outputs.append(curr_planner_output)
+
+		return planner_outputs
 
 	"""
 	Calls the planner, solves the problem and returns the number of expanded nodes. If the planner did not find a solution,
@@ -104,28 +124,32 @@ class Planner():
 					   assume the problem was not solvable (even though maybe it is).
 	"""
 	def get_problem_difficulty(self, pddl_problem_path, max_planning_time = 60):
-		planner_output = self.solve_problem(pddl_problem_path, max_planning_time)
+		planner_outputs = self.solve_problem(pddl_problem_path, max_planning_time)
 
-		# Check if there was a timeout -> we consider this case the same as when the planner does not find a solution
-		if planner_output == 'timeout':
-			return -1
+		expanded_nodes_list = []
 
-		# Check if the planner found a solution
-		if re.search("Solution found.", planner_output):
-			# Search for number of expanded nodes
-			expanded_nodes = int(re.search(r"Expanded ([0-9]+) state\(s\)\.", planner_output).group(1))
-			expanded_nodes += 1 # Add 1 in case the planner has expanded 0 nodes (in such case, we obtain NaN when we perform the logarithm)
+		for planner_output in planner_outputs:
+			# Check if there was a timeout -> we consider this case the same as when the planner does not find a solution
+			if planner_output == 'timeout':
+				expanded_nodes_list.append(-1)
+				
+			else:
+				# Check if the planner found a solution
+				if re.search("Solution found.", planner_output):
+					# Search for number of expanded nodes
+					curr_expanded_nodes = int(re.search(r"Expanded ([0-9]+) state\(s\)\.", planner_output).group(1))
+					curr_expanded_nodes += 1 # Add 1 in case the planner has expanded 0 nodes (in such case, we obtain NaN when we perform the logarithm)
 
-			# Search for plan length
-			# expanded_nodes = int(re.search(r"Plan length: ([0-9]+) step\(s\)\.", planner_output).group(1))
-		else:
-			expanded_nodes = -1
+					# Search for plan length
+					# curr_expanded_nodes = int(re.search(r"Plan length: ([0-9]+) step\(s\)\.", planner_output).group(1))
+				else:
+					# If the planner output does not contain "Solution found.", that's because the problem goal was empty
+					# and it does not support axioms -> Therefore, the problem diff is 1 (can't be 0 to avoid NaN when we perform the logarithm)
+					curr_expanded_nodes = 1
 
-			print(">>>> NO SOLUTION FOUND")
-			print("> pddl_problem_path:", pddl_problem_path)
-			raise Exception("The generated problem is unsolvable")
+				expanded_nodes_list.append(curr_expanded_nodes)
 
-		return expanded_nodes
+		return expanded_nodes_list
 
 	"""
 	Uses an EPM (empirical performance model) to efficiently predict the planning time given the problem features.
