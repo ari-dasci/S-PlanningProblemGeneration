@@ -845,7 +845,7 @@ def test_train_init_and_goal_policy_logistics():
 										   res_connections_initial_state_nlm=False,
 										   exclude_self_inital_state_nlm=True,
 										   lr_initial_state_nlm = 1e-3,
-										   entropy_coeff_init_state_policy = 1,
+										   entropy_coeff_init_state_policy = 0.5,
 										   entropy_annealing_coeffs_init_state_policy = None,
 										   epsilon_init_state_policy=0.1,
 
@@ -885,8 +885,8 @@ def test_load_models_and_generate_problems_logistics():
 	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_215/init_policy_its-1080.ckpt"
-	goal_policy_path = "saved_models/both_policies_215/goal_policy_its-1080.ckpt"
+	init_policy_path = "saved_models/both_policies_216/init_policy_its-560.ckpt"
+	goal_policy_path = "saved_models/both_policies_216/goal_policy_its-560.ckpt"
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
@@ -3216,6 +3216,7 @@ def test_load_models_and_resume_training_logistics():
 
 	>>> No aprende! la r_eventual converge a -0.75 y no sube!!!
 
+
 >  init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]] (depth=7)
    goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
    rescale_factor = 0.1
@@ -3249,8 +3250,64 @@ def test_load_models_and_resume_training_logistics():
 	Parece que la diversity_reward es necesaria!!!
 
 
+>  init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]] (depth=7)
+   goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   rescale_factor = 0.1
+   device='cuda'
+   trajectories_per_train_it=50, <minibatch_size=100>
+   epochs_per_train_it=1
+   eventual consistency 2 cities
+   max_atoms_init_state=15, max_actions_init_state=20, max_actions_goal_state=30
+   <init_policy_entropy_coeffs: 0.5, None>
+   goal_policy_entropy_coeffs: 0, None
+   diversity_rescale_factor=2
+   <diff=LAMA, FF, weighted A* lmcut>
 
-	<Ver ejecución (AQUI*)>
+   <Objetivo del experimento>:
+	- Ver si al usar distintos planners para medir la dificultad ahora se generan problemas con más trucks y menos airplanes
+	- Ver también si el tiempo de ejecución aumenta al usar varios planners
+
+	> Entrenamiento
+		- Tiempo: 16h (para 450 its) -> bastante lento
+		- r_continuous converge a -0.2, r_eventual a -0.05
+		- r_diff (init_policy) llega hasta 2.5
+		- term_cond_prob de la init_policy converge a 0, de la goal_policy a 0.002
+		- init_policy_entropy baja muy rápidamente al principio del entrenamiento hasta 0.45 y después aumenta hasta 0.68
+		- goal_policy_entropy tarda más en bajar y llega hasta 0.5 (seguía bajando cuando paré el entrenamiento)
+		- num_objs:
+			- truck: 1.3 (seguía bajando)
+			- airplane: 2.8
+			- city: 3
+			- location: 0.5
+			- airport: 3.4
+			- package: 6.7
+
+	> Problemas (its=450):
+		- diff = [34.4, 171.8, 23.4] (Lama, FF, weighted A* + lmcut)
+			- Es más difícil que los problemas generados con el instance generator (usando max_atoms=20!) para los tres planners!
+
+		- diversidad
+			- cities entre 2 y 3, un problema con 4
+			- la gran mayoría de ciudades solo tienen un location/airport!!! (son de tamaño 1)
+			- muchos airplanes y pocos trucks
+
+	<A pesar de haber cambiado la forma de medir la dificultad, se siguen generando problemas con muchos aviones, pocos trucks y donde
+	 la mayoría de ciudades tienen tamaño 1!!! Hay dos posibilidades:>
+	 	- Así los problemas son más difíciles, por lo que la init_policy aprende a generarlos así
+		- Así se pueden hacer problemas difíciles y con distinto num objs (se maximiza la diversity_reward)
+
+
+
+
+
+	>>> Quizás debería empezar con una init_policy_entropy más alta (para que se mantenga alta mientras la goal policy aprende y después bajarla)
+	    Ej.: <init_policy_entropy_coeffs: 1, (500, 0.5)>
+
+	>>> Cambiar consistency rules
+		- Cada ciudad un truck
+		- Cada problema al menos un avión y paquete
+
+
 
 
 	<CREO QUE SE GENERAN PROBLEMAS CON TANTOS AIRPLANES Y TAN POCOS TRUCKS DEBIDO A LAMA!!!! (si midiera la dificultad de otra forma
@@ -3453,8 +3510,8 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems()
 
 	#test_generate_random_problems_logistics()
-	test_train_init_and_goal_policy_logistics()
-	#test_load_models_and_generate_problems_logistics()	
+	#test_train_init_and_goal_policy_logistics()
+	test_load_models_and_generate_problems_logistics()	
 	#test_load_models_and_resume_training_logistics()
 
 

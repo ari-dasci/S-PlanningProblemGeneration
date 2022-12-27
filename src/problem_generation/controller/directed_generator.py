@@ -1345,7 +1345,7 @@ class DirectedGenerator():
 	Note: We add an index to the folder name given by @checkpoint_folder. Example: saved_models/both_policies_2
 		  (in case there are two other experiments ids=0, 1 before it).
 	"""
-	def train_generative_policies(self, training_iterations, start_it=0, epochs_per_train_it=1, trajectories_per_train_it=50, minibatch_size=75,
+	def train_generative_policies(self, training_iterations, start_it=0, epochs_per_train_it=1, trajectories_per_train_it=50, minibatch_size=100,
 								  its_per_model_checkpoint=10, checkpoint_folder="saved_models/both_policies", logs_name="both_policies"):
 
 		# Obtain folder name to save the model checkpoints in
