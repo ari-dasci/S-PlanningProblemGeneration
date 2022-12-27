@@ -3263,6 +3263,9 @@ def test_load_models_and_resume_training_logistics():
    diversity_rescale_factor=2
    <diff=LAMA, FF, weighted A* lmcut>
 
+	> logs: init_policy\version_165
+	> saved_models: both_policies_216
+
    <Objetivo del experimento>:
 	- Ver si al usar distintos planners para medir la dificultad ahora se generan problemas con más trucks y menos airplanes
 	- Ver también si el tiempo de ejecución aumenta al usar varios planners
@@ -3296,6 +3299,28 @@ def test_load_models_and_resume_training_logistics():
 	 	- Así los problemas son más difíciles, por lo que la init_policy aprende a generarlos así
 		- Así se pueden hacer problemas difíciles y con distinto num objs (se maximiza la diversity_reward)
 
+>  init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]] (depth=7)
+   goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   rescale_factor = 0.1
+   device='cuda'
+   trajectories_per_train_it=50, <minibatch_size=100>
+   epochs_per_train_it=1
+   eventual consistency 2 cities
+   max_atoms_init_state=15, max_actions_init_state=20, max_actions_goal_state=30
+   init_policy_entropy_coeffs: 0.5, None
+   goal_policy_entropy_coeffs: 0, None
+   diversity_rescale_factor=2
+   diff=LAMA, FF, weighted A* lmcut
+   <consistency_rules: pddl instance generator and min_cities=2>
+
+	> logs: init_policy\version_166
+	> saved_models: both_policies_217
+
+	>>> r_diff converge a 0 (la r_eventual_consistency no sube!)
+
+
+> Igual que experimento anterior menos:
+	<>
 
 
 
@@ -3510,8 +3535,8 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems()
 
 	#test_generate_random_problems_logistics()
-	#test_train_init_and_goal_policy_logistics()
-	test_load_models_and_generate_problems_logistics()	
+	test_train_init_and_goal_policy_logistics()
+	#test_load_models_and_generate_problems_logistics()	
 	#test_load_models_and_resume_training_logistics()
 
 
