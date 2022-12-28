@@ -836,6 +836,7 @@ def test_train_init_and_goal_policy_logistics():
 
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   allowed_virtual_objects=virtual_objects,
+										   penalization_continuous_consistency=-0.1,
 										   max_atoms_init_state=15, max_actions_init_state=20, max_actions_goal_state=30,
 										   device='cuda', max_objs_cache_reduce_masks=25,
 
@@ -845,7 +846,7 @@ def test_train_init_and_goal_policy_logistics():
 										   res_connections_initial_state_nlm=False,
 										   exclude_self_inital_state_nlm=True,
 										   lr_initial_state_nlm = 1e-3,
-										   entropy_coeff_init_state_policy = 0.5,
+										   entropy_coeff_init_state_policy = 0.2,
 										   entropy_annealing_coeffs_init_state_policy = None,
 										   epsilon_init_state_policy=0.1,
 
@@ -885,8 +886,8 @@ def test_load_models_and_generate_problems_logistics():
 	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_216/init_policy_its-560.ckpt"
-	goal_policy_path = "saved_models/both_policies_216/goal_policy_its-560.ckpt"
+	init_policy_path = "saved_models/both_policies_220/init_policy_its-600.ckpt"
+	goal_policy_path = "saved_models/both_policies_220/goal_policy_its-600.ckpt"
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
@@ -962,6 +963,7 @@ def test_load_models_and_resume_training_logistics():
 
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   allowed_virtual_objects=virtual_objects,
+										   penalization_continuous_consistency=-0.1,
 										   max_atoms_init_state=15, max_actions_init_state=20, max_actions_goal_state=30,
 										   device='cuda', max_objs_cache_reduce_masks=25,
 										  
@@ -3320,19 +3322,74 @@ def test_load_models_and_resume_training_logistics():
 
 
 > Igual que experimento anterior menos:
-	<>
+	<penalization_continuous_consistency=-0.1>
+
+	> logs: init_policy\version_167
+	> saved_models: both_policies_218
+
+	>>> Genera problemas que son eventual consistent, pero la r_eventual_consistent crece muy lentamente!!! (tras 3h30 era -0.3)
+
+
+> Igual que experimento anterior menos:
+	<penalization_continuous_consistency=-0.1>
+	<init_policy_entropy_coeffs: 1, None>
+
+	> logs: init_policy\version_168
+	> saved_models: both_policies_219
+
+	>>> la r_eventual y r_diff crecen aún más lentamente que en el experimento anterior
+
+
+> Igual que experimento anterior menos:
+	<penalization_continuous_consistency=-0.1>
+	<init_policy_entropy_coeffs: 0.2, None>
+
+	> logs: init_policy\version_169
+	> saved_models: both_policies_220
+
+	> Entrenamiento:
+		- Tiempo: 15h (lo paré a mitad)
+		- Aprende! r_diff (init_policy) llega hasta 1.3 (seguía subiendo) y r_diff (goal_policy) hasta 2.05
+		- r_continuous converge a -0.02 y r_eventual llega a -0.13
+		- term_cond_prob de la init_policy converge a 0 y de la goal_policy a 0.002
+		- init_policy_entropy se mantiene muy alta, alrededor de 0.7 y la goal_policy_entropy baja hasta 0.3
+		- num_objs (goal_policy):
+			- city: 2.1 (bajo, teniendo en cuenta que el min son 2 ciudades)
+			- airplane: 2.2
+			- truck: 5.1 (debe haber uno por ciudad)
+			- airport: 2.2
+			- location: 0.01!!! -> Se generan problemas sin locations!!!!
+			- package: 4.5 (podría ser más alto)
+
+	> Problemas (its=600):
+		- num_atoms=15:
+			- diff=[18.5, 23.9, 13.4]
+			- diversidad media-baja:
+				- Todos los problemas tienen dos ciudades, cada una de ellas con un airport! (no hay objetos de tipo location)
+		- num_atoms=20:
+			- diff = [34.9, 69.4, 23.6]
+			- Ahora hay tres problemas que tienen 3 ciudades en vez de 2!!!
+		- num_atoms=30:
+			- diff = [66.2, 630.2, 35.6]
+			- Todos los problemas tienen 2 ciudades, menos uno que tiene 3 y otro que tiene 4
+
+		<Parece que al aumentar el tamaño del problema no aumenta el número de ciudades!!!!, solo el número de otros objetos>
 
 
 
+	<Creo que la diversity_reward puede ser contraproducente, ya que la manera de maximizarla puede ser generar problemas con dos ciudades
+	 y después ir variando mucho el número de trucks, packages y airplanes!>
+
+
+
+
+
+	>>> Quitar consistency rule de que los problemas deben tener dos ciudades como mínimo
 
 	>>> Quizás debería empezar con una init_policy_entropy más alta (para que se mantenga alta mientras la goal policy aprende y después bajarla)
 	    Ej.: <init_policy_entropy_coeffs: 1, (500, 0.5)>
 
-	>>> Cambiar consistency rules
-		- Cada ciudad un truck
-		- Cada problema al menos un avión y paquete
-
-
+	
 
 
 	<CREO QUE SE GENERAN PROBLEMAS CON TANTOS AIRPLANES Y TAN POCOS TRUCKS DEBIDO A LAMA!!!! (si midiera la dificultad de otra forma
