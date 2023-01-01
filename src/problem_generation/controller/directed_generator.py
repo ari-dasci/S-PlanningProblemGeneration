@@ -851,7 +851,7 @@ class DirectedGenerator():
 	                      If a problem is inconsistent, we assign a distance of 0 from it to any other problem.
 	"""
 	def _get_distance_matrix(self, feature_matrix, list_consistent_inds):
-		epsilon = 0.01
+		epsilon = 1e-6
 		num_states, num_features = feature_matrix.shape
 		distance_matrix = np.zeros((num_states,num_states), dtype=np.float32)
 
@@ -880,7 +880,7 @@ class DirectedGenerator():
 
 	<Note>: init_policy_trajectories is modified in-place
 	"""
-	def _add_diversity_reward(self, init_policy_trajectories, init_policy_trajectories_lens, diversity_rescale_factor=2.0):
+	def _add_diversity_reward(self, init_policy_trajectories, init_policy_trajectories_lens, diversity_rescale_factor=10.0):
 		# Obtain the indexes which delimit each individual trajectory in init_policy_trajectories
 		list_delims = [sum(init_policy_trajectories_lens[:i+1]) for i in range(len(init_policy_trajectories_lens))]
 
@@ -892,7 +892,13 @@ class DirectedGenerator():
 		init_state_list = [sample[0] for sample in last_sample_list]
 
 		# Obtain which trajectories are eventual-consistent (the last sample in the trajectory has r_eventual=0)
-		consistent_inds = [i for i, sample in enumerate(last_sample_list) if sample[-4] == 0]
+		
+		# OLD -> only use consistent trajectories
+		# consistent_inds = [i for i, sample in enumerate(last_sample_list) if sample[-4] == 0]
+		# NEW -> use all trajectories
+		consistent_inds = list(range(len(last_sample_list)))
+		
+		
 		num_consistent_trajectories = len(consistent_inds)
 
 		#print("consistent_inds", consistent_inds)
@@ -963,7 +969,7 @@ class DirectedGenerator():
 	This method returns a tuple (problem, trajectory), where "problem" contains the problem corresponding to the state in the last
 	trajectory sample.
 
-	<Note>: if @max_atoms_init_state and @max_actions_init_state are -1, we use the default values (self._max_atomos_init_state and
+	<Note>: if @max_atoms_init_state and @max_actions_init_state are -1, we use the default values (self._max_atoms_init_state and
 			self._max_actions_init_state).
 	"""
 	def _obtain_trajectories_init_policy(self, num_trajectories, max_atoms_init_state=-1, max_actions_init_state=-1):

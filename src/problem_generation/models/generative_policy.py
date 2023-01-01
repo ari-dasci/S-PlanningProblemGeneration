@@ -252,8 +252,9 @@ class GenerativePolicy(pl.LightningModule):
 		# tensor_lifted_entropy[tensor_lifted_entropy==float("inf")] = 0
 		# tensor_lifted_entropy = torch.where(tensor_lifted_entropy==float("inf"),torch.tensor(0.0),tensor_lifted_entropy)
 
-		return 0.5*tensor_ground_entropy + 0.5*tensor_lifted_entropy
-
+		# CAMBIAR
+		# return 0.5*tensor_ground_entropy + 0.5*tensor_lifted_entropy
+		return tensor_ground_entropy
 		
 		# ------- OLD
 		

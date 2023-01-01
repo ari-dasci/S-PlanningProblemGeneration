@@ -846,7 +846,7 @@ def test_train_init_and_goal_policy_logistics():
 										   res_connections_initial_state_nlm=False,
 										   exclude_self_inital_state_nlm=True,
 										   lr_initial_state_nlm = 1e-3,
-										   entropy_coeff_init_state_policy = 0.2,
+										   entropy_coeff_init_state_policy = 0,
 										   entropy_annealing_coeffs_init_state_policy = None,
 										   epsilon_init_state_policy=0.1,
 
@@ -886,8 +886,8 @@ def test_load_models_and_generate_problems_logistics():
 	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_220/init_policy_its-600.ckpt"
-	goal_policy_path = "saved_models/both_policies_220/goal_policy_its-600.ckpt"
+	init_policy_path = "saved_models/both_policies_235/init_policy_its-1290.ckpt"
+	goal_policy_path = "saved_models/both_policies_235/goal_policy_its-1290.ckpt"
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
@@ -3376,36 +3376,328 @@ def test_load_models_and_resume_training_logistics():
 		<Parece que al aumentar el tamaño del problema no aumenta el número de ciudades!!!!, solo el número de otros objetos>
 
 
-
 	<Creo que la diversity_reward puede ser contraproducente, ya que la manera de maximizarla puede ser generar problemas con dos ciudades
 	 y después ir variando mucho el número de trucks, packages y airplanes!>
 
 
+>  init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]] (depth=7)
+   goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   penalization_continuous_consistency=-0.1
+   rescale_factor = 0.1
+   device='cuda'
+   trajectories_per_train_it=50, <minibatch_size=100>
+   epochs_per_train_it=1
+   eventual consistency 2 cities
+   max_atoms_init_state=15, max_actions_init_state=20, max_actions_goal_state=30
+   init_policy_entropy_coeffs: 0.2, None
+   goal_policy_entropy_coeffs: 0, None
+   diversity_rescale_factor=2
+   diff=LAMA, FF, weighted A* lmcut
+   <consistency_rules: pddl instance generator <without> min cities>
+
+   	> logs: init_policy\version_170
+	> saved_models: both_policies_221
+
+	<Objetivo del experimento>:
+		- Ver si se generan problemas con distinto número de ciudades (1,2,3...) aunque haya quitado la consistency rule de min_cities=2
+		- También debería escalar (aumentar) el número de ciudades conforme aumenta el tamaño de los problemas!
+
+	>>> num_cities converge a 1!!!
 
 
+> Igual que experimento anterior menos:
+	<only ground_entropy (no lifted entropy)>
+	<init_policy_entropy_coeffs: 1, None>
 
-	>>> Quitar consistency rule de que los problemas deben tener dos ciudades como mínimo
+   	> logs: init_policy\version_171
+	> saved_models: both_policies_222
 
-	>>> Quizás debería empezar con una init_policy_entropy más alta (para que se mantenga alta mientras la goal policy aprende y después bajarla)
-	    Ej.: <init_policy_entropy_coeffs: 1, (500, 0.5)>
+	>>> num_cities tampoco sube! (aunque tarda más en bajar a 1)
+
+
+> Igual que experimento anterior menos:
+	<only ground_entropy (no lifted entropy)>
+	<init_policy_entropy_coeffs: 10, None>
+
+   	> logs: init_policy\version_172
+	> saved_models: both_policies_223
+
+	>>> Resultados parecidos 
+
+
+> Igual que experimento anterior menos:
+	<only ground_entropy (no lifted entropy)>
+	<init_policy_entropy_coeffs: 100, None>
+
+   	> logs: init_policy\version_173
+	> saved_models: both_policies_224
+
+	>>> Aunque la entropía es 1 (el máximo valor), num_cities es 1.1!!!
+		- Nota: en la init_policy, num_cities es en realidad mayor! Esto es porque en los samples
+		  del principio de la trayectoria puede no haberse añadido aún las ciudades
+
+
+> Igual que experimento anterior menos:
+	<only ground_entropy (no lifted entropy)>
+	<init_policy_entropy_coeffs: 0, None>
+
+   	> logs: init_policy\version_174
+	> saved_models: both_policies_225
+
+
+> Igual que experimento anterior menos:
+	<only ground_entropy (no lifted entropy)>
+	<init_policy_entropy_coeffs: 0, None>
+	<diversity_rescale_factor=100>
+
+   	> logs: init_policy\version_175
+	> saved_models: both_policies_226
+
+	>>> Tarda más, pero num_cities también termina convergiendo a 1!!
+
+
+> Igual que experimento anterior menos:
+	<only ground_entropy (no lifted entropy)>
+	<init_policy_entropy_coeffs: 0.5, None>
+	<diversity_rescale_factor=100>
+
+	> logs: init_policy\version_176
+	> saved_models: both_policies_227
+
+	>>> num_cities también termina convergiendo a 1! (aunque más lento que sin usar la policy_entropy)
+		- Parece que la policy_entropy solo ayuda un poco (además, ahora el eventual consistency crece rápido
+		  al principio hasta -0.2 pero a partir de ahí se estabiliza (no crece más))
+
+
+> Igual que experimento anterior menos:
+	<only ground_entropy (no lifted entropy)>
+	<init_policy_entropy_coeffs: 0, None>
+	<diversity_rescale_factor=1000>
+
+	> logs: init_policy\version_177
+	> saved_models: both_policies_228
+
+	>>> Resultados muy parecidos a cuando uso diversity_rescale_factor=100
+
+
+> Igual que experimento anterior menos:
+	<only ground_entropy (no lifted entropy)>
+	<init_policy_entropy_coeffs: 0, None>
+	<diversity_rescale_factor=1000>
+	<also calculate diversity reward for inconsistent trajectories>
+
+	> logs: init_policy\version_178
+	> saved_models: both_policies_229
+
+	>>> Ahora sí que se generan problemas con varias ciudades!!!! (num_cities de la init_policy crece hasta 1.6),
+	    aunque muchos de estos problemas son inconsistentes.
+
+
+> Igual que experimento anterior menos:
+	<only ground_entropy (no lifted entropy)>
+	<init_policy_entropy_coeffs: 0, None>
+	<diversity_rescale_factor=10>
+	<also calculate diversity reward for inconsistent trajectories>
+
+	> logs: init_policy\version_179
+	> saved_models: both_policies_230
+
+	>>> Los resultados son mejores!!!
+		- num_cities de la init_policy va subiendo hasta 1.6 pero a partir de ahí, empieza a caer de nuevo hasta 1!!!
+		- Quizás la policy_entropy sea muy baja (al ser 0) o tenga que variar el diversity_rescale_factor
+
+
+> Igual que experimento anterior menos:
+	<only ground_entropy (no lifted entropy)>
+	<init_policy_entropy_coeffs: 0.2, None>
+	<diversity_rescale_factor=10>
+	<also calculate diversity reward for inconsistent trajectories>
+
+	> logs: init_policy\version_180
+	> saved_models: both_policies_231
+
+	>>> Sube un poco más que en el experimento anterior, pero después num_cities termina bajando igual (en cuanto empieza a disminuir
+	    la init_policy entropy).
+
+
+> Igual que experimento anterior menos:
+	<only ground_entropy (no lifted entropy)>
+	<init_policy_entropy_coeffs: 0.5, None>
+	<diversity_rescale_factor=10>
+	<also calculate diversity reward for inconsistent trajectories>
+
+	> logs: init_policy\version_181
+	> saved_models: both_policies_232
+
+	>>> Mejor, ahora num_cities de la init_policy no baja pero no sube por encima de 1.4 (al menos en las primeras 120 its)
+
+> Igual que experimento anterior menos:
+	<only ground_entropy (no lifted entropy)>
+	<init_policy_entropy_coeffs: 0.5, None>
+	<diversity_rescale_factor=50>
+	<also calculate diversity reward for inconsistent trajectories>
+
+	> logs: init_policy\version_182
+	> saved_models: both_policies_233	
+
+	> Entrenamiento:
+		- Tiempo: 8h 30min
+		- No aprende!
+		- r_eventual crece muy lentamente (está por -0.3 tras 8h de entrenamiento)
+		- r_continuous se mantiene estable alrededor de -0.07
+		- r_diff (goal_policy) se mantiene alrededor de 0.2 alrededor de todo el entrenamiento
+		- term_cond_prob de la init_policy converge a 0, de la goal_policy a 0.003
+		- init_policy_entropy solo baja ligeramente!!! (de 1 a 0.95 al final del entrenamiento)
+		- goal_policy_entropy oscila mucho y termina en 0.82 (muy alta!!!) al final del entrenamiento
+		- num_objs:
+			- num_cities (init_policy) termina en 1.4 (recordar que este número es en realidad mayor, ya que algunos
+			  samples corresponden al inicio de la trayectoria, antes de que se añadan las ciudades)
+			- num_cities (goal_policy) termina en 1.1 (parece que le cuesta a la init_policy generar problemas consistentes
+			  con muchas ciudades)
+			- ningún objeto converge a 0!!!
+
+	< Parece que la init_policy no aprende!!!! -> Se generan problemas demasiado diversos >
+	La policy_entropy o diversity_reward son demasiado altos. Además, esto hace que a la goal_policy le cueste aprender.
+			
+
+> Igual que experimento anterior menos:
+	<only ground_entropy (no lifted entropy)>
+	<init_policy_entropy_coeffs: 0, None>
+	<diversity_rescale_factor=50>
+	<also calculate diversity reward for inconsistent trajectories>
+
+	> logs: init_policy\version_183
+	> saved_models: both_policies_234	
+
+	>>> num_cities sube hasta muy alto (2.2 en la init_policy) pero después empieza a bajar en picado!!!
+
+
+> Igual que experimento anterior menos:
+	<only ground_entropy (no lifted entropy)>
+	<init_policy_entropy_coeffs: 0, None>
+	<diversity_rescale_factor=100>
+	<also calculate diversity reward for inconsistent trajectories>
+
+	> logs: init_policy\version_184
+	> saved_models: both_policies_235	
+
+	> Entrenamiento
+		- Tiempo: 1d 6h
+		- num_cities de la init_policy oscila entre 1.8 aprox. y 1.5
+		- num_cities de la goal_policy es bastante menor, alrededor de 1.2 
+
+	> Problemas:
+		- 15 max_atoms
+			- diff: [22.2, 65.9, 18.3] (media-alta)
+			- diversidad:
+				- Todos los problemas con una ciudad, menos uno con dos ciudades
+				- Resto de objetos muy diversos!!! (su num_objs cambia mucho entre distintos problemas!!!)
+
+		- 30 max_atoms:
+			- Se generan más problemas con dos ciudades, pero ninguno con tres!!!
+
+		- 40 max_atoms:
+			- Se generan todos los problemas con una ciudad menos dos con 3 ciudades!
+
+		<Parece que el número de cities no escala casi nada al aumentar el tamaño de los problemas!!!>
+
+
+	< Parece que para maximizar diversity_reward no necesita generar problemas con muchas ciudades, sino que puede cambiar num_objs
+	  para los otros object types (que no son city).
+	  Otra posible explicación es que, dado que num_cities es mayor para la init_policy que la goal_policy, la init_policy es capaz
+	  de generar problemas con distinto num_cities pero le cuesta que sean consistentes!!! >
+
+
+>  init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]] (depth=7)
+   goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   only ground_entropy (no lifted entropy)
+   penalization_continuous_consistency=-0.1
+   rescale_factor = 0.1
+   device='cuda'
+   trajectories_per_train_it=50, minibatch_size=100
+   epochs_per_train_it=1
+   max_atoms_init_state=15, max_actions_init_state=20, max_actions_goal_state=30
+   init_policy_entropy_coeffs: 0, None
+   goal_policy_entropy_coeffs: 0, None 
+   diff=LAMA, FF, weighted A* lmcut
+   <diversity_rescale_factor=10>
+   also calculate diversity reward for inconsistent trajectories
+   <consistency_rules: pddl instance generator with min_cities=2>
+
+	> logs: init_policy\version_185
+	> saved_models: both_policies_236	
 
 	
 
 
-	<CREO QUE SE GENERAN PROBLEMAS CON TANTOS AIRPLANES Y TAN POCOS TRUCKS DEBIDO A LAMA!!!! (si midiera la dificultad de otra forma
-	 quizás no pasaría esto)>
-	<Ver si los problemas generados generalizan mejor a problemas más grandes y a formas de medir la dificultad que no son LAMA!>
+
+
+
+	>>> Hacer pruebas con una ciudad, si no aprende, con dos y, si no, entrenando en problemas de distintos tamaños
+	  (variar max_atoms durante el entrenamiento) <<<
+
+
+
+	>>> Según el resultado del experimento
+		- Si no aprende
+			- Si la init_policy_entropy ha bajado demasiado
+				- Usar init_policy_entropy=0.1 -> Creo que no
+			- Si los problemas generados no son difíciles
+				- Usar difficulty rescale factor=0.2
+			- Aumentar diversity_rescale_factor si num_cities baja demasiado
+		- Si aprende
+			- Ver si se generaliza a problemas más grandes
+
+	>>> Quizás debería empezar con un gran diversity_rescale_factor e ir bajándolo durante el entrenamiento!!!
+		- Para que así al principio aprenda a crear problemas consistentes con varias ciudades pero después bajarlo para que
+		  no añada tantos trucks, airplanes, etc.
+
+	- init_policy rewards:
+		- r_difficulty
+		- r_continuous (muy baja, además de que está max_actions_init_state), r_eventual
+		- r_diversity, policy_entropy (no usada)
+
+		-> Solo debería cambiar los coeficientes de r_difficulty y r_diversity (pero no r_eventual)
+			- Quizás cambiar r_difficulty haga que la goal_policy aprenda más rápido
+
+	- goal_policy rewards:
+		- r_difficulty
+		- policy_entropoy (no usada)
+
+	>>> Probar a aumentar el diversity_rescale_factor y init_policy_entropy hasta que se generen problemas con muchas ciudades!!!
+		- La init_policy no debería disminuir antes de que la goal_policy empiece a aprender!!!
+
+	>>> Quizás debería hacer que la difficulty sea menos importante para la init_policy
+		- Para ello, puedo bajar el difficulty_rescale_factor al mismo tiempo que aumento la penalization por eventual_consistency (ej.: de 1 a 2)
+		  La idea es que la init_policy debe generar problemas diversos y consistentes pero no preocuparse tanto de la dificultad, ya que esto
+		  último es responsabilidad de la goal_policy.
+		  La única recompensa que tiene la goal policy es la r_difficulty!!!
+		- Creo que no hace falta aumentar la penalización por eventual_consistency, solo cambiar el difficulty rescale factor y el diversity
+		  rescale factor
+
+
+
+	>>> CAMBIAR DIVERSITY_RESCALE_FACTOR
+	>>> Volver a usar lifted_action_entropy
+	>>> Hacer que los problemas inconsistentes no se usen para calcular la diversity reward
+
+	<OBJETIVO>:
+		Debo intentar que se generen problemas con distintas ciudades y que num_cities aumente al aumentar max_atoms_init_state
+		Para ello, quizás sea necesario entrenar el método sobre problemas de distinto tamaño (variar max_atoms_init_state durante el entrenamiento)
+
+	>>> Siguientes pasos para conseguir este objetivo:
+		- Debería observar que se generan problemas con varias ciudades, incluso si muchos no son consistentes (num_cities de la init_policy es alto)
+			- Aumentar max_actions_init_state
+			- Probar a solo usar ground_action_entropy (quitar lifted_action_entropy)
+			- Quitar diversity reward
+			- Probar a aumentar la init_policy_entropy
+
 
 	> Mejor modelo hasta la fecha:
 		> logs: init_policy\version_161
 		> saved_models: both_policies_212
 
 	>>> Siguientes experimentos
-		- Medir dificultad con distintos planners (no solo LAMA)
-			- lama-first
-			- seq-sat-fd-autotune-1
-			- ehc(ff())
-		- Volver a usar batch_size=100 (al no generarse problemas con tantas ciudades, ya no da outofmemory error)
 		- No diversity_reward
 			- init_policy_entropy_coeffs: 1
 			- init_policy_entropy_coeffs: 0.5
