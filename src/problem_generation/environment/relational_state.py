@@ -300,6 +300,7 @@ class RelationalState():
     @max_arity If not -1, we assume that is the max arity of the predicates. This parameter is used to encode the relational
                state for a NLM which uses a higher max arity (for the inner layers) than the max arity of the relational
                state.
+    @problem_size If not -1, add the problem_size. In this case, max_atoms_init_state.
     @perc_actions_executed If not -1, we add an extra nullary predicate (in the last position) which contains a real number between
                            0 and 1 (given by @perc_actions_executed), representing the percentage of actions which have been executed
                            with respect to the maximum number of actions.
@@ -310,7 +311,7 @@ class RelationalState():
                              state. They are added as extra nullary predicates.
     """
     def atoms_nlm_encoding(self, device, max_arity = -1, add_virtual_objs = True, allowed_predicates = None, allowed_virtual_objects = None,
-                           add_object_types=True, perc_actions_executed=-1, dict_num_objs_each_type=None, dict_num_atoms_each_type=None):      
+                           add_object_types=True, problem_size=-1, perc_actions_executed=-1, dict_num_objs_each_type=None, dict_num_atoms_each_type=None):      
         atoms_list = []
         
         # Calculate NLM breadth
@@ -332,6 +333,13 @@ class RelationalState():
         
         with torch.no_grad():
             num_preds_each_arity = self._num_preds_each_arity.copy()
+
+            # Add one extra nullary predicate to encode the problem size
+            if problem_size != -1:
+                if 0 not in num_preds_each_arity:
+                    num_preds_each_arity[0] = 1
+                else:
+                    num_preds_each_arity[0] += 1
 
             # Add one extra nullary predicate to encode the percentage of actions executed
             if perc_actions_executed != -1:
@@ -402,6 +410,14 @@ class RelationalState():
                 for ind, num_atoms in enumerate(num_atoms_list):
                     atoms_list[0][ind+shift] = num_atoms
 
+            # Add the problem_size as the before-last nullary predicate (if perc_actions_executed!=-1)
+            if problem_size != -1:
+
+                if perc_actions_executed != -1:
+                    atoms_list[0][-2] = problem_size
+                else:
+                    atoms_list[0][-1] = problem_size
+
             # Add the percentage of actions executed as the last nullary predicate 
             if perc_actions_executed != -1:
                 atoms_list[0][-1] = perc_actions_executed
@@ -435,7 +451,7 @@ class RelationalState():
     <Note>: unlike atoms_nlm_encoding(), we do not add an extra unary predicate to represent if an object is virtual or not,
             since there are no virtual objects.
     """
-    def atoms_nlm_encoding_with_goal_state(self, goal_state, device, max_arity = -1, add_object_types=True, perc_actions_executed=-1,
+    def atoms_nlm_encoding_with_goal_state(self, goal_state, device, max_arity = -1, add_object_types=True, problem_size=-1, perc_actions_executed=-1,
                                            dict_num_objs_each_type=None, dict_num_atoms_each_type_init_state=None,
                                            dict_num_atoms_each_type_goal_state=None):
         # Check if the predicate types and number of objects are the same in both states (self and goal_state)
@@ -451,8 +467,8 @@ class RelationalState():
         # This extra predicate has to be added AFTER stacking init_state_nlm_encoding and goal_state_nlm_encoding
         # The same with the predicates representing object types
         with torch.no_grad():
-            init_state_nlm_encoding = self.atoms_nlm_encoding(device, max_arity, False, None, None, False, -1, None, None) # add_virtual_objs=False, as we do not need to add virtual objects
-            goal_state_nlm_encoding = goal_state.atoms_nlm_encoding(device, max_arity, False, None, None, False, -1, None, None)
+            init_state_nlm_encoding = self.atoms_nlm_encoding(device, max_arity, False, None, None, False, -1, -1, None, None) # add_virtual_objs=False, as we do not need to add virtual objects
+            goal_state_nlm_encoding = goal_state.atoms_nlm_encoding(device, max_arity, False, None, None, False, -1, -1, None, None)
 
             # Stack goal_state_nlm_encoding to init_state_nlm_encoding
             both_states_nlm_encoding = []
@@ -511,6 +527,13 @@ class RelationalState():
 
                 for ind, num_atoms in enumerate(num_atoms_list):
                     both_states_nlm_encoding[0][ind+shift] = num_atoms        
+
+            # Add the extra nullary predicate corresponding to problem_size (if needed)
+            if problem_size != -1:
+                new_tensor = torch.full((1,), fill_value=problem_size, dtype=torch.float32, device=device)
+
+                both_states_nlm_encoding[0] = new_tensor if both_states_nlm_encoding[0] is None else \
+                                              torch.cat( (both_states_nlm_encoding[0], new_tensor), dim=-1)
 
             # Add the extra nullary predicate corresponding to perc_actions_executed (if needed)
             if perc_actions_executed != -1:
