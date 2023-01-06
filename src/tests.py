@@ -886,8 +886,8 @@ def test_load_models_and_generate_problems_logistics():
 	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_235/init_policy_its-1290.ckpt"
-	goal_policy_path = "saved_models/both_policies_235/goal_policy_its-1290.ckpt"
+	init_policy_path = "saved_models/both_policies_238/init_policy_its-3070.ckpt"
+	goal_policy_path = "saved_models/both_policies_238/goal_policy_its-3070.ckpt"
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
@@ -923,8 +923,8 @@ def test_load_models_and_generate_problems_logistics():
 	# Generate the set of problems with the trained initial policy
 	num_problems = 10
 
-	directed_generator.generate_problems(num_problems, max_atoms_init_state=15, max_actions_init_state=20,
-									     max_actions_goal_state=30, max_planning_time=600, verbose=True)
+	directed_generator.generate_problems(num_problems, max_atoms_init_state=40, max_actions_init_state=55,
+									     max_actions_goal_state=80, max_planning_time=600, verbose=True)
 
 
 def test_load_models_and_resume_training_logistics():
@@ -3627,26 +3627,126 @@ def test_load_models_and_resume_training_logistics():
 	> logs: init_policy\version_185
 	> saved_models: both_policies_236	
 
+	> Entrenamiento
+		- num_cities es alto pero se generan problemas donde cada ciudad solo tiene un airport!
+
+	> Problemas
+		- Se generan problemas difíciles y con muchas ciudades!
+		- No obstante, num_cities no escala con el tamaño de las ciudades
+
+
+>>> Igual que experimento anterior menos:
+	<diversity_rescale_factor=50> 
 	
+	> logs: init_policy\version_186
+	> saved_models: both_policies_237	
+
+	> Entrenamiento
+		- Se paró a mitad (dio CUDA out of memory error)
+		- La r_diff de la goal_policy no sube por encima de 1.5!
+		- La r_eventual converge a -0.5!
+		- Se generan problemas con todos los objetos y cuyo número varía mucho!
+
+		Creo que el diversity_rescale_factor es demasiado grande
+
+	> Problemas:
+		- dificultad baja
+		- Se generan problemas con muchas ciudades!!!
+			- Entre 2 y 5 ciudades con max_atoms=15
+			- El mismo número de ciudades con max_atoms=30!!!!
+
+		- SE GENERAN PROBLEMAS CON MUCHAS CIUDADES PERO EL NÚMERO NO ESCALA CON EL TAMAÑO DEL PROBLEMA
+			- num_cities sí escala con el tamaño de los problemas pero estos problemas con muchas ciudades
+			  no son eventual_consistent (ej.: se generan problemas con 20 ciudades y así)
+
+	<Creo que la regla aprendida por la NLM para añadir ciudades nuevas no depende de max_atoms!!!>
+		- Por ejemplo: añadir una ciudad nueva con una prob. del 10%
+		- Así, cuando aumento max_atoms no aumenta automáticamente el número de ciudades
+		- Creo que esto ocurre porque al no usar sorted_predicates y sorted_atoms, la información extra que recibe
+		  la NLM no es fiable y aprende a no usarla!!!!
+
+
+>>> Igual que experimento anterior menos:
+	<diversity_rescale_factor=20>
+	<minibatch_size=75>
+	<use sorted_atoms and preds for NLM input> 
+	
+	> logs: init_policy\version_187
+	> saved_models: both_policies_238	
+
+	> Entrenamiento
+		- Tiempo: 2d 12h (lo paré a mitad, la r_diff seguía aumentando)
+		- r_diff: init_policy=2.4, goal_policy=4
+		- r_continuous=0, r_eventual=-0.17
+		- init_policy_entropy=0.32, goal_policy_entropy=0.23 (seguía bajando)
+			- La entropía es muy baja!!!
+		- term_cond_prob de la init_policy termina en 5e-4 y de la goal_poliy en 2.5e-3
+
+	> Problems (its=3070):
+		- 15 max_atoms:
+			- diff = [43, 160.5, 27.5] (muy alta)
+			- diversidad media-baja
+				- mean_num_cities=2.5
+				- problemas con 2 o 3 ciudades
+				- la mayoría de ciudades tienen tamaño 1, aunque hay unas pocas con tamaño 2
+
+		- 30 max_atoms:
+			- diff = [164.4, 5576.3, 116.3] (muy alta)
+			- diversidad media
+				- mean_num_cities=3.68 (problemas con 2,3,4 y 5 ciudades!!!)
+					- NUM_CITIES ESCALA!!!
+				- También escala el número de objetos de los otros tipos!!!
+
+		- 40 max_atoms:
+			- diff = [305.5, 17514.8, 346.8] (alta)
+			- diversidad media-alta
+				- mean_num_cities=4.4
+				- El resto de objetos son diversos
+		
+
+	<NUM_CITIES (y la dificultad) ESCALA AL AUMENTAR EL TAMAÑO DEL PROBLEMA!!! (max_atoms)>
+		- No obstante, los problemas podrían ser un poco más diversos (ej.: la goal_policy no usa nunca la acción drive)
 
 
 
+	>>> Siguiente experimento
+		- entrenar en problemas con max_atoms entre 10 y 20 (si no da cudaoutofmemoryerror)
+			- Probar también con max_atoms entre 7 y 20 pero quitando min_cities=2
+		- usar init_policy_entropy=0.2
+		- diversity_rescale_factor=5
+		- Opcional: aplicar sqrt a r_diff
 
+	>>> Creo que la init_policy baja demasiado (debería usar init_policy_entropy=0.2 o así)
+		- Debería subir la init_policy_entropy a la vez que bajo el diversity_rescale_factor
+			- Creo que el diversity_rescale_factor es muy alto. -> LA FORMA DE MAXIMIZARLO (A LA VEZ QUE LA DIFICULTAD),
+			  ES CREAR PROBLEMAS DONDE CADA CIUDAD TIENE UN SOLO AIRPORT E IR VARIANDO EL RESTO DE OBJETOS!!! (trucks, airplanes, packages)
+			  	- POR TANTO CREO QUE DEBERÍA REDUCIR MUCHO EL DIVERSITY_RESCALE_FACTOR!!! (menos que diversity_rescale_factor=10)
+			- El num_objs de la init_policy y goal_policy es bastante distinto!!! Esto significa que para maximizar el diversity_rescale_factor
+			  la init_policy prefiere que muchos problemas no sean consistentes!!!
+		>>> Quizá también podría aplicar log() o sqrt() a la problem_difficulty (para que los problemas no dejen de ser
+		  diversos en cuanto empiezan a ser difíciles)
+
+	>>> AUNQUE NO APRENDA, VER SI NUM_CITIES AUMENTA AL AUMENTAR MAX_ATOMS
+		- A VER SI AHORA AL USAR SORTED_ATOMS Y PREDICATES SÍ ESCALA!!!
+		- QUIZAS NO ESCALE CON MAX_ATOMS PORQUE SÍ SE GENERAN PROBLEMAS CON MÁS CIUDADES PERO NO SON
+		  CONSISTENTES
+
+
+	>>> Ver si se generan unos pocos tipos distintos de problemas
+		- Ej.: problema con muchas ciudades y cada una un airport y problema con dos ciudades y cada una dos airports
+		       pero nada más. (Que se maximiza la diversity_reward con unos pocos tipos distintos de problemas, en vez de haber
+			   diversidad real)
+		- Si ese es el caso, quizás tenga que usar también policy_entropy (ej.: 0.2 o así)
+
+	>>> Usar init_policy_entropy=0.2 en el siguiente experimento
+
+	>>> Quizás necesite una mejor forma de medir la diversidad
+		- Ej.: que si todos los problemas son de ciudades con un solo airport, se consideren poco diversos
 
 	>>> Hacer pruebas con una ciudad, si no aprende, con dos y, si no, entrenando en problemas de distintos tamaños
 	  (variar max_atoms durante el entrenamiento) <<<
-
-
-
-	>>> Según el resultado del experimento
-		- Si no aprende
-			- Si la init_policy_entropy ha bajado demasiado
-				- Usar init_policy_entropy=0.1 -> Creo que no
-			- Si los problemas generados no son difíciles
-				- Usar difficulty rescale factor=0.2
-			- Aumentar diversity_rescale_factor si num_cities baja demasiado
-		- Si aprende
-			- Ver si se generaliza a problemas más grandes
+		- Intentar variar entre 10 y 20 max_atoms, si 20 es demasiado grande variar entre 10 y 17 o entre 10 y 15
+		- QUIZÁS TENGA QUE CAMBIAR CÓMO SE MIDE LA DIVERSITY_REWARD AL USAR PROBLEMAS DE DISTINTO TAMAÑO!!!
 
 	>>> Quizás debería empezar con un gran diversity_rescale_factor e ir bajándolo durante el entrenamiento!!!
 		- Para que así al principio aprenda a crear problemas consistentes con varias ciudades pero después bajarlo para que
@@ -3664,8 +3764,7 @@ def test_load_models_and_resume_training_logistics():
 		- r_difficulty
 		- policy_entropoy (no usada)
 
-	>>> Probar a aumentar el diversity_rescale_factor y init_policy_entropy hasta que se generen problemas con muchas ciudades!!!
-		- La init_policy no debería disminuir antes de que la goal_policy empiece a aprender!!!
+
 
 	>>> Quizás debería hacer que la difficulty sea menos importante para la init_policy
 		- Para ello, puedo bajar el difficulty_rescale_factor al mismo tiempo que aumento la penalization por eventual_consistency (ej.: de 1 a 2)
@@ -3884,8 +3983,8 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems()
 
 	#test_generate_random_problems_logistics()
-	test_train_init_and_goal_policy_logistics()
-	#test_load_models_and_generate_problems_logistics()	
+	#test_train_init_and_goal_policy_logistics()
+	test_load_models_and_generate_problems_logistics()	
 	#test_load_models_and_resume_training_logistics()
 
 

@@ -880,7 +880,7 @@ class DirectedGenerator():
 
 	<Note>: init_policy_trajectories is modified in-place
 	"""
-	def _add_diversity_reward(self, init_policy_trajectories, init_policy_trajectories_lens, diversity_rescale_factor=10.0):
+	def _add_diversity_reward(self, init_policy_trajectories, init_policy_trajectories_lens, diversity_rescale_factor=20.0):
 		# Obtain the indexes which delimit each individual trajectory in init_policy_trajectories
 		list_delims = [sum(init_policy_trajectories_lens[:i+1]) for i in range(len(init_policy_trajectories_lens))]
 
@@ -913,9 +913,9 @@ class DirectedGenerator():
 
 		# For each init_state in init_state_list, obtain its associated features
 		# (number of objects of each type and number of atoms of each predicate)
-		types = sorted(init_state_list[0].types) # Sort types and pred_names so that each position in the feature vector is also associated with the same type/predicate name
+		types = init_state_list[0].types
 		predicates = init_state_list[0].predicates
-		pred_names = sorted([p[0] for p in predicates])
+		pred_names = [p[0] for p in predicates]
 
 		init_state_feature_vectors = [self._obtain_dist_features(init_state, types, pred_names) for init_state in init_state_list]
 		feature_matrix = np.array(init_state_feature_vectors, dtype=np.float32)
@@ -1026,6 +1026,16 @@ class DirectedGenerator():
 					state_atoms = curr_state.atoms
 					state_atom_names = [atom[0] for atom in state_atoms]
 					dict_num_atoms_each_type = {pred_name : state_atom_names.count(pred_name) / max_atoms_init_state for pred_name, _ in curr_state.predicates}
+
+
+					# QUITAR
+					#print("\n\n")
+					#print("max_actions:", max_actions_init_state)
+					#print("max_atoms", max_atoms_init_state)
+					#print("perc_actions_executed", perc_actions_executed)
+					#print("dict_num_objs_each_type", dict_num_objs_each_type)
+					#print("dict_num_atoms_each_type", dict_num_atoms_each_type)
+
 
 					preds_curr_phase = self._consistency_validator.predicates_in_current_phase(curr_state)
 
@@ -1351,7 +1361,7 @@ class DirectedGenerator():
 	Note: We add an index to the folder name given by @checkpoint_folder. Example: saved_models/both_policies_2
 		  (in case there are two other experiments ids=0, 1 before it).
 	"""
-	def train_generative_policies(self, training_iterations, start_it=0, epochs_per_train_it=1, trajectories_per_train_it=50, minibatch_size=100,
+	def train_generative_policies(self, training_iterations, start_it=0, epochs_per_train_it=1, trajectories_per_train_it=50, minibatch_size=75,
 								  its_per_model_checkpoint=10, checkpoint_folder="saved_models/both_policies", logs_name="both_policies"):
 
 		# Obtain folder name to save the model checkpoints in

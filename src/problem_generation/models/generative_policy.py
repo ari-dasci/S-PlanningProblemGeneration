@@ -577,7 +577,7 @@ class GenerativePolicy(pl.LightningModule):
 			# <Log number of objects of each type>
 
 			with torch.no_grad():
-				types = sorted(list_rel_states[0].types)
+				types = list_rel_states[0].types
 				num_objs_each_type = [0]*len(types)
 
 				for s in list_rel_states:
