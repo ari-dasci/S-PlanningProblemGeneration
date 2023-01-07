@@ -837,8 +837,8 @@ def test_train_init_and_goal_policy_logistics():
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   allowed_virtual_objects=virtual_objects,
 										   penalization_continuous_consistency=-0.1,
-										   max_atoms_init_state=(10,18), max_actions_init_state=1.3, max_actions_goal_state=2.0,
-										   device='cuda', max_objs_cache_reduce_masks=30,
+										   max_atoms_init_state=15, max_actions_init_state=1.3, max_actions_goal_state=2.0,
+										   device='cuda', max_objs_cache_reduce_masks=25,
 
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -886,8 +886,8 @@ def test_load_models_and_generate_problems_logistics():
 	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_238/init_policy_its-3070.ckpt"
-	goal_policy_path = "saved_models/both_policies_238/goal_policy_its-3070.ckpt"
+	init_policy_path = "saved_models/both_policies_240/init_policy_its-2480.ckpt"
+	goal_policy_path = "saved_models/both_policies_240/goal_policy_its-2480.ckpt"
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
@@ -947,9 +947,9 @@ def test_load_models_and_resume_training_logistics():
 	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
 
 	# Create the generator and load the trained models
-	curr_it = 580 # It of the loaded model, used to resume training
-	init_policy_path = "saved_models/both_policies_210/init_policy_its-{}.ckpt".format(curr_it)
-	goal_policy_path = "saved_models/both_policies_210/goal_policy_its-{}.ckpt".format(curr_it)
+	curr_it = 1450 # It of the loaded model, used to resume training
+	init_policy_path = "saved_models/both_policies_239/init_policy_its-{}.ckpt".format(curr_it)
+	goal_policy_path = "saved_models/both_policies_239/goal_policy_its-{}.ckpt".format(curr_it)
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
@@ -964,8 +964,8 @@ def test_load_models_and_resume_training_logistics():
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   allowed_virtual_objects=virtual_objects,
 										   penalization_continuous_consistency=-0.1,
-										   max_atoms_init_state=15, max_actions_init_state=20, max_actions_goal_state=30,
-										   device='cuda', max_objs_cache_reduce_masks=25,
+										   max_atoms_init_state=(10,18), max_actions_init_state=1.3, max_actions_goal_state=2.0,
+										   device='cuda', max_objs_cache_reduce_masks=30,
 										  
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -3708,13 +3708,61 @@ def test_load_models_and_resume_training_logistics():
 		- No obstante, los problemas podrían ser un poco más diversos (ej.: la goal_policy no usa nunca la acción drive)
 
 
+>>> Igual que experimento anterior menos:
+	<diversity_rescale_factor=20>
+	<minibatch_size=75>
+	<use sorted_atoms and preds for NLM input> 
+	<train on problems of different sizes (10,18)>
+
+	> logs: init_policy\version_188, 189
+	> saved_models: both_policies_239, 240	
+
+	> Entrenamiento
+		- Tiempo: 23h
+		- r_continuous converge a 0, r_eventual a -0.18
+		- r_diff (init_policy) llega a 2, r_diff (goal_policy) a 3.3 --> Recordar que estoy midiendo la dificultad para problemas con atoms en [10,18]
+		- init_policy_entropy llega hasta 0.32, goal_policy entropy hasta 0.4
+		- term_cond_prob de la init_policy converge a 0, de la goal_policy a 5e-4
+		- num_objs (goal_policy):
+			- cities: 2.7
+			- airports: 2.75
+			- locations: 0.1
+			- trucks: 2.8
+			- airplanes: 2.1
+			- packages: 7
+			
+	> Problemas (its=2480)
+		- atoms=15
+			- diff = [33.8, 97.2, 21.6]
+			- diversidad = baja
+				- Cada ciudad tiene un solo airport!!!!
+				- mean_num_cities=3.4
+
+		- atoms=20
+			- diff = [56.6, 254.6, 39.6]
+			- mean_num_cities=3.5
+
+		- atoms=30
+			- diff = [121.9, 1565.2, 59.3]
+			- mean_num_cities=2.9
+
+	<El entrenar en problemas de distintos tamaños no ayuda a que generalice a problemas más grandes!!!>
+		- Creo que el num_cities que añade no depende de max_atoms_init_state
+
+
+
+
+
+
+
 
 	>>> Siguiente experimento
-		- entrenar en problemas con max_atoms entre 10 y 20 (si no da cudaoutofmemoryerror)
-			- Probar también con max_atoms entre 7 y 20 pero quitando min_cities=2
 		- usar init_policy_entropy=0.2
 		- diversity_rescale_factor=5
 		- Opcional: aplicar sqrt a r_diff
+		- Opcional: goal_policy_entropy=0.05
+
+
 
 	>>> Creo que la init_policy baja demasiado (debería usar init_policy_entropy=0.2 o así)
 		- Debería subir la init_policy_entropy a la vez que bajo el diversity_rescale_factor

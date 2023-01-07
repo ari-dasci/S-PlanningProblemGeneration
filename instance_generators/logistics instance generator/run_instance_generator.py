@@ -53,6 +53,7 @@ extra_trucks_vals = list(range(0, 20))
 
 
 # Problem size
+# HACER QUE MIN_ATOMS SIEMPRE SEA MENOR EN 2 A MAX_ATOMS SIN IMPORTAR EL PROBLEM_SIZE!!!
 min_atoms = 18 # 8 # 15 # 25
 max_atoms = 20 # 10 # 20 # 30
 
