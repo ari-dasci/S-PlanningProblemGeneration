@@ -846,7 +846,7 @@ def test_train_init_and_goal_policy_logistics():
 										   res_connections_initial_state_nlm=False,
 										   exclude_self_inital_state_nlm=True,
 										   lr_initial_state_nlm = 1e-3,
-										   entropy_coeff_init_state_policy = 0,
+										   entropy_coeff_init_state_policy = 0.2,
 										   entropy_annealing_coeffs_init_state_policy = None,
 										   epsilon_init_state_policy=0.1,
 
@@ -856,7 +856,7 @@ def test_train_init_and_goal_policy_logistics():
 										   res_connections_goal_nlm=False,
 										   exclude_self_goal_nlm=True,
 										   lr_goal_nlm = 1e-3,
-										   entropy_coeff_goal_policy = 0,
+										   entropy_coeff_goal_policy = 0.05,
 										   entropy_annealing_coeffs_goal_policy = None,
 										   epsilon_goal_policy=0.1)
 
@@ -964,8 +964,8 @@ def test_load_models_and_resume_training_logistics():
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   allowed_virtual_objects=virtual_objects,
 										   penalization_continuous_consistency=-0.1,
-										   max_atoms_init_state=(10,18), max_actions_init_state=1.3, max_actions_goal_state=2.0,
-										   device='cuda', max_objs_cache_reduce_masks=30,
+										   max_atoms_init_state=15, max_actions_init_state=1.3, max_actions_goal_state=2.0,
+										   device='cuda', max_objs_cache_reduce_masks=25,
 										  
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -3750,19 +3750,44 @@ def test_load_models_and_resume_training_logistics():
 		- Creo que el num_cities que añade no depende de max_atoms_init_state
 
 
+>  init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]] (depth=7)
+   goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   only ground_entropy (no lifted entropy)
+   penalization_continuous_consistency=-0.1
+   rescale_factor = 0.1
+   device='cuda'
+   trajectories_per_train_it=50, minibatch_size=75
+   epochs_per_train_it=1
+   max_atoms_init_state=15, max_actions_init_state=1.3, max_actions_goal_state=2
+   <init_policy_entropy_coeffs: 0.2, None>
+   <goal_policy_entropy_coeffs: 0.05, None>
+   <diversity_rescale_factor=5>
+   diff=LAMA, FF, weighted A* lmcut
+   use sorted_atoms and preds for NLM input
+   also calculate diversity reward for inconsistent trajectories
+   <no predicate order>
+   <consistency rule without min_cities=2>
+	
+   > logs: init_policy\version_190
+   > saved_models: both_policies_241
+   
+   	
 
 
 
 
 
+
+
+	>>> SI QUITO PREDICATE ORDER, CAMBIAR PAPER
+	>>> SI QUITO PREDICATE ORDER, CAMBIAR CONSISTENCY RULES BLOCKSWORLD
+	>>> QUITAR CONSISTENCY RULE NUM_CITIES=2
 
 	>>> Siguiente experimento
 		- usar init_policy_entropy=0.2
 		- diversity_rescale_factor=5
 		- Opcional: aplicar sqrt a r_diff
 		- Opcional: goal_policy_entropy=0.05
-
-
 
 	>>> Creo que la init_policy baja demasiado (debería usar init_policy_entropy=0.2 o así)
 		- Debería subir la init_policy_entropy a la vez que bajo el diversity_rescale_factor

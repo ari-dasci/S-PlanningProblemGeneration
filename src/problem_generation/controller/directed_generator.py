@@ -427,8 +427,8 @@ class DirectedGenerator():
 		predicates = rel_state.predicates # Get the state predicates
 		pred_to_index_dict = rel_state.pred_names_to_indices_dict_each_arity
 
-		# Get the allowed predicates, i.e., those which can be added to rel_state
-		allowed_preds = self._consistency_validator.predicates_in_current_phase(rel_state)
+		# Get the allowed predicates, i.e., those which can be added to rel_state -> We no longer use predicate_order
+		# allowed_preds = self._consistency_validator.predicates_in_current_phase(rel_state)
 
 		# Check if we can sample the termination condition (else it needs to be masked)
 		# It can be sampled iff rel_state contains every required_pred
@@ -447,27 +447,27 @@ class DirectedGenerator():
 			pred_arity = len(pred[1])
 			pred_params = pred[1]
 
-			# If the predicate is allowed (can be added to the state), then only mask objects of invalid type
-			if pred[0] in allowed_preds:
-				# Iterate over the parameters of the predicate
-				for param_ind, param_type in enumerate(pred_params):
-					# Get object indices of incorrect type, i.e., those which do not inherit from the param type
-					incorrect_obj_inds = [obj_ind for obj_ind, obj_type in enumerate(objs_with_virtuals) \
-										  if obj_type not in self._parser.type_hierarchy[param_type]]
-					
-					# Permute the tensor so that the first dimension is the one corresponding to param_ind and the second
-					# dimension corresponds to the predicate types
-					obj_inds_except_param_ind = list(range(pred_arity))
-					obj_inds_except_param_ind.remove(param_ind)
-					permute_inds = (param_ind, pred_arity) + tuple(obj_inds_except_param_ind)
-			
-					curr_tensor = torch.permute(mask_tensors[pred_arity], permute_inds)
+			# <Mask objects of invalid type>
+			# Iterate over the parameters of the predicate
+			for param_ind, param_type in enumerate(pred_params):
+				# Get object indices of incorrect type, i.e., those which do not inherit from the param type
+				incorrect_obj_inds = [obj_ind for obj_ind, obj_type in enumerate(objs_with_virtuals) \
+										if obj_type not in self._parser.type_hierarchy[param_type]]
+				
+				# Permute the tensor so that the first dimension is the one corresponding to param_ind and the second
+				# dimension corresponds to the predicate types
+				obj_inds_except_param_ind = list(range(pred_arity))
+				obj_inds_except_param_ind.remove(param_ind)
+				permute_inds = (param_ind, pred_arity) + tuple(obj_inds_except_param_ind)
+		
+				curr_tensor = torch.permute(mask_tensors[pred_arity], permute_inds)
 
-					# Now we can easily set to -inf the corresponding elements
-					curr_tensor[incorrect_obj_inds, pred_ind] = -float("inf") # -inf
+				# Now we can easily set to -inf the corresponding elements
+				curr_tensor[incorrect_obj_inds, pred_ind] = -float("inf") # -inf
 
 			# If the predicate is not allowed, mask every object
-			else:
+			# No longer the case, as we don't use predicate_order
+			"""else:
 				# Permute the tensor so that the first dimension corresponds to the predicate type
 				obj_inds= list(range(pred_arity))
 				permute_inds = (pred_arity,) + tuple(obj_inds)
@@ -476,6 +476,7 @@ class DirectedGenerator():
 
 				# Now we can easily set to -inf all the objects for the corresponding predicate given by pred_ind
 				curr_tensor[pred_ind] = -float("inf")
+			"""
 
 		# Mask the termination condition if it cannot be sampled
 		if not term_cond_allowed:
@@ -881,7 +882,7 @@ class DirectedGenerator():
 
 	<Note>: init_policy_trajectories is modified in-place
 	"""
-	def _add_diversity_reward(self, init_policy_trajectories, init_policy_trajectories_lens, diversity_rescale_factor=20.0):
+	def _add_diversity_reward(self, init_policy_trajectories, init_policy_trajectories_lens, diversity_rescale_factor=5.0):
 		# Obtain the indexes which delimit each individual trajectory in init_policy_trajectories
 		list_delims = [sum(init_policy_trajectories_lens[:i+1]) for i in range(len(init_policy_trajectories_lens))]
 
@@ -1039,7 +1040,9 @@ class DirectedGenerator():
 					#print("dict_num_atoms_each_type", dict_num_atoms_each_type)
 
 
-					preds_curr_phase = self._consistency_validator.predicates_in_current_phase(curr_state)
+					# We no longer use predicate_order, so preds_curr_phase is equal to all the predicates (names) in the state
+					# preds_curr_phase = self._consistency_validator.predicates_in_current_phase(curr_state)
+					preds_curr_phase = curr_state.predicate_names
 
 					# QUITAR
 					#print("----------------------------------------")
@@ -1720,7 +1723,10 @@ class DirectedGenerator():
 		state_atom_names = [atom[0] for atom in state_atoms]
 		dict_num_atoms_each_type = {pred_name : state_atom_names.count(pred_name) / max_atoms_init_state for pred_name, _ in init_state.predicates}
 
-		preds_curr_phase = self._consistency_validator.predicates_in_current_phase(init_state)		
+		# We no longer use predicate_order
+		# preds_curr_phase = self._consistency_validator.predicates_in_current_phase(init_state)	
+		preds_curr_phase = init_state.predicate_names
+
 		init_state_tensors = init_state.atoms_nlm_encoding(device=self.device, max_arity=init_nlm_max_pred_arity, allowed_predicates=preds_curr_phase,
 														   allowed_virtual_objects=self._allowed_virtual_objects,
 														   problem_size=max_atoms_init_state*0.1,

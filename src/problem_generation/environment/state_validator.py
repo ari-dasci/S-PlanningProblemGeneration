@@ -660,7 +660,7 @@ Consistency rules:
 		- the problem contains at least one package
 
 """
-class ValidatorLogistics(ValidatorPredOrder):
+class ValidatorLogisticsWithPredOrder(ValidatorPredOrder):
 
 	predicate_order = ['in-city', 'at', 'in']
 	predicates_required = [True, True, False]
@@ -874,5 +874,166 @@ class ValidatorLogistics(ValidatorPredOrder):
 		# The problem must contain at least two cities
 		if state_objs_types.count('city') < 2:
 			return False
+
+		return True
+
+
+class ValidatorLogistics(ValidatorPredOrder):
+
+	available_predicates = ['in-city', 'at', 'in']
+	predicates_required = ['in-city', 'at']
+
+	"""
+	Returns a list with the predicate names which are required in a totally-generated initial state.
+	In logistics, ['in-city', 'at']
+	"""
+	@classmethod
+	def required_pred_names(cls):
+		return cls.predicates_required
+															
+
+	"""
+	- Continuous
+		- in-city(loc,city)
+			- loc is new
+			- if city is new, loc must be of type airport (the first location of every city is always an airport)
+
+		- at(obj,loc)
+			- obj is new
+			- loc must not be new
+			- obj must be of type package, truck or airplane
+			- if obj is of type airplane, loc must be of type airport
+
+		- in(package,vehicle)
+			- return False
+
+	- Eventual
+		- Contains one atom of each required pred
+		- Contains at least one package and airplane
+		- each city must have at least one truck
+		- the problem contains at least two cities (quitar)
+	"""	
+
+
+
+	"""
+	Checks if the continuous consistency rules are met at the next_state, obtained by applying @action to @curr_state.
+	<Note1>: this method does NOT check that the atom is not already present in the state.
+	<Note2>: this method assumes that curr_state meets all the continuous consistency rules.
+	<Note3>: this method assumes that new objects (those present in @action but not in @curr_state) will be added AFTER this method
+			 to the state @curr_state -> Don't call this method after having already added the new objects to the state!!!
+	<Note4>: this method assumes that the object types @obj_types of the objects the atom @action is instantiated on are of the correct
+	         type! (obj_types[i] in type_hierarchy[action[1][i]] for every i)
+
+	@curr_state An instance of RelationalState
+	@action The next atom to add (e.g,. ['on' [1, 0]])
+	@obj_types List with the type of each object in the atom (@action[1])
+	"""
+	@classmethod
+	def check_continuous_consistency_state_and_action(cls, curr_state, action, obj_types):
+		action_pred = action[0]
+		state_atoms = curr_state.atoms
+		state_objs = list(range(curr_state.num_objects)) # Represent the objects as a list of indexes, instead of ['block', 'block'...]
+		state_objs_types = curr_state.objects # Represent the objects as a list of their types ['airplane', 'city', ...]
+
+		if action_pred not in cls.available_predicates:
+			raise ValueError("The predicate type is not in the list of predicates of the validator")
+		
+		# <Check the atom has no repeated parameters (e.g.: (on 0 0) )>
+		if len(action[1]) != len(set(action[1])):
+			return False
+
+
+		# (in-city ?l - location ?c - city)
+		if action_pred == 'in-city':
+			loc, city = action[1]
+
+			# If ?l is in the state, the action is not consistent
+			if loc in state_objs:
+				return False
+
+			# Every city must have at least one airport. Therefore, if we are adding a new city
+			# the location must be of type "airport"
+			if city not in state_objs:
+				return obj_types[0] == 'airport'
+			else:
+				return True
+				
+				
+		# (at ?obj - thing ?l - location)
+		# The location must already exist -> ?l must be in state_objs
+		# The object must be new -> ?obj must not be in state_objs
+		# If ?obj is an airplane, then ?l must be an airport
+		# An object can only be in a single location -> no need to check this condition, as ?obj cannot be in state_objs (it is a new object)
+		# The object must be of type 'package', 'truck' or 'airplane'
+		if action_pred == 'at':
+			obj, loc = action[1]
+
+			# The object ?obj must be of type 'package', 'truck' or 'airplane'
+			if obj_types[0] not in ['package', 'truck', 'airplane']:
+				return False
+
+			# An airplane must always be at an airport
+			if obj_types[0] == 'airplane' and obj_types[1] != 'airport':
+				return False
+
+			# loc must be in state_objs but obj must not be in state_objs
+			return loc in state_objs and obj not in state_objs
+
+
+		# (in ?p - package ?veh - vehicle)
+
+		# The initial state can have no atoms of type "in"
+		if action_pred == 'in':
+			return False
+
+
+	"""
+	Checks if the eventual consistency rules are met at the current state, corresponding to a totally generated initial state.
+	<Note>: we also need to check for the continuous consistency rules which may have been skipped due to not adding a given predicate type
+	        to the state. For example, if we haven't added an atom of type (handempty) or (holding _) to the state, then we have never
+			checked the continuous consistency rule that says "every block X on top needs an atom of type (clear X)" -> This is why
+			we check them here.
+
+	@curr_state An instance of RelationalState
+	"""
+	@classmethod
+	def check_eventual_consistency_state(cls, curr_state):
+		state_atoms = curr_state.atoms
+		state_objs_inds = list(range(curr_state.num_objects)) # Represent the objects as a list of indexes, instead of ['block', 'block'...]
+		state_objs_types = curr_state.objects # Represent the objects as a list of their types ['airplane', 'city', ...]
+		preds_in_state = set([a[0] for a in state_atoms])
+		required_preds = cls.predicates_required
+
+		# <Check the state contains at least one atom of each required predicate type>
+		for pred in required_preds:
+			if pred not in preds_in_state:
+				return False
+
+		# The problem must contain at least one airplane and one package
+		if not ('package' in state_objs_types and 'airplane' in state_objs_types):
+			return False
+
+
+		# Every city must contain at least one truck
+		city_objs = [ind for ind, obj_type in enumerate(state_objs_types) if obj_type=='city'] # Obtain indexes of objects of type city
+
+		# Iterate over each city
+		for city_obj in city_objs:
+			# Obtain all the locations (their indexes) contained in city_obj
+			locations_in_curr_city = [atom[1][0] for atom in state_atoms if atom[0]=='in-city' and atom[1][1]==city_obj]
+
+			# Obtain all the objects in locations of city_obj
+			obj_types_in_locations_in_curr_city = [state_objs_types[atom[1][0]] for atom in state_atoms \
+											       if atom[0]=='at' and atom[1][1] in locations_in_curr_city]
+
+			if obj_types_in_locations_in_curr_city.count('truck') == 0:
+				return False
+
+
+		# NEW
+		# The problem must contain at least two cities
+		# if state_objs_types.count('city') < 2:
+		#	return False
 
 		return True

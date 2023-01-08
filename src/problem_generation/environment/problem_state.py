@@ -368,10 +368,14 @@ class ProblemState:
 		state_objs = self._initial_state.objects
 
 		# If there is a consistency validator, only return atoms with the predicates of the current phase
+		# We no longer use predicate_order, so we use all the existing predicates
+		preds_in_curr_phase = [pred[0] for pred in self._parser.predicates]
+		"""
 		if self._consistency_validator is None:
 			preds_in_curr_phase = [pred[0] for pred in self._parser.predicates]
 		else:
 			preds_in_curr_phase = self._consistency_validator.predicates_in_current_phase(self._initial_state)
+		"""
 
 		domain_preds = self._parser.predicates
 		available_predicates = list(filter(lambda pred: pred[0] in preds_in_curr_phase, domain_preds))
