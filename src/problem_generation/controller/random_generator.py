@@ -199,6 +199,8 @@ class RandomGenerator():
 		while not init_state_generated:
 			# Obtain the possible actions (atoms) that can be applied to the current state
 			# Note: these atoms only correspond to correct predicates according to the predicate order
+			
+			# <CAMBIAR> Ahora sí obtenemos la lista de átomos que son continuous-consistent
 			possible_atoms = problem.get_possible_init_state_actions()
 			random.shuffle(possible_atoms) # Shuffle the atoms
 

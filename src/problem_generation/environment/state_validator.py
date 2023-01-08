@@ -936,14 +936,14 @@ class ValidatorLogistics(ValidatorPredOrder):
 		state_objs = list(range(curr_state.num_objects)) # Represent the objects as a list of indexes, instead of ['block', 'block'...]
 		state_objs_types = curr_state.objects # Represent the objects as a list of their types ['airplane', 'city', ...]
 
-		if action_pred not in cls.available_predicates:
-			raise ValueError("The predicate type is not in the list of predicates of the validator")
-		
 		# <Check the atom has no repeated parameters (e.g.: (on 0 0) )>
 		if len(action[1]) != len(set(action[1])):
 			return False
 
-
+		if action_pred not in cls.available_predicates:
+			raise ValueError("The predicate type is not in the list of predicates of the validator")
+		
+		
 		# (in-city ?l - location ?c - city)
 		if action_pred == 'in-city':
 			loc, city = action[1]

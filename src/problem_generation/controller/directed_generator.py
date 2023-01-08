@@ -399,11 +399,11 @@ class DirectedGenerator():
 
 
 	"""
-	Returns the mask tensors used to mask (i.e., set to -inf) the probabilities of invalid atoms.
-	An atom is invalid if:
+	Returns the mask tensors used to mask (i.e., set to -inf) the probabilities of inconsistent atoms.
+	An atom is inconsistent if:
 		- It is instantiated on objects of incorrect type
-		- The predicate type cannot be added in the current phase (according to the consistency validator)
-		  To this regard, the termination condition can only be sampled once all the required predicates
+		- The state resulting from adding the atom to it, it is not continuous-consistent  
+		-  In case of the termination condition, it can only be sampled once all the required predicates
 		  have been added to the initial state
 	
 	The mask tensors are returned as a list of tensors (or None, if there are no tensors to mask
@@ -415,13 +415,13 @@ class DirectedGenerator():
 
 	@nlm_output_shape Shape of the last NLM layer, as a list of num_preds, e.g., [1,2,3,0]. Note: @nlm_output_shape must
 					  take into account the extra nullary predicate added for the termination condition (in case it is added).
-	@rel_state Instance of RelationalState representing the state the NLM is applied to. Used to obtain the state objects (with their types)
-			   and the domain predicates (with their variable types).
+	@problem Instance of ProblemState containing the initial state the NLM is applied to.
 	@allowed_predicates Predicates which can be added to the state in the next action.
 	"""
-	def _get_mask_tensors_init_policy(self, nlm_output_shape, rel_state, allowed_predicates):  
+	def _get_mask_tensors_init_policy(self, nlm_output_shape, problem, allowed_predicates):  
 		# Get the objects (including virtuals)
 		# Example: ['truck', 'airplane', 'package']
+		rel_state = problem.initial_state
 		objs_with_virtuals = rel_state.objects + rel_state.virtual_objs_with_type(allowed_predicates, self._allowed_virtual_objects)
 		num_objs_with_virtuals = len(objs_with_virtuals)
 		predicates = rel_state.predicates # Get the state predicates
@@ -437,10 +437,38 @@ class DirectedGenerator():
 		required_preds = set(self._consistency_validator.required_pred_names())
 		term_cond_allowed = required_preds.issubset(preds_in_curr_state)
 
-		# Initialize mask tensors full of zeros
-		mask_tensors = [torch.zeros( (num_objs_with_virtuals,)*r + (num_preds,), dtype=torch.float32, device=self.device) \
+		# Initialize mask tensors full of -inf
+		mask_tensors = [torch.full( (num_objs_with_virtuals,)*r + (num_preds,), fill_value=-float("inf"), dtype=torch.float32, device=self.device) \
 						if num_preds != 0 else None for r, num_preds in enumerate(nlm_output_shape)]
 
+		# Obtain list of atoms which can be added to the state (i.e., those that preserve continuous consistency)
+		consistent_atoms = problem.get_continuous_consistent_init_state_actions(allowed_predicates, self._allowed_virtual_objects)
+
+		# Unmask those tensor positions corresponding to the atoms in consistent_atoms
+		for atom in consistent_atoms:
+			pred_ind = pred_to_index_dict[atom[0]]
+			pred_arity = len(atom[1])
+			atom_obj_inds = tuple(atom[1])
+
+			# Unmask the tensor position associated with the atom
+			mask_tensors[pred_arity][atom_obj_inds + (pred_ind,)] = 0.0
+
+		# Mask the termination condition if it cannot be sampled
+		if not term_cond_allowed:
+			mask_tensors[0][-1] = -float("inf")
+
+		# If no action is valid, we unmask the termination condition
+		# (set to 0)
+		all_values_masked = all(torch.all(tensor==-float("inf")) for tensor in mask_tensors if tensor is not None)
+
+		if all_values_masked:
+			mask_tensors[0][-1] = 0.0
+
+		return mask_tensors
+
+
+		# --- OLD			
+		"""
 		# Iterate over each predicate in the domain
 		for pred in predicates:
 			pred_ind = pred_to_index_dict[pred[0]]
@@ -467,7 +495,7 @@ class DirectedGenerator():
 
 			# If the predicate is not allowed, mask every object
 			# No longer the case, as we don't use predicate_order
-			"""else:
+			else:
 				# Permute the tensor so that the first dimension corresponds to the predicate type
 				obj_inds= list(range(pred_arity))
 				permute_inds = (pred_arity,) + tuple(obj_inds)
@@ -476,7 +504,7 @@ class DirectedGenerator():
 
 				# Now we can easily set to -inf all the objects for the corresponding predicate given by pred_ind
 				curr_tensor[pred_ind] = -float("inf")
-			"""
+			
 
 		# Mask the termination condition if it cannot be sampled
 		if not term_cond_allowed:
@@ -490,7 +518,7 @@ class DirectedGenerator():
 			mask_tensors[0][-1] = 0.0
 
 		return mask_tensors
-
+		"""
 
 	"""
 	Returns the mask tensors used to mask the goal policy's NLM output. It masks (sets to -inf) the tensor positions
@@ -1071,7 +1099,7 @@ class DirectedGenerator():
 					num_objs_with_virtuals = curr_state.num_objects + curr_state.num_virtual_objects(preds_curr_phase, self._allowed_virtual_objects)
 
 					# Mask tensors
-					mask_tensors = self._get_mask_tensors_init_policy(init_nlm_output_layer_shape, curr_state, preds_curr_phase)
+					mask_tensors = self._get_mask_tensors_init_policy(init_nlm_output_layer_shape, problems[i], preds_curr_phase)
 
 					# Append the information about problem[i]
 					list_state_tensors.append(curr_state_tensors)
@@ -1749,7 +1777,7 @@ class DirectedGenerator():
 
 		num_objs_with_virtuals = init_state.num_objects + init_state.num_virtual_objects(preds_curr_phase)
 
-		mask_tensors = self._get_mask_tensors_init_policy(init_nlm_output_layer_shape, init_state, preds_curr_phase)
+		mask_tensors = self._get_mask_tensors_init_policy(init_nlm_output_layer_shape, problem_state, preds_curr_phase)
 
 		# Obtain masked log probs for problem_state.initial_state, using the initial_state_policy
 		action_log_probs = self._initial_state_policy.forward_single_state(init_state_tensors, num_objs_with_virtuals, mask_tensors)
