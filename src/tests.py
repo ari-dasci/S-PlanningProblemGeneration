@@ -846,7 +846,7 @@ def test_train_init_and_goal_policy_logistics():
 										   res_connections_initial_state_nlm=False,
 										   exclude_self_inital_state_nlm=True,
 										   lr_initial_state_nlm = 1e-3,
-										   entropy_coeff_init_state_policy = 0.2,
+										   entropy_coeff_init_state_policy = 0.5,
 										   entropy_annealing_coeffs_init_state_policy = None,
 										   epsilon_init_state_policy=0.1,
 
@@ -886,8 +886,8 @@ def test_load_models_and_generate_problems_logistics():
 	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_240/init_policy_its-2480.ckpt"
-	goal_policy_path = "saved_models/both_policies_240/goal_policy_its-2480.ckpt"
+	init_policy_path = "saved_models/both_policies_243/init_policy_its-450.ckpt"
+	goal_policy_path = "saved_models/both_policies_243/goal_policy_its-450.ckpt"
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
@@ -923,7 +923,7 @@ def test_load_models_and_generate_problems_logistics():
 	# Generate the set of problems with the trained initial policy
 	num_problems = 10
 
-	directed_generator.generate_problems(num_problems, max_atoms_init_state=15, max_actions_init_state=1.3,
+	directed_generator.generate_problems(num_problems, max_atoms_init_state=40, max_actions_init_state=1.3,
 									     max_actions_goal_state=2.0, max_planning_time=600, verbose=True)
 
 
@@ -3770,24 +3770,76 @@ def test_load_models_and_resume_training_logistics():
 	
    > logs: init_policy\version_190
    > saved_models: both_policies_241
-   
-   	
+
+
+> Igual que experimento anterior menos:
+  <lifted and ground entropy>
+
+   > logs: init_policy\version_191
+   > saved_models: both_policies_242
+
+
+> Igual que experimento anterior menos:
+  <lifted and ground entropy>
+  <init_policy_entropy_coeffs: 0.5, None>
+
+   > logs: init_policy\version_192
+   > saved_models: both_policies_243
+
+   > Entrenamiento
+		- Tiempo: 12h (lo paré a mitad)
+		- r_diff (init_policy) = 1.5, r_diff (goal_policy) = 2.1 (ambas seguían subiendo)
+		- r_continuous = -0.03 (seguía subiendo), r_eventual = -0.09 (seguía subiendo)
+		- init_policy_entropy = 0.85, goal_policy_entropy = 0.75 (ambas estaban bajando)
+		- term_cond_prob init_policy converge a 2e-4, de la goal policy termina en 5e-4 (seguía bajando)
+		- num_objs (goal_policy): (Nota: muchos objetos seguía variando cuando paré el entrenamiento)
+			- city: 1.02
+			- airport: 4.4
+			- location: 0.7
+			- airplane: 2.2
+			- truck: 2.2
+			- package: 3.7
+
+	> Problemas (its=450)
+		- atoms=15
+			- diff=[18.9, 73.2, 18.2]
+			- diversidad
+				- mean_num_cities=1
+
+		- atoms=40
+			- mean_num_cities=1
+
+	<Num cities no escala, pero eso es porque solo genera problemas con una ciudad!!!>
+		- Aprende a, siempre que añade un átomo (in-city loc city), que city ya esté en state_objs
+		- Si hubiera continuado el entrenamiento durante más tiempo o añadido la consistency_rule
+		  de min_cities=2, es probable que sí generalizara
 
 
 
 
 
+	>>> HACER QUE LA INIT_POLICY SOLO PUEDA EJECUTAR AQUELLAS ACCIONES CONTINUOUS-CONSISTENT!!!
+		- Ver si añado como continuous_consistency rule lo de que cada ciudad debe tener al menos un truck
+		  (que al añadir una ciudad nueva (in-city loc city, city not in state_objs) cada ciudad debe
+		   tener ya un truck al menos)
+		- En el paper, puedo decir que entrenar en problemas pequeños me permite 1) que la NLM inference sea eficiente
+		  (ya que escala según el num de objetos), 2) usar los planners para obtener la dificultad de los problemas en vez
+		  de tener que ser aproximada con algún método como el de Mauro Vallati y 3) obtener el conjunto de continuous
+		  consistent actions de manera eficiente ---> Para esto, claro, tengo que poder generalizar a problemas más grandes
+		- HACER LA PRIMERA PRUEBA SIN USAR DIVERSITY_REWARD!!! (solo policy_entropy)
+
+	>>> Si no se obtienen buenos resultados, hacer pruebas con min_cities=2
+		- Hacer prints para ver qué acciones se ejecutan en entrenamiento!!! (Si se intentan añadir átomos in-city o no y si
+	      los átomos se añaden en algún orden determinado)
+		- Hacer experimento sin diversity_reward
+		>>> Quizás puedo hacer masking de todas las init_actions que no son continuous-consistent!!! (básicamente hacer que la 
+		    init_generation_policy no tenga que aprender qué acciones son continuous consistent)
 
 
 	>>> SI QUITO PREDICATE ORDER, CAMBIAR PAPER
 	>>> SI QUITO PREDICATE ORDER, CAMBIAR CONSISTENCY RULES BLOCKSWORLD
+	>>> CAMBIAR EN EL PAPER QUE AHORA LAS INIT_STATE_ACTIONS SIEMPRE SON CONTINUOUS-CONSISTENT!!!
 	>>> QUITAR CONSISTENCY RULE NUM_CITIES=2
-
-	>>> Siguiente experimento
-		- usar init_policy_entropy=0.2
-		- diversity_rescale_factor=5
-		- Opcional: aplicar sqrt a r_diff
-		- Opcional: goal_policy_entropy=0.05
 
 	>>> Creo que la init_policy baja demasiado (debería usar init_policy_entropy=0.2 o así)
 		- Debería subir la init_policy_entropy a la vez que bajo el diversity_rescale_factor
@@ -3846,12 +3898,6 @@ def test_load_models_and_resume_training_logistics():
 		  La única recompensa que tiene la goal policy es la r_difficulty!!!
 		- Creo que no hace falta aumentar la penalización por eventual_consistency, solo cambiar el difficulty rescale factor y el diversity
 		  rescale factor
-
-
-
-	>>> CAMBIAR DIVERSITY_RESCALE_FACTOR
-	>>> Volver a usar lifted_action_entropy
-	>>> Hacer que los problemas inconsistentes no se usen para calcular la diversity reward
 
 	<OBJETIVO>:
 		Debo intentar que se generen problemas con distintas ciudades y que num_cities aumente al aumentar max_atoms_init_state
@@ -4056,8 +4102,8 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems()
 
 	#test_generate_random_problems_logistics()
-	test_train_init_and_goal_policy_logistics()
-	#test_load_models_and_generate_problems_logistics()	
+	#test_train_init_and_goal_policy_logistics()
+	test_load_models_and_generate_problems_logistics()	
 	#test_load_models_and_resume_training_logistics()
 
 

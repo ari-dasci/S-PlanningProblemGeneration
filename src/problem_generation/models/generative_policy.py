@@ -252,33 +252,7 @@ class GenerativePolicy(pl.LightningModule):
 		# tensor_lifted_entropy[tensor_lifted_entropy==float("inf")] = 0
 		# tensor_lifted_entropy = torch.where(tensor_lifted_entropy==float("inf"),torch.tensor(0.0),tensor_lifted_entropy)
 
-		# CAMBIAR
-		# return 0.5*tensor_ground_entropy + 0.5*tensor_lifted_entropy
-		return tensor_ground_entropy
-		
-		# ------- OLD
-		
-		"""
-		# Transform log_probs to probs and flatten the tensors
-		# We ignore None tensors, as they correspond to non-existent actions
-		list_prob_tensors = [ [torch.exp(tensor).flatten() for tensor in sample_output if tensor is not None] \
-                              for sample_output in list_nlm_output_samples ]
-
-		# Ignore probabilities of 0, corresponding to masked values (with mask_nlm_output())
-		list_prob_tensors = [ [tensor[tensor.nonzero()].flatten() for tensor in prob_tensors] \
-							  for prob_tensors in list_prob_tensors]
-		# prob_tensors[0] = prob_tensors[0][:-1] # Ignore the nullary predicate corresponding to the termination condition
-
-
-		# < Calculate entropy of the grounded action distribution (i.e., list_prob_tensors) >
-		list_probs_flattened = [torch.cat(prob_tensors) for prob_tensors in list_prob_tensors] # Put all the probabilities into a single flattened tensor
-
-		tensor_action_entropy = torch.cat([ (torch.distributions.Categorical(probs = probs_flattened).entropy() / np.log(probs_flattened.shape[0])).view(1) \
-			                                   for probs_flattened in list_probs_flattened ])
-		
-
-		return tensor_action_entropy
-		"""
+		return 0.5*tensor_ground_entropy + 0.5*tensor_lifted_entropy
 
 
 	""" 

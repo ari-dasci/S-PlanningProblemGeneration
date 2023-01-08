@@ -971,7 +971,7 @@ class DirectedGenerator():
 	This method returns a tuple (problem, trajectory), where "problem" contains the problem corresponding to the state in the last
 	trajectory sample.
 	"""
-	def _obtain_trajectories_init_policy(self, num_trajectories, list_max_atoms_init_state, list_max_actions_init_state):
+	def _obtain_trajectories_init_policy(self, num_trajectories, list_max_atoms_init_state, list_max_actions_init_state, verbose=False):
 
 		# OLD
 		"""
@@ -1112,6 +1112,10 @@ class DirectedGenerator():
 
 					r_continuous_consistency = 0
 					r_eventual_consistency = problems[i].get_eventual_consistency_reward_of_init_state()
+
+					if verbose:
+						print("- Termination condition")
+						print("- Eventual consistency reward:", r_eventual_consistency)
 				else:
 					# < Transform the chosen action index into a proper action -> atom and objects to add >
 					# chosen_action_index[0] is the predicate arity and chosen_action_index[-1] is the predicate index
@@ -1129,6 +1133,9 @@ class DirectedGenerator():
 					_, r_continuous_consistency = problems[i].apply_action_to_initial_state(objs_to_add, chosen_action, obj_types)
 					actions_executed[i] += 1
 
+					if verbose:
+						print(f"- Action: {chosen_action} - Objects to add: {objs_to_add} - Consistency reward: {r_continuous_consistency}")
+
 					# Check if we have reached the maximum number of atoms allowed in the initial state (or the maximum number of actions
 					# in the trajectory)
 					# If so, stop generating the initial state and check if the eventual consistency rules are met
@@ -1138,6 +1145,10 @@ class DirectedGenerator():
 						problems[i].end_initial_state_generation_phase()
 
 						r_eventual_consistency = problems[i].get_eventual_consistency_reward_of_init_state()
+
+						if verbose:
+							print("- Max num atoms or actions reached")
+							print("- Eventual consistency reward:", r_eventual_consistency)
 					else:
 						r_eventual_consistency = 0
 
@@ -1339,6 +1350,8 @@ class DirectedGenerator():
 		# If max_atoms_init_state is a tuple, choose a random value in the interval (both ends included)
 		if type(max_atoms_init_state) in (tuple, list):
 			list_max_atoms_init_state = [random.randint(max_atoms_init_state[0], max_atoms_init_state[1]) for _ in range(num_trajectories)]
+		else:
+			list_max_atoms_init_state = [max_atoms_init_state]*num_trajectories
 
 		# Obtain max_actions_init_state and max_actions_goal_state
 		list_max_actions_init_state = [x*max_actions_init_state for x in list_max_atoms_init_state]
@@ -1594,7 +1607,7 @@ class DirectedGenerator():
 
 		while not consistent_init_state:
 			# Generate the initial state
-			init_problem, _ = self._obtain_trajectories_init_policy(1, [max_atoms_init_state], [max_actions_init_state])
+			init_problem, _ = self._obtain_trajectories_init_policy(1, [max_atoms_init_state], [max_actions_init_state], verbose=verbose)
 			init_problem = init_problem[0]
 
 			# Check if the generated initial state meets the eventual consistency rules. 

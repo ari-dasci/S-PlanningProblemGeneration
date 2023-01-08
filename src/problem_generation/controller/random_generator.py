@@ -217,10 +217,14 @@ class RandomGenerator():
 			else:
 
 				# Obtain the predicate names ordered according to the predicate order
+				# We no longer use predicate order
+				pred_names_ordered = [p[0] for p in domain_predicates]
+				"""
 				if self._consistency_validator is None:
 					pred_names_ordered = [p[0] for p in domain_predicates]
 				else:
 					pred_names_ordered = self._consistency_validator.predicate_order	
+				"""
 
 				# Get the first predicate so that every condition is met:
 				# 1) it is contained in possible_atoms
