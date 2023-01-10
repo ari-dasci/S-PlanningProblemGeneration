@@ -437,7 +437,7 @@ class DirectedGenerator():
 		required_preds = set(self._consistency_validator.required_pred_names())
 		term_cond_allowed = required_preds.issubset(preds_in_curr_state)
 
-		# Initialize mask tensors full of -inf
+		# Initialize mask tensors full of -inf (mask all the tensor positions)
 		mask_tensors = [torch.full( (num_objs_with_virtuals,)*r + (num_preds,), fill_value=-float("inf"), dtype=torch.float32, device=self.device) \
 						if num_preds != 0 else None for r, num_preds in enumerate(nlm_output_shape)]
 
@@ -453,9 +453,9 @@ class DirectedGenerator():
 			# Unmask the tensor position associated with the atom
 			mask_tensors[pred_arity][atom_obj_inds + (pred_ind,)] = 0.0
 
-		# Mask the termination condition if it cannot be sampled
-		if not term_cond_allowed:
-			mask_tensors[0][-1] = -float("inf")
+		# Unmask the termination condition if it can be sampled
+		if term_cond_allowed:
+			mask_tensors[0][-1] = 0.0
 
 		# If no action is valid, we unmask the termination condition
 		# (set to 0)
@@ -910,7 +910,7 @@ class DirectedGenerator():
 
 	<Note>: init_policy_trajectories is modified in-place
 	"""
-	def _add_diversity_reward(self, init_policy_trajectories, init_policy_trajectories_lens, diversity_rescale_factor=5.0):
+	def _add_diversity_reward(self, init_policy_trajectories, init_policy_trajectories_lens, diversity_rescale_factor=0.0):
 		# Obtain the indexes which delimit each individual trajectory in init_policy_trajectories
 		list_delims = [sum(init_policy_trajectories_lens[:i+1]) for i in range(len(init_policy_trajectories_lens))]
 
@@ -1108,11 +1108,6 @@ class DirectedGenerator():
 					list_preds_curr_phase.append(preds_curr_phase)
 
 
-			# quitar
-			#print("\n----------------")
-			#print(  [[tensor.shape if tensor is not None else None for tensor in sample_tensors ] if sample_tensors is not None else None for sample_tensors in list_state_tensors]           )
-
-
 			# Sample the action in parallel for all the trajectories
 			list_chosen_action_index_and_prob = self._initial_state_policy.select_actions(list_state_tensors, list_num_objs_with_virtuals, list_mask_tensors)
 
@@ -1168,7 +1163,7 @@ class DirectedGenerator():
 					# in the trajectory)
 					# If so, stop generating the initial state and check if the eventual consistency rules are met
 
-					if problems[i].initial_state.num_atoms >= list_max_atoms_init_state[i] or actions_executed[i] >= list_max_actions_init_state[i]:
+					if problems[i].initial_state.num_atoms >= list_max_atoms_init_state[i] or actions_executed[i] >= list_max_actions_init_state[i]:		
 						initial_state_generated[i] = True
 						problems[i].end_initial_state_generation_phase()
 
@@ -1437,7 +1432,7 @@ class DirectedGenerator():
 	Note: We add an index to the folder name given by @checkpoint_folder. Example: saved_models/both_policies_2
 		  (in case there are two other experiments ids=0, 1 before it).
 	"""
-	def train_generative_policies(self, training_iterations, start_it=0, epochs_per_train_it=1, trajectories_per_train_it=50, minibatch_size=75,
+	def train_generative_policies(self, training_iterations, start_it=0, epochs_per_train_it=1, trajectories_per_train_it=25, minibatch_size=75,
 								  its_per_model_checkpoint=10, checkpoint_folder="saved_models/both_policies", logs_name="both_policies"):
 
 		# Obtain folder name to save the model checkpoints in

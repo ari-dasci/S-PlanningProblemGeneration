@@ -111,15 +111,14 @@ int main( int argc, char *argv[] )
 
   /* now output problem in PDDL syntax
    */
-  printf("\n\n\n");
 
   /* header
    */
   printf("(define (problem logistics-c%d-s%d-p%d-a%d)",
    gcities, gcity_size, gpackages, gairplanes);
-  printf("\n(:domain logistics-strips)");
+  printf("\n\n(:domain logistics)");
 
-  printf("\n(:objects ");
+  printf("\n\n(:objects ");
   if (gairplanes > 0){
   for ( i = 0; i < gairplanes; i++ ) {
     printf("a%d ", i);
@@ -170,7 +169,7 @@ int main( int argc, char *argv[] )
   }
   printf("\n)");
 
-  printf("\n(:init");
+  printf("\n\n(:init");
 
   for ( i = 0; i < gcities; i++ ) {
     for ( j = 0; j < gcity_size; j++ ) {
@@ -181,7 +180,7 @@ int main( int argc, char *argv[] )
   print_random_origins();
   printf("\n)");
 
-  printf("\n(:goal");
+  printf("\n\n(:goal");
   printf("\n    (and");
   print_random_destins();
   printf("\n    )");

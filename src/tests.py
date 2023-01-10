@@ -837,7 +837,7 @@ def test_train_init_and_goal_policy_logistics():
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   allowed_virtual_objects=virtual_objects,
 										   penalization_continuous_consistency=-0.1,
-										   max_atoms_init_state=15, max_actions_init_state=1.3, max_actions_goal_state=2.0,
+										   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0,
 										   device='cuda', max_objs_cache_reduce_masks=25,
 
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
@@ -846,8 +846,8 @@ def test_train_init_and_goal_policy_logistics():
 										   res_connections_initial_state_nlm=False,
 										   exclude_self_inital_state_nlm=True,
 										   lr_initial_state_nlm = 1e-3,
-										   entropy_coeff_init_state_policy = 0.5,
-										   entropy_annealing_coeffs_init_state_policy = None,
+										   entropy_coeff_init_state_policy = 2,
+										   entropy_annealing_coeffs_init_state_policy = (1000, 0.1),
 										   epsilon_init_state_policy=0.1,
 
 										   num_preds_inner_layers_goal_nlm=goal_policy_nlm_inner_layers,
@@ -856,7 +856,7 @@ def test_train_init_and_goal_policy_logistics():
 										   res_connections_goal_nlm=False,
 										   exclude_self_goal_nlm=True,
 										   lr_goal_nlm = 1e-3,
-										   entropy_coeff_goal_policy = 0.05,
+										   entropy_coeff_goal_policy = 0.0,
 										   entropy_annealing_coeffs_goal_policy = None,
 										   epsilon_goal_policy=0.1)
 
@@ -886,8 +886,8 @@ def test_load_models_and_generate_problems_logistics():
 	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_243/init_policy_its-450.ckpt"
-	goal_policy_path = "saved_models/both_policies_243/goal_policy_its-450.ckpt"
+	init_policy_path = "saved_models/both_policies_246/init_policy_its-540.ckpt"
+	goal_policy_path = "saved_models/both_policies_246/goal_policy_its-540.ckpt"
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
@@ -901,7 +901,7 @@ def test_load_models_and_generate_problems_logistics():
 
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   allowed_virtual_objects=virtual_objects,
-										   max_atoms_init_state=15, max_actions_init_state=1.3, max_actions_goal_state=2.0,
+										   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0,
 										   device='cpu', max_objs_cache_reduce_masks=0,
 										  
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
@@ -923,7 +923,7 @@ def test_load_models_and_generate_problems_logistics():
 	# Generate the set of problems with the trained initial policy
 	num_problems = 10
 
-	directed_generator.generate_problems(num_problems, max_atoms_init_state=40, max_actions_init_state=1.3,
+	directed_generator.generate_problems(num_problems, max_atoms_init_state=15, max_actions_init_state=1,
 									     max_actions_goal_state=2.0, max_planning_time=600, verbose=True)
 
 
@@ -964,7 +964,7 @@ def test_load_models_and_resume_training_logistics():
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   allowed_virtual_objects=virtual_objects,
 										   penalization_continuous_consistency=-0.1,
-										   max_atoms_init_state=15, max_actions_init_state=1.3, max_actions_goal_state=2.0,
+										   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0,
 										   device='cuda', max_objs_cache_reduce_masks=25,
 										  
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
@@ -3815,6 +3815,140 @@ def test_load_models_and_resume_training_logistics():
 		  de min_cities=2, es probable que sí generalizara
 
 
+>  init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]] (depth=7)
+   goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   only ground_entropy (no lifted entropy)
+   penalization_continuous_consistency=-0.1
+   rescale_factor = 0.1
+   device='cuda'
+   trajectories_per_train_it=50, minibatch_size=75
+   epochs_per_train_it=1
+   max_atoms_init_state=15, <max_actions_init_state=1>, max_actions_goal_state=2
+   <init_policy_entropy_coeffs: 0.5, None>
+   goal_policy_entropy_coeffs: 0.05, None
+   <diversity_rescale_factor=0>
+   diff=LAMA, FF, weighted A* lmcut
+   use sorted_atoms and preds for NLM input
+   also calculate diversity reward for inconsistent trajectories
+   no predicate order
+   consistency rule without min_cities=2
+   <mask inconsistent atoms>
+
+   > logs: init_policy\version_193
+   > saved_models: both_policies_244
+
+	> Entrenamiento
+		- Tiempo: 16h (lo paré a mitad)
+		- r_continuous=0 (funciona bien), r_eventual converge a -0.1
+		- r_diff init_policy=2, r_diff goal_policy = 2.7 (ambos seguían aumentando, pero muy lentamente)
+		- term_cond_prob init_policy = 5e-4, goal_policy = 2e-3
+		> init_policy_entropy se mantiene constante a 0.86, y la de la goal_policy baja hasta 0.75
+			- La entropía de ambos es demasiado alta!!!
+		- num_objs (goal_policy):
+			- city: 1.005 -> CONVERGE A 1 CIUDAD
+			- airport: 4
+			- location: 1.7
+			- airplane: 2.5
+			- truck: 2.5
+			- package: 4.2
+
+	> Problemas (its=480)
+		- max_atoms=15:
+			- diff = [25.3, 209.1, 24.5]
+			- diversity
+				- Quitando que solo hay una ciudad en casi todos, los problemas son muy diversos
+				- mean_num_cities=1.1
+
+		- max_atoms=30:
+			- diff = [123.4, 3498., 1427.7]
+			- diversity
+				- mean_num_cities=1
+
+	<No escala num_cities!!!>
+		- Creo que es porque la mayoría de los problemas solo tienen una ciudad
+		- Creo que esto es porque 1) la init_policy es demasiado alta o 2) debo añadir la consistency rule de min_cities=2
+
+
+> Igual que experimento anterior menos:
+   	<init_policy_entropy_coeffs: 0.1, None>
+   	<goal_policy_entropy_coeffs: 0.01, None>
+
+   > logs: init_policy\version_194
+   > saved_models: both_policies_245
+
+   >>> La init_policy sigue siendo muy alta, y num_cities vuelve a converger a 1
+
+
+> Igual que experimento anterior menos:
+   	<init_policy_entropy_coeffs: 1, (300, 0.01)>
+   	<goal_policy_entropy_coeffs: 0.0, None>
+	<trajectories_per_train_it=25> (antes 50)
+
+	> logs: init_policy\version_195
+    > saved_models: both_policies_246
+
+
+	> Entrenamiento
+		- Tiempo: 9h (lo paré a mitad)
+		- num_cities vuelve a converger a 1!!! (aunque al ser la entropía tan alta tarda más)
+		- r_diff aumenta mucho (la de la goal_policy llega hasta 3)
+
+	> Problemas (its=540)
+		- max_atoms=15
+			- diff = [27.4, 69.4, 31.6]
+			- mean_num_cities = 1
+
+
+> Igual que experimento anterior menos:
+   	<init_policy_entropy_coeffs: 2, (1000, 0.1)>
+   	<goal_policy_entropy_coeffs: 0.0, None>
+	<trajectories_per_train_it=25> (antes 50)
+
+	> logs: init_policy\version_196
+    > saved_models: both_policies_247
+
+
+
+
+
+	>>> GENERAR PROBLEMAS CON MAX_ATOMS=15 Y COMPARAR SU DIVERSIDAD CON LOS GENERADOS POR EL GENERATOR!!! (la diversidad debería ser menor)
+
+	>>> CONFORME LOS PROBLEMAS SON MÁS DIFÍCILES, EL PLANNER TARDA MÁS EN RESOLVERLOS Y EL ENTRENAMIENTO SE RALENTIZA!!!
+
+	>>> VER LOS RESULTADOS DE ESTE EXPERIMENTO PARA ANALIZAR QUÉ FUNCIONA MEJOR,
+	    SI UNA INIT_POLICY_ENTROPY ALTA O BAJA!!!
+			- Parece que con solo que caiga un poco la init_policy_entropy (de 0.91 a 0.88), es suficiente para que varíe
+			  mucho num_objs)
+			- Creo que la init_policy solo genera problemas con una ciudad porque al principio del entrenamiento (cuando la goal_policy
+			  aún no ha aprendido) se dan una de estas dos condiciones:
+			  	1) La goal_policy tiene más fácil generar problemas difíciles con una ciudad que con dos o más (al ejecutar acciones al azar)
+				2) Es más probable que un problema sea eventualmente consistente si solo tiene una ciudad (más fácil (probable) que cada ciudad 
+				   tenga un truck)
+
+				<Para evitar esto, tengo que "obligar" a la init_policy a generar problemas con varias ciudades al principio del entrenamiento>
+				(usar una entropía muy alta y después bajarla, una vez que la goal_policy haya aprendido), hasta que vea que tiene "ventajas"
+				generar problemas con varias ciudades (son más diversos y difíciles, una vez que la goal_policy ha aprendido)
+
+
+
+	>>> CREO QUE NECESITO UNA MAYOR INIT_POLICY_ENTROPY, NO MENOS!!!	
+		- Alta init_policy entropy y baja (0) goal_policy_entropy
+			- Ej.: init_policy_entropy_coeffs: 2, (1000, 0.1) 
+			  (y si al final del entrenamiento vemos que no es suficiente, puedo parar el entrenamiento, bajar el entropy_coeff
+			   y volver al entrenamiento)
+
+
+
+
+
+
+	>>> Si no aprende,
+		- usar min_cities=2
+		- ver si uso diversity_reward
+			- y ver si tengo en cuenta las inconsistent trajectories o no
+		- añadir regla consistency 1 truck per city como continuous consistency rule (en vez de eventual)
+
+	>>> Si al final no uso la consistency rule min_cities=2, tampoco usarla en el instance generator!!!
 
 
 
@@ -3835,7 +3969,6 @@ def test_load_models_and_resume_training_logistics():
 		>>> Quizás puedo hacer masking de todas las init_actions que no son continuous-consistent!!! (básicamente hacer que la 
 		    init_generation_policy no tenga que aprender qué acciones son continuous consistent)
 
-
 	>>> SI QUITO PREDICATE ORDER, CAMBIAR PAPER
 	>>> SI QUITO PREDICATE ORDER, CAMBIAR CONSISTENCY RULES BLOCKSWORLD
 	>>> CAMBIAR EN EL PAPER QUE AHORA LAS INIT_STATE_ACTIONS SIEMPRE SON CONTINUOUS-CONSISTENT!!!
@@ -3851,29 +3984,10 @@ def test_load_models_and_resume_training_logistics():
 		>>> Quizá también podría aplicar log() o sqrt() a la problem_difficulty (para que los problemas no dejen de ser
 		  diversos en cuanto empiezan a ser difíciles)
 
-	>>> AUNQUE NO APRENDA, VER SI NUM_CITIES AUMENTA AL AUMENTAR MAX_ATOMS
-		- A VER SI AHORA AL USAR SORTED_ATOMS Y PREDICATES SÍ ESCALA!!!
-		- QUIZAS NO ESCALE CON MAX_ATOMS PORQUE SÍ SE GENERAN PROBLEMAS CON MÁS CIUDADES PERO NO SON
-		  CONSISTENTES
-
-
-	>>> Ver si se generan unos pocos tipos distintos de problemas
-		- Ej.: problema con muchas ciudades y cada una un airport y problema con dos ciudades y cada una dos airports
-		       pero nada más. (Que se maximiza la diversity_reward con unos pocos tipos distintos de problemas, en vez de haber
-			   diversidad real)
-		- Si ese es el caso, quizás tenga que usar también policy_entropy (ej.: 0.2 o así)
-
-	>>> Usar init_policy_entropy=0.2 en el siguiente experimento
-
 	>>> Quizás necesite una mejor forma de medir la diversidad
 		- Ej.: que si todos los problemas son de ciudades con un solo airport, se consideren poco diversos
 
-	>>> Hacer pruebas con una ciudad, si no aprende, con dos y, si no, entrenando en problemas de distintos tamaños
-	  (variar max_atoms durante el entrenamiento) <<<
-		- Intentar variar entre 10 y 20 max_atoms, si 20 es demasiado grande variar entre 10 y 17 o entre 10 y 15
-		- QUIZÁS TENGA QUE CAMBIAR CÓMO SE MIDE LA DIVERSITY_REWARD AL USAR PROBLEMAS DE DISTINTO TAMAÑO!!!
-
-	>>> Quizás debería empezar con un gran diversity_rescale_factor e ir bajándolo durante el entrenamiento!!!
+	- Quizás debería empezar con un gran diversity_rescale_factor e ir bajándolo durante el entrenamiento!!!
 		- Para que así al principio aprenda a crear problemas consistentes con varias ciudades pero después bajarlo para que
 		  no añada tantos trucks, airplanes, etc.
 
@@ -4102,8 +4216,8 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems()
 
 	#test_generate_random_problems_logistics()
-	#test_train_init_and_goal_policy_logistics()
-	test_load_models_and_generate_problems_logistics()	
+	test_train_init_and_goal_policy_logistics()
+	#test_load_models_and_generate_problems_logistics()	
 	#test_load_models_and_resume_training_logistics()
 
 

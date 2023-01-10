@@ -7,6 +7,7 @@ import os
 import sys
 import re
 import time
+import numpy as np
 
 # Generator parameters
 
@@ -44,18 +45,18 @@ extra_trucks_vals = list(range(0, 30))
 """
 
 
-num_airplanes_vals = list(range(1, 20))
-num_cities_vals = list(range(2, 20))
-city_size_vals = list(range(1, 20))
-num_packages_vals = list(range(1, 20))
-extra_trucks_vals = list(range(0, 20))
+num_airplanes_vals = list(range(1, 15))
+num_cities_vals = list(range(2, 15))
+city_size_vals = list(range(1, 15))
+num_packages_vals = list(range(1, 15))
+extra_trucks_vals = list(range(0, 15))
 
 
 
 # Problem size
 # HACER QUE MIN_ATOMS SIEMPRE SEA MENOR EN 2 A MAX_ATOMS SIN IMPORTAR EL PROBLEM_SIZE!!!
-min_atoms = 18 # 8 # 15 # 25
-max_atoms = 20 # 10 # 20 # 30
+min_atoms = 13 # 8 # 15 # 25
+max_atoms = 15 # 10 # 20 # 30
 
 seed = 1679
 
@@ -69,7 +70,7 @@ metrics_file = 'problems_difficulty_logistics_generator.txt'
 
 # >>> DELETE PROBLEMS FROM FOLDER BEFORE GENERATING NEW ONES!!!
 
-num_problems = 20 # Number of problems to generate (meeting all the requirements)
+num_problems = 10 # Number of problems to generate (meeting all the requirements)
 
 def solve_problems_and_write_difficulty():
 	# Obtain the name of all the problem files
@@ -78,7 +79,7 @@ def solve_problems_and_write_difficulty():
 
 	metrics_file_path = f'{problems_folder}{metrics_file}'
 
-	mean_diff = 0
+	diff_list_all_problems = []
 	mean_time = 0
 
 	with open(metrics_file_path, 'a') as f:
@@ -99,38 +100,46 @@ def solve_problems_and_write_difficulty():
 			# ehc + lm_cut: ['python3', planner_path, domain_path, problem_path, '--search', 'ehc(lmcut())'] -> mean_diff=159.65, mean_time=0.58
 			# >>> weighted A*, lm_cut: ['python3', planner_path, domain_path, problem_path, '--search', 'eager_wastar([lmcut()], w=2)'] -> mean_diff=17.15, mean_time=0.56
 
+			planner_commands = [ ['python3', planner_path, '--alias', 'lama-first', domain_path, problem_path],
+						 		 ['python3', planner_path, domain_path, problem_path, '--search', 'ehc(ff())'],
+						 		 ['python3', planner_path, domain_path, problem_path, '--search', 'eager_wastar([lmcut()], w=2)'] ]
 
-			planner_command = ['python3', planner_path, domain_path, problem_path, '--search', 'eager_wastar([lmcut()], w=2)']
+			diff_list = []
 
-			start = time.time()
-			planner_output = subprocess.run(planner_command, shell=False, stdout=subprocess.PIPE).stdout.decode('utf-8')
-			end = time.time()
+			for planner_command in planner_commands:
+				start = time.time()
+				planner_output = subprocess.run(planner_command, shell=False, stdout=subprocess.PIPE).stdout.decode('utf-8')
+				end = time.time()
 
-			# Check if the planner found a solution
-			if re.search("Solution found.", planner_output):
-				# Search for number of expanded nodes
-				expanded_nodes = int(re.search(r"Expanded ([0-9]+) state\(s\)\.", planner_output).group(1))
-				expanded_nodes += 1 # Add 1 in case the planner has expanded 0 nodes (in such case, we obtain NaN when we perform the logarithm)
+				# Check if the planner found a solution
+				if re.search("Solution found.", planner_output):
+					# Search for number of expanded nodes
+					expanded_nodes = int(re.search(r"Expanded ([0-9]+) state\(s\)\.", planner_output).group(1))
+					expanded_nodes += 1 # Add 1 in case the planner has expanded 0 nodes (in such case, we obtain NaN when we perform the logarithm)
 
-				# Search for plan length
-				# expanded_nodes = int(re.search(r"Plan length: ([0-9]+) step\(s\)\.", planner_output).group(1))
-			else:
-				expanded_nodes = -1
+					# Search for plan length
+					# expanded_nodes = int(re.search(r"Plan length: ([0-9]+) step\(s\)\.", planner_output).group(1))
+				else:
+					expanded_nodes = -1
 
-			print(f"> Solved problem {problem_name} - difficulty={expanded_nodes}")
+				diff_list.append(expanded_nodes)
 
-			mean_diff += expanded_nodes
-			mean_time += (end-start)
+				mean_time += (end-start)
 
+
+			print(f"> Solved problem {problem_name} - difficulty={diff_list}")
+
+			diff_list_all_problems.append(diff_list)
+			
 			# Write difficulty
-			f.write(f'Problem: {problem_name} - difficulty (expanded nodes): {expanded_nodes}\n')
+			f.write(f'Problem: {problem_name} - difficulty (expanded nodes): {diff_list}\n')
 
 		# Print mean difficulty
-		mean_diff /= len(problem_names)
+		mean_diff = np.array(diff_list_all_problems).mean(axis=0)
 		mean_time /= len(problem_names)
 
 		print(f"\n> Mean problem difficulty: {mean_diff}")
-		print(f"\n> Mean planning time: {mean_time}")
+		print(f"\n> Mean planning time per problem: {mean_time}")
 
 
 
@@ -162,7 +171,7 @@ def main():
 			print("> Problem - Size:", problem_size)
 
 			# Save the problem to disk
-			problem_path = f'{problems_folder}problem_{problem_ind}.pddl'
+			problem_path = f'{problems_folder}instance_generator_problem_{problem_ind}.pddl'
 			with open(problem_path, 'w') as f:
 				f.write(problem)
 
