@@ -721,6 +721,7 @@ def test_load_models_and_generate_problems():
 
 # ------------------ Logistics
 
+
 """
 Test generate_random_problems() in Controller class for the logistics domain.
 """
@@ -846,8 +847,8 @@ def test_train_init_and_goal_policy_logistics():
 										   res_connections_initial_state_nlm=False,
 										   exclude_self_inital_state_nlm=True,
 										   lr_initial_state_nlm = 1e-3,
-										   entropy_coeff_init_state_policy = 2,
-										   entropy_annealing_coeffs_init_state_policy = (1000, 0.1),
+										   entropy_coeff_init_state_policy = 0.1,
+										   entropy_annealing_coeffs_init_state_policy = None,
 										   epsilon_init_state_policy=0.1,
 
 										   num_preds_inner_layers_goal_nlm=goal_policy_nlm_inner_layers,
@@ -985,6 +986,202 @@ def test_load_models_and_resume_training_logistics():
 
 	# Train the goal generation policy
 	directed_generator.train_generative_policies(training_iterations = 10000, start_it=curr_it+1) # +1 because we need to start with the next iteration
+
+
+# ------------------ Blocksworld
+
+
+"""
+Tests the functionality of directed_generator.py used to train both the initial and goal generation policies for the blocksworld domain.
+"""
+def test_train_init_and_goal_policy_blocksworld():
+	from problem_generation.controller.directed_generator import DirectedGenerator
+	from problem_generation.environment.planner import Planner
+	from problem_generation.environment.state_validator import ValidatorBlocksworld
+
+	from lifted_pddl import Parser
+
+	domain_file_path = '../data/domains/blocks-domain.pddl'
+
+	parser = Parser()
+	parser.parse_domain(domain_file_path)
+	planner = Planner(domain_file_path)
+
+	# Goal predicates
+	goal_predicates = {('on', ('block','block'))}
+
+	# Virtual objects
+	virtual_objects = None # No need to supply virtual objects (the method automatically detects 'block' as the only possible virtual object)
+
+	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]] # -> Preds arity 3
+	# nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]] # -> No preds arity 3
+
+	# The goal_nlm_layers need to account for arity 4, as one action has 4 parameters
+	# We also need to have some predicates of arity 3 in the last layer or, else, there will be no predicates to compute the action of arity 4
+	
+	# NLM layers without predicates of arity 3
+	#init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+	#goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+
+	# NLM layers with predicates of arity 3
+	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+
+	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
+
+	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorBlocksworld,
+										   allowed_virtual_objects=virtual_objects,
+										   penalization_continuous_consistency=-0.1,
+										   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0,
+										   device='cuda', max_objs_cache_reduce_masks=15,
+
+										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
+										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
+										   io_residual_initial_state_nlm=True,
+										   res_connections_initial_state_nlm=False,
+										   exclude_self_inital_state_nlm=True,
+										   lr_initial_state_nlm = 1e-3,
+										   entropy_coeff_init_state_policy = 0.1,
+										   entropy_annealing_coeffs_init_state_policy = None,
+										   epsilon_init_state_policy=0.1,
+
+										   num_preds_inner_layers_goal_nlm=goal_policy_nlm_inner_layers,
+										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
+										   io_residual_goal_nlm=True,
+										   res_connections_goal_nlm=False,
+										   exclude_self_goal_nlm=True,
+										   lr_goal_nlm = 1e-3,
+										   entropy_coeff_goal_policy = 0.0,
+										   entropy_annealing_coeffs_goal_policy = None,
+										   epsilon_goal_policy=0.1)
+
+	# Train the goal generation policy
+	directed_generator.train_generative_policies(training_iterations = 10000)
+
+"""
+We load the trained init and goal policies and use them to generate problems for the blocksworld domain.
+"""
+def test_load_models_and_generate_problems_blocksworld():
+	from problem_generation.controller.directed_generator import DirectedGenerator
+	from problem_generation.environment.planner import Planner
+	from problem_generation.environment.state_validator import ValidatorBlocksworld
+
+	from lifted_pddl import Parser
+
+	domain_file_path = '../data/domains/blocks-domain.pddl'
+
+	parser = Parser()
+	parser.parse_domain(domain_file_path)
+	planner = Planner(domain_file_path)
+
+	# Goal predicates
+	goal_predicates = {('on', ('block','block'))}
+
+	# Virtual objects
+	virtual_objects = None
+
+	# Create the generator and load the trained models
+	init_policy_path = "saved_models/both_policies_246/init_policy_its-540.ckpt"
+	goal_policy_path = "saved_models/both_policies_246/goal_policy_its-540.ckpt"
+
+	# NLM layers without predicates of arity 3
+	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+
+	# NLM layers with predicates of arity 3
+	# init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	# goal_policy_nlm_inner_layers = [[8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,4,0]]
+
+	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
+
+	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorBlocksworld,
+										   allowed_virtual_objects=virtual_objects,
+										   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0,
+										   device='cpu', max_objs_cache_reduce_masks=0,
+										  
+										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
+										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
+										   io_residual_initial_state_nlm=True,
+										   res_connections_initial_state_nlm=False,
+										   exclude_self_inital_state_nlm=True,
+										   load_init_state_policy_checkpoint_name=init_policy_path,
+
+										   num_preds_inner_layers_goal_nlm=goal_policy_nlm_inner_layers,
+										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
+										   io_residual_goal_nlm=True,
+										   res_connections_goal_nlm=False,
+										   exclude_self_goal_nlm=True,
+										   load_goal_policy_checkpoint_name=goal_policy_path)
+
+	print(f">> Init model {init_policy_path} and goal model {goal_policy_path} loaded")
+
+	# Generate the set of problems with the trained initial policy
+	num_problems = 10
+
+	directed_generator.generate_problems(num_problems, max_atoms_init_state=15, max_actions_init_state=1,
+									     max_actions_goal_state=2.0, max_planning_time=600, verbose=True)
+
+
+def test_load_models_and_resume_training_blocksworld():
+	from problem_generation.controller.directed_generator import DirectedGenerator
+	from problem_generation.environment.planner import Planner
+	from problem_generation.environment.state_validator import ValidatorBlocksworld
+
+	from lifted_pddl import Parser
+
+	domain_file_path = '../data/domains/blocks-domain.pddl'
+
+	parser = Parser()
+	parser.parse_domain(domain_file_path)
+	planner = Planner(domain_file_path)
+
+	# Goal predicates
+	goal_predicates = {('on', ('block','block'))}
+
+	# Virtual objects
+	virtual_objects = None
+
+	# Create the generator and load the trained models
+	curr_it = 1450 # It of the loaded model, used to resume training
+	init_policy_path = "saved_models/both_policies_239/init_policy_its-{}.ckpt".format(curr_it)
+	goal_policy_path = "saved_models/both_policies_239/goal_policy_its-{}.ckpt".format(curr_it)
+
+	# NLM layers without predicates of arity 3
+	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+
+	# NLM layers with predicates of arity 3
+	# init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	# goal_policy_nlm_inner_layers = [[8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,8,0], [8,8,8,4,0]]
+
+	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
+
+	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorBlocksworld,
+										   allowed_virtual_objects=virtual_objects,
+										   penalization_continuous_consistency=-0.1,
+										   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0,
+										   device='cuda', max_objs_cache_reduce_masks=15,
+										  
+										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
+										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
+										   io_residual_initial_state_nlm=True,
+										   res_connections_initial_state_nlm=False,
+										   exclude_self_inital_state_nlm=True,
+										   load_init_state_policy_checkpoint_name=init_policy_path,
+
+										   num_preds_inner_layers_goal_nlm=goal_policy_nlm_inner_layers,
+										   mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
+										   io_residual_goal_nlm=True,
+										   res_connections_goal_nlm=False,
+										   exclude_self_goal_nlm=True,
+										   load_goal_policy_checkpoint_name=goal_policy_path)
+
+	print(f">> Init model {init_policy_path} and goal model {goal_policy_path} loaded")
+
+	# Train the goal generation policy
+	directed_generator.train_generative_policies(training_iterations = 10000, start_it=curr_it+1) # +1 because we need to start with the next iteration
+
 
 """
 
@@ -3907,40 +4104,57 @@ def test_load_models_and_resume_training_logistics():
 	> logs: init_policy\version_196
     > saved_models: both_policies_247
 
+	>>> Num_cities vuelve a descender hasta 1 (paré el entrenamiento cuando ya había bajado de 1.5 a 1.3)
+
+
+> Igual que experimento anterior menos:
+   	<init_policy_entropy_coeffs: 10, (1000, 0.1)>
+   	<goal_policy_entropy_coeffs: 0.0, None>
+	<trajectories_per_train_it=25> (antes 50)
+
+	> logs: init_policy\version_197
+    > saved_models: both_policies_248
+
+	> Num_cities vuelve a converger a 1 al final del entrenamiento
+
+
+> Igual que experimento anterior menos:
+   	<init_policy_entropy_coeffs: 0.1, None>
+   	<goal_policy_entropy_coeffs: 0.0, None>
+	<trajectories_per_train_it=25> (antes 50)
+	<min_cities=2>
+
+	> logs: init_policy\version_198
+    > saved_models: both_policies_249
 
 
 
-
-	>>> GENERAR PROBLEMAS CON MAX_ATOMS=15 Y COMPARAR SU DIVERSIDAD CON LOS GENERADOS POR EL GENERATOR!!! (la diversidad debería ser menor)
-
-	>>> CONFORME LOS PROBLEMAS SON MÁS DIFÍCILES, EL PLANNER TARDA MÁS EN RESOLVERLOS Y EL ENTRENAMIENTO SE RALENTIZA!!!
-
-	>>> VER LOS RESULTADOS DE ESTE EXPERIMENTO PARA ANALIZAR QUÉ FUNCIONA MEJOR,
-	    SI UNA INIT_POLICY_ENTROPY ALTA O BAJA!!!
-			- Parece que con solo que caiga un poco la init_policy_entropy (de 0.91 a 0.88), es suficiente para que varíe
-			  mucho num_objs)
-			- Creo que la init_policy solo genera problemas con una ciudad porque al principio del entrenamiento (cuando la goal_policy
-			  aún no ha aprendido) se dan una de estas dos condiciones:
-			  	1) La goal_policy tiene más fácil generar problemas difíciles con una ciudad que con dos o más (al ejecutar acciones al azar)
-				2) Es más probable que un problema sea eventualmente consistente si solo tiene una ciudad (más fácil (probable) que cada ciudad 
-				   tenga un truck)
-
-				<Para evitar esto, tengo que "obligar" a la init_policy a generar problemas con varias ciudades al principio del entrenamiento>
-				(usar una entropía muy alta y después bajarla, una vez que la goal_policy haya aprendido), hasta que vea que tiene "ventajas"
-				generar problemas con varias ciudades (son más diversos y difíciles, una vez que la goal_policy ha aprendido)
+	>>> Si lo resultados son buenos:
+		- Guardar modelo en best_models
+		- Hacer commit
+		- Generar un gran número de problemas (ej.: 50) para cada tamaño de problema
+		- Medir tiempo de generación (sin planner, pero teniendo en cuenta tiempo perdido en inconsistent problems) para cada tamaño de problema
+		- Medir dificultad (ver si uso algún planner adicional)
+		- Medir diversidad
+			- Esto lo puedo hacer después de empezar el entrenamiento con blocksworld
+		- Comparar dificultad y diversidad con el instance generator
+			- Ver que los problemas son efectivamente más difíciles y diversos!!!
+		- Hacer baseline para la diversidad -> usar instance generator pero generar todos los problemas de 15 átomos y con el mismo num de objs
+		  de cada tipo (solo cambia la localización de los trucks, airplanes y packages en el init y goal)
+		  	- Creo que esto no es necesario
 
 
 
-	>>> CREO QUE NECESITO UNA MAYOR INIT_POLICY_ENTROPY, NO MENOS!!!	
-		- Alta init_policy entropy y baja (0) goal_policy_entropy
-			- Ej.: init_policy_entropy_coeffs: 2, (1000, 0.1) 
-			  (y si al final del entrenamiento vemos que no es suficiente, puedo parar el entrenamiento, bajar el entropy_coeff
-			   y volver al entrenamiento)
+	> Si al bajar la init_policy_entropy pierden demasiada diversidad los problemas (ej.: num_locations va a 0), probar
+	  a coger el modelo en una iteración anterior (no al final del entrenamiento)
+
+	> Si no aprende, probar una init_policy_entropy muy baja (a ver si así genera problemas con 2 ciudades)
+		- Quizás debería usar 50 trayectorias en vez de 25
 
 
-
-
-
+	> Parece que para que añada bastantes ciudades tengo que aumentar mucho la entropía, pero eso hace que le cueste aprender!!
+		- Debería usar una entropía más baja y num_cities=2
+		- O quizás usar también el diversity_reward
 
 	>>> Si no aprende,
 		- usar min_cities=2
@@ -4220,6 +4434,8 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems_logistics()	
 	#test_load_models_and_resume_training_logistics()
 
+	#test_train_init_and_goal_policy_blocksworld()
+	#test_load_models_and_generate_problems_blocksworld()	
+	#test_load_models_and_resume_training_blocksworld()
 
-
-	# Probar test_generate_random_problems_logistics!!
+	

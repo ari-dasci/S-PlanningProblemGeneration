@@ -33,7 +33,7 @@ class ValidatorPredOrder(ABC):
 Consistency validator for the blocksworld domain. It guides the initial state generation process by establishing
 an order in which atoms must be added to the state.
 """
-class ValidatorPredOrderBW(ValidatorPredOrder):
+class ValidatorBlocksworldWithPredOrder(ValidatorPredOrder):
 
 	#It establishes the order in which the atoms must be added to the state. In this example,
 	#                 atoms of type "ontable" must be added before those of type "on"
@@ -943,7 +943,7 @@ class ValidatorLogistics(ValidatorPredOrder):
 		if action_pred not in cls.available_predicates:
 			raise ValueError("The predicate type is not in the list of predicates of the validator")
 		
-		
+
 		# (in-city ?l - location ?c - city)
 		if action_pred == 'in-city':
 			loc, city = action[1]
@@ -1033,7 +1033,196 @@ class ValidatorLogistics(ValidatorPredOrder):
 
 		# NEW
 		# The problem must contain at least two cities
-		# if state_objs_types.count('city') < 2:
-		#	return False
+		if state_objs_types.count('city') < 2:
+			return False
 
 		return True
+
+
+"""
+Consistency validator for the blocksworld domain. It guides the initial state generation process by establishing
+an order in which atoms must be added to the state.
+"""
+class ValidatorBlocksworld(ValidatorPredOrder):
+
+	available_predicates = ['ontable', 'on', 'clear', 'holding', 'handempty']
+	predicates_required = ['ontable', 'on', 'clear']
+
+	"""
+	Returns a list with the predicate names which are required in a totally-generated initial state.
+	In blocksworld, ['ontable', 'on', 'clear']
+	"""
+	@classmethod
+	def required_pred_names(cls):
+		return cls.predicates_required
+
+
+	"""
+	<Consistency rules>
+	- Continuous
+		- ontable(x)
+			- x is new
+
+		- on(x,y)
+			- x is new
+			- y is NOT new
+			- y does not appear in an atom of type clear or holding (clear(y) and holding(y) do not exist)
+			- y does not have a block on top of it (on(*,y) does not exist)
+
+		- clear(x)
+			- x is NOT new
+			- x does not appear in holding(x)
+			- x does not have a block on top of it (on(*,x) does not exist)
+
+		- holding(x)
+			- x is new
+			- state does not contain an atom handempty or holding
+
+		- handempty()
+			- state does not contain an atom holding
+
+	- Eventual
+		- problem has at least one atom of each required predicate (ontable, on and clear)
+		- all towers of blocks have clear()
+			- For all objects x appearing in atoms ontable(x) or on(x,*) but which do not appear in an atom on(*,x)
+			  there must exist clear(x)
+		- problem either has holding(x) or handempty()
+	"""	
+
+	"""
+	Checks if the continuous consistency rules are met at the next_state, obtained by applying @action to @curr_state.
+	<Note1>: this method does NOT check that the atom is not already present in the state.
+	<Note2>: this method assumes that curr_state meets all the continuous consistency rules.
+	<Note3>: this method assumes that new objects (those present in @action but not in @curr_state) will be added AFTER this method
+			 to the state @curr_state -> Don't call this method after having already added the new objects to the state!!!
+	<Note4>: this method assumes that the object types @obj_types of the objects the atom @action is instantiated on are of the correct
+	         type! (obj_types[i] in type_hierarchy[action[1][i]] for every i)
+
+	@curr_state An instance of RelationalState
+	@action The next atom to add (e.g,. ['on' [1, 0]])
+	@obj_types List with the type of each object in the atom (@action[1]) -> In blocksworld there is only one type, so we do not need to check it 
+	"""
+	@classmethod
+	def check_continuous_consistency_state_and_action(cls, curr_state, action, obj_types):
+		action_pred = action[0]
+		state_atoms = curr_state.atoms
+		state_objs = list(range(curr_state.num_objects)) # Represent the objects as a list of indexes, instead of ['block', 'block'...]
+
+		# <Check the atom has no repeated parameters (e.g.: (on 0 0) )>
+		if len(action[1]) != len(set(action[1])):
+			return False
+
+		if action_pred not in cls.available_predicates:
+			raise ValueError("The predicate type is not in the list of predicates of the validator")
+		
+
+		# (ontable x)
+		if action_pred == 'ontable':
+			x = action[1][0]
+
+			# x must be a new object	
+			return x not in state_objs
+
+		# (on x y)	
+		if action_pred == 'on':
+			x, y = action[1]
+
+			# x must be a new object
+			if x in state_objs:
+				return False
+
+			# y must NOT be a new object
+			if y not in state_objs:
+				return False
+
+			# y does not appear in an atom of type clear or holding (clear(y) and holding(y) do not exist)
+			num_atoms_y_holding_clear = len([atom for atom in state_atoms if atom[0] in ('clear', 'holding') and atom[1][0] == y])
+
+			if num_atoms_y_holding_clear > 0:
+				return False
+
+			# y cannot have another block z on top  -> (on z y) cannot exist in the state
+			num_invalid_atoms_state = len([atom for atom in state_atoms if atom[0] == 'on' and atom[1][1] == y])
+
+			return num_invalid_atoms_state == 0
+
+		# (clear x)		
+		# x does not have a block on top of it (on(*,x) does not exist)
+		if action_pred == 'clear':
+			x = action[1][0]
+
+			# x is NOT new
+			if x not in state_objs:
+				return False
+
+			# x does not appear in holding(x)
+			num_atoms_holding_x = len([atom for atom in state_atoms if atom[0] == 'holding' and atom[1][0] == x])
+
+			if num_atoms_holding_x > 0:
+				return False
+
+			# x does not have a block on top of it (on(*,x) does not exist)
+			num_invalid_atoms_state = len([atom for atom in state_atoms if atom[0] == 'on' and atom[1][1] == x])
+
+			return num_invalid_atoms_state == 0
+
+		# (holding x)		
+		if action_pred == 'holding':
+			x = action[1][0]
+
+			# x is new
+			if x in state_objs:
+				return False
+
+			# state does not contain an atom handempty or holding
+			num_atoms_holding_handempty = len([atom for atom in state_atoms if atom[0] in ('holding', 'handempty')])
+
+			return num_atoms_holding_handempty == 0
+			 
+		# (handempty)	
+		if action_pred == 'handempty':
+			# state does not contain an atom holding
+			num_atoms_holding = len([atom for atom in state_atoms if atom[0] == 'holding'])
+
+			return num_atoms_holding == 0
+
+
+	"""
+	Checks if the eventual consistency rules are met at the current state, corresponding to a totally generated initial state.
+	<Note>: we also need to check for the continuous consistency rules which may have been skipped due to not adding a given predicate type
+	        to the state. For example, if we haven't added an atom of type (handempty) or (holding _) to the state, then we have never
+			checked the continuous consistency rule that says "every block X on top needs an atom of type (clear X)" -> This is why
+			we check them here.
+
+	@curr_state An instance of RelationalState
+	"""
+	@classmethod
+	def check_eventual_consistency_state(cls, curr_state):
+		state_objs = list(range(curr_state.num_objects)) # Represent the objects as a list of indexes, instead of ['block', 'block'...]
+		state_atoms = curr_state.atoms
+		preds_in_state = set([a[0] for a in state_atoms])
+		required_preds = cls.predicates_required
+
+		# <Check the state contains at least one atom of each required predicate type>
+		for pred in required_preds:
+			if pred not in preds_in_state:
+				return False
+
+		# <The state contains either one atom of type holding or handempty>
+		num_atoms_holding_handempty = len([atom for atom in state_atoms if atom[0] in ('holding', 'handempty')])
+
+		if num_atoms_holding_handempty != 1:
+			return False
+
+		# <Make sure every block on top of a tower has the (clear) predicate>
+		# Get blocks with no other blocks on top and which are either on top of another block or ontable
+		clear_blocks = list(filter(lambda obj: \
+											(len(list(filter(lambda a: a[0] == 'on' and a[1][0] == obj, state_atoms))) +
+											len(list(filter(lambda a: a[0] == 'ontable' and a[1][0] == obj, state_atoms)))) > 0 and
+											len(list(filter(lambda a: a[0] == 'on' and a[1][1] == obj, state_atoms))) == 0, 
+									state_objs))
+
+		# Calculate number of blocks with no other blocks on top that have no 'clear' atom associated
+		num_invalid_objs = len(list(filter(lambda b: ('clear', tuple(b)) not in state_atoms, clear_blocks)))
+
+		return num_invalid_objs == 0
