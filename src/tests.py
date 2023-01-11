@@ -4118,6 +4118,7 @@ def test_load_models_and_resume_training_blocksworld():
 	> Num_cities vuelve a converger a 1 al final del entrenamiento
 
 
+<<< Best model Logistics >>>
 > Igual que experimento anterior menos:
    	<init_policy_entropy_coeffs: 0.1, None>
    	<goal_policy_entropy_coeffs: 0.0, None>
@@ -4126,6 +4127,26 @@ def test_load_models_and_resume_training_blocksworld():
 
 	> logs: init_policy\version_198
     > saved_models: both_policies_249
+
+	> Entrenamiento
+		- Tiempo: 1 día 7 horas (hasta it=2000)
+		- r_diff (init_policy)= 2.2, r_diff (goal_policy)=2.8
+		- r_continuous=0, r_eventual=-0.08
+		- init_policy_entropy se estabiliza en 0.67, goal_policy_entropy en 0.4
+		- term_cond_prob init_policy converge a 0, term_cond_prob de la goal_policy fluctúa alrededor de 1e-3
+		- num_objs (its=2000):
+			- city: 2.6
+			- airport: 3
+			- location: 1.7
+			- airplane: 2.5
+			- truck: 3
+			- package: 4.7
+
+	> Problemas (its=2000):
+		
+
+
+
 
 
 

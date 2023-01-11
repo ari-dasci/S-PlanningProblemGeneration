@@ -73,7 +73,7 @@ class Planner():
 	@max_planning_time In seconds, maximum time the planner can take. If it surpasses the threshold, a timeout is produced and we
 					   assume the problem was not solvable (even though maybe it is).
 	"""
-	def solve_problem(self, pddl_problem_path, max_planning_time = 60):
+	def solve_problem(self, pddl_problem_path, max_planning_time = 600):
 		# Create the command to call the planner
 		planner_path = self._planner_path
 
@@ -117,13 +117,13 @@ class Planner():
 
 	"""
 	Calls the planner, solves the problem and returns the number of expanded nodes. If the planner did not find a solution,
-	it returns -1.
+	it returns -1.0.
 	<Note>: I don't know if the timeout actually works. If the problem is too complex I think the planner can get stuck.
 
 	@max_planning_time In seconds, maximum time the planner can take. If it surpasses the threshold, a timeout is produced and we
 					   assume the problem was not solvable (even though maybe it is).
 	"""
-	def get_problem_difficulty(self, pddl_problem_path, max_planning_time = 60):
+	def get_problem_difficulty(self, pddl_problem_path, max_planning_time = 600):
 		planner_outputs = self.solve_problem(pddl_problem_path, max_planning_time)
 
 		expanded_nodes_list = []
@@ -139,9 +139,11 @@ class Planner():
 					# Search for number of expanded nodes
 					curr_expanded_nodes = int(re.search(r"Expanded ([0-9]+) state\(s\)\.", planner_output).group(1))
 					curr_expanded_nodes += 1 # Add 1 in case the planner has expanded 0 nodes (in such case, we obtain NaN when we perform the logarithm)
-
-					# Search for plan length
-					# curr_expanded_nodes = int(re.search(r"Plan length: ([0-9]+) step\(s\)\.", planner_output).group(1))
+			
+				# Check if there was an outofmemory error (code 22 or 20)
+				# If so, return -1.0 to signal that the planner could not find a solution
+				elif re.search("search exit code: 22", planner_output) or re.search("search exit code: 20", planner_output):
+					curr_expanded_nodes = -1.0
 				else:
 					# If the planner output does not contain "Solution found.", that's because the problem goal was empty
 					# and it does not support axioms -> Therefore, the problem diff is 1 (can't be 0 to avoid NaN when we perform the logarithm)

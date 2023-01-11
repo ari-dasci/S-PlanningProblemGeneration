@@ -711,10 +711,13 @@ class DirectedGenerator():
 
 	@rescale_factor We multiply the log_r_difficulty by this factor to rescale it, with respect to the other rewards
 					(r_continuous_consistency and r_eventual_consistency)
+	@max_difficulty The difficulty we consider a problem has when it could not be solved by the corresponding planner
+	                (timeout or outofmemory error). It is a list corresponding to the difficulties of 1) lama-first,
+					2) ff and 3) weighted A* with lmcut.
 
 	<Note>: This method also selects the goal atoms corresponding to the goal predicates given by the user
 	"""
-	def get_problem_difficulty(self, problem, max_difficulty=1e3, rescale_factor=0.1, max_planning_time=60):
+	def get_problem_difficulty(self, problem, max_difficulty=[2000, 30000, 1500], rescale_factor=0.1, max_planning_time=600):
 		# Encode the problem in PDDL
 		# > This method also selects the goal atoms corresponding to the goal predicates given by the user
 		pddl_problem = problem.obtain_pddl_problem()
@@ -738,7 +741,8 @@ class DirectedGenerator():
 		# Note: if the planner does not find a solution, it also returns -1, but this situation should not happen
 		#       as every problem is solvable.
 		problem_difficulty_list = self._planner.get_problem_difficulty(self._temp_problem_path, max_planning_time)		
-		problem_difficulty_list = [max_difficulty if diff == -1 else diff for diff in problem_difficulty_list]
+		
+		problem_difficulty_list = [max_difficulty[ind] if diff == -1.0 else diff for ind, diff in enumerate(problem_difficulty_list)]
 
 		# rescale problem_difficulty
 		scaled_difficulty_list = [diff*rescale_factor for diff in problem_difficulty_list]
@@ -1193,8 +1197,10 @@ class DirectedGenerator():
 
 	@problems A list of ProblemState instances containing the initial state of each trajectory to start the goal generation phase from.
 			 <Note>: we assume the initial states of @problems meets all the eventual consistency rules.
+	@calculate_difficulty If True, we solve the problems and output their difficulty.
 	"""
-	def _obtain_trajectories_goal_policy(self, problems, use_epm, list_max_actions_goal_state=-1, max_planning_time=600, verbose=False):
+	def _obtain_trajectories_goal_policy(self, problems, use_epm, list_max_actions_goal_state=-1, max_planning_time=600, calculate_difficulty=True,
+	 									 verbose=False):
 		num_trajectories = len(problems)
 
 		"""
@@ -1310,7 +1316,11 @@ class DirectedGenerator():
 
 					# Call the planner to obtain the difficulty of the problem generated
 					# This method also selects the goal atoms corresponding to the goal predicates given by the user
-					r_difficulty_real_list, r_difficulty_list = self.get_problem_difficulty(problems[i], use_epm, max_planning_time=max_planning_time) # Difficulty scaled to real values between 0 and 1 (unless the problem difficulty surpasses the maximum difficulty)
+					if calculate_difficulty:
+						r_difficulty_real_list, r_difficulty_list = self.get_problem_difficulty(problems[i], use_epm, max_planning_time=max_planning_time) # Difficulty scaled to real values between 0 and 1 (unless the problem difficulty surpasses the maximum difficulty)
+					else:
+						r_difficulty_real_list, r_difficulty_list = None, None
+								
 					list_r_difficulties_real[i] = r_difficulty_real_list
 
 				# If the selected action is not the termination condition, execute it
@@ -1336,7 +1346,11 @@ class DirectedGenerator():
 
 						# Call the planner to obtain the difficulty of the problem generated
 						# This method also selects the goal atoms corresponding to the goal predicates given by the user
-						r_difficulty_real_list, r_difficulty_list = self.get_problem_difficulty(problems[i], use_epm, max_planning_time=max_planning_time)
+						if calculate_difficulty:
+							r_difficulty_real_list, r_difficulty_list = self.get_problem_difficulty(problems[i], use_epm, max_planning_time=max_planning_time)
+						else:
+							r_difficulty_real_list, r_difficulty_list = None, None
+						
 						list_r_difficulties_real[i] = r_difficulty_real_list
 					else:
 						r_difficulty_list = 0.0 # Before calculating the problem difficulty, it must be fully generated
@@ -1601,11 +1615,16 @@ class DirectedGenerator():
 	@problem_name The name of the generated problem, which appears in the PDDL encoding.
 	@verbose If True, print information about the problem generation process.
 	"""
-	def generate_problem(self, max_atoms_init_state=-1, max_actions_init_state=-1, max_actions_goal_state=-1, problem_name = "problem", max_planning_time=60, verbose=True):
+	def generate_problem(self, max_atoms_init_state=-1, max_actions_init_state=-1, max_actions_goal_state=-1, problem_name = "problem", max_planning_time=600, verbose=True):
 
 		if verbose:
 			print(f"\n\n---------- Problem {problem_name} ----------\n\n")
 			print("> Generating initial state (:init)")
+
+
+		# Measure time needed to generate the problem
+		# <Note>: for good time measurement, verbose should be False
+		start_time = time.time()
 
 		# <NEW>
 		# If max_atoms and max_actions is -1, use default values
@@ -1641,10 +1660,15 @@ class DirectedGenerator():
 			print("> Generating goal (:goal)")
 
 		# <Generate a goal state with the goal policy>
-		# False -> we don't use an EPM to obtain the problem difficulty when we are in the test phase
-		final_problem, problem_difficulties, _ = self._obtain_trajectories_goal_policy([init_problem], False, [max_actions_goal_state], max_planning_time=max_planning_time, verbose=verbose)
+		final_problem, _, _ = self._obtain_trajectories_goal_policy([init_problem], False, [max_actions_goal_state], max_planning_time=max_planning_time, calculate_difficulty=False, verbose=verbose)
 		final_problem = final_problem[0]
-		problem_difficulties = problem_difficulties[0]
+		
+		# Finish time measurement
+		end_time = time.time()
+		elapsed_time = end_time - start_time
+
+		# Solve the problem in order to obtain its difficulty
+		problem_difficulties, _ = self.get_problem_difficulty(final_problem, False, max_planning_time=max_planning_time)
 
 		# <Obtain the PDDL encoding of the problem>
 		# Note: this method also selects at the goal state the predicates given by the user, in order to obtain the problem goal (:goal)
@@ -1653,7 +1677,7 @@ class DirectedGenerator():
 		if verbose:
 			print("> PDDL problem completely generated")
 
-		return pddl_problem, problem_difficulties
+		return pddl_problem, problem_difficulties, elapsed_time
 
 
 	"""
@@ -1682,9 +1706,13 @@ class DirectedGenerator():
 								problems_path = '../data/problems/problems_both_generative_policies/',
 								problems_name = 'bw_both_generative_policies',
 								metrics_file_path = '../data/problems/problems_both_generative_policies/problems_both_generative_policies_metrics.txt',
-								max_planning_time=60,
+								max_planning_time=600,
 								verbose=True):
 		
+		# Diff in case of timeout/out-of-memory error
+		# Lama-first, ehc(ff), weighted A* with lmcut
+		max_diff_each_planner = [2000, 30000, 1500]
+
 		if verbose:
 			print("\n\n\n================= Directed Problem Generation Started =================\n")
 			print("Domain name:", self._parser.domain_name)
@@ -1706,12 +1734,19 @@ class DirectedGenerator():
 		f_metrics = open(metrics_file_path, 'a+')
 		f_metrics.write("\n-------------------\n")
 
+		# Store the difficulty of each problem, in order to calculate the mean across all generated problems
+		# Also stored the time it took to generate each problem -> Note: verbose should be set to False
+		list_problem_diffs = []
+		list_generation_times = []
+
 		for ind in range(num_problems_to_generate):
 			# Append index to problem name
 			curr_problem_name = problems_name + '_' + str(ind)
 
 			# Generate problem
-			new_problem, new_problem_difficulties = self.generate_problem(max_atoms_init_state, max_actions_init_state, max_actions_goal_state, curr_problem_name, max_planning_time, verbose)
+			new_problem, new_problem_difficulties, generation_time = self.generate_problem(max_atoms_init_state, max_actions_init_state, max_actions_goal_state, curr_problem_name, max_planning_time, verbose)
+			list_problem_diffs.append(new_problem_difficulties)
+			list_generation_times.append(generation_time)
 
 			# Save it to disk
 			curr_prob_path = problems_path + curr_problem_name + '.pddl'
@@ -1727,6 +1762,17 @@ class DirectedGenerator():
 
 			if verbose:
 				print(f"> Problem difficulty (num expanded nodes): {new_problem_difficulties}")
+
+
+		# Calculate mean difficulty and generation time
+		mean_problem_diff = np.array(list_problem_diffs).mean(axis=0)
+		mean_generation_time = np.array(list_generation_times).mean()
+		f_metrics.write(f'\n--- Mean problem difficulty: {mean_problem_diff} ---\n')
+		f_metrics.write(f'\n--- Mean generation time: {mean_generation_time}s ---\n')
+
+		if verbose:
+			print(f"\n--- Mean problem difficulty: {mean_problem_diff} ---")
+			print(f"\n--- Mean generation time: {mean_generation_time}s ---")
 
 		f_metrics.close()
 
