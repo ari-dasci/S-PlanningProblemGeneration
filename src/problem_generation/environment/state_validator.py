@@ -1030,8 +1030,6 @@ class ValidatorLogistics(ValidatorPredOrder):
 			if obj_types_in_locations_in_curr_city.count('truck') == 0:
 				return False
 
-
-		# NEW
 		# The problem must contain at least two cities
 		if state_objs_types.count('city') < 2:
 			return False

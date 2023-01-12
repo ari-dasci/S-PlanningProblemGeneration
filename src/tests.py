@@ -887,8 +887,8 @@ def test_load_models_and_generate_problems_logistics():
 	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_246/init_policy_its-540.ckpt"
-	goal_policy_path = "saved_models/both_policies_246/goal_policy_its-540.ckpt"
+	init_policy_path = "saved_models/both_policies_249/init_policy_its-2000.ckpt"
+	goal_policy_path = "saved_models/both_policies_249/goal_policy_its-2000.ckpt"
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
@@ -922,10 +922,10 @@ def test_load_models_and_generate_problems_logistics():
 	print(f">> Init model {init_policy_path} and goal model {goal_policy_path} loaded")
 
 	# Generate the set of problems with the trained initial policy
-	num_problems = 10
+	num_problems = 50
 
-	directed_generator.generate_problems(num_problems, max_atoms_init_state=15, max_actions_init_state=1,
-									     max_actions_goal_state=2.0, max_planning_time=600, verbose=True)
+	directed_generator.generate_problems(num_problems, max_atoms_init_state=40, max_actions_init_state=1,
+									     max_actions_goal_state=2.0, max_planning_time=600, verbose=False)
 
 
 def test_load_models_and_resume_training_logistics():
@@ -4014,7 +4014,7 @@ def test_load_models_and_resume_training_blocksworld():
 
 >  init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]] (depth=7)
    goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
-   only ground_entropy (no lifted entropy)
+
    penalization_continuous_consistency=-0.1
    rescale_factor = 0.1
    device='cuda'
@@ -4142,16 +4142,54 @@ def test_load_models_and_resume_training_blocksworld():
 			- truck: 3
 			- package: 4.7
 
-	> Problemas (its=2000):
-		
+	> Problemas (its=2000 (se obtienen resultados parecidos con its=1500 y 1750))
+		- max_atoms = 15
+			- diff = [27.7 165.5 21.7] (alta)
+			- diversidad (media-alta)
+				- problemas con 2, 3 y 4 ciudades
+				- el resto de número de objetos varían mucho!
+				- algunos problemas repetidos
+
+		- max_atoms = 20
+			- diff = [58.6 635.5 46.] (alta)
+
+		- max_atoms = 25
+			- diff = [88.4 1183.5 65.6] (alta)
+
+		- max_atoms = 30
+			- its=2000
+				- max_actions_goal_state=2
+					- diff = [102.5 2638.5 90.9] (media-alta)
+							 [111.8 3027.2 81.7] 
+
+				- max_actions_goal_state=3
+					- diff = [125.8 2768.3 77.1]
+
+				- max_actions_goal_state=4 
+					diff = [140.5 3451.8 102.6]
+						   [124.7 1939. 88.8]
+			
+			- its=1750
+				- diff = [87.5 2056.9 88.3]
+
+			- its=1500
+				- diff = [99. 1732.5 68.8]
+
+		- max_atoms = 35
+			- diff = [131.2 4419.6 120.5] (media (solo un 20% más alta que el instance generator))
+
+		- max_atoms = 40
+			- diff = [165.1 8327.7 135.4] (baja (menos que el instance generator))
+					 
+	<Los problemas generados son bastante difíciles pero solo generalizan bien hasta tamaño 30 más o menos>
+		- El número de ciudades escala, pero debería aumentar un poco más para problemas grandes
+		- La diversidad es bastante buena
+
+	<Quizás entrenar en problemas de distintos tamaños ayudaría>
 
 
 
-
-
-
-	>>> Si lo resultados son buenos:
-		- Guardar modelo en best_models
+	>>> Si los resultados son buenos:
 		- Hacer commit
 		- Generar un gran número de problemas (ej.: 50) para cada tamaño de problema
 		- Medir tiempo de generación (sin planner, pero teniendo en cuenta tiempo perdido en inconsistent problems) para cada tamaño de problema
@@ -4160,153 +4198,18 @@ def test_load_models_and_resume_training_blocksworld():
 			- Esto lo puedo hacer después de empezar el entrenamiento con blocksworld
 		- Comparar dificultad y diversidad con el instance generator
 			- Ver que los problemas son efectivamente más difíciles y diversos!!!
-		- Hacer baseline para la diversidad -> usar instance generator pero generar todos los problemas de 15 átomos y con el mismo num de objs
-		  de cada tipo (solo cambia la localización de los trucks, airplanes y packages en el init y goal)
-		  	- Creo que esto no es necesario
-
-
-
-	> Si al bajar la init_policy_entropy pierden demasiada diversidad los problemas (ej.: num_locations va a 0), probar
-	  a coger el modelo en una iteración anterior (no al final del entrenamiento)
-
-	> Si no aprende, probar una init_policy_entropy muy baja (a ver si así genera problemas con 2 ciudades)
-		- Quizás debería usar 50 trayectorias en vez de 25
-
-
-	> Parece que para que añada bastantes ciudades tengo que aumentar mucho la entropía, pero eso hace que le cueste aprender!!
-		- Debería usar una entropía más baja y num_cities=2
-		- O quizás usar también el diversity_reward
-
-	>>> Si no aprende,
-		- usar min_cities=2
-		- ver si uso diversity_reward
-			- y ver si tengo en cuenta las inconsistent trajectories o no
-		- añadir regla consistency 1 truck per city como continuous consistency rule (en vez de eventual)
-
-	>>> Si al final no uso la consistency rule min_cities=2, tampoco usarla en el instance generator!!!
-
-
-
-	>>> HACER QUE LA INIT_POLICY SOLO PUEDA EJECUTAR AQUELLAS ACCIONES CONTINUOUS-CONSISTENT!!!
-		- Ver si añado como continuous_consistency rule lo de que cada ciudad debe tener al menos un truck
-		  (que al añadir una ciudad nueva (in-city loc city, city not in state_objs) cada ciudad debe
-		   tener ya un truck al menos)
-		- En el paper, puedo decir que entrenar en problemas pequeños me permite 1) que la NLM inference sea eficiente
-		  (ya que escala según el num de objetos), 2) usar los planners para obtener la dificultad de los problemas en vez
-		  de tener que ser aproximada con algún método como el de Mauro Vallati y 3) obtener el conjunto de continuous
-		  consistent actions de manera eficiente ---> Para esto, claro, tengo que poder generalizar a problemas más grandes
-		- HACER LA PRIMERA PRUEBA SIN USAR DIVERSITY_REWARD!!! (solo policy_entropy)
-
-	>>> Si no se obtienen buenos resultados, hacer pruebas con min_cities=2
-		- Hacer prints para ver qué acciones se ejecutan en entrenamiento!!! (Si se intentan añadir átomos in-city o no y si
-	      los átomos se añaden en algún orden determinado)
-		- Hacer experimento sin diversity_reward
-		>>> Quizás puedo hacer masking de todas las init_actions que no son continuous-consistent!!! (básicamente hacer que la 
-		    init_generation_policy no tenga que aprender qué acciones son continuous consistent)
 
 	>>> SI QUITO PREDICATE ORDER, CAMBIAR PAPER
 	>>> SI QUITO PREDICATE ORDER, CAMBIAR CONSISTENCY RULES BLOCKSWORLD
 	>>> CAMBIAR EN EL PAPER QUE AHORA LAS INIT_STATE_ACTIONS SIEMPRE SON CONTINUOUS-CONSISTENT!!!
 	>>> QUITAR CONSISTENCY RULE NUM_CITIES=2
 
-	>>> Creo que la init_policy baja demasiado (debería usar init_policy_entropy=0.2 o así)
-		- Debería subir la init_policy_entropy a la vez que bajo el diversity_rescale_factor
-			- Creo que el diversity_rescale_factor es muy alto. -> LA FORMA DE MAXIMIZARLO (A LA VEZ QUE LA DIFICULTAD),
-			  ES CREAR PROBLEMAS DONDE CADA CIUDAD TIENE UN SOLO AIRPORT E IR VARIANDO EL RESTO DE OBJETOS!!! (trucks, airplanes, packages)
-			  	- POR TANTO CREO QUE DEBERÍA REDUCIR MUCHO EL DIVERSITY_RESCALE_FACTOR!!! (menos que diversity_rescale_factor=10)
-			- El num_objs de la init_policy y goal_policy es bastante distinto!!! Esto significa que para maximizar el diversity_rescale_factor
-			  la init_policy prefiere que muchos problemas no sean consistentes!!!
-		>>> Quizá también podría aplicar log() o sqrt() a la problem_difficulty (para que los problemas no dejen de ser
-		  diversos en cuanto empiezan a ser difíciles)
 
 	>>> Quizás necesite una mejor forma de medir la diversidad
 		- Ej.: que si todos los problemas son de ciudades con un solo airport, se consideren poco diversos
 
-	- Quizás debería empezar con un gran diversity_rescale_factor e ir bajándolo durante el entrenamiento!!!
-		- Para que así al principio aprenda a crear problemas consistentes con varias ciudades pero después bajarlo para que
-		  no añada tantos trucks, airplanes, etc.
+    >>> Quitar use_epm = False
 
-	- init_policy rewards:
-		- r_difficulty
-		- r_continuous (muy baja, además de que está max_actions_init_state), r_eventual
-		- r_diversity, policy_entropy (no usada)
-
-		-> Solo debería cambiar los coeficientes de r_difficulty y r_diversity (pero no r_eventual)
-			- Quizás cambiar r_difficulty haga que la goal_policy aprenda más rápido
-
-	- goal_policy rewards:
-		- r_difficulty
-		- policy_entropoy (no usada)
-
-
-
-	>>> Quizás debería hacer que la difficulty sea menos importante para la init_policy
-		- Para ello, puedo bajar el difficulty_rescale_factor al mismo tiempo que aumento la penalization por eventual_consistency (ej.: de 1 a 2)
-		  La idea es que la init_policy debe generar problemas diversos y consistentes pero no preocuparse tanto de la dificultad, ya que esto
-		  último es responsabilidad de la goal_policy.
-		  La única recompensa que tiene la goal policy es la r_difficulty!!!
-		- Creo que no hace falta aumentar la penalización por eventual_consistency, solo cambiar el difficulty rescale factor y el diversity
-		  rescale factor
-
-	<OBJETIVO>:
-		Debo intentar que se generen problemas con distintas ciudades y que num_cities aumente al aumentar max_atoms_init_state
-		Para ello, quizás sea necesario entrenar el método sobre problemas de distinto tamaño (variar max_atoms_init_state durante el entrenamiento)
-
-	>>> Siguientes pasos para conseguir este objetivo:
-		- Debería observar que se generan problemas con varias ciudades, incluso si muchos no son consistentes (num_cities de la init_policy es alto)
-			- Aumentar max_actions_init_state
-			- Probar a solo usar ground_action_entropy (quitar lifted_action_entropy)
-			- Quitar diversity reward
-			- Probar a aumentar la init_policy_entropy
-
-
-	> Mejor modelo hasta la fecha:
-		> logs: init_policy\version_161
-		> saved_models: both_policies_212
-
-	>>> Siguientes experimentos
-		- No diversity_reward
-			- init_policy_entropy_coeffs: 1
-			- init_policy_entropy_coeffs: 0.5
-		- Quitar consistency rule 2 cities (ver si se siguen generando problemas con más de una ciudad)
-		- Si no generaliza bien a problemas de distintos tamaños (ej.: no aumenta el num_cities):
-			- Usar distintos tamaños de problemas (max_num_atoms...) durante el entrenamiento
-
-		> Opcionales:
-			- Probar a usar un poco de policy_entropy para la goal policy
-			- Cambiar forma de calcular diversity reward
-			- Añadir reduce operation con mean a la NLM
-			- Hacer experimentos con max_atoms=13 para que tarden menos
-			- "Suavizar" r_diff usando log, sqrt, etc.
-			- Añadir consistency rule para que cada city deba tener un truck al menos y cada problema al menos un avión	
-
-	>>> 2 tipos de problemas
-		- Diversity rescale factor >= 3:
-			- 0 trucks, muchos airplanes y ciudades.
-		- Diversity rescale factor < 3:
-			- 0 airplanes, muchos trucks y un poco menos de ciudades.
-
-		CREO QUE CUANDO SE GENERAN PROBLEMAS CON DEMASIADAS CIUDADES, ES CUANDO TRUCKS CONVERGE A 0!!!
-		(si hay muchas ciudades, es muy complicado generar problemas complicados con trucks (es más fácil
-		si cada ciudad tiene un único location y usamos airplanes))
-		CREO QUE LA FORMA DE CALCULAR LA DIVERSIDAD DE LOS PROBLEMAS NO ES BUENA!!!
-
-
-	>>> Cambiar forma de calcular la diversity_reward (antes que probar a usar policy_entropy)
-		- Hacer que los problemas donde cada ciudad tiene un solo airport se parezcan mucho entre sí,
-		  aunque el num_cities, num_airports y num_airplanes sea diferente!
-		  	- Tengo que tener en cuenta en cuántos átomos (min, max, std, mean...) aparecen los objetos
-			  de cada tipo
-
-	> Parece que en cuanto uso diversity_reward, la NLM tiende a generar problemas solo con airplanes y airports
-		>>> Poca diversity_reward (ej.: 10) -> problemas con solo trucks (sin airplanes)
-		>>> Mucha diversity_reward (>=20) -> problemas con solo aviones (sin trucks)
-			- Aunque cuanto más aumenta la diversity_reward (ej.: 50vs20), el número medio de trucks y locations
-				es mayor (0.2, 0.6...) (aunque sigue siendo muy bajo)
-
-			PARECE QUE NO ES CAPAZ DE GENERAR PROBLEMAS TANTO CON TRUCKS COMO CON AIRPLANES!!! (donde para mover los paquetes
-			haya que intercalar airplanes y trucks) -> << NO APRENDE PATRONES COMPLEJOS (solo sigue reglas básicas para generar
-			problemas)>>
 
 
 	>>> AQUI-
@@ -4334,7 +4237,7 @@ def test_load_models_and_resume_training_blocksworld():
 
 
 
-	>> Quitar use_epm = False
+	
 
 	>>> Si al final termino midiendo la dificultad con el planner, debo ir alternando entre LAMA y otros planners
 	    durante el entrenamiento!!! (ir alternando entre varios
@@ -4451,8 +4354,8 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems()
 
 	#test_generate_random_problems_logistics()
-	test_train_init_and_goal_policy_logistics()
-	#test_load_models_and_generate_problems_logistics()	
+	#test_train_init_and_goal_policy_logistics()
+	test_load_models_and_generate_problems_logistics()	
 	#test_load_models_and_resume_training_logistics()
 
 	#test_train_init_and_goal_policy_blocksworld()

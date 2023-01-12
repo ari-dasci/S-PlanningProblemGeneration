@@ -18,7 +18,6 @@ from pathlib import Path
 from problem_generation.environment.problem_state import ProblemState
 from lifted_pddl import Parser
 from problem_generation.environment.planner import Planner
-from problem_generation.environment.state_validator import ValidatorPredOrderBW
 from problem_generation.environment.relational_state import RelationalState
 from problem_generation.models.nlm import NLM
 from problem_generation.models.reinforce import ReinforceDataset
@@ -53,7 +52,7 @@ class DirectedGenerator():
 
 	"""
 	def __init__(self, parser, planner, 
-				 predicates_to_consider_for_goal=None, initial_state_info=None, consistency_validator=ValidatorPredOrderBW,
+				 predicates_to_consider_for_goal=None, initial_state_info=None, consistency_validator=None,
 				 allowed_virtual_objects=None,
 				 penalization_continuous_consistency=-1, penalization_eventual_consistency=-1,
 				 max_atoms_init_state=20, max_actions_init_state=60, max_actions_goal_state=20,
