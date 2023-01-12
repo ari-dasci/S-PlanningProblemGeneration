@@ -1221,6 +1221,6 @@ class ValidatorBlocksworld(ValidatorPredOrder):
 									state_objs))
 
 		# Calculate number of blocks with no other blocks on top that have no 'clear' atom associated
-		num_invalid_objs = len(list(filter(lambda b: ('clear', tuple(b)) not in state_atoms, clear_blocks)))
+		num_invalid_objs = len(list(filter(lambda b: ('clear', (b,)) not in state_atoms, clear_blocks)))
 
 		return num_invalid_objs == 0

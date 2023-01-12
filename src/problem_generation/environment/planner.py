@@ -105,11 +105,18 @@ class Planner():
 		planner_outputs = []
 
 		for planner_command in planner_command_list:	
+			
+			"""
 			try:
 				curr_planner_output = subprocess.run(planner_command, timeout=max_planning_time, shell=False,
 											stdout=subprocess.PIPE).stdout.decode('utf-8')
 			except TimeoutExpired as e:
 				curr_planner_output = 'timeout'
+			"""
+
+			# Don't use timeout (it does not work in many cases)
+			curr_planner_output = subprocess.run(planner_command, shell=False,
+											stdout=subprocess.PIPE).stdout.decode('utf-8')
 
 			planner_outputs.append(curr_planner_output)
 
@@ -131,7 +138,7 @@ class Planner():
 		for planner_output in planner_outputs:
 			# Check if there was a timeout -> we consider this case the same as when the planner does not find a solution
 			if planner_output == 'timeout':
-				expanded_nodes_list.append(-1)
+				expanded_nodes_list.append(-1.0)
 				
 			else:
 				# Check if the planner found a solution

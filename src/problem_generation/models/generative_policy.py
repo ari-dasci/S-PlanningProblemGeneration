@@ -560,23 +560,22 @@ class GenerativePolicy(pl.LightningModule):
 				
 				dict_mean_objs_each_type = {t:num_objs_t/train_batch_len for t, num_objs_t in zip(types, num_objs_each_type)}
 
-				# ----- OLD
-				"""
-				num_types = self._dummy_rel_state.num_types
-				obj_types = self._dummy_rel_state.types
-				obj_types_to_indices_dict = self._dummy_rel_state.obj_types_to_indices_dict
-
-				list_tensors_unary_preds = list_state_tensors_nlm_encoding[1] # Tensors of unary predicates encode obj_types (and also other unary predicates)
-
-				# Obtain a torch.tensor where each row corresponds to a different sample and each column corresponds to the number of objects of the
-				# corresponding type for that sample
-				mean_objs_each_type = torch.mean(torch.stack([torch.sum(tensor[:, -num_types:], axis=0) \
-												  for tensor in list_tensors_unary_preds],axis=0),axis=0) 
-
-				dict_mean_objs_each_type = {t : mean_objs_each_type[obj_types_to_indices_dict[t]].item() for t in obj_types}
-				"""
-
 			self.logger.experiment.add_scalars('Object types', dict_mean_objs_each_type, global_step=self.curr_log_iteration)
+
+			# <Log number of atoms of each predicate type>
+			with torch.no_grad():
+				pred_names = list_rel_states[0].predicate_names
+				num_atoms_each_pred = [0]*len(pred_names)
+
+				for s in list_rel_states:
+					atoms = s.atoms
+					num_atoms_each_pred = [len([atom for atom in atoms if atom[0]==pred_name])+num_atoms for pred_name, num_atoms \
+										   in zip(pred_names, num_atoms_each_pred)]
+
+				dict_mean_atoms_each_type = {pred_name:num_atoms/train_batch_len for pred_name, num_atoms in zip(pred_names, num_atoms_each_pred)}
+
+			self.logger.experiment.add_scalars('Atom types', dict_mean_atoms_each_type, global_step=self.curr_log_iteration)
+
 
 			self.curr_log_iteration += 1
 

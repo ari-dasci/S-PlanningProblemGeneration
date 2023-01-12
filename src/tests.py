@@ -924,8 +924,8 @@ def test_load_models_and_generate_problems_logistics():
 	# Generate the set of problems with the trained initial policy
 	num_problems = 50
 
-	directed_generator.generate_problems(num_problems, max_atoms_init_state=40, max_actions_init_state=1,
-									     max_actions_goal_state=2.0, max_planning_time=600, verbose=False)
+	directed_generator.generate_problems(num_problems, max_atoms_init_state=15, max_actions_init_state=1,
+									     max_actions_goal_state=2.0, max_planning_time=600, verbose=True)
 
 
 def test_load_models_and_resume_training_logistics():
@@ -1033,8 +1033,8 @@ def test_train_init_and_goal_policy_blocksworld():
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorBlocksworld,
 										   allowed_virtual_objects=virtual_objects,
 										   penalization_continuous_consistency=-0.1,
-										   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0,
-										   device='cuda', max_objs_cache_reduce_masks=15,
+										   max_atoms_init_state=10, max_actions_init_state=1, max_actions_goal_state=4.0,
+										   device='cuda', max_objs_cache_reduce_masks=10,
 
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -4014,7 +4014,6 @@ def test_load_models_and_resume_training_blocksworld():
 
 >  init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]] (depth=7)
    goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
-
    penalization_continuous_consistency=-0.1
    rescale_factor = 0.1
    device='cuda'
@@ -4188,28 +4187,71 @@ def test_load_models_and_resume_training_blocksworld():
 	<Quizás entrenar en problemas de distintos tamaños ayudaría>
 
 
+# --------------------------- Pruebas blocksworld
 
-	>>> Si los resultados son buenos:
-		- Hacer commit
-		- Generar un gran número de problemas (ej.: 50) para cada tamaño de problema
-		- Medir tiempo de generación (sin planner, pero teniendo en cuenta tiempo perdido en inconsistent problems) para cada tamaño de problema
-		- Medir dificultad (ver si uso algún planner adicional)
-		- Medir diversidad
-			- Esto lo puedo hacer después de empezar el entrenamiento con blocksworld
-		- Comparar dificultad y diversidad con el instance generator
-			- Ver que los problemas son efectivamente más difíciles y diversos!!!
+>  <blocksworld>
+   init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]] (depth=7)
+   goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+   rescale_factor = 0.1
+   trajectories_per_train_it=50, minibatch_size=75
+   epochs_per_train_it=1
+   init_policy_entropy_coeffs: 0.1, None
+   goal_policy_entropy_coeffs: 0.0, None
+   diversity_rescale_factor=0
+   also calculate diversity reward for inconsistent trajectories
+   diff=LAMA, FF, weighted A* lmcut
+   mask inconsistent atoms>
+   no predicate order
+   <max_atoms_init_state=15>, max_actions_init_state=1, max_actions_goal_state=2
+
+   > logs: init_policy\version_199
+   > saved_models: both_policies_252
+
+	>>> TARDA DEMASIADO!!!
+		- Parece que el segundo planner (ehc(ff)) tarda demasiado para los problemas difíciles!!!
+		  (llega a explorar hasta 150k nodos y a veces da outofmemory error)
+
+
+> Igual que experimento anterior menos:
+  <max_atoms_init_state=10>, max_actions_init_state=1, <max_actions_goal_state=4>
+  
+  > logs: init_policy\version_200
+  > saved_models: both_policies_253
+
+
+
+	>>> Generar problemas en blocksworld con alto número de átomos para ver qué otro planner usar en vez de ehc(ff), en caso de que fuera
+	    necesario
+
+	>>> Generar problemas (con 10, 15, 20 atoms) en blocksworld con el instance generator y comparar su dificultad con los de NeSIG!!!
+		- PUEDO GENERAR LOS PROBLEMAS ANTES DE QUE NESIG TERMINE DE ENTRENAR (aunque los tiempos no sean fiables)
+		- Ver si NeSIG generaliza o no -> Si no, debería cambiar los planners a usar y entrenar en problemas más grandes (15 o 20 átomos)
+
+	>>> Ver cómo hacer que el entrenamiento en blocksworld sea más eficiente!
+		- Entrenar en problemas con 10 átomos
+			- Si es eficiente, ver si los problemas son difíciles y generalizan a tamaños más grandes (al comparar con el instance generator)
+		- Si no es eficiente o no generaliza, probar a NO usar a FF() como planner
+			- Generar problemas grandes con blocksworld y ver qué otro planner es muy eficiente!! (tiene poco planning time)
+			  y sustituirlo por ff en entrenamiento
+
+	
+	>>> Medir diversidad problemas NeSIG logistics y comparar con los del instance generator
+		- Según los resultados, ver si sería necesario comparar la diversidad con un tercer modelo baseline
+		  (ej.: instance generator pero donde el número de objetos de cada tipo es siempre el mismo, solo cambia su posición)
 
 	>>> SI QUITO PREDICATE ORDER, CAMBIAR PAPER
 	>>> SI QUITO PREDICATE ORDER, CAMBIAR CONSISTENCY RULES BLOCKSWORLD
 	>>> CAMBIAR EN EL PAPER QUE AHORA LAS INIT_STATE_ACTIONS SIEMPRE SON CONTINUOUS-CONSISTENT!!!
-	>>> QUITAR CONSISTENCY RULE NUM_CITIES=2
+
+
+
+
 
 
 	>>> Quizás necesite una mejor forma de medir la diversidad
 		- Ej.: que si todos los problemas son de ciudades con un solo airport, se consideren poco diversos
 
     >>> Quitar use_epm = False
-
 
 
 	>>> AQUI-
@@ -4355,10 +4397,10 @@ if __name__ == "__main__":
 
 	#test_generate_random_problems_logistics()
 	#test_train_init_and_goal_policy_logistics()
-	test_load_models_and_generate_problems_logistics()	
+	#test_load_models_and_generate_problems_logistics()	
 	#test_load_models_and_resume_training_logistics()
 
-	#test_train_init_and_goal_policy_blocksworld()
+	test_train_init_and_goal_policy_blocksworld()
 	#test_load_models_and_generate_problems_blocksworld()	
 	#test_load_models_and_resume_training_blocksworld()
 

@@ -716,7 +716,9 @@ class DirectedGenerator():
 
 	<Note>: This method also selects the goal atoms corresponding to the goal predicates given by the user
 	"""
-	def get_problem_difficulty(self, problem, max_difficulty=[2000, 30000, 1500], rescale_factor=0.1, max_planning_time=600):
+	def get_problem_difficulty(self, problem, max_difficulty=None, rescale_factor=0.1, max_planning_time=600):
+		max_difficulty=[2000, 30000, 1500]
+
 		# Encode the problem in PDDL
 		# > This method also selects the goal atoms corresponding to the goal predicates given by the user
 		pddl_problem = problem.obtain_pddl_problem()
@@ -741,6 +743,8 @@ class DirectedGenerator():
 		#       as every problem is solvable.
 		problem_difficulty_list = self._planner.get_problem_difficulty(self._temp_problem_path, max_planning_time)		
 		
+		print("- problem_difficulty_list", problem_difficulty_list)
+
 		problem_difficulty_list = [max_difficulty[ind] if diff == -1.0 else diff for ind, diff in enumerate(problem_difficulty_list)]
 
 		# rescale problem_difficulty
