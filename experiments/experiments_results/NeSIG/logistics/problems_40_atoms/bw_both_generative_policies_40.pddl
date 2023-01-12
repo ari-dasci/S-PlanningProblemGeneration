@@ -1,0 +1,73 @@
+(define (problem bw_both_generative_policies_40)
+
+(:domain logistics)
+
+(:objects
+	obj0 obj2 obj8 obj14 obj19 - airport
+	obj1 obj3 obj9 obj15 - city
+	obj4 obj6 obj7 obj13 obj17 obj22 obj23 obj25 obj29 obj32 obj33 obj35 obj38 obj39 - package
+	obj5 obj10 obj12 obj18 obj24 obj27 obj28 obj30 - location
+	obj11 obj16 obj20 obj21 obj40 obj41 obj42 obj43 - airplane
+	obj26 obj31 obj34 obj36 obj37 - truck
+)
+
+(:init
+	(in-city obj14 obj15)
+	(at obj38 obj2)
+	(at obj7 obj2)
+	(at obj37 obj0)
+	(at obj21 obj0)
+	(at obj42 obj19)
+	(at obj6 obj5)
+	(at obj11 obj8)
+	(in-city obj10 obj3)
+	(at obj41 obj2)
+	(in-city obj24 obj1)
+	(in-city obj28 obj9)
+	(at obj23 obj18)
+	(at obj33 obj30)
+	(at obj29 obj28)
+	(in-city obj30 obj1)
+	(at obj20 obj0)
+	(at obj35 obj18)
+	(at obj26 obj14)
+	(at obj32 obj24)
+	(at obj16 obj14)
+	(in-city obj27 obj9)
+	(in-city obj18 obj3)
+	(in-city obj2 obj3)
+	(in-city obj0 obj1)
+	(at obj4 obj0)
+	(in-city obj5 obj3)
+	(at obj34 obj8)
+	(at obj22 obj19)
+	(at obj36 obj2)
+	(in-city obj19 obj1)
+	(at obj25 obj14)
+	(at obj39 obj27)
+	(at obj17 obj12)
+	(at obj13 obj10)
+	(at obj40 obj14)
+	(in-city obj8 obj9)
+	(at obj31 obj19)
+	(in-city obj12 obj1)
+	(at obj43 obj14)
+)
+
+(:goal (and
+	(at obj6 obj10)
+	(at obj39 obj8)
+	(at obj33 obj24)
+	(at obj13 obj2)
+	(at obj29 obj28)
+	(at obj25 obj2)
+	(at obj17 obj0)
+	(at obj38 obj14)
+	(at obj7 obj14)
+	(at obj22 obj8)
+	(at obj4 obj19)
+	(at obj35 obj5)
+	(at obj23 obj5)
+	(at obj32 obj0)
+))
+)

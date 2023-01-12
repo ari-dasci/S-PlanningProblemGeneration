@@ -1033,8 +1033,8 @@ def test_train_init_and_goal_policy_blocksworld():
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorBlocksworld,
 										   allowed_virtual_objects=virtual_objects,
 										   penalization_continuous_consistency=-0.1,
-										   max_atoms_init_state=10, max_actions_init_state=1, max_actions_goal_state=4.0,
-										   device='cuda', max_objs_cache_reduce_masks=10,
+										   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0,
+										   device='cuda', max_objs_cache_reduce_masks=15,
 
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -4218,10 +4218,23 @@ def test_load_models_and_resume_training_blocksworld():
   > logs: init_policy\version_200
   > saved_models: both_policies_253
 
+  >>> El planner tarda demasiado y ehc(ff) a veces no encuentra solución!!!
+
+> Igual que experimento anterior menos:
+  <max_atoms_init_state=15>, max_actions_init_state=1, <max_actions_goal_state=2>
+  <diff=lama-first, lama-first ff, lama-first add>
+  
+  > logs: init_policy\version_201
+  > saved_models: both_policies_254
 
 
-	>>> Generar problemas en blocksworld con alto número de átomos para ver qué otro planner usar en vez de ehc(ff), en caso de que fuera
-	    necesario
+	>>>> ANTES DE EMPEZAR CON ESTA PRUEBA, OBTENER DIFF Y TIEMPOS DE BLOCKSWORLD LOGISTICS GENERATOR
+
+
+
+
+	> Quizás necesite usar 50 trajectories_per_train_it en vez de 25
+
 
 	>>> Generar problemas (con 10, 15, 20 atoms) en blocksworld con el instance generator y comparar su dificultad con los de NeSIG!!!
 		- PUEDO GENERAR LOS PROBLEMAS ANTES DE QUE NESIG TERMINE DE ENTRENAR (aunque los tiempos no sean fiables)

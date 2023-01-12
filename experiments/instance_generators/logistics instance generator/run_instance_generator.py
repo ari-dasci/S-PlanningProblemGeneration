@@ -45,18 +45,16 @@ extra_trucks_vals = list(range(0, 30))
 """
 
 
-num_airplanes_vals = list(range(1, 15))
-num_cities_vals = list(range(2, 15))
-city_size_vals = list(range(1, 15))
-num_packages_vals = list(range(1, 15))
-extra_trucks_vals = list(range(0, 15))
-
-
-
 # Problem size
 # HACER QUE MIN_ATOMS SIEMPRE SEA MENOR EN 2 A MAX_ATOMS SIN IMPORTAR EL PROBLEM_SIZE!!!
 min_atoms = 38 # 8 # 15 # 25
 max_atoms = 40 # 10 # 20 # 30
+
+num_airplanes_vals = list(range(1, max_atoms))
+num_cities_vals = list(range(2, max_atoms))
+city_size_vals = list(range(1, max_atoms))
+num_packages_vals = list(range(1, max_atoms))
+extra_trucks_vals = list(range(0, max_atoms))
 
 seed = 1679
 

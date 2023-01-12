@@ -1,13 +1,13 @@
-(define (problem logistics-c4-s4-p7-a6)
+(define (problem logistics-c4-s4-p4-a7)
 
 (:domain logistics)
 
-(:objects a0 a1 a2 a3 a4 a5 - airplane
+(:objects a0 a1 a2 a3 a4 a5 a6 - airplane
           c0 c1 c2 c3 - city
-          t0 t1 t2 t3 t4 - truck
+          t0 t1 t2 t3 t4 t5 t6 t7 - truck
           l0-0 l1-0 l2-0 l3-0 - airport
           l0-1 l0-2 l0-3 l1-1 l1-2 l1-3 l2-1 l2-2 l2-3 l3-1 l3-2 l3-3 - location
-          p0 p1 p2 p3 p4 p5 p6 - package
+          p0 p1 p2 p3 - package
 )
 
 (:init
@@ -32,19 +32,20 @@
     (at t2 l2-0)
     (at t3 l3-3)
     (at t4 l2-2)
-    (at p0 l1-1)
-    (at p1 l0-0)
-    (at p2 l3-0)
-    (at p3 l2-3)
-    (at p4 l2-3)
-    (at p5 l2-1)
-    (at p6 l3-2)
-    (at a0 l2-0)
-    (at a1 l2-0)
-    (at a2 l0-0)
+    (at t5 l1-1)
+    (at t6 l0-0)
+    (at t7 l3-0)
+    (at p0 l2-3)
+    (at p1 l2-3)
+    (at p2 l2-1)
+    (at p3 l3-2)
+    (at a0 l0-0)
+    (at a1 l1-0)
+    (at a2 l2-0)
     (at a3 l3-0)
-    (at a4 l3-0)
-    (at a5 l1-0)
+    (at a4 l0-0)
+    (at a5 l2-0)
+    (at a6 l2-0)
 )
 
 (:goal
@@ -53,9 +54,6 @@
         (at p1 l0-0)
         (at p2 l0-3)
         (at p3 l3-3)
-        (at p4 l0-1)
-        (at p5 l2-3)
-        (at p6 l0-2)
     )
 )
 )

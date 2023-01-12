@@ -83,10 +83,17 @@ class Planner():
 		planner_path = planner_path + 'fast-downward.py' # Path to the script to call fast downward
 
 		# List of search options to use
-		# Lama-first, FF, weighted A* with lmcut
-		planner_command_list = [ [self._python_call, planner_path, '--alias', 'lama-first', self._domain_file_path, pddl_problem_path],
+		# --- LOGISTICS ---
+		# Lama-first, FF, weighted A* with lmcut	
+		"""planner_command_list = [ [self._python_call, planner_path, '--alias', 'lama-first', self._domain_file_path, pddl_problem_path],
 						 		 [self._python_call, planner_path, self._domain_file_path, pddl_problem_path, '--search', 'ehc(ff())'],
-						 		 [self._python_call, planner_path, self._domain_file_path, pddl_problem_path, '--search', 'eager_wastar([lmcut()], w=2)'] ]
+						 		 [self._python_call, planner_path, self._domain_file_path, pddl_problem_path, '--search', 'eager_wastar([lmcut()], w=2)'] ]"""
+
+		# --- BLOCKSWORLD ---
+		planner_command_list = [ [self._python_call, planner_path, '--alias', 'lama-first', self._domain_file_path, pddl_problem_path],
+						 		 [self._python_call, planner_path, self._domain_file_path, pddl_problem_path, '--search', 'lazy_greedy([ff],preferred=[ff],cost_type=one,reopen_closed=false)'],
+						 		 [self._python_call, planner_path, self._domain_file_path, pddl_problem_path, '--search', 'lazy_greedy([add],preferred=[add],cost_type=one,reopen_closed=false)'] ] 						 
+		
 		
 		if self._num_planners_for_diff != len(planner_command_list):
 			raise Exception("self._num_planners_for_diff must be equal to the number of planners used to measure the problem difficulties")
@@ -147,9 +154,10 @@ class Planner():
 					curr_expanded_nodes = int(re.search(r"Expanded ([0-9]+) state\(s\)\.", planner_output).group(1))
 					curr_expanded_nodes += 1 # Add 1 in case the planner has expanded 0 nodes (in such case, we obtain NaN when we perform the logarithm)
 			
-				# Check if there was an outofmemory error (code 22 or 20)
+				# Check if there was an outofmemory error (code 22, 20 or 12)
 				# If so, return -1.0 to signal that the planner could not find a solution
-				elif re.search("search exit code: 22", planner_output) or re.search("search exit code: 20", planner_output):
+				elif re.search("search exit code: 22", planner_output) or re.search("search exit code: 20", planner_output) \
+					 or re.search("search exit code: 12", planner_output):
 					curr_expanded_nodes = -1.0
 				else:
 					# If the planner output does not contain "Solution found.", that's because the problem goal was empty

@@ -1,13 +1,13 @@
-(define (problem logistics-c4-s7-p5-a2)
+(define (problem logistics-c2-s5-p4-a6)
 
 (:domain logistics)
 
-(:objects a0 a1 - airplane
-          c0 c1 c2 c3 - city
-          t0 t1 t2 t3 t4 - truck
-          l0-0 l1-0 l2-0 l3-0 - airport
-          l0-1 l0-2 l0-3 l0-4 l0-5 l0-6 l1-1 l1-2 l1-3 l1-4 l1-5 l1-6 l2-1 l2-2 l2-3 l2-4 l2-5 l2-6 l3-1 l3-2 l3-3 l3-4 l3-5 l3-6 - location
-          p0 p1 p2 p3 p4 - package
+(:objects a0 a1 a2 a3 a4 a5 - airplane
+          c0 c1 - city
+          t0 t1 t2 t3 t4 t5 t6 t7 t8 t9 t10 t11 t12 t13 t14 t15 t16 t17 t18 t19 - truck
+          l0-0 l1-0 - airport
+          l0-1 l0-2 l0-3 l0-4 l1-1 l1-2 l1-3 l1-4 - location
+          p0 p1 p2 p3 - package
 )
 
 (:init
@@ -16,50 +16,49 @@
     (in-city  l0-2 c0)
     (in-city  l0-3 c0)
     (in-city  l0-4 c0)
-    (in-city  l0-5 c0)
-    (in-city  l0-6 c0)
     (in-city  l1-0 c1)
     (in-city  l1-1 c1)
     (in-city  l1-2 c1)
     (in-city  l1-3 c1)
     (in-city  l1-4 c1)
-    (in-city  l1-5 c1)
-    (in-city  l1-6 c1)
-    (in-city  l2-0 c2)
-    (in-city  l2-1 c2)
-    (in-city  l2-2 c2)
-    (in-city  l2-3 c2)
-    (in-city  l2-4 c2)
-    (in-city  l2-5 c2)
-    (in-city  l2-6 c2)
-    (in-city  l3-0 c3)
-    (in-city  l3-1 c3)
-    (in-city  l3-2 c3)
-    (in-city  l3-3 c3)
-    (in-city  l3-4 c3)
-    (in-city  l3-5 c3)
-    (in-city  l3-6 c3)
-    (at t0 l0-6)
-    (at t1 l1-1)
-    (at t2 l2-4)
-    (at t3 l3-5)
-    (at t4 l2-2)
-    (at p0 l1-5)
-    (at p1 l0-4)
-    (at p2 l3-2)
-    (at p3 l2-3)
-    (at p4 l2-1)
-    (at a0 l3-0)
-    (at a1 l3-0)
+    (at t0 l0-1)
+    (at t1 l1-0)
+    (at t2 l0-0)
+    (at t3 l0-1)
+    (at t4 l1-0)
+    (at t5 l0-4)
+    (at t6 l1-1)
+    (at t7 l0-0)
+    (at t8 l0-3)
+    (at t9 l0-1)
+    (at t10 l1-1)
+    (at t11 l1-4)
+    (at t12 l0-0)
+    (at t13 l0-3)
+    (at t14 l1-1)
+    (at t15 l0-3)
+    (at t16 l0-3)
+    (at t17 l0-3)
+    (at t18 l0-4)
+    (at t19 l0-0)
+    (at p0 l1-4)
+    (at p1 l1-1)
+    (at p2 l1-4)
+    (at p3 l0-3)
+    (at a0 l0-0)
+    (at a1 l0-0)
+    (at a2 l1-0)
+    (at a3 l1-0)
+    (at a4 l0-0)
+    (at a5 l1-0)
 )
 
 (:goal
     (and
-        (at p0 l2-1)
-        (at p1 l3-4)
-        (at p2 l1-6)
-        (at p3 l0-6)
-        (at p4 l0-6)
+        (at p0 l0-3)
+        (at p1 l1-0)
+        (at p2 l0-3)
+        (at p3 l0-1)
     )
 )
 )

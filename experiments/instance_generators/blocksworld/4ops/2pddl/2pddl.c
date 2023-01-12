@@ -89,7 +89,7 @@ int main( int argc, char *argv[] )
   }
 
   printf("(define (problem BW-rand-%d)", gn);
-  printf("\n(:domain (domain BLOCKS)");
+  printf("\n(:domain BLOCKS)");
   printf("\n(:objects ");
   for ( i = 0; i < gn; i++ ) printf("b%d ", i+1);
   printf("- block)");
