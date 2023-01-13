@@ -10,11 +10,11 @@ import time
 import numpy as np
 
 # Problem size
-min_atoms = 13
-max_atoms = 15
+min_atoms = 38
+max_atoms = 40
 
 # Generator parameters
-num_blocks_vals = list(range(2,max_atoms))
+num_blocks_vals = list(range(int(max_atoms/3),max_atoms))
 
 # seed = 1679
 # Had to define it inside main
@@ -110,6 +110,7 @@ def solve_problems_and_write_difficulty():
 			# Diff in case of timeout/out-of-memory error
 			# Lama-first, ehc(ff), weighted A* with lmcut
 			# max_diff_each_planner = [2000, 30000, 1500]
+			max_diff_each_planner = [50000, 50000, 50000]
 
 			diff_list = []
 
@@ -128,14 +129,14 @@ def solve_problems_and_write_difficulty():
 					# Search for plan length
 					# expanded_nodes = int(re.search(r"Plan length: ([0-9]+) step\(s\)\.", planner_output).group(1))
 				else:
-					# expanded_nodes = max_diff_each_planner[ind]
+					expanded_nodes = max_diff_each_planner[ind]
 
 					print(">>>> NO SOLUTION FOUND")
 					print("Planning problem:", problem_name)
 					print("Planner command:", planner_command)
-					print("Planner output:", planner_output)
+					#print("Planner output:", planner_output)
 
-					raise Exception("No solution found")
+					#raise Exception("No solution found")
 
 				diff_list.append(expanded_nodes)
 
