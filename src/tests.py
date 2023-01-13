@@ -4227,8 +4227,8 @@ def test_load_models_and_resume_training_blocksworld():
   > logs: init_policy\version_201
   > saved_models: both_policies_254
 
+	
 
-	>>>> ANTES DE EMPEZAR CON ESTA PRUEBA, OBTENER DIFF Y TIEMPOS DE BLOCKSWORLD LOGISTICS GENERATOR
 
 
 
@@ -4237,16 +4237,11 @@ def test_load_models_and_resume_training_blocksworld():
 
 
 	>>> Generar problemas (con 10, 15, 20 atoms) en blocksworld con el instance generator y comparar su dificultad con los de NeSIG!!!
-		- PUEDO GENERAR LOS PROBLEMAS ANTES DE QUE NESIG TERMINE DE ENTRENAR (aunque los tiempos no sean fiables)
-		- Ver si NeSIG generaliza o no -> Si no, debería cambiar los planners a usar y entrenar en problemas más grandes (15 o 20 átomos)
-
+		
 	>>> Ver cómo hacer que el entrenamiento en blocksworld sea más eficiente!
-		- Entrenar en problemas con 10 átomos
-			- Si es eficiente, ver si los problemas son difíciles y generalizan a tamaños más grandes (al comparar con el instance generator)
-		- Si no es eficiente o no generaliza, probar a NO usar a FF() como planner
-			- Generar problemas grandes con blocksworld y ver qué otro planner es muy eficiente!! (tiene poco planning time)
-			  y sustituirlo por ff en entrenamiento
 
+
+------------------
 	
 	>>> Medir diversidad problemas NeSIG logistics y comparar con los del instance generator
 		- Según los resultados, ver si sería necesario comparar la diversidad con un tercer modelo baseline

@@ -102,12 +102,11 @@ all_problems_features_pd.drop(all_problems_features_pd.filter(regex='meta-time')
 nunique = all_problems_features_pd.nunique()
 cols_to_drop_features_same_value = nunique[nunique <= 1].index
 
-all_problems_features_pd.drop(columns=cols_to_drop_features_same_value, inplace=True) # 179 features remaining (for logistics)
+all_problems_features_pd.drop(columns=cols_to_drop_features_same_value, inplace=True) # 163 features remaining (for logistics)
 
 # Calculate min and max for each feature
 features_min_vals = all_problems_features_pd.min()
 features_max_vals = all_problems_features_pd.max()
-
 
 
 # <Compare diversity of NESIG and instance generator problems for <each problem size separately>>
