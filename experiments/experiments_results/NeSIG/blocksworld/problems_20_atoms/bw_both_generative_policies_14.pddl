@@ -1,0 +1,47 @@
+(define (problem bw_both_generative_policies_14)
+
+(:domain BLOCKS)
+
+(:objects
+	obj0 obj1 obj2 obj3 obj4 obj5 obj6 obj7 obj8 obj9 obj10 obj11 obj12 obj13 - block
+)
+
+(:init
+	(clear obj10)
+	(clear obj11)
+	(ontable obj0)
+	(clear obj12)
+	(on obj3 obj2)
+	(ontable obj10)
+	(on obj4 obj3)
+	(clear obj13)
+	(ontable obj11)
+	(clear obj8)
+	(holding obj5)
+	(ontable obj12)
+	(clear obj9)
+	(on obj8 obj7)
+	(ontable obj13)
+	(on obj1 obj0)
+	(on obj2 obj1)
+	(on obj7 obj6)
+	(ontable obj9)
+	(on obj6 obj4)
+)
+
+(:goal (and
+	(on obj9 obj12)
+	(on obj4 obj6)
+	(on obj2 obj3)
+	(on obj0 obj1)
+	(on obj10 obj9)
+	(on obj8 obj10)
+	(on obj6 obj7)
+	(on obj3 obj4)
+	(on obj7 obj8)
+	(on obj13 obj5)
+	(on obj5 obj0)
+	(on obj12 obj11)
+	(on obj1 obj2)
+))
+)

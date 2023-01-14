@@ -1,0 +1,59 @@
+----- NeSIG model hyperparameters for blocksworld
+
+> logs: init_policy\version_201, 202
+> saved_models: both_policies_254, 255
+
+POR AQUÍ
+
+-----------------------------------------
+
+Training time (for it=1500): 1 day
+Training iterations = 1500 (chosen by inspecting reward and policy_entropy plots)
+
+max_atoms_init_state=15
+max_actions_init_state=1 (no need as now we don't use r_continuous)
+max_actions_goal_state=2
+
+goal_predicates = {('on', ('block','block'))}
+allowed_virtual_objs = None (just 2 blocks, automatically inferred)
+max_objs_cache_reduce_masks=15 (only used for efficiency)
+
+lr_initial_state_nlm = 1e-3
+epsilon_init_state_policy=0.1 (PPO epsilon)
+epsilon_goal_policy=0.1
+disc_factor_event_consistency=0.9
+disc_factor_difficulty=0.995
+
+init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]] (depth=7)
+goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1) (Don't use hidden layers in the NLM MLPs)
+io_residual_initial_state_nlm=True (append NLM input to the input of each NLM layer)
+res_connections_initial_state_nlm=False (no NLM residual connections)
+exclude_self_inital_state_nlm=True (calculate the reduce operation without considering repeated indexes (e.g., [5][5][3] or [2][2][0][1])
+io_residual_goal_nlm=True
+res_connections_goal_nlm=False
+exclude_self_goal_nlm=True
+
+
+init_policy_entropy_coeffs: 0.1, None (no entropy annealing)
+goal_policy_entropy_coeffs: 0.0, None (no entropy annealing)
+policy_entropy = 0.5*tensor_ground_entropy + 0.5*tensor_lifted_entropy
+diversity_rescale_factor=0 (no uso diversity_reward)
+also calculate diversity reward for inconsistent trajectories (not used as I don't use diversity_reward)
+
+epochs_per_train_it=1 (only one PPO epoch over the same data)
+trajectories_per_train_it=25
+minibatch_size=75
+
+consistency_rules:
+	- no_pred_order
+mask non_continuous_consistent_atoms for init_policy (r_continuous=0 always)
+penalization_continuous_consistency=-0.1 --> No need as now r_continuous is not used
+
+diff=LAMA, lazy_greedy FF, lazy_greedy add
+rescale_factor = 0.1 (rescale factor for problem difficulty)
+
+device='cuda' (train on GPU)
+
+
+

@@ -19,6 +19,8 @@ max_objs_cache_reduce_masks=25 (only used for efficiency)
 lr_initial_state_nlm = 1e-3
 epsilon_init_state_policy=0.1 (PPO epsilon)
 epsilon_goal_policy=0.1
+disc_factor_event_consistency=0.9
+disc_factor_difficulty=0.995
 
 init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]] (depth=7)
 goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]

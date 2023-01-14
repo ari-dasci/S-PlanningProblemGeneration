@@ -922,10 +922,10 @@ def test_load_models_and_generate_problems_logistics():
 	print(f">> Init model {init_policy_path} and goal model {goal_policy_path} loaded")
 
 	# Generate the set of problems with the trained initial policy
-	num_problems = 50
+	num_problems = 10
 
-	directed_generator.generate_problems(num_problems, max_atoms_init_state=15, max_actions_init_state=1,
-									     max_actions_goal_state=2.0, max_planning_time=600, verbose=True)
+	directed_generator.generate_problems(num_problems, max_atoms_init_state=40, max_actions_init_state=1,
+									     max_actions_goal_state=2.0, max_planning_time=600, verbose=False)
 
 
 def test_load_models_and_resume_training_logistics():
@@ -1117,10 +1117,10 @@ def test_load_models_and_generate_problems_blocksworld():
 	print(f">> Init model {init_policy_path} and goal model {goal_policy_path} loaded")
 
 	# Generate the set of problems with the trained initial policy
-	num_problems = 10
+	num_problems = 50
 
 	directed_generator.generate_problems(num_problems, max_atoms_init_state=40, max_actions_init_state=1,
-									     max_actions_goal_state=2.0, max_planning_time=600, verbose=True)
+									     max_actions_goal_state=2.0, max_planning_time=600, verbose=False)
 
 
 def test_load_models_and_resume_training_blocksworld():
@@ -4200,9 +4200,9 @@ def test_load_models_and_resume_training_blocksworld():
    diversity_rescale_factor=0
    also calculate diversity reward for inconsistent trajectories
    diff=LAMA, FF, weighted A* lmcut
-   mask inconsistent atoms>
+   mask inconsistent atoms
    no predicate order
-   <max_atoms_init_state=15>, max_actions_init_state=1, max_actions_goal_state=2
+   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2
 
    > logs: init_policy\version_199
    > saved_models: both_policies_252
@@ -4231,7 +4231,7 @@ def test_load_models_and_resume_training_blocksworld():
 
 	<Nota: me quedo con el modelo con 1500 its>
 	> Entrenamiento
-		- Tiempo: 22h 
+		- Tiempo: 37h (15h from version_201 and 22h from version_202) 
 		- r_diff (init_policy)=20, r_diff (goal_policy)=25 (seguían subiendo cuando paré el entrenamiento)
 		- r_continuous=0, r_eventual=-0.03
 		- init_policy_entropy terminó en 0.4 y seguía bajando! goal_policy_entropy terminó en 0.1
