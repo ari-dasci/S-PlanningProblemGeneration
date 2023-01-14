@@ -1082,8 +1082,8 @@ def test_load_models_and_generate_problems_blocksworld():
 	virtual_objects = None
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_246/init_policy_its-540.ckpt"
-	goal_policy_path = "saved_models/both_policies_246/goal_policy_its-540.ckpt"
+	init_policy_path = "saved_models/both_policies_255/init_policy_its-1500.ckpt"
+	goal_policy_path = "saved_models/both_policies_255/goal_policy_its-1500.ckpt"
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
@@ -1119,7 +1119,7 @@ def test_load_models_and_generate_problems_blocksworld():
 	# Generate the set of problems with the trained initial policy
 	num_problems = 10
 
-	directed_generator.generate_problems(num_problems, max_atoms_init_state=15, max_actions_init_state=1,
+	directed_generator.generate_problems(num_problems, max_atoms_init_state=40, max_actions_init_state=1,
 									     max_actions_goal_state=2.0, max_planning_time=600, verbose=True)
 
 
@@ -1143,9 +1143,9 @@ def test_load_models_and_resume_training_blocksworld():
 	virtual_objects = None
 
 	# Create the generator and load the trained models
-	curr_it = 1450 # It of the loaded model, used to resume training
-	init_policy_path = "saved_models/both_policies_239/init_policy_its-{}.ckpt".format(curr_it)
-	goal_policy_path = "saved_models/both_policies_239/goal_policy_its-{}.ckpt".format(curr_it)
+	curr_it = 1040 # It of the loaded model, used to resume training
+	init_policy_path = "saved_models/both_policies_254/init_policy_its-{}.ckpt".format(curr_it)
+	goal_policy_path = "saved_models/both_policies_254/goal_policy_its-{}.ckpt".format(curr_it)
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
@@ -4220,20 +4220,94 @@ def test_load_models_and_resume_training_blocksworld():
 
   >>> El planner tarda demasiado y ehc(ff) a veces no encuentra solución!!!
 
+
+<<< Mejor modelo blocksworld >>>
 > Igual que experimento anterior menos:
   <max_atoms_init_state=15>, max_actions_init_state=1, <max_actions_goal_state=2>
   <diff=lama-first, lama-first ff, lama-first add>
   
-  > logs: init_policy\version_201
-  > saved_models: both_policies_254
+  > logs: init_policy\version_201, 202
+  > saved_models: both_policies_254, 255
 
-	
+	<Nota: me quedo con el modelo con 1500 its>
+	> Entrenamiento
+		- Tiempo: 22h 
+		- r_diff (init_policy)=20, r_diff (goal_policy)=25 (seguían subiendo cuando paré el entrenamiento)
+		- r_continuous=0, r_eventual=-0.03
+		- init_policy_entropy terminó en 0.4 y seguía bajando! goal_policy_entropy terminó en 0.1
+		- term_cond_prob de la goal_policy oscila alrededor de 0.05, de la init_policy alrededor de 0.01 (y seguía bajando)
+		- num_blocks: 11
+		- num_atoms:
+			- ontable/clear: 2.7
+			- on: 7.6
+			- holding: 0.5
+			- handempty: 0.5
+
+	> Problemas (its=2300)
+		- atoms=15
+			- diff=[288.4 516.2 448.8] (muy alta!!!)
+			- diversidad: nula!
+				El init_state de todos los problemas es el mismo!!!
+
+	> Problemas (its=2000)
+		- atoms=15
+			- diff=[189.7 468.4 402.7] (muy alta)
+			- diversidad: muy baja
+				- Algunos problemas son repetidos!!!
+
+	> Problemas (its=1750)
+		- atoms=15
+			- diff=[187.5 349.62 299.86]
+			- diversidad: baja
+				- Problemas de 9 y 10 bloques
+				- Problemas con 3,4,5 torres de bloques
+
+	<Mejor num_its>
+	>>> Problemas (its=1500)
+		- atoms=15
+			- diff=[112.66 333.18 297.9]
+			- diversidad alta:
+				- Problemas de 9,10 y 11 bloques
+				- Problemas con 3,4,5 torres de bloques
+
+	> Problemas (its=1000)
+		- atoms=15
+			- diff=[123.82 181.76 182.48]
+			- diversidad muy alta!
 
 
 
+	> Problemas (its=1040) (paré el entrenamiento a mitad)
+		- atoms=15
+			- diff = [99.6, 160.6, 138.1] (media-alta, solo son un 44% (geometric mean) mas difíciles que los del instance generator)
+			- diversidad:
+				- num_towers entre 3 y 6
+				- problemas con holding y handempty!!
+				- num_blocks entre 7 y 11!!
+				- problemas con bastante átomos (la mayoría 15, o si no 13 o 14)
+
+		- atoms=20
+			- diff = [277.3, 759.9, 639.2]
+			- EL NÚMERO DE ÁTOMOS Y BLOQUES ESCALA CON EL TAMAÑO DEL PROBLEMA!
+
+		- atoms=25
+			- diff = [439.8, 1512.3, 859.]
+
+		- atoms=30
+			- diff = [700.9, 37829.8, 3655.1]
+
+		- atoms=35
+			- diff = [930.6 1493.3 2242.2]
+
+		- atoms=40
+			- diff = [1185.3, 484632., 3055.6]
+			- EL NÚMERO DE ÁTOMOS Y BLOQUES ESCALA CON EL PROBLEM SIZE!!!
 
 
-	> Quizás necesite usar 50 trajectories_per_train_it en vez de 25
+
+	>>> Si veo que no generaliza a problemas más grandes debido a que se ejecuta la condición de parada (term_cond_prob de la init_policy no converge a 0)
+		- Puedo quitar la condición de parada en blocksworld (o quizás bajar la init_policy entropy)
+		- Ver si los problemas generados son muy diversos, si lo son, bajar la init_policy entropy a 0.05
 
 
 	>>> Generar problemas (con 10, 15, 20 atoms) en blocksworld con el instance generator y comparar su dificultad con los de NeSIG!!!
@@ -4408,8 +4482,8 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems_logistics()	
 	#test_load_models_and_resume_training_logistics()
 
-	test_train_init_and_goal_policy_blocksworld()
-	#test_load_models_and_generate_problems_blocksworld()	
+	#test_train_init_and_goal_policy_blocksworld()
+	test_load_models_and_generate_problems_blocksworld()	
 	#test_load_models_and_resume_training_blocksworld()
 
 	
