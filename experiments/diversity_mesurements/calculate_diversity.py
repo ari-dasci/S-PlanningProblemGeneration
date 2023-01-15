@@ -75,8 +75,12 @@ import sys
 """
 
 # Feature files paths
-nesig_features_path_base = 'extracted_features/nesig_logistics_*.csv'
-generator_features_path_base = 'extracted_features/instance_generator_logistics_*.csv'
+#nesig_features_path_base = 'extracted_features/nesig_logistics_*.csv'
+#generator_features_path_base = 'extracted_features/instance_generator_logistics_*.csv'
+
+nesig_features_path_base = 'extracted_features/nesig_blocksworld_*.csv'
+generator_features_path_base = 'extracted_features/instance_generator_blocksworld_*.csv'
+
 nesig_problem_inds = ['15','20','25','30','35','40']
 generator_problem_inds = ['13_15','18_20','23_25','28_30','33_35','38_40']
 
@@ -102,7 +106,7 @@ all_problems_features_pd.drop(all_problems_features_pd.filter(regex='meta-time')
 nunique = all_problems_features_pd.nunique()
 cols_to_drop_features_same_value = nunique[nunique <= 1].index
 
-all_problems_features_pd.drop(columns=cols_to_drop_features_same_value, inplace=True) # 163 features remaining (for logistics)
+all_problems_features_pd.drop(columns=cols_to_drop_features_same_value, inplace=True)
 
 # Calculate min and max for each feature
 features_min_vals = all_problems_features_pd.min()
@@ -150,10 +154,10 @@ for nesig_ind, generator_ind in zip(nesig_problem_inds, generator_problem_inds):
 	# Replace NaNs with the average of the column (unless all the values are NaNs)
 	nesig_features_pd.fillna(nesig_features_pd.mean(), inplace=True)
 	generator_features_pd.fillna(generator_features_pd.mean(), inplace=True)
-
+	
 
 	# <Delete features with the same value for all the problems>
-	nesig_features_pd.drop(columns=cols_to_drop_features_same_value, inplace=True) # 179 features each one in logistics
+	nesig_features_pd.drop(columns=cols_to_drop_features_same_value, inplace=True)
 	generator_features_pd.drop(columns=cols_to_drop_features_same_value, inplace=True)
 
 
