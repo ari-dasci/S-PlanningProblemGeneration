@@ -75,11 +75,11 @@ import sys
 """
 
 # Feature files paths
-#nesig_features_path_base = 'extracted_features/nesig_logistics_*.csv'
-#generator_features_path_base = 'extracted_features/instance_generator_logistics_*.csv'
+nesig_features_path_base = 'extracted_features/nesig_logistics_*.csv'
+generator_features_path_base = 'extracted_features/instance_generator_logistics_*.csv'
 
-nesig_features_path_base = 'extracted_features/nesig_blocksworld_*.csv'
-generator_features_path_base = 'extracted_features/instance_generator_blocksworld_*.csv'
+#nesig_features_path_base = 'extracted_features/nesig_blocksworld_*.csv'
+#generator_features_path_base = 'extracted_features/instance_generator_blocksworld_*.csv'
 
 nesig_problem_inds = ['15','20','25','30','35','40']
 generator_problem_inds = ['13_15','18_20','23_25','28_30','33_35','38_40']
@@ -112,6 +112,8 @@ all_problems_features_pd.drop(columns=cols_to_drop_features_same_value, inplace=
 features_min_vals = all_problems_features_pd.min()
 features_max_vals = all_problems_features_pd.max()
 
+# print(all_problems_features_pd.columns) # 174 features for blocksworld, 163 for logistics
+# sys.exit()
 
 # <Compare diversity of NESIG and instance generator problems for <each problem size separately>>
 for nesig_ind, generator_ind in zip(nesig_problem_inds, generator_problem_inds):

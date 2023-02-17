@@ -3,8 +3,6 @@
 > logs: init_policy\version_201, 202
 > saved_models: both_policies_254, 255
 
-POR AQUÍ
-
 -----------------------------------------
 
 Training time (for it=1500): 1 day
@@ -19,6 +17,7 @@ allowed_virtual_objs = None (just 2 blocks, automatically inferred)
 max_objs_cache_reduce_masks=15 (only used for efficiency)
 
 lr_initial_state_nlm = 1e-3
+lr_goal_nlm = 1e-3
 epsilon_init_state_policy=0.1 (PPO epsilon)
 epsilon_goal_policy=0.1
 disc_factor_event_consistency=0.9

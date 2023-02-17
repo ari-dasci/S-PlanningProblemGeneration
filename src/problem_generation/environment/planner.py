@@ -87,7 +87,8 @@ class Planner():
 		# Lama-first, FF, weighted A* with lmcut	
 		"""planner_command_list = [ [self._python_call, planner_path, '--alias', 'lama-first', self._domain_file_path, pddl_problem_path],
 						 		 [self._python_call, planner_path, self._domain_file_path, pddl_problem_path, '--search', 'ehc(ff())'],
-						 		 [self._python_call, planner_path, self._domain_file_path, pddl_problem_path, '--search', 'eager_wastar([lmcut()], w=2)'] ]"""
+						 		 [self._python_call, planner_path, self._domain_file_path, pddl_problem_path, '--search', 'eager_wastar([lmcut()], w=2)'] ]
+		"""
 
 		# --- BLOCKSWORLD ---
 		planner_command_list = [ [self._python_call, planner_path, '--alias', 'lama-first', self._domain_file_path, pddl_problem_path],

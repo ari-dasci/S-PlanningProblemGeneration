@@ -5,6 +5,6 @@ Networks and Reinforcement Learning.
 
 ### Acknowledgments
 
-We want to thank the authors of the paper "Learning General Optimal Policies with Graph Neural Networks: Expressive Power, Transparency, and Limits", especially Dr. Simon Ståhlberg, for their help with the implementation of the ACR-GNN used in this project.
+This work has been partially funded by the Andalusian Collaborative project PYC20 RE 049 UGR and B-TIC-668- UGR20 with FEDER funds.
 
-We also want to thank Antonio Manjavacas for his advice on the most suitable RL algoritm for our problem.
+We want to express our deep gratitude to Masataro Asai, for his suggestion to use NLMs in our work; Simon Stahlberg, for providing the implementation of ACR-GNNs used in a previous version of this work; Mauro Vallati and the rest of authors of [Fawcett et al., 2014], in addition to Sergio Jimenez Celorrio, for their advice on how to measure problem difficulty; Michael Katz, for his advice on how to measure problem diversity; Jiayuan Mao and the rest of authors of [Dong et al., 2019], for their helpful advice on NLMs; and, finally, Christian Muise and the FD community, for their invaluable help on the use of the FD planning system.

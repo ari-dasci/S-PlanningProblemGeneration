@@ -922,9 +922,9 @@ def test_load_models_and_generate_problems_logistics():
 	print(f">> Init model {init_policy_path} and goal model {goal_policy_path} loaded")
 
 	# Generate the set of problems with the trained initial policy
-	num_problems = 10
+	num_problems = 50
 
-	directed_generator.generate_problems(num_problems, max_atoms_init_state=40, max_actions_init_state=1,
+	directed_generator.generate_problems(num_problems, max_atoms_init_state=15, max_actions_init_state=1,
 									     max_actions_goal_state=2.0, max_planning_time=600, verbose=False)
 
 
@@ -1119,7 +1119,7 @@ def test_load_models_and_generate_problems_blocksworld():
 	# Generate the set of problems with the trained initial policy
 	num_problems = 50
 
-	directed_generator.generate_problems(num_problems, max_atoms_init_state=40, max_actions_init_state=1,
+	directed_generator.generate_problems(num_problems, max_atoms_init_state=15, max_actions_init_state=1,
 									     max_actions_goal_state=2.0, max_planning_time=600, verbose=False)
 
 
@@ -4482,8 +4482,8 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems_logistics()	
 	#test_load_models_and_resume_training_logistics()
 
-	#test_train_init_and_goal_policy_blocksworld()
-	test_load_models_and_generate_problems_blocksworld()	
+	test_train_init_and_goal_policy_blocksworld()
+	#test_load_models_and_generate_problems_blocksworld()	
 	#test_load_models_and_resume_training_blocksworld()
 
-	
+	# >>> EN LOGISTICS Y BLOCKSWORLD USO DIFERENTES PLANNERS!!!	

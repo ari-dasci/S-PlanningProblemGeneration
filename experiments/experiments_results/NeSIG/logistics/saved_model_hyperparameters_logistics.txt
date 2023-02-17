@@ -17,6 +17,7 @@ allowed_virtual_objs = ('city', 'location', 'airport', 'package', 'truck', 'airp
 max_objs_cache_reduce_masks=25 (only used for efficiency)
 
 lr_initial_state_nlm = 1e-3
+lr_goal_nlm = 1e-3
 epsilon_init_state_policy=0.1 (PPO epsilon)
 epsilon_goal_policy=0.1
 disc_factor_event_consistency=0.9
