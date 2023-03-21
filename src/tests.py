@@ -1120,7 +1120,7 @@ def test_load_models_and_generate_problems_blocksworld():
 	num_problems = 20
 
 	directed_generator.generate_problems(num_problems, max_atoms_init_state=15, max_actions_init_state=1,
-									     max_actions_goal_state=2.0, max_planning_time=600, verbose=False)
+									     max_actions_goal_state=2.0, max_planning_time=600, verbose=True)
 
 
 def test_load_models_and_resume_training_blocksworld():
@@ -4472,7 +4472,6 @@ if __name__ == "__main__":
 	#test_trajectory_goal_policy()
 	#test_train_goal_policy()
 	#test_train_init_and_goal_policy_SAC()
-
 	#test_generate_random_problems()
 	#test_train_init_and_goal_policy()
 	#test_load_models_and_generate_problems()
@@ -4482,8 +4481,8 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems_logistics()	
 	#test_load_models_and_resume_training_logistics()
 
-	#test_train_init_and_goal_policy_blocksworld()
-	test_load_models_and_generate_problems_blocksworld()	
+	test_train_init_and_goal_policy_blocksworld()
+	#test_load_models_and_generate_problems_blocksworld()	
 	#test_load_models_and_resume_training_blocksworld()
 
 	# >>> EN LOGISTICS Y BLOCKSWORLD USO DIFERENTES PLANNERS!!!	
