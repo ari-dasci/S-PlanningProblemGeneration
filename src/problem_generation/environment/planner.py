@@ -85,16 +85,17 @@ class Planner():
 		# List of search options to use
 		# --- LOGISTICS ---
 		# Lama-first, FF, weighted A* with lmcut	
-		"""planner_command_list = [ [self._python_call, planner_path, '--alias', 'lama-first', self._domain_file_path, pddl_problem_path],
+		planner_command_list = [ [self._python_call, planner_path, '--alias', 'lama-first', self._domain_file_path, pddl_problem_path],
 						 		 [self._python_call, planner_path, self._domain_file_path, pddl_problem_path, '--search', 'ehc(ff())'],
 						 		 [self._python_call, planner_path, self._domain_file_path, pddl_problem_path, '--search', 'eager_wastar([lmcut()], w=2)'] ]
-		"""
+		
 
 		# --- BLOCKSWORLD ---
+		"""
 		planner_command_list = [ [self._python_call, planner_path, '--alias', 'lama-first', self._domain_file_path, pddl_problem_path],
 						 		 [self._python_call, planner_path, self._domain_file_path, pddl_problem_path, '--search', 'lazy_greedy([ff],preferred=[ff],cost_type=one,reopen_closed=false)'],
 						 		 [self._python_call, planner_path, self._domain_file_path, pddl_problem_path, '--search', 'lazy_greedy([add],preferred=[add],cost_type=one,reopen_closed=false)'] ] 						 
-		
+		"""
 		
 		if self._num_planners_for_diff != len(planner_command_list):
 			raise Exception("self._num_planners_for_diff must be equal to the number of planners used to measure the problem difficulties")

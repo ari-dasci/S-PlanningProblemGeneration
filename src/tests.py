@@ -743,12 +743,12 @@ def test_generate_random_problems_logistics():
 
 	random_generator = RandomGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics)
 
-	num_problems_to_generate = 10 # 10
+	num_problems_to_generate = 50
 
 	print(">> Calling generate_random_problems()")
 
-	random_generator.generate_random_problems(num_problems_to_generate, num_actions_for_init_state=20,
-									num_actions_for_goal_state=20, verbose=False)
+	random_generator.generate_random_problems(num_problems_to_generate, num_actions_for_init_state=40,
+									num_actions_for_goal_state=40, verbose=False)
 
 """
 Test problem_generator.py to generate random problems for the logistics domain.
@@ -1007,12 +1007,12 @@ def test_generate_random_problems_blocksworld():
 
 	random_generator = RandomGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorBlocksworld)
 
-	num_problems_to_generate = 10 # 10
+	num_problems_to_generate = 50 # 10
 
 	print(">> Calling generate_random_problems()")
 
-	random_generator.generate_random_problems(num_problems_to_generate, num_actions_for_init_state=10,
-									num_actions_for_goal_state=10, verbose=False)
+	random_generator.generate_random_problems(num_problems_to_generate, num_actions_for_init_state=40,
+									num_actions_for_goal_state=40, verbose=False)
 
 """
 Tests the functionality of directed_generator.py used to train both the initial and goal generation policies for the blocksworld domain.
@@ -4499,12 +4499,12 @@ if __name__ == "__main__":
 	#test_train_init_and_goal_policy()
 	#test_load_models_and_generate_problems()
 
-	#test_generate_random_problems_logistics()
+	test_generate_random_problems_logistics()
 	#test_train_init_and_goal_policy_logistics()
 	#test_load_models_and_generate_problems_logistics()	
 	#test_load_models_and_resume_training_logistics()
 
-	test_generate_random_problems_blocksworld()
+	#test_generate_random_problems_blocksworld()
 	#test_train_init_and_goal_policy_blocksworld()
 	#test_load_models_and_generate_problems_blocksworld()	
 	#test_load_models_and_resume_training_blocksworld()
