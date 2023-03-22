@@ -75,24 +75,29 @@ import sys
 """
 
 # Feature files paths
-nesig_features_path_base = 'extracted_features/nesig_logistics_*.csv'
-generator_features_path_base = 'extracted_features/instance_generator_logistics_*.csv'
-
 #nesig_features_path_base = 'extracted_features/nesig_blocksworld_*.csv'
 #generator_features_path_base = 'extracted_features/instance_generator_blocksworld_*.csv'
+#random_features_path_base = 'extracted_features/random_generator_blocksworld_*.csv'
+
+nesig_features_path_base = 'extracted_features/nesig_logistics_*.csv'
+generator_features_path_base = 'extracted_features/instance_generator_logistics_*.csv'
+random_features_path_base = 'extracted_features/random_generator_logistics_*.csv'
 
 nesig_problem_inds = ['15','20','25','30','35','40']
 generator_problem_inds = ['13_15','18_20','23_25','28_30','33_35','38_40']
+random_problem_inds = ['15','20','25','30','35','40']
 
 # <Perform calculations which depend on all the problems (regardless of their size)>
 
 # Load all problems into a single dataframe
 all_problems_features_pd = pd.concat([pd.read_csv(nesig_features_path_base.replace('*', nesig_problem_inds[0])),
-									  pd.read_csv(generator_features_path_base.replace('*', generator_problem_inds[0]))])
+									  pd.read_csv(generator_features_path_base.replace('*', generator_problem_inds[0])),
+									  pd.read_csv(random_features_path_base.replace('*', random_problem_inds[0]))])
 
-for nesig_ind, generator_ind in zip(nesig_problem_inds[1:], generator_problem_inds[1:]):
+for nesig_ind, generator_ind, random_ind in zip(nesig_problem_inds[1:], generator_problem_inds[1:], random_problem_inds[1:]):
 	all_problems_features_pd = pd.concat([all_problems_features_pd, pd.read_csv(nesig_features_path_base.replace('*', nesig_ind))])
 	all_problems_features_pd = pd.concat([all_problems_features_pd, pd.read_csv(generator_features_path_base.replace('*', generator_ind))])
+	all_problems_features_pd = pd.concat([all_problems_features_pd, pd.read_csv(random_features_path_base.replace('*', random_ind))])
 
 # Drop first column (corresponding to the problem name)
 all_problems_features_pd.drop(columns=['instanceName'], inplace=True)
@@ -115,16 +120,19 @@ features_max_vals = all_problems_features_pd.max()
 # print(all_problems_features_pd.columns) # 174 features for blocksworld, 163 for logistics
 # sys.exit()
 
-# <Compare diversity of NESIG and instance generator problems for <each problem size separately>>
-for nesig_ind, generator_ind in zip(nesig_problem_inds, generator_problem_inds):
+# <Compare diversity of NESIG, instance generator and random generator problems for <each problem size separately>>
+for nesig_ind, generator_ind, random_ind in zip(nesig_problem_inds, generator_problem_inds, random_problem_inds):
 	nesig_features_path = nesig_features_path_base.replace('*', nesig_ind)
 	generator_features_path = generator_features_path_base.replace('*', generator_ind)
+	random_features_path = random_features_path_base.replace('*', random_ind)
 
 	# <Load each csv file into a pandas dataframe>
 	nesig_features_pd = pd.read_csv(nesig_features_path) # nesig_features_path
 	generator_features_pd = pd.read_csv(generator_features_path) # generator_features_path
+	random_features_pd = pd.read_csv(random_features_path)
 	n_rows_nesig_features_pd = len(nesig_features_pd.index)
 	n_rows_generator_features_pd = len(generator_features_pd.index)
+	n_rows_random_features_pd = len(random_features_pd.index)
 
 
 
@@ -138,11 +146,13 @@ for nesig_ind, generator_ind in zip(nesig_problem_inds, generator_problem_inds):
 	# They can vary a lot, specially since I obtained the features while having other background processes
 	nesig_features_pd.drop(nesig_features_pd.filter(regex='meta-time').columns, axis=1, inplace=True)
 	generator_features_pd.drop(generator_features_pd.filter(regex='meta-time').columns, axis=1, inplace=True)
+	random_features_pd.drop(random_features_pd.filter(regex='meta-time').columns, axis=1, inplace=True)
 
 
 	# Drop first column (corresponding to the problem name)
 	nesig_features_pd.drop(columns=['instanceName'], inplace=True)
 	generator_features_pd.drop(columns=['instanceName'], inplace=True)
+	random_features_pd.drop(columns=['instanceName'], inplace=True)
 
 
 	# <Missing values>
@@ -152,25 +162,30 @@ for nesig_ind, generator_ind in zip(nesig_problem_inds, generator_problem_inds):
 	# Replace -512.0 with NaNs
 	nesig_features_pd.replace(-512, np.nan, inplace=True)
 	generator_features_pd.replace(-512, np.nan, inplace=True)
+	random_features_pd.replace(-512, np.nan, inplace=True)
 
 	# Replace NaNs with the average of the column (unless all the values are NaNs)
 	nesig_features_pd.fillna(nesig_features_pd.mean(), inplace=True)
 	generator_features_pd.fillna(generator_features_pd.mean(), inplace=True)
+	random_features_pd.fillna(random_features_pd.mean(), inplace=True)
 	
 
 	# <Delete features with the same value for all the problems>
 	nesig_features_pd.drop(columns=cols_to_drop_features_same_value, inplace=True)
 	generator_features_pd.drop(columns=cols_to_drop_features_same_value, inplace=True)
+	random_features_pd.drop(columns=cols_to_drop_features_same_value, inplace=True)
 
 
 	# <Normalize features>
 	nesig_features_pd = (nesig_features_pd - features_min_vals) / (features_max_vals - features_min_vals)
 	generator_features_pd = (generator_features_pd - features_min_vals) / (features_max_vals - features_min_vals)
+	random_features_pd = (random_features_pd - features_min_vals) / (features_max_vals - features_min_vals)
 
 
 	# <Obtain distance matrix for each dataframe>
 	nesig_dist_matrix = np.zeros((n_rows_nesig_features_pd, n_rows_nesig_features_pd), dtype=np.float32)
 	generator_dist_matrix = np.zeros((n_rows_generator_features_pd, n_rows_generator_features_pd), dtype=np.float32)
+	random_dist_matrix = np.zeros((n_rows_random_features_pd, n_rows_random_features_pd), dtype=np.float32)
 
 	for i in range(n_rows_nesig_features_pd):
 		for j in range(i+1, n_rows_nesig_features_pd):
@@ -183,6 +198,12 @@ for nesig_ind, generator_ind in zip(nesig_problem_inds, generator_problem_inds):
 			dist = (generator_features_pd.iloc[i,:] - generator_features_pd.iloc[j,:]).abs().sum()
 
 			generator_dist_matrix[i,j]=generator_dist_matrix[j,i]=dist
+
+	for i in range(n_rows_random_features_pd):
+		for j in range(i+1, n_rows_random_features_pd):
+			dist = (random_features_pd.iloc[i,:] - random_features_pd.iloc[j,:]).abs().sum()
+
+			random_dist_matrix[i,j]=random_dist_matrix[j,i]=dist
 
 
 	# <Obtain mean distance for each dataframe>
@@ -204,3 +225,4 @@ for nesig_ind, generator_ind in zip(nesig_problem_inds, generator_problem_inds):
 	print(f"\n ---------- Problem size: {nesig_ind} ---------- ")
 	print("> Mean distance NeSIG problems:", nesig_dist_matrix.mean())
 	print("> Mean distance instance generator problems:", generator_dist_matrix.mean())
+	print("> Mean distance random generator problems:", random_dist_matrix.mean())
