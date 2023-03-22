@@ -1,38 +1,29 @@
 (define (problem bw_random_problem_1)
 
-(:domain logistics)
+(:domain BLOCKS)
 
 (:objects
-	obj0 obj3 obj5 obj7 obj8 - airport
-	obj1 obj6 - city
-	obj2 obj4 - location
-	obj9 obj11 obj13 obj15 - package
-	obj10 obj12 obj17 - airplane
-	obj14 obj16 obj18 - truck
+	obj0 obj1 obj2 obj3 obj4 obj5 - block
 )
 
 (:init
-	(in-city obj7 obj1)
-	(at obj12 obj0)
-	(at obj11 obj4)
-	(in-city obj3 obj1)
-	(at obj15 obj4)
-	(at obj16 obj8)
-	(at obj17 obj0)
-	(at obj18 obj7)
-	(in-city obj2 obj1)
-	(in-city obj4 obj1)
-	(in-city obj5 obj6)
-	(at obj9 obj0)
-	(at obj10 obj0)
-	(in-city obj8 obj6)
-	(at obj14 obj4)
-	(in-city obj0 obj1)
-	(at obj13 obj4)
+	(ontable obj1)
+	(on obj5 obj4)
+	(ontable obj0)
+	(clear obj0)
+	(on obj3 obj2)
+	(on obj4 obj3)
+	(ontable obj2)
+	(clear obj5)
+	(clear obj1)
+	(handempty)
 )
 
 (:goal (and
-	(at obj13 obj4)
-	(at obj9 obj0)
+	(on obj2 obj3)
+	(on obj5 obj1)
+	(on obj0 obj5)
+	(on obj3 obj4)
+	(on obj4 obj0)
 ))
 )

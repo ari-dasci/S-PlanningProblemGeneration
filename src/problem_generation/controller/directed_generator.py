@@ -572,7 +572,7 @@ class DirectedGenerator():
 	Example: if the state contains two objects and we are going to add a new virtual object, we need to change @atom_to_add from
 			 ['on', [3, 0]] to ['on', [2,0]]
 	"""
-	def get_objs_to_add_and_atom_with_correct_indexes(self, rel_state, atom_to_add, allowed_predicates):
+	def get_objs_to_add_and_atom_with_correct_indexes(self, rel_state, atom_to_add, allowed_predicates=None):
 		state_preds = rel_state.predicates
 		objs_without_virtuals = rel_state.objects
 		num_objs_without_virtuals = len(objs_without_virtuals)

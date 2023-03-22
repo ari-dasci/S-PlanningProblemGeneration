@@ -723,7 +723,7 @@ def test_load_models_and_generate_problems():
 
 
 """
-Test generate_random_problems() in Controller class for the logistics domain.
+Test RandomGenerator class for the logistics domain.
 """
 def test_generate_random_problems_logistics():
 	from problem_generation.controller.controller import RandomGenerator
@@ -743,22 +743,17 @@ def test_generate_random_problems_logistics():
 
 	random_generator = RandomGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics)
 
-	num_problems_to_generate = 10
-
-	# Choose the number of atoms for each predicate type
-	num_atoms_each_pred_for_init_state = dict([('in-city', (1,20)), ('at', (1,20)), ('in', (0,20))])
+	num_problems_to_generate = 10 # 10
 
 	print(">> Calling generate_random_problems()")
 
 	random_generator.generate_random_problems(num_problems_to_generate, num_actions_for_init_state=20,
-									num_actions_for_goal_state=20, num_atoms_each_pred_for_init_state=num_atoms_each_pred_for_init_state,
-									verbose=True)
-
-	# The method is very slow for generating the goal state. This is because the pddl_parser is very inefficient at grounding the domain
-	# actions and these actions have 3 or 4 parameters (and, therefore, there are many possible actions)
+									num_actions_for_goal_state=20, verbose=False)
 
 """
 Test problem_generator.py to generate random problems for the logistics domain.
+
+This function (_NEW) generates several problems in parallel.
 """
 def test_generate_random_problems_logistics_NEW():
 	from problem_generation.controller.problem_generator import ProblemGenerator
@@ -992,6 +987,34 @@ def test_load_models_and_resume_training_logistics():
 
 
 """
+Test RandomGenerator class for the logistics domain.
+"""
+def test_generate_random_problems_blocksworld():
+	from problem_generation.controller.controller import RandomGenerator
+	from problem_generation.environment.planner import Planner
+	from problem_generation.environment.state_validator import ValidatorBlocksworld
+
+	from lifted_pddl import Parser
+
+	domain_file_path = '../data/domains/blocks-domain.pddl'
+
+	parser = Parser()
+	parser.parse_domain(domain_file_path)
+	planner = Planner(domain_file_path)
+
+	# Goal predicates
+	goal_predicates = {('on', ('block','block'))}
+
+	random_generator = RandomGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorBlocksworld)
+
+	num_problems_to_generate = 10 # 10
+
+	print(">> Calling generate_random_problems()")
+
+	random_generator.generate_random_problems(num_problems_to_generate, num_actions_for_init_state=10,
+									num_actions_for_goal_state=10, verbose=False)
+
+"""
 Tests the functionality of directed_generator.py used to train both the initial and goal generation policies for the blocksworld domain.
 """
 def test_train_init_and_goal_policy_blocksworld():
@@ -1120,7 +1143,7 @@ def test_load_models_and_generate_problems_blocksworld():
 	num_problems = 20
 
 	directed_generator.generate_problems(num_problems, max_atoms_init_state=15, max_actions_init_state=1,
-									     max_actions_goal_state=2.0, max_planning_time=600, verbose=True)
+									     max_actions_goal_state=2.0, max_planning_time=600, verbose=False)
 
 
 def test_load_models_and_resume_training_blocksworld():
@@ -4481,7 +4504,8 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems_logistics()	
 	#test_load_models_and_resume_training_logistics()
 
-	test_train_init_and_goal_policy_blocksworld()
+	test_generate_random_problems_blocksworld()
+	#test_train_init_and_goal_policy_blocksworld()
 	#test_load_models_and_generate_problems_blocksworld()	
 	#test_load_models_and_resume_training_blocksworld()
 

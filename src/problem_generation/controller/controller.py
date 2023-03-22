@@ -5,7 +5,7 @@ import random
 from problem_generation.environment.problem_state import ProblemState
 from lifted_pddl import Parser
 from problem_generation.environment.planner import Planner
-from problem_generation.environment.state_validator import ValidatorPredOrderBW
+from problem_generation.environment.state_validator import ValidatorLogistics
 from problem_generation.controller.random_generator import RandomGenerator
 
 
@@ -36,7 +36,7 @@ class Controller():
 	@planner_search_options Search options the planner will use when calculating the difficulty of the problems generated. These options are the same
 	                        for problems generated with the random and directed methods, in order to fairly compare both methods.
 	"""
-	def __init__(self, domain_file_path, predicates_to_consider_for_goal=None, initial_state_info=None, consistency_validator=ValidatorPredOrderBW,
+	def __init__(self, domain_file_path, predicates_to_consider_for_goal=None, initial_state_info=None, consistency_validator=ValidatorLogistics,
 			     max_objects_init_state=1000, max_atoms_init_state=1000, penalization_inconsistent_state=-1, penalization_non_applicable_action=-1,
 				 planner_python_call = 'python', planner_path='./fast-downward/fast-downward.py', planner_search_options='astar(blind())'):
 		

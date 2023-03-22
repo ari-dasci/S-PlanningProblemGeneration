@@ -3,14 +3,16 @@
 import random
 import itertools
 import copy
+import time
+import numpy as np
 
 from problem_generation.environment.problem_state import ProblemState
 from problem_generation.environment.planner import Planner
-from problem_generation.environment.state_validator import ValidatorPredOrderBW
+from problem_generation.environment.state_validator import ValidatorLogistics
 
 class RandomGenerator():
 
-	def __init__(self, parser, planner, predicates_to_consider_for_goal=None, initial_state_info=None, consistency_validator=ValidatorPredOrderBW,
+	def __init__(self, parser, planner, predicates_to_consider_for_goal=None, initial_state_info=None, consistency_validator=ValidatorLogistics,
 				 max_objects_init_state=1000, max_atoms_init_state=1000):
 
 		self._parser = parser
@@ -58,6 +60,9 @@ class RandomGenerator():
 
 	"""
 	Returns a dictionary containing the number of atoms of each predicate type which must be added to the initial state.
+	
+	OLD -> now it is not needed as we no longer use predicate order
+	"""
 	"""
 	def _get_atoms_to_add_init_state(self, num_actions_for_init_state, num_atoms_each_pred_for_init_state):
 
@@ -155,53 +160,169 @@ class RandomGenerator():
 
 
 		return dict_num_atoms_each_pred
+	"""
 
+	"""
+	Identical to the method of same name in directed_generator.py
 
+	Returns a list with the objects to add to @rel_state. These objects correspond to those virtual objects @atom_to_add is instantiated on,
+	i.e., those objects that are not present in @rel_state.
+
+	<Note:> The atom must be represented as a list since tuples can't be modified (are immutable).
+
+	Returns the atom to add with the changed indexes (so that they index objs in the state after adding the list objs_to_add) and the objects 
+	to add to the state as a list like ['block', 'block'].
+	After adding the objs_to_add to the state, the obj indexes in atom_to_add corresponding to virtual objects now index objects in the state.
+	Example: if the state contains two objects and we are going to add a new virtual object, we need to change @atom_to_add from
+			 ['on', [3, 0]] to ['on', [2,0]]
+	"""
+	def get_objs_to_add_and_atom_with_correct_indexes(self, rel_state, atom_to_add):
+		state_preds = rel_state.predicates
+		objs_without_virtuals = rel_state.objects
+		num_objs_without_virtuals = len(objs_without_virtuals)
+		objs_with_virtuals = objs_without_virtuals + rel_state.virtual_objs_with_type()
+		num_objs_with_virtuals = len(objs_with_virtuals)
+
+		# <Obtain the types of the objects atom_to_add is instantiated on>
+		# To do so, we use the object indexes returned by the NLM, which can index both
+		# objects in rel_state and virtual objects
+
+		obj_types = [objs_with_virtuals[obj_ind] for obj_ind in atom_to_add[1]]
+
+		# <Obtain the new objects to add to rel_state (corresponding to the virtual objs
+		# atom_to_add is instantiated on) and change the obj inds of atom_to_add[1] so that
+		# they index objects in the state after these new objects are added to it>
+
+		objs_to_add = []
+		ind_next_state_obj = num_objs_without_virtuals # Index associated with the next object to add to the state (Example: if there are 2 objs in the state, ind_next_state_obj = 2)
+		dict_old_inds_to_new_inds = dict() # This dictionary is used to transform the obj inds of atom_to_add
+										   # Example: (on 3 1) -> (on 2 1), (on 3 3) -> (on 2 2)
+		virtual_obj_indexes_used = set() # Contains the indexes corresponding to virtual objects that we have already processed (so that we don't process them again)
+										 # For example, for the atom (on 1 1) (on a state with a single object) we only need to add an object of type "block", and not two
+
+		for obj_ind in atom_to_add[1]:
+			if obj_ind >= num_objs_without_virtuals and obj_ind not in virtual_obj_indexes_used: # the obj given by obj_ind is a virtual object (i.e., it is not in the state, so it must be added)
+				# Add an object of type given by the corresponding virtual object in rel_state
+				objs_to_add.append(objs_with_virtuals[obj_ind])
+
+				# Change atom index corresponding to virtual object
+				dict_old_inds_to_new_inds[obj_ind] = ind_next_state_obj
+				ind_next_state_obj += 1
+
+				virtual_obj_indexes_used.add(obj_ind)
+
+		# Change virtual obj indexes according to the values stored in the dict
+		for param_position, obj_ind in enumerate(atom_to_add[1]):
+			if obj_ind in dict_old_inds_to_new_inds: # If the index is not in the dictionary, it does not need to be changed
+				atom_to_add[1][param_position] = dict_old_inds_to_new_inds[obj_ind]
+
+		return atom_to_add, objs_to_add, obj_types
 
 	"""
 	This method generates a single random problem by randomly picking the actions in the initial state and goal generation phases, instead of using
 	the generative policies.
+	It returns the generated problem (in PDDL) and elapsed time.
 
 	@num_actions_for_init_state How many (random) actions to execute to generate the initial state. It can be given as an interval [min_num_actions, max_num_actions].
-	@num_atoms_each_pred_for_init_state How many atoms of each predicate type to add to the initial state. If None, they are chosen at random so that the total number
-	                                    of atoms is whithin the interval given by @num_actions_for_init_state. Else, it must be a dictionary where keys are predicates
-										and values are either None, numbers or intervals representing the number of atoms of that predicate to add to the init state.
-										If num_atoms_each_pred_for_init_state['predname'] == None, we assume we can add any number of atoms of predicate 'predname'
-										to the init state.
 	@num_actions_for_goal_state How many (random) actions to execute to generate the goal state. It can be given as an interval [min_num_actions, max_num_actions].
 	@problem_name If not None, name of the generated problem.
 	@seed Seed used to initialize the rng (with random.seed()). If None, the system time is used as the seed.
 	@verbose If True, prints information about the process (e.g., the actions applied to generate the problem).
 	"""
-	def _generate_random_problem(self, num_actions_for_init_state, num_actions_for_goal_state, num_atoms_each_pred_for_init_state=None,
+	def _generate_random_problem(self, num_actions_for_init_state, num_actions_for_goal_state,
 								 problem_name = "problem", seed=None, verbose=False):
+
+		# Measure time needed to generate the problem
+		# <Note>: for good time measurement, verbose should be False
+		start_time = time.time()
 
 		# Choose a seed
 		random.seed(seed)
 
 		domain_predicates = self._parser.predicates
+		pred_names = [p[0] for p in domain_predicates]
 
-		# <Initialize ProblemState instance>
-		problem = ProblemState(self._parser, self._predicates_to_consider_for_goal, self._initial_state_info,
+
+		# <Generate initial states until one of them is eventual-consistent>
+
+
+		consistent_init_state_generated = False
+
+		while not consistent_init_state_generated:
+			# <Generate initial state>
+
+			# Initialize ProblemState instance
+			problem = ProblemState(self._parser, self._predicates_to_consider_for_goal, self._initial_state_info,
 						       consistency_validator=self._consistency_validator)
 
-		# <Generate initial state>
+			# OLD -> as the consistency validator does no longer use predicate order, this is not needed
+			# Decide how many atoms of each predicate type will be added to the initial state
+			# dict_num_atoms_each_pred = self._get_atoms_to_add_init_state(num_actions_for_init_state, num_atoms_each_pred_for_init_state)
+
+			# Decide how many actions will be used to generate the initial state
+			if type(num_actions_for_init_state) == list or type(num_actions_for_init_state) == tuple:
+				num_actions_for_init_state = random.randint(num_actions_for_init_state[0], num_actions_for_init_state[1])
+
+			if verbose:
+				print(f"\n> Starting initial state generation phase - num_actions={num_actions_for_init_state}")
+
+			init_state_generated = False
+			atoms_added = 0 # A counter to know when to stop adding atoms to the init state
+
+			while not init_state_generated:
+				# Obtain all the atoms that can be added to the current init state, i.e., those that preserve continuous consistency
+				possible_atoms = problem.get_continuous_consistent_init_state_actions()
+
+				# If there are no possible actions, we stop the generation
+				if len(possible_atoms) == 0:
+					if verbose:
+						print("There are no more consistent atoms to add. Finishing initial state generation phase...")
+
+					init_state_generated = True
+
+				# Select a random atom and add it to the initial state
+				else:
+					# Select a random atom
+					chosen_atom = random.choice(possible_atoms)
+
+					# Obtain the object types and objects to add as part of the chosen atom. Also change the obj indexes of chosen_atom
+					chosen_atom, objs_to_add, obj_types = self.get_objs_to_add_and_atom_with_correct_indexes(problem.initial_state,
+																											[chosen_atom[0], list(chosen_atom[1])]) 
+
+					# Represent the atom back as a tuple
+					chosen_atom = (chosen_atom[0], tuple(chosen_atom[1])) 
+
+					# Add the atom along with its corresponding virtual objects to the initial state
+					problem.apply_action_to_initial_state(objs_to_add, chosen_atom, obj_types)
+					atoms_added += 1
+
+					if verbose:
+						print(f"- Atom: {chosen_atom} - Objects to add: {objs_to_add}")
+
+					# See if we should stop generating the initial state
+					if atoms_added >= num_actions_for_init_state:
+						if verbose:
+							print("Finished initial state generation phase.")
+						
+						init_state_generated = True
+
+			# Check if the init state generated is eventual consistent. If not, we must generate a new init state
+			consistent_init_state_generated = (problem.get_eventual_consistency_reward_of_init_state() == 0)
+
+			if verbose:
+				if consistent_init_state_generated:
+					print("Consistent initial state generated.")
+				else:
+					print("Inconsistent initial state generated. Restarting initial generation phase.")
 
 
-		# Decide how many atoms of each predicate type will be added to the initial state
-		dict_num_atoms_each_pred = self._get_atoms_to_add_init_state(num_actions_for_init_state, num_atoms_each_pred_for_init_state)
+		# ------- OLD
 
-		if verbose:
-			print(f"\n> Starting initial state generation phase - num_actions={num_actions_for_init_state}")
 
-		init_state_generated = False
-
+		"""
 		while not init_state_generated:
-			# Obtain the possible actions (atoms) that can be applied to the current state
-			# Note: these atoms only correspond to correct predicates according to the predicate order
-			
-			# <CAMBIAR> Ahora sí obtenemos la lista de átomos que son continuous-consistent
-			possible_atoms = problem.get_possible_init_state_actions()
+			# Obtain all the atoms that can be added to the current init state, i.e., those that preserve continuous consistency
+			possible_atoms = problem.get_continuous_consistent_init_state_actions()
 			random.shuffle(possible_atoms) # Shuffle the atoms
 
 			# Get the existing predicate types in possible_atoms (e.g.: ['on', 'ontable'])
@@ -213,7 +334,7 @@ class RandomGenerator():
 			# If there are no possible actions, we stop the generation
 			if len(possible_atoms) == 0:
 				if verbose:
-					print("There are no more actions to add. Finishing initial state generation phase...")
+					print("There are no more consistent atoms to add. Finishing initial state generation phase...")
 
 				init_state_generated = True
 			else:
@@ -221,12 +342,6 @@ class RandomGenerator():
 				# Obtain the predicate names ordered according to the predicate order
 				# We no longer use predicate order
 				pred_names_ordered = [p[0] for p in domain_predicates]
-				"""
-				if self._consistency_validator is None:
-					pred_names_ordered = [p[0] for p in domain_predicates]
-				else:
-					pred_names_ordered = self._consistency_validator.predicate_order	
-				"""
 
 				# Get the first predicate so that every condition is met:
 				# 1) it is contained in possible_atoms
@@ -408,7 +523,7 @@ class RandomGenerator():
 
 							if verbose:
 								print("<<We were not able to generate a consistent initial state!!>>")
-
+		"""
 
 		# <Generate goal state>
 
@@ -514,17 +629,20 @@ class RandomGenerator():
 					num_actions_best_goal_state = len(goal_search_list) - 1 # len(goal_search_list) - 1  is equal to the number of actions executed from the initial state to next_goal_state
 					best_goal_state = next_goal_state
 
+		problem.end_goal_state_generation_phase()
+
+		# Finish time measurement
+		end_time = time.time()
+		elapsed_time = end_time - start_time
 
 		# <Obtain PDDL problem>
-
-		problem.end_goal_state_generation_phase()
 
 		if verbose:
 			print("> Goal state generated.\n>Obtaining PDDL encoding of the problem")
 
 		pddl_problem = problem.obtain_pddl_problem(problem_name)
 
-		return pddl_problem
+		return pddl_problem, elapsed_time
 
 
 	"""
@@ -539,7 +657,7 @@ class RandomGenerator():
 			 self.generate_random_problem())
 	"""
 	def generate_random_problems(self, num_problems_to_generate,
-								num_actions_for_init_state=(3, 15), num_actions_for_goal_state=(3, 20), num_atoms_each_pred_for_init_state=None,
+								num_actions_for_init_state=(3, 15), num_actions_for_goal_state=(3, 20),
 								problems_path = '../data/problems/random_problems/',
 								problems_name = 'bw_random_problem',
 								metrics_file_path = '../data/problems/random_problems/random_problems_metrics.txt',
@@ -557,17 +675,22 @@ class RandomGenerator():
 		f_metrics = open(metrics_file_path, 'a+')
 		f_metrics.write("\n-------------------\n")
 
+		# Store the difficulty of each problem, in order to calculate the mean across all generated problems
+		# Also stored the time it took to generate each problem -> Note: verbose should be set to False
+		list_problem_diffs = []
+		list_generation_times = []
+
 		for ind in range(num_problems_to_generate):
 			# Append index to problem name
 			curr_problem_name = problems_name + '_' + str(ind)
 
 			# Generate problem
-			new_problem = self._generate_random_problem(num_actions_for_init_state, num_actions_for_goal_state, num_atoms_each_pred_for_init_state,
+			new_problem, generation_time = self._generate_random_problem(num_actions_for_init_state, num_actions_for_goal_state,
 											  curr_problem_name, verbose=verbose)
+			list_generation_times.append(generation_time)
 
 			# Save it to disk
 			curr_prob_path = problems_path + curr_problem_name + '.pddl'
-
 
 			print("curr_prob_path", curr_prob_path)
 
@@ -578,13 +701,20 @@ class RandomGenerator():
 				print(f"> Problem {ind} created and saved - ", end="")
 
 			# Solve it with the planner and obtain difficulty
-			curr_prob_difficulty = self._planner.get_problem_difficulty(curr_prob_path, max_planning_time)
+			curr_prob_difficulties = self._planner.get_problem_difficulty(curr_prob_path, max_planning_time)
+			list_problem_diffs.append(curr_prob_difficulties)
 
 			# Save the difficulty
-			f_metrics.write(f'Problem: {curr_problem_name} - difficulty (expanded nodes): {curr_prob_difficulty}\n')
+			f_metrics.write(f'Problem: {curr_problem_name} - difficulty (expanded nodes): {curr_prob_difficulties}\n')
 
 			if verbose:
-				print(f" difficulty: {curr_prob_difficulty}")
+				print(f" difficulty: {curr_prob_difficulties}")
+
+		# Calculate mean difficulty and generation time
+		mean_problem_diff = np.array(list_problem_diffs).mean(axis=0)
+		mean_generation_time = np.array(list_generation_times).mean()
+		f_metrics.write(f'\n--- Mean problem difficulty: {mean_problem_diff} ---\n')
+		f_metrics.write(f'\n--- Mean generation time: {mean_generation_time}s ---\n')	
 
 		f_metrics.close()
 

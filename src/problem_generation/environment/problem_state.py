@@ -356,20 +356,12 @@ class ProblemState:
 	"""
 	Obtains a list with all the actions that can be applied to the initial state, i.e.,
 	all the atoms which can be added to the initial state (those that result in a continuous-consistent state).
-	Each element in the list 
-	Example: [('on', (1, 0)), ('on', (1, 2)), ('handempty', ())]
+	Each element in the list corresponds to an atom in the following way: [('on', (1, 0)), ('on', (1, 2)), ('handempty', ())]
 
-	Object indexes (e.g., (1,0)) can index both objects in the state and virtual objects. In order words,
+	Object indexes (e.g., (1,0)) can index both objects in the state and virtual objects. In other words,
 	they index positions in the list [initial_state.objects + initial_state.virtual_objects].
-			 
-	This method does NOT check the consistency (as it is very expensive to do for every existing init_state action).
-	However, it does check some things:
-		> The atoms returned only correspond to predicates of the current phase 
-		  (according to the predicate order of the consistency validator)
-		> The object indexes the atoms are instantiated on are of the correct type
-		  Example: if ('on', (1, 0)) is returned as a possible action, the objects 1 and 0 must be of type block.
 	"""
-	def get_continuous_consistent_init_state_actions(self, allowed_predicates, allowed_virtual_objects):
+	def get_continuous_consistent_init_state_actions(self, allowed_predicates=None, allowed_virtual_objects=None):
 		# Obtain the list of objects, virtual objects and both
 		objs_no_virtuals = self._initial_state.objects
 		virtual_objs = self._initial_state.virtual_objs_with_type(allowed_predicates, allowed_virtual_objects)
@@ -416,58 +408,6 @@ class ProblemState:
 
 		return possible_actions
 
-		# ------ OLD
-
-		"""
-		state_objs = self._initial_state.objects
-
-		# If there is a consistency validator, only return atoms with the predicates of the current phase
-		# We no longer use predicate_order, so we use all the existing predicates
-		preds_in_curr_phase = [pred[0] for pred in self._parser.predicates]
-		"""
-		if self._consistency_validator is None:
-			preds_in_curr_phase = [pred[0] for pred in self._parser.predicates]
-		else:
-			preds_in_curr_phase = self._consistency_validator.predicates_in_current_phase(self._initial_state)
-		"""
-
-		domain_preds = self._parser.predicates
-		available_predicates = list(filter(lambda pred: pred[0] in preds_in_curr_phase, domain_preds))
-
-		possible_actions = []
-
-		# Obtain all the possible atoms for each predicate
-		for pred in available_predicates:
-			pred_name, pred_types = pred
-			
-			if len(pred_types) == 0: # Predicate of arity-0 -> cannot be instantiated on any objects
-				possible_actions.append(pred)
-			else:
-				# Create a list of lists, where at each position it stores the possible objects to instantiate the predicate on
-				# It also contains new objects not present in the state
-				# Example: curr_state with objs=['block', 'block'], pred = ['on', ['block', 'block']]
-				# possible_instantiations = [[0, 1, -1], [0, 1, -1]]
-				# The -1 index represents that the predicate has been instantiated on a non-existing object in the state, which will
-				# need to be added
-
-				# [[0, 1, 2, -1], [0, 1, 2, -1]]
-
-				# We instantiate on objects whose type inherits from the corresponding predicate param types (pred_types)
-				possible_instantiations = [ list(map(lambda y: y[0], \
-											(filter(lambda x: x[1] in self._parser.type_hierarchy[t], enumerate(state_objs))))) + [-1] \
-											for t in pred_types ]
-
-				# [(0, 0), (0, 1), (0, 2), (0, -1), (1, 0), (1, 1), (1, 2), (1, -1), (2, 0), (2, 1), (2, 2), (2, -1), (-1, 0), (-1, 1), (-1, 2), (-1, -1)]
-				possible_instantiations = list(itertools.product(*possible_instantiations)) # Do the cartesian product of the list of lists
-
-				# [('on', (0,0)), ('on', (0,1)) ...]
-				atoms = [(pred_name, tuple(i)) for i in possible_instantiations]
-
-				# Append the atoms to possible_actions
-				possible_actions.extend(atoms)
-
-		return possible_actions
-		"""
 
 	"""
 	Applies an action, consisting of (possibly) adding objects and an atom, to the initial state.

@@ -242,8 +242,9 @@ class RelationalState():
                         in the current phase. Obtained by calling StateValidator.predicates_in_current_phase().
                         If None, all the predicates are allowed.
     @allowed_virtual_objects List of object types which can be added as virtual objects.
+                             If None, all object types can be added as virtual objects.
     """
-    def virtual_objs_with_type(self, allowed_predicates, allowed_virtual_objects):
+    def virtual_objs_with_type(self, allowed_predicates=None, allowed_virtual_objects=None):
         if allowed_predicates is None:
             sorted_predicates = self._predicates
         else:
