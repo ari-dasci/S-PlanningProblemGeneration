@@ -743,12 +743,12 @@ def test_generate_random_problems_logistics():
 
 	random_generator = RandomGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics)
 
-	num_problems_to_generate = 50
+	num_problems_to_generate = 10
 
 	print(">> Calling generate_random_problems()")
 
 	random_generator.generate_random_problems(num_problems_to_generate, num_actions_for_init_state=40,
-									num_actions_for_goal_state=40, verbose=False)
+									num_actions_for_goal_state=80, verbose=False)
 
 """
 Test problem_generator.py to generate random problems for the logistics domain.
@@ -1007,12 +1007,12 @@ def test_generate_random_problems_blocksworld():
 
 	random_generator = RandomGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorBlocksworld)
 
-	num_problems_to_generate = 50 # 10
+	num_problems_to_generate = 20 # 10
 
 	print(">> Calling generate_random_problems()")
 
-	random_generator.generate_random_problems(num_problems_to_generate, num_actions_for_init_state=40,
-									num_actions_for_goal_state=40, verbose=False)
+	random_generator.generate_random_problems(num_problems_to_generate, num_actions_for_init_state=15,
+									num_actions_for_goal_state=30, verbose=False)
 
 """
 Tests the functionality of directed_generator.py used to train both the initial and goal generation policies for the blocksworld domain.
@@ -1105,8 +1105,8 @@ def test_load_models_and_generate_problems_blocksworld():
 	virtual_objects = None
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_255/init_policy_its-1500.ckpt"
-	goal_policy_path = "saved_models/both_policies_255/goal_policy_its-1500.ckpt"
+	init_policy_path = "saved_models/both_policies_256/init_policy_its-100.ckpt"
+	goal_policy_path = "saved_models/both_policies_256/goal_policy_its-100.ckpt"
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
@@ -4499,13 +4499,13 @@ if __name__ == "__main__":
 	#test_train_init_and_goal_policy()
 	#test_load_models_and_generate_problems()
 
-	test_generate_random_problems_logistics()
+	#test_generate_random_problems_logistics()
 	#test_train_init_and_goal_policy_logistics()
 	#test_load_models_and_generate_problems_logistics()	
 	#test_load_models_and_resume_training_logistics()
 
 	#test_generate_random_problems_blocksworld()
-	#test_train_init_and_goal_policy_blocksworld()
+	test_train_init_and_goal_policy_blocksworld()
 	#test_load_models_and_generate_problems_blocksworld()	
 	#test_load_models_and_resume_training_blocksworld()
 

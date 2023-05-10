@@ -3,36 +3,26 @@
 (:domain BLOCKS)
 
 (:objects
-	obj0 obj1 obj2 obj3 obj4 obj5 obj6 obj7 obj8 obj9 obj10 - block
+	obj0 obj1 obj2 obj3 obj4 obj5 - block
 )
 
 (:init
-	(clear obj8)
-	(on obj3 obj2)
-	(on obj7 obj6)
-	(on obj10 obj5)
+	(clear obj3)
+	(on obj1 obj0)
+	(handempty)
 	(on obj5 obj4)
-	(clear obj10)
-	(on obj4 obj3)
-	(holding obj1)
-	(clear obj9)
-	(ontable obj9)
+	(clear obj5)
+	(ontable obj3)
+	(on obj2 obj1)
+	(clear obj2)
 	(ontable obj0)
-	(on obj8 obj7)
-	(on obj6 obj0)
-	(ontable obj2)
+	(ontable obj4)
 )
 
 (:goal (and
-	(on obj0 obj6)
-	(on obj6 obj7)
-	(on obj4 obj5)
-	(on obj7 obj10)
-	(on obj3 obj4)
-	(on obj9 obj1)
 	(on obj1 obj0)
-	(on obj8 obj2)
-	(on obj2 obj3)
-	(on obj10 obj8)
+	(on obj5 obj4)
+	(on obj2 obj1)
+	(on obj3 obj2)
 ))
 )
