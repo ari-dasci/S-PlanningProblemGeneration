@@ -1105,8 +1105,8 @@ def test_load_models_and_generate_problems_blocksworld():
 	virtual_objects = None
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_256/init_policy_its-100.ckpt"
-	goal_policy_path = "saved_models/both_policies_256/goal_policy_its-100.ckpt"
+	init_policy_path = "saved_models/both_policies_257/init_policy_its-30.ckpt"
+	goal_policy_path = "saved_models/both_policies_257/goal_policy_its-30.ckpt"
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
@@ -4505,8 +4505,8 @@ if __name__ == "__main__":
 	#test_load_models_and_resume_training_logistics()
 
 	#test_generate_random_problems_blocksworld()
-	test_train_init_and_goal_policy_blocksworld()
-	#test_load_models_and_generate_problems_blocksworld()	
+	#test_train_init_and_goal_policy_blocksworld()
+	test_load_models_and_generate_problems_blocksworld()	
 	#test_load_models_and_resume_training_blocksworld()
 
 	# >>> EN LOGISTICS Y BLOCKSWORLD USO DIFERENTES PLANNERS!!!	

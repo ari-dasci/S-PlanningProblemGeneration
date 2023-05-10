@@ -730,14 +730,7 @@ class DirectedGenerator():
 		self._fd_temp_problem.truncate()
 
 		# Obtain its difficulty
-		# OLD -> we no longer use an EPM
-		"""if use_epm:
-			# Obtain its difficulty by predicting it with an EPM from its planning features
-			# problem_difficulty = self._planner.predict_problem_difficulty_epm(self._temp_problem_path)
 
-			problem_difficulty = self._planner.predict_problem_difficulty_heuristics(self._temp_problem_path)
-		else:"""
-		
 		# Obtain its difficulty with several planners (number of nodes expanded by the planner or -1 if it couldn't solve it under
 		# max_planning_time)
 		# Note: if the planner does not find a solution, it also returns -1, but this situation should not happen
@@ -1203,7 +1196,7 @@ class DirectedGenerator():
 			 <Note>: we assume the initial states of @problems meets all the eventual consistency rules.
 	@calculate_difficulty If True, we solve the problems and output their difficulty.
 	"""
-	def _obtain_trajectories_goal_policy(self, problems, use_epm, list_max_actions_goal_state=-1, max_planning_time=600, calculate_difficulty=True,
+	def _obtain_trajectories_goal_policy(self, problems, list_max_actions_goal_state=-1, max_planning_time=600, calculate_difficulty=True,
 	 									 verbose=False):
 		num_trajectories = len(problems)
 
@@ -1321,7 +1314,7 @@ class DirectedGenerator():
 					# Call the planner to obtain the difficulty of the problem generated
 					# This method also selects the goal atoms corresponding to the goal predicates given by the user
 					if calculate_difficulty:
-						r_difficulty_real_list, r_difficulty_list = self.get_problem_difficulty(problems[i], use_epm, max_planning_time=max_planning_time) # Difficulty scaled to real values between 0 and 1 (unless the problem difficulty surpasses the maximum difficulty)
+						r_difficulty_real_list, r_difficulty_list = self.get_problem_difficulty(problems[i], max_planning_time=max_planning_time) # Difficulty scaled to real values between 0 and 1 (unless the problem difficulty surpasses the maximum difficulty)
 					else:
 						r_difficulty_real_list, r_difficulty_list = None, None
 								
@@ -1351,7 +1344,7 @@ class DirectedGenerator():
 						# Call the planner to obtain the difficulty of the problem generated
 						# This method also selects the goal atoms corresponding to the goal predicates given by the user
 						if calculate_difficulty:
-							r_difficulty_real_list, r_difficulty_list = self.get_problem_difficulty(problems[i], use_epm, max_planning_time=max_planning_time)
+							r_difficulty_real_list, r_difficulty_list = self.get_problem_difficulty(problems[i], max_planning_time=max_planning_time)
 						else:
 							r_difficulty_real_list, r_difficulty_list = None, None
 						
@@ -1402,7 +1395,7 @@ class DirectedGenerator():
 		problems, init_policy_trajectories = self._obtain_trajectories_init_policy(num_trajectories, list_max_atoms_init_state, list_max_actions_init_state)
 
 		# <Obtain trajectories with the goal policy>
-		_, _, goal_policy_trajectories = self._obtain_trajectories_goal_policy(problems, True, list_max_actions_goal_state)
+		_, _, goal_policy_trajectories = self._obtain_trajectories_goal_policy(problems, list_max_actions_goal_state)
 
 		#print("diffs", [trajectory[-1][-1] if len(trajectory)>0 else None for trajectory in goal_policy_trajectories])
 
@@ -1664,7 +1657,7 @@ class DirectedGenerator():
 			print("> Generating goal (:goal)")
 
 		# <Generate a goal state with the goal policy>
-		final_problem, _, _ = self._obtain_trajectories_goal_policy([init_problem], False, [max_actions_goal_state], max_planning_time=max_planning_time, calculate_difficulty=False, verbose=verbose)
+		final_problem, _, _ = self._obtain_trajectories_goal_policy([init_problem], [max_actions_goal_state], max_planning_time=max_planning_time, calculate_difficulty=False, verbose=verbose)
 		final_problem = final_problem[0]
 		
 		# Finish time measurement
@@ -1672,7 +1665,7 @@ class DirectedGenerator():
 		elapsed_time = end_time - start_time
 
 		# Solve the problem in order to obtain its difficulty
-		problem_difficulties, _ = self.get_problem_difficulty(final_problem, False, max_planning_time=max_planning_time)
+		problem_difficulties, _ = self.get_problem_difficulty(final_problem, max_planning_time=max_planning_time)
 
 		# <Obtain the PDDL encoding of the problem>
 		# Note: this method also selects at the goal state the predicates given by the user, in order to obtain the problem goal (:goal)

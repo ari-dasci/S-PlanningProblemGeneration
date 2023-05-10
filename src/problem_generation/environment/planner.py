@@ -14,9 +14,6 @@ import joblib
 import sys
 import time
 
-from .epm.pddl_features_extractor import SimplePDDLFeatureExtractor
-from .epm.sas_features_extractor import SASFeatureExtractor
-
 class Planner():
 
 	"""
@@ -31,15 +28,13 @@ class Planner():
 					'astar(blind())' -> A* with "blind heuristic"
 					'astar(lmcut())' -> A* with LM-cut heuristic
 	Information about search_options can be found in: https://www.fast-downward.org/PlannerUsage
-	@path_epm Path to the EPM (trained random forest) used to predict planning times from features.
 
 	>>> Planners to use:
 		- Lama-first: ['python3', planner_path, '--alias', 'lama-first', domain_path, problem_path] -> mean_diff=25.9, mean_time=0.6
 		- FF: ['python3', planner_path, domain_path, problem_path, '--search', 'ehc(ff())'] -> mean_diff=132.3, mean_time=0.55
 		- weighted A*, lm_cut: ['python3', planner_path, domain_path, problem_path, '--search', 'eager_wastar([lmcut()], w=2)'] -> mean_diff=17.15, mean_time=0.56
 	"""
-	def __init__(self, domain_file_path, python_call='python', planner_path='./fast-downward',
-	             path_epm='./problem_generation/environment/epm/trained_model.joblib'):
+	def __init__(self, domain_file_path, python_call='python', planner_path='./fast-downward'):
 
 		# planner_path=r'R:\RamDisk\fast-downward\fast-downward.py'
 		# search_options='astar(lmcut())'
@@ -50,9 +45,6 @@ class Planner():
 
 		# Num of planners (search options) to use to calculate the problem difficulties
 		self._num_planners_for_diff = 3
-
-		# Load the EPM (random forest) used to predict planning times -> OLD
-		# self._epm = joblib.load(path_epm)
 
 	@property
 	def domain_file_path(self):
@@ -170,94 +162,3 @@ class Planner():
 				expanded_nodes_list.append(curr_expanded_nodes)
 
 		return expanded_nodes_list
-
-	"""
-	Uses an EPM (empirical performance model) to efficiently predict the planning time given the problem features.
-	"""
-	def predict_problem_difficulty_epm(self, pddl_problem_path):
-		# < Obtain the problem features >
-
-		# Extract features
-		pddl_features_extractor = SimplePDDLFeatureExtractor()
-		sas_features_extractor = SASFeatureExtractor()
-
-		features = pddl_features_extractor.extract(self._domain_file_path, pddl_problem_path)[1]
-		features.update(sas_features_extractor.extract(self._planner_path, self._domain_file_path, pddl_problem_path)[1])
-
-		# Represent in a dataframe
-		features = {k : [v] for k,v in features.items()}
-		df_features = pd.DataFrame.from_dict(features)
-
-		# Select subset of features for predicting planning time
-		features_to_use = ['pddlNumActions', 'pddlNumPredicates', 'pddlMinParamsPerPredicate', 'pddlMeanParamsPerPredicate', 'pddlMaxParamsPerPredicate', 'pddlMinPredicatesPerPrecondition',
-                   'pddlMeanPredicatesPerPrecondition', 'pddlMaxPredicatesPerPrecondition', 'pddlMinPredicatesPerEffect', 'pddlMeanPredicatesPerEffect', 'pddlMaxPredicatesPerEffect',
-                   'pddlMinNegationsPerEffect', 'pddlMeanNegationsPerEffect', 'pddlMaxNegationsPerEffect', 'pddlMarksTotalNumActions', 'pddlRatioActionsWithNegativeEffectsOverActions',
-                   'pddlNumGoals', 'pddlNumObjects', 'pddlNumInitialConditions', 'pddlRequiresADL', 'pddlRequiresConditionalEffects', 'pddlRequiresDisjunctivePreconditions',
-                   'pddlRequiresEquality', 'pddlRequiresExistentialPreconditions', 'pddlRequiresQuantifiedPreconditions', 'pddlRequiresStrips', 'pddlRequiresTyping',
-                   'pddlRequiresUniversalPreconditions', 'pddlNumConstants', 'pddlNumConstantsAndObjects', 'pddlNumEqualityInitialConditions', 'pddlHasTypes', 'pddlNumTypes',
-                   'pddlRequiresNegation', 'pddlRequiresNegativePreconditions', 'sasRules', 'sasRelevantAtoms', 'sasAuxiliaryAtoms', 'sasFinalQueueLength', 'sasTotalQueuePushes',
-                   'sasInitialInvariantCandidates', 'sasUncoveredFacts', 'sasImpliedPreconditionsAdded', 'sasOperatorsRemoved', 'sasPropositionsRemoved', 'sasTranslatorVariables',
-                   'sasTranslatorDerivedVariables', 'sasTranslatorFacts', 'sasTranslatorMutexGroups', 'sasTranslatorOperators', 'sasTranslatorTaskSize', 'sasFileVersion',
-                   'sasFileHasMetric', 'sasFileNumVariables', 'sasFileMinVariableDomainSize', 'sasFileMeanVariableDomainSize', 'sasFileMaxVariableDomainSize', 'sasFileNumGoalPairs',
-                   'sasFileRatioGoalPairsOverNumVariables', 'sasFileNumOperators', 'sasFileMinPrevailConditionsPerOperator', 'sasFileMeanPrevailConditionsPerOperator',
-                   'sasFileMaxPrevailConditionsPerOperator', 'sasFileMinEffectsPerOperator', 'sasFileMeanEffectsPerOperator', 'sasFileMaxEffectsPerOperator',
-                   'sasPreprocessingPercentageVariablesDeemedNecessary', 'sasPreprocessingPercentageMutexGroupsDeemedNecessary', 'sasPreprocessingPercentageOperatorsDeemedNecessary']
-
-		df_features = df_features.loc[:, features_to_use]
-
-		# < Use the EPM to predict planning time >
-		prediction = self._epm.predict(df_features)[0]
-
-		#print("\n\n> Features:\n", df_features)
-		#print("\n\n> Prediction:", prediction) # 0.2382
-		
-		return prediction
-
-	"""
-	Uses heuristics to predict the problem difficulty. More specifically, it evaluates a set of heuristics h_1, ..., h_n
-	on the initial state (s_i) of the problem given by @pddl_problem_path, and estimates its difficulty as
-	mean(h_1(s_i), ..., h_n(s_i))*std(h_1(s_i), ..., h_n(s_i))
-	"""
-	def predict_problem_difficulty_heuristics(self, pddl_problem_path):
-		# Heuristics to use
-		# heuristics_list = ['cegar()', 'lmcut()'] # only admissible heuristics
-		heuristics_list = ['add', 'cea', 'cegar', 'cg', 'ff', 'lmcut'] # I should also try the merge_and_shrink() heuristic
-
-		# Call the planner (i.e., evaluate the heuristics on the initial state)
-		planner_path = self._planner_path
-		if planner_path[-1] != '/':
-			planner_path = planner_path + '/'
-		planner_path = planner_path + 'fast-downward.py' # Path to the script to call fast downward
-
-		planner_command = [self._python_call, planner_path, self._domain_file_path, pddl_problem_path, 
-					       '--search', f"eager_greedy([{', '.join(h + '()' for h in heuristics_list)}], bound=0)"]
-
-		planner_output = subprocess.run(planner_command, shell=False,
-										   stdout=subprocess.PIPE).stdout.decode('utf-8')
-
-		# Parse the planner output to obtain the heuristic value of each heuristic
-		parse_str = r"Initial heuristic value for {}: ([0-9]+)"
-		h_vals = []
-
-		for h in heuristics_list:
-			h_str = parse_str.format(h)
-			match = re.search(h_str, planner_output)
-
-			if match is None:
-				return 1 # The goal is empty, so the problem has the minimum difficulty (1)
-
-			h_val = match.group(1)
-			h_vals.append(int(h_val))
-
-
-		# h_vals = [int(re.search(parse_str.format(h), planner_output).group(1)) for h in heuristics_list]
-
-		# Compute the difficulty with the following formula: mean(h_1(s_i), ..., h_n(s_i))*std(h_1(s_i), ..., h_n(s_i))
-		# diff = np.mean(h_vals)*(1+np.std(h_vals))+1 # Add 1 to std because if all heuristic values are the same, then x*0=0 and the difficulty is 0
-													# Add 1 to the end because diff can't be 0
-		# diff = np.mean(h_vals)*(1+np.sqrt(np.std(h_vals)))+1
-		diff = np.mean(h_vals) + np.sqrt(np.std(h_vals)) + 1
-
-		# No need to normalize (e.g., substract the mean and divide by std) the heuristic values, as all of them have a similar range
-
-		return diff
