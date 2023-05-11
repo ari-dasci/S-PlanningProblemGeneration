@@ -717,8 +717,7 @@ class DirectedGenerator():
 	<Note>: This method also selects the goal atoms corresponding to the goal predicates given by the user
 	"""
 	def get_problem_difficulty(self, problem, max_difficulty=None, rescale_factor=0.1, max_planning_time=600):
-		# max_difficulty=[2000, 30000, 1500] # ---> Logistics
-		max_difficulty=[50000,50000,50000] # ---> blocksworld
+		max_difficulty=[50000,50000,50000]
 
 		# Encode the problem in PDDL
 		# > This method also selects the goal atoms corresponding to the goal predicates given by the user
@@ -833,29 +832,41 @@ class DirectedGenerator():
 
 		mean_diffs_curr_trajectory = np.array(diff_non_empty_trajectories).mean(axis=0) 
 
-		#print("mean_diffs_curr_trajectory", mean_diffs_curr_trajectory)
-
 		# First call to this method
 		# Initialize the (moving) means to the curr trajectory means
-		if self._moving_mean_diff_each_planner is None:
-			self._moving_mean_diff_each_planner = mean_diffs_curr_trajectory
-		else:
-			self._moving_mean_diff_each_planner = self._moving_mean_diff_each_planner*moving_avg_coeff + mean_diffs_curr_trajectory*(1-moving_avg_coeff)
+		first_call = self._moving_mean_diff_each_planner is None
 
+		if first_call:
+			self._moving_mean_diff_each_planner = mean_diffs_curr_trajectory
+			
 		#print("self._moving_mean_diff_each_planner", self._moving_mean_diff_each_planner)
 
 		# <Calculate the normalized difficulty mean>
 
+		# OLD
 		# Rescale all the planner difficulties so that they all have the same mean as the first planner
 		# rescale_coeffs[0]=1, meaning that we don't need to rescale the difficulty for the first planner
-		rescale_coeffs = self._moving_mean_diff_each_planner / self._moving_mean_diff_each_planner[0]
+		# rescale_coeffs = self._moving_mean_diff_each_planner / self._moving_mean_diff_each_planner[0]
+
+		# New -> rescale planner difficulties so that they all oscilate around 1 for the whole training
+		rescale_coeffs = self._moving_mean_diff_each_planner
 
 		#print("rescale_coeffs", rescale_coeffs)
 
 		for i in range(len(goal_trajectories)):
 			if len(goal_trajectories[i]) > 0:
 				diff_list = goal_trajectories[i][-1][-1]
-				goal_trajectories[i][-1][-1] = np.mean(diff_list / rescale_coeffs)
+				# OLD -> arithmetic mean
+				# goal_trajectories[i][-1][-1] = np.mean(diff_list / rescale_coeffs)
+
+				# New -> geometric mean
+				normalized_diffs = diff_list / rescale_coeffs
+				goal_trajectories[i][-1][-1] = np.prod(normalized_diffs)**(1/normalized_diffs.size)
+
+
+		# If this is NOT the first call to this method, update the moving means after updating the current trajectories
+		if not first_call:
+			self._moving_mean_diff_each_planner = self._moving_mean_diff_each_planner*moving_avg_coeff + mean_diffs_curr_trajectory*(1-moving_avg_coeff)
 
 	"""
 	Auxiliary method used by _add_diversity_reward(), in order to obtain the feature vector associated with each state.

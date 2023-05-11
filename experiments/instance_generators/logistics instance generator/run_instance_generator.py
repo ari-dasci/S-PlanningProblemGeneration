@@ -68,7 +68,7 @@ metrics_file = 'problems_difficulty_logistics_generator.txt'
 
 # >>> DELETE PROBLEMS FROM FOLDER BEFORE GENERATING NEW ONES!!!
 
-num_problems = 50 # Number of problems to generate (meeting all the requirements)
+num_problems = 10 # 50 # Number of problems to generate (meeting all the requirements)
 
 def solve_problems_and_write_difficulty():
 	# Obtain the name of all the problem files
@@ -98,13 +98,13 @@ def solve_problems_and_write_difficulty():
 			# ehc + lm_cut: ['python3', planner_path, domain_path, problem_path, '--search', 'ehc(lmcut())'] -> mean_diff=159.65, mean_time=0.58
 			# >>> weighted A*, lm_cut: ['python3', planner_path, domain_path, problem_path, '--search', 'eager_wastar([lmcut()], w=2)'] -> mean_diff=17.15, mean_time=0.56
 
+			# Use same planners as in blocksworld
 			planner_commands = [ ['python3', planner_path, '--alias', 'lama-first', domain_path, problem_path],
-						 		 ['python3', planner_path, domain_path, problem_path, '--search', 'ehc(ff())'],
-						 		 ['python3', planner_path, domain_path, problem_path, '--search', 'eager_wastar([lmcut()], w=2)'] ]
+						 		 ['python3', planner_path, domain_path, problem_path, '--search', 'lazy_greedy([ff],preferred=[ff],cost_type=one,reopen_closed=false)'],
+						 		 ['python3', planner_path, domain_path, problem_path, '--search', 'lazy_greedy([add],preferred=[add],cost_type=one,reopen_closed=false)'] ]
 
 			# Diff in case of timeout/out-of-memory error
-			# Lama-first, ehc(ff), weighted A* with lmcut
-			max_diff_each_planner = [2000, 30000, 1500]
+			max_diff_each_planner = [50000, 50000, 50000]
 
 			diff_list = []
 

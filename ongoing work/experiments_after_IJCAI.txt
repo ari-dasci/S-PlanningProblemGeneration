@@ -1,0 +1,49 @@
+>  <logistics>
+   <planners=[lama-first, lazy-greedy, lazy-greedy]>
+   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0
+
+   > logs: init_policy\version_204
+   > saved_models: both_policies_257
+
+   > Entrenamiento (its=1.5k)
+      - Tiempo: 16h (en DaSCI)
+      - r_diff (init_policy)= 3 (seguía aumentando, lo paré a mitad)
+      - r_eventual=-0.05
+      - init_policy_entropy 0.6, goal_policy_entropy en 0.3 (seguía bajando)
+      - term_cond_prob init_policy y goal_policy ambas convergen a 0
+      - num_objs:
+         - city: 2.8 (y subiendo)
+         - airport: 3
+         - location: 0.2 (y bajando)
+         - airplane: 2.3
+         - truck: 3
+         - package: 6.3
+
+
+   > Problemas (its=1.5)
+      - max_atoms = 20
+         - diff = [68.2 52.9 58.1]
+            - problemas con 20 átomos
+         - diversidad media-alta
+            - la mayoría de problemas no tienen locations
+            - problemas con 2, 3, 4 y 5 ciudades
+            - el número de paquetes varía moderadamente
+
+      - max_atoms = 30
+         - diff = [145.6 96.1 87.4]
+            - problemas con 30 átomos
+         - diversidad media
+            - no aumenta el número de ciudades!!! (siguen estando entre 2 y 5)
+            - aumenta sobretodo el número de packages
+
+      - max_atoms = 40
+         - diff = [233.2 154.6 153.4]
+            - problemas con 40 átomos
+         - diversidad media
+            - se generan problemas con hasta 7 ciudades
+            - aumenta sobretodo el número de packages 
+
+   >> Aunque no terminé el entrenamiento, se puede ver que NeSIG no generaliza bien en logistics a problemas más
+      grandes:
+         - La dificultad escala mal
+         - El número de ciudades escala mal

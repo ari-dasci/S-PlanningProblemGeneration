@@ -75,7 +75,7 @@ class Planner():
 		planner_path = planner_path + 'fast-downward.py' # Path to the script to call fast downward
 
 		# List of search options to use
-		# --- LOGISTICS ---
+		# --- LOGISTICS [OLD] ---
 		# Lama-first, FF, weighted A* with lmcut
 		"""
 		planner_command_list = [ [self._python_call, planner_path, '--alias', 'lama-first', self._domain_file_path, pddl_problem_path],
@@ -83,7 +83,7 @@ class Planner():
 						 		 [self._python_call, planner_path, self._domain_file_path, pddl_problem_path, '--search', 'eager_wastar([lmcut()], w=2)'] ]
 		"""
 
-		# --- BLOCKSWORLD ---
+		# --- BLOCKSWORLD AND LOGISTICS ---
 		
 		planner_command_list = [ [self._python_call, planner_path, '--alias', 'lama-first', self._domain_file_path, pddl_problem_path],
 						 		 [self._python_call, planner_path, self._domain_file_path, pddl_problem_path, '--search', 'lazy_greedy([ff],preferred=[ff],cost_type=one,reopen_closed=false)'],
@@ -93,13 +93,6 @@ class Planner():
 		if self._num_planners_for_diff != len(planner_command_list):
 			raise Exception("self._num_planners_for_diff must be equal to the number of planners used to measure the problem difficulties")
 
-		# OLD	
-		"""if self._alias is None:
-			planner_command = [self._python_call, planner_path, self._domain_file_path, pddl_problem_path,
-					'--search', self._search_options]
-		else:
-			planner_command = [self._python_call, planner_path, '--alias', self._alias, self._domain_file_path, 
-					  pddl_problem_path]"""
 
 		# Call the planner and detect timeouts
 		# <TODO>
