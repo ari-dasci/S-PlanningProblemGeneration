@@ -3,70 +3,32 @@
 (:domain logistics)
 
 (:objects
-	obj0 obj4 obj7 obj8 obj12 obj14 obj23 obj34 obj42 - airport
-	obj1 obj5 obj9 obj15 obj35 - city
-	obj2 obj11 obj13 obj16 obj17 obj19 obj21 obj24 obj26 obj38 obj41 obj43 obj44 - package
-	obj3 obj6 obj18 obj25 obj28 obj31 obj36 obj39 - truck
-	obj10 obj22 obj27 obj29 obj30 obj32 obj33 obj37 obj40 - airplane
-	obj20 - location
+	obj0 obj4 obj6 obj8 - airport
+	obj1 obj5 obj9 - city
+	obj2 obj14 obj16 - package
+	obj3 obj10 obj15 - airplane
+	obj7 obj11 obj12 obj13 obj17 - truck
 )
 
 (:init
-	(in-city obj42 obj5)
-	(at obj21 obj12)
-	(in-city obj20 obj15)
-	(at obj2 obj0)
 	(in-city obj4 obj5)
-	(at obj26 obj14)
-	(at obj10 obj8)
-	(at obj41 obj14)
-	(at obj43 obj42)
-	(at obj38 obj4)
-	(at obj24 obj12)
-	(in-city obj23 obj5)
-	(in-city obj7 obj5)
-	(at obj31 obj23)
-	(at obj37 obj34)
-	(at obj32 obj0)
-	(at obj16 obj4)
-	(in-city obj34 obj35)
-	(at obj17 obj7)
-	(at obj28 obj14)
-	(at obj40 obj14)
-	(at obj36 obj12)
-	(at obj18 obj8)
-	(at obj6 obj4)
-	(at obj27 obj23)
-	(at obj33 obj8)
-	(in-city obj0 obj1)
-	(at obj13 obj12)
-	(at obj30 obj4)
-	(at obj11 obj8)
+	(at obj17 obj8)
+	(at obj7 obj0)
+	(at obj11 obj4)
+	(at obj12 obj4)
+	(at obj16 obj8)
+	(at obj2 obj0)
 	(at obj3 obj0)
-	(at obj19 obj12)
-	(at obj44 obj42)
+	(at obj15 obj0)
 	(in-city obj8 obj9)
-	(at obj39 obj34)
-	(at obj25 obj7)
-	(in-city obj12 obj1)
-	(at obj29 obj14)
-	(at obj22 obj7)
-	(in-city obj14 obj15)
+	(at obj14 obj6)
+	(at obj10 obj0)
+	(in-city obj6 obj1)
+	(at obj13 obj4)
+	(in-city obj0 obj1)
 )
 
 (:goal (and
-	(at obj17 obj34)
-	(at obj38 obj34)
-	(at obj43 obj8)
-	(at obj19 obj4)
-	(at obj16 obj0)
-	(at obj26 obj12)
-	(at obj2 obj8)
-	(at obj21 obj34)
-	(at obj13 obj7)
-	(at obj24 obj14)
-	(at obj41 obj8)
-	(at obj44 obj23)
-	(at obj11 obj4)
+	(at obj16 obj8)
 ))
 )

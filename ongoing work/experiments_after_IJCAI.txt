@@ -47,3 +47,13 @@
       grandes:
          - La dificultad escala mal
          - El número de ciudades escala mal
+
+
+>  <logistics>
+   planners=[lama-first, lazy-greedy, lazy-greedy]
+   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0
+   <difficulty_rescale_factor=1>
+   <new difficulty normalization>
+
+   > logs: init_policy
+   > saved_models: both_policies_

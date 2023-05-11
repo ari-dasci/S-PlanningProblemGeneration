@@ -449,8 +449,9 @@ class GenerativePolicy(pl.LightningModule):
 
 	Note: we add an entropy bonus to the loss, in order to prefer policies with high entropy.
 
-	@train_batch Batch of training samples, where each one is a tuple (state_tensors, num_objs, mask_tensors, chosen_action_index,
-                 chosen_action_prob, r_continuous, r_eventual, r_difficulty, r_total, r_total_norm, state_values)
+	@train_batch Batch of training samples, where each one is a tuple 
+				 (rel_state, state_tensors, num_objs, mask_tensors, chosen_action_index, chosen_action_prob,
+				  r_continuous, r_eventual, r_difficulty_new, r_difficulty_old, r_total, r_total_norm, state_values)
 	"""
 	def training_step(self, train_batch, batch_idx=0):
 		train_batch_len = len(train_batch)
@@ -467,8 +468,8 @@ class GenerativePolicy(pl.LightningModule):
 		list_chosen_action_index = [sample[4] for sample in train_batch]
 
 		tensor_action_prob_old_policy = torch.tensor([sample[5] for sample in train_batch], dtype=torch.float32, requires_grad=False, device=self.device)
-		tensor_r_total_norm = torch.tensor([sample[10] for sample in train_batch], dtype=torch.float32, requires_grad=False, device=self.device)
-		tensor_state_values = torch.tensor([sample[11] for sample in train_batch], dtype=torch.float32, requires_grad=False, device=self.device)
+		tensor_r_total_norm = torch.tensor([sample[11] for sample in train_batch], dtype=torch.float32, requires_grad=False, device=self.device)
+		tensor_state_values = torch.tensor([sample[12] for sample in train_batch], dtype=torch.float32, requires_grad=False, device=self.device)
 
 		# Represent the state tensors in a suitable encoding for the NLMs
 		num_preds_state_tensors = len(train_batch[0][1]) # The number of elements in state_tensors (equal to the max predicate arity - 1)
@@ -477,9 +478,10 @@ class GenerativePolicy(pl.LightningModule):
 		# < Obtain the average rewards for the logs >
 		reward_continuous = np.mean([sample[6] for sample in train_batch])
 		reward_eventual = np.mean([sample[7] for sample in train_batch])
-		reward_difficulty = np.mean([sample[8] for sample in train_batch])
-		reward_total = np.mean([sample[9] for sample in train_batch])
-		reward_total_norm = np.mean([sample[10] for sample in train_batch])
+		reward_difficulty_new = np.mean([sample[8] for sample in train_batch]) # The difference between reward_difficulty_new y old is that 
+		reward_difficulty_old = np.mean([sample[9] for sample in train_batch]) # the new one is normalized to be around 1 whereas the old one is not (so it is used for logging)
+		reward_total = np.mean([sample[10] for sample in train_batch])
+		reward_total_norm = np.mean([sample[11] for sample in train_batch])
 
 		# < Critic >
 
@@ -540,7 +542,7 @@ class GenerativePolicy(pl.LightningModule):
 				mean_term_cond_prob = torch.mean(term_cond_prob_tensor)
 	
 			self.logger.experiment.add_scalar("Total Reward Normalized", reward_total_norm, global_step=self.curr_log_iteration)
-			self.logger.experiment.add_scalars('Rewards', {'Reward Continuous': reward_continuous, 'Reward Eventual': reward_eventual, 'Reward Difficulty': reward_difficulty},
+			self.logger.experiment.add_scalars('Rewards', {'Reward Continuous': reward_continuous, 'Reward Eventual': reward_eventual, 'Reward Difficulty': reward_difficulty_old},
 											   global_step=self.curr_log_iteration)
 			self.logger.experiment.add_scalar("Actor Policy Entropy", policy_entropy.item(), global_step=self.curr_log_iteration)
 			self.logger.experiment.add_scalars('Actor Losses', {'Total Loss': actor_loss.item(), 'PPO Loss': PPO_loss.item(), 'Entropy Loss': entropy_loss.item()},

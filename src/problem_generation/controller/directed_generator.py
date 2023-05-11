@@ -631,27 +631,34 @@ class DirectedGenerator():
 		
 		r_continuous_sum = 0
 		r_eventual_sum = 0
-		r_difficulty_sum = 0
+		r_difficulty_new_sum = 0
+		r_difficulty_old_sum = 0
 
 		# Iterate over the trajectory in reverse (from the end to the beginning)
 		for i in range(len(trajectory)-1,-1,-1):
-			curr_r_continuous = trajectory[i][-3]
-			curr_r_eventual = trajectory[i][-2]
-			curr_r_difficulty = trajectory[i][-1]
+			curr_r_continuous = trajectory[i][-4]
+			curr_r_eventual = trajectory[i][-3]
+			curr_r_difficulty_new = trajectory[i][-2]
+			curr_r_difficulty_old = trajectory[i][-1]
 
 			sum_r_continuous = curr_r_continuous + r_continuous_sum
 			sum_r_eventual = curr_r_eventual + r_eventual_sum
-			sum_r_difficulty = curr_r_difficulty + r_difficulty_sum
-			sum_r_total = sum_r_continuous + sum_r_eventual + sum_r_difficulty
+			sum_r_difficulty_new = curr_r_difficulty_new + r_difficulty_new_sum
+			sum_r_difficulty_old = curr_r_difficulty_old + r_difficulty_old_sum
 
-			trajectory[i] = trajectory[i][:-3] + [sum_r_continuous, sum_r_eventual, sum_r_difficulty, sum_r_total]
+			# The total sum of reward, used for training, uses the new r_difficulty
+			sum_r_total = sum_r_continuous + sum_r_eventual + sum_r_difficulty_new
+
+			trajectory[i] = trajectory[i][:-4] + [sum_r_continuous, sum_r_eventual, sum_r_difficulty_new, sum_r_difficulty_old, sum_r_total]
 
 			r_continuous_sum += curr_r_continuous # Sum the current reward to the sum of disc rewards R
 			r_continuous_sum *= disc_factor_cont_consistency # Apply disc factor to all the rewards in the sum
 			r_eventual_sum += curr_r_eventual
 			r_eventual_sum *= disc_factor_event_consistency
-			r_difficulty_sum += curr_r_difficulty
-			r_difficulty_sum *= disc_factor_difficulty
+			r_difficulty_new_sum += curr_r_difficulty_new
+			r_difficulty_new_sum *= disc_factor_difficulty
+			r_difficulty_old_sum += curr_r_difficulty_old
+			r_difficulty_old_sum *= disc_factor_difficulty
 
 
 	"""
@@ -715,8 +722,10 @@ class DirectedGenerator():
 					2) ff and 3) weighted A* with lmcut.
 
 	<Note>: This method also selects the goal atoms corresponding to the goal predicates given by the user
+	<Note2>: We no longer use a rescale factor for the difficulty. It is no longer needed as we normalize difficulties
+	         to be close to 1.
 	"""
-	def get_problem_difficulty(self, problem, max_difficulty=None, rescale_factor=0.1, max_planning_time=600):
+	def get_problem_difficulty(self, problem, max_difficulty=None, rescale_factor=1, max_planning_time=600):
 		max_difficulty=[50000,50000,50000]
 
 		# Encode the problem in PDDL
@@ -766,19 +775,23 @@ class DirectedGenerator():
 		trajectory_rewards_std = np.std(trajectory_rewards_np)
 
 		# <Update the mu and sigma parameters using a moving average>
-		if self._initialize_reward_moving_mean_and_std_init_policy:
-			self._initialize_reward_moving_mean_and_std_init_policy = False
+		# First iteration -> initialize moving averages
+		if self._initialize_reward_moving_mean_and_std_init_policy:			
 			self._reward_moving_mean_init_policy = trajectory_rewards_mean
 			self._reward_moving_std_init_policy = trajectory_rewards_std
-		else:
-			self._reward_moving_mean_init_policy = self._reward_moving_mean_init_policy*moving_avg_coeff + trajectory_rewards_mean*(1-moving_avg_coeff)
-			self._reward_moving_std_init_policy = self._reward_moving_std_init_policy*moving_std_coeff + trajectory_rewards_std*(1-moving_std_coeff)
+			self._initialize_reward_moving_mean_and_std_init_policy = False
 
 		# <Normalize the trajectory rewards>
 		# We store both the reward before normalization and after it
 		for i in range(len(trajectory)):
 			norm_reward = (trajectory[i][-2] - self._reward_moving_mean_init_policy) / (self._reward_moving_std_init_policy + 1e-10) # z-score normalization
 			trajectory[i] = trajectory[i][:-1] + [norm_reward] + trajectory[i][-1:] # Store the normalized reward in the trajectory[i][-2] position
+
+		# Update the moving average after the current update, unless this is the first iteration
+		if not self._initialize_reward_moving_mean_and_std_init_policy:
+			self._reward_moving_mean_init_policy = self._reward_moving_mean_init_policy*moving_avg_coeff + trajectory_rewards_mean*(1-moving_avg_coeff)
+			self._reward_moving_std_init_policy = self._reward_moving_std_init_policy*moving_std_coeff + trajectory_rewards_std*(1-moving_std_coeff)
+
 
 
 	"""
@@ -801,30 +814,36 @@ class DirectedGenerator():
 		trajectory_rewards_std = np.std(trajectory_rewards_np)
 
 		# <Update the mu and sigma parameters using a moving average>
-		if self._initialize_reward_moving_mean_and_std_goal_policy:
-			self._initialize_reward_moving_mean_and_std_goal_policy = False
+		# First iteration -> initialize moving averages
+		if self._initialize_reward_moving_mean_and_std_goal_policy:		
 			self._reward_moving_mean_goal_policy = trajectory_rewards_mean
 			self._reward_moving_std_goal_policy = trajectory_rewards_std
-		else:
-			self._reward_moving_mean_goal_policy = self._reward_moving_mean_goal_policy*moving_avg_coeff + trajectory_rewards_mean*(1-moving_avg_coeff)
-			self._reward_moving_std_goal_policy = self._reward_moving_std_goal_policy*moving_std_coeff + trajectory_rewards_std*(1-moving_std_coeff)
-
+			self._initialize_reward_moving_mean_and_std_goal_policy = False
+			
 		# <Normalize the trajectory rewards>
 		# We store both the reward before normalization and after it
 		for i in range(len(trajectory)):
 			norm_reward = (trajectory[i][-2] - self._reward_moving_mean_goal_policy) / (self._reward_moving_std_goal_policy + 1e-10) # z-score normalization
 			trajectory[i] = trajectory[i][:-1] + [norm_reward] + trajectory[i][-1:] # Store the normalized reward in the trajectory[i][-2] position
 
+		# Update the moving average after the current update, unless this is the first iteration
+		if not self._initialize_reward_moving_mean_and_std_goal_policy:
+			self._reward_moving_mean_goal_policy = self._reward_moving_mean_goal_policy*moving_avg_coeff + trajectory_rewards_mean*(1-moving_avg_coeff)
+			self._reward_moving_std_goal_policy = self._reward_moving_std_goal_policy*moving_std_coeff + trajectory_rewards_std*(1-moving_std_coeff)
+
+
 
 	"""
 	This method receives a list @goal_trajectories of goal_policy trajectories. For each sample in each trajectory, it then calculates
 	the normalized mean of the different planner difficulties. The difficulties are normalized so that they all have a similar mean.
+	It calculates both the "new" normalized mean, which oscillates around 1, and the "old" normalized mean, which increases during training and thus is
+	used for logging the difficulty.
 	"""
 	def _calculate_normalized_mean_planner_diffs(self, goal_trajectories, moving_avg_coeff=0.8):
 		# <Calculate the mean difficulty for each planner for the goal trajectories>
 
-		# trajectory[-1][-1] is the last element (r_diff_list) for the last sample of the trajectory
-		diff_non_empty_trajectories = [trajectory[-1][-1] for trajectory in goal_trajectories if len(trajectory)>0]
+		# trajectory[-1][-2] is the second-to-last element (r_diff_list) for the last sample of the trajectory
+		diff_non_empty_trajectories = [trajectory[-1][-2] for trajectory in goal_trajectories if len(trajectory)>0]
 
 		# If all the goal trajectories are empty, we do not need to calculate the normalized difficulty for any of them
 		if len(diff_non_empty_trajectories) == 0:
@@ -839,30 +858,27 @@ class DirectedGenerator():
 		if first_call:
 			self._moving_mean_diff_each_planner = mean_diffs_curr_trajectory
 			
-		#print("self._moving_mean_diff_each_planner", self._moving_mean_diff_each_planner)
-
 		# <Calculate the normalized difficulty mean>
 
 		# OLD
 		# Rescale all the planner difficulties so that they all have the same mean as the first planner
 		# rescale_coeffs[0]=1, meaning that we don't need to rescale the difficulty for the first planner
-		# rescale_coeffs = self._moving_mean_diff_each_planner / self._moving_mean_diff_each_planner[0]
+		rescale_coeffs_old = self._moving_mean_diff_each_planner / self._moving_mean_diff_each_planner[0]
 
 		# New -> rescale planner difficulties so that they all oscilate around 1 for the whole training
-		rescale_coeffs = self._moving_mean_diff_each_planner
-
-		#print("rescale_coeffs", rescale_coeffs)
+		rescale_coeffs_new = self._moving_mean_diff_each_planner
 
 		for i in range(len(goal_trajectories)):
 			if len(goal_trajectories[i]) > 0:
-				diff_list = goal_trajectories[i][-1][-1]
-				# OLD -> arithmetic mean
-				# goal_trajectories[i][-1][-1] = np.mean(diff_list / rescale_coeffs)
+				diff_list = goal_trajectories[i][-1][-2]
 
-				# New -> geometric mean
-				normalized_diffs = diff_list / rescale_coeffs
-				goal_trajectories[i][-1][-1] = np.prod(normalized_diffs)**(1/normalized_diffs.size)
+				# Old normalized mean
+				normalized_diffs_old = diff_list / rescale_coeffs_old
+				goal_trajectories[i][-1][-1] = np.prod(normalized_diffs_old)**(1/normalized_diffs_old.size)
 
+				# New normalized mean
+				normalized_diffs_new = diff_list / rescale_coeffs_new
+				goal_trajectories[i][-1][-2] = np.prod(normalized_diffs_new)**(1/normalized_diffs_new.size)
 
 		# If this is NOT the first call to this method, update the moving means after updating the current trajectories
 		if not first_call:
@@ -936,22 +952,10 @@ class DirectedGenerator():
 		# Obtain which trajectories are eventual-consistent (the last sample in the trajectory has r_eventual=0)
 		
 		# OLD -> only use consistent trajectories
-		# consistent_inds = [i for i, sample in enumerate(last_sample_list) if sample[-4] == 0]
+		# consistent_inds = [i for i, sample in enumerate(last_sample_list) if sample[-5] == 0]
 		# NEW -> use all trajectories
-		consistent_inds = list(range(len(last_sample_list)))
-		
-		
+		consistent_inds = list(range(len(last_sample_list))) # A list from 0 to num_trajectories-1		
 		num_consistent_trajectories = len(consistent_inds)
-
-		#print("consistent_inds", consistent_inds)
-
-
-
-		#print("\init_state_list:")
-		#for s in init_state_list:
-		#	print("\n--------", s.objects, s.atoms)
-
-
 
 		# For each init_state in init_state_list, obtain its associated features
 		# (number of objects of each type and number of atoms of each predicate)
@@ -1191,8 +1195,8 @@ class DirectedGenerator():
 				trajectories[i].append( [curr_state_copy,
 										list_state_tensors[i], list_num_objs_with_virtuals[i], list_mask_tensors[i],
 										chosen_action_index, chosen_action_prob,
-										r_continuous_consistency, r_eventual_consistency, 0.0] ) 
-				# The 0.0 in the last position corresponds to r_difficulty
+										r_continuous_consistency, r_eventual_consistency, 0.0, 0.0] ) # The last 0.0 is used to store the old normalized difficulty mean (the one which increased during training, to be used for logging) 
+				# The 0.0 in the second-to-last position corresponds to r_difficulty
 		
 		return problems, trajectories
 
@@ -1367,8 +1371,8 @@ class DirectedGenerator():
 				trajectories[i].append( [curr_goal_state_copy,
 										list_state_tensors[i], list_num_objs[i], list_mask_tensors[i],
 										chosen_action_index, chosen_action_prob,
-										0.0, 0.0, r_difficulty_list] ) 
-				# The two 0.0 correspond to the continuous and eventual consistency rewards, respectively
+										0.0, 0.0, r_difficulty_list, 0.0] ) # The 0.0 after r_difficulty_list is used to store the old normalized difficulty mean (the one which increased during training, to be used for logging) 
+				# The two first 0.0 correspond to the continuous and eventual consistency rewards, respectively
 				
 		return problems, list_r_difficulties_real, trajectories
 
@@ -1517,6 +1521,8 @@ class DirectedGenerator():
 			self._normalize_rewards_init_policy(init_policy_trajectories)
 			if len(goal_policy_trajectories) > 0:
 				self._normalize_rewards_goal_policy(goal_policy_trajectories)
+
+			# AQUI
 
 			# < Train the generative policies >
 
