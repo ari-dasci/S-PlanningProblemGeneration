@@ -188,8 +188,8 @@ class ProblemGenerator():
 				# If selected_consistent_atom is False, then the current state s is a terminal state! (no consistent states can be reached from it)
 				# See if it has enough atoms and is eventual consistent. If it is, we stop the initial state phase and add it to new_state_set
 				if not selected_consistent_atom and s.initial_state.num_atoms >= min_atoms_init_state and s.get_eventual_consistency_reward_of_init_state() == 0:			   
-				   s.end_initial_state_generation_phase()
-				   new_state_set.add(s) # No need to add the hash
+					s.end_initial_state_generation_phase()
+					new_state_set.add(s) # No need to add the hash
 
 			else:
 				curr_list_ind += 1

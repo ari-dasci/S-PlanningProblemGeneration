@@ -1,0 +1,66 @@
+>>> Create a language for expressing consistency rules
+
+
+------- Data structures
+
+>> Consistency checking methods
+
+	> check_continuous_consistency_state_and_action(cls, curr_state, action, obj_types)
+	  curr_state: RelationalState (objects and atoms)
+	  action: atom to add (['on', [1,0]])
+	  obj_types: type of each object in the atom @action (e.g., ['block', 'block'])
+
+	> check_eventual_consistency_state(cls, curr_state):
+	  curr_state: RelationalState (objects and atoms)
+
+>> Data structures
+
+	> RelationalState: class storing a PDDL state
+		> Domain information (lifted)
+			- types: existing object types, stored as a tuple
+				Example: ('airplane', 'airport')
+
+			- type_hierarchy: which type inherits from which
+				Dictionary where keys are types and values are sets of the children types
+				Example: {'vehicle':{'truck', 'airplane'}, 'truck':{'truck'}}
+
+			- predicates: predicate names and what object types they are instantiated on
+			    Stored as a tuple of tuples of tuples
+				Example: ( ('on', ('block','block')), ('handempty', ()) )
+
+		> Problem information (ground)
+			- objects: objects in the state
+			    Stored as a <<list>> of their types
+			    Example: ['airplane', 'airport', 'city', 'city']
+
+			- atoms: atoms in the state
+				Stored as a set of tuples, where each tuple contains an atom,
+				as the name of the predicate and the obj indexes it is instantiated on
+				Example: { ('in-city', (1,0)), ('at', (2,1)) }
+
+------- Requirements
+
+> Base checks (done everytime, for every domain)
+  Note: this should be efficient to do
+
+	- sanity checks curr_state
+		- It is instanceof RelationalState
+
+	- sanity checks action
+		- it is a tuple
+		- action[0] is a string and the name is in available_predicates
+		- action[1] is a tuple of integers
+		- action[1] contains no repeated objects (integers) 
+
+	- sanity checks obj_types
+		- it is a tuple of strings
+		- each type in obj_types is a child type of the corresponding type in the predicate
+		  associated with the atom to add (@action) -> very expensive to check
+
+
+> Declarative (FOL) functionality
+
+
+> Imperative (Python-based) functionality
+
+

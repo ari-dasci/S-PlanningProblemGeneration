@@ -1245,4 +1245,4 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems_blocksworld()	
 	#test_load_models_and_resume_training_blocksworld()
 
-	# USAR LOS MISMOS PLANERS DE BLOCKSWORLD TAMBIÉN EN LOGISTICS!!
+	# >>> I am currently using the same planners for blocksworld and logistics

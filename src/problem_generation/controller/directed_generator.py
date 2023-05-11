@@ -1522,8 +1522,6 @@ class DirectedGenerator():
 			if len(goal_policy_trajectories) > 0:
 				self._normalize_rewards_goal_policy(goal_policy_trajectories)
 
-			# AQUI
-
 			# < Train the generative policies >
 
 			# -- Initial state policy

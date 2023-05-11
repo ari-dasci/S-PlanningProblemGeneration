@@ -39,7 +39,7 @@ class RelationalState():
                 raise ValueError("Atoms must be a set of tuples")
 
 
-        self._types = sorted(types) # A list of types, e.g., {"plane", "car"}
+        self._types = sorted(types) # A list of types, e.g., ("plane", "car")
         # We always use sorted_types
         # self._sorted_types = sorted(self._types) # Sort the types in order to define some auxiliary data structures which depend on the order of types
         # Note: self._types must contain all the types, across all possible levels of hierarchy

@@ -1,0 +1,21 @@
+Debería probar más hiperparámetros distintos en blocksworld
+   - Realicé pruebas en logistics y después usé los mismos hiperparámetros en blocksworld!!
+
+Ver si puedo generar problemas con varias ciudades en logistics sin tener que fijar <min_cities=2>
+
+>> Mejorar generalización logistics - Varias alternativas
+
+   - Cambiar normalización dificultad (geometric average y normalizar a 1)
+      - Probar distintos valores de action entropy
+
+   - Probar a normalizar num_atoms y num_objs cada tipo dados como input a la NLM por el número
+     actual de átomos en vez del número máximo
+
+   - Añadir reduce operation a la NLM (suma de proporciones) para que aprenda a contar
+
+   - Diversity reward
+      - Probar distintos coeficientes
+      - Tener también en cuenta el num de atoms instanciados en cada tipo de obj
+
+   - Entrenar en problemas de distintos tamaños
+      - Normalizar dificultad de manera separada para cada tamaño de problema
