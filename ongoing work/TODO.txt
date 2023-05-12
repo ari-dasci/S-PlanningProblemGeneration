@@ -6,7 +6,9 @@ Ver si puedo generar problemas con varias ciudades en logistics sin tener que fi
 >> Mejorar generalización logistics - Varias alternativas
 
    - Cambiar normalización dificultad (geometric average y normalizar a 1)
-      - Probar distintos valores de action entropy
+      > Probar distintos valores de action entropy
+
+   - Entrenar sobre problemas más grandes (20 átomos)
 
    - Probar a normalizar num_atoms y num_objs cada tipo dados como input a la NLM por el número
      actual de átomos en vez del número máximo
@@ -19,3 +21,9 @@ Ver si puedo generar problemas con varias ciudades en logistics sin tener que fi
 
    - Entrenar en problemas de distintos tamaños
       - Normalizar dificultad de manera separada para cada tamaño de problema
+
+------
+
+1. Encontrar un buen valor de action entropy para logistics
+
+2. Probar a entrenar sobre problemas con 20 átomos, para ver si mejora la generalización

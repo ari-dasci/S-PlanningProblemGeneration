@@ -842,7 +842,7 @@ def test_train_init_and_goal_policy_logistics():
 										   res_connections_initial_state_nlm=False,
 										   exclude_self_inital_state_nlm=True,
 										   lr_initial_state_nlm = 1e-3,
-										   entropy_coeff_init_state_policy = 0.1,
+										   entropy_coeff_init_state_policy = 1,
 										   entropy_annealing_coeffs_init_state_policy = None,
 										   epsilon_init_state_policy=0.1,
 
@@ -882,8 +882,8 @@ def test_load_models_and_generate_problems_logistics():
 	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_257/init_policy_its-1500.ckpt"
-	goal_policy_path = "saved_models/both_policies_257/goal_policy_its-1500.ckpt"
+	init_policy_path = "saved_models/both_policies_260/init_policy_its-1800.ckpt"
+	goal_policy_path = "saved_models/both_policies_260/goal_policy_its-1800.ckpt"
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]

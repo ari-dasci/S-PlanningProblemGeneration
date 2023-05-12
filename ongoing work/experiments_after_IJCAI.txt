@@ -52,8 +52,89 @@
 >  <logistics>
    planners=[lama-first, lazy-greedy, lazy-greedy]
    max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0
+   init_policy_entropy_coeffs: 0.1, None
+   goal_policy_entropy_coeffs: 0.0, None
    <difficulty_rescale_factor=1>
    <new difficulty normalization>
 
+   > Ejecutándose en DaSCI
    > logs: init_policy/version_206
    > saved_models: both_policies_259
+
+
+>  <logistics>
+   planners=[lama-first, lazy-greedy, lazy-greedy]
+   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0
+   <init_policy_entropy_coeffs: 0.01, None>
+   goal_policy_entropy_coeffs: 0.0, None
+   <difficulty_rescale_factor=1>
+   <new difficulty normalization>
+
+   > Ejecutándose en casa
+   > logs: init_policy/version_203
+   > saved_models: both_policies_260
+
+   > Entrenamiento (its=1800)
+      - Tiempo (casa): 14h 15min
+      - r_diff (goal_policy)= 40 (seguía aumentando)
+      - r_eventual=-0.02
+      - init_policy_entropy 0.4, goal_policy_entropy 0.2
+      - term_cond_prob init_policy y goal_policy ambas convergen a 0
+      - num_objs:
+         - city: 3
+         - airport: 3
+         - location: 0.01
+         - airplane: 2.1 (y bajando)
+         - truck: 3
+         - package: 7 
+ 
+   > Problemas (its=1800)
+      - max_atoms = 15
+         - diff = [51.9 42.3 39.4]
+            - todos con 15 átomos
+         - diversidad baja
+            - Todos los problemas con 3 ciudades
+            - Ningún problema con location!
+            - Cada ciudad tiene exactamente un airport!!!
+              Se generan problemas donde solo se usan aviones,
+              pero no camiones!!
+
+      - max_atoms = 20
+         - diff = [90.4 73.6 67.]
+            - todos con 20 átomos
+         - diversidad media-baja
+            - Problemas con 3, 4 y 5 ciudades!
+
+      - max_atoms = 30
+         - diff = [202.9 155.4 129.3]
+            - todos con 30 átomos
+         - diversidad media-baja
+            - Problemas con hasta 7 ciudades!
+
+      - max_atoms = 40
+         - diff = [455.1 306.6 209.1]
+            - todos con 40 átomos
+         - diversidad media-baja
+            - Problemas con hasta 8 ciudades
+               - Parece que el num de ciudades ya deja de escalar bien, lo que más aumenta
+                 es el número de paquetes
+
+   >> La dificultad escala regular
+   >> La diversidad de los problemas es muy baja!
+      >>> Necesito aumentar el action entropy coeff
+      >>> 0.01 es demasiado bajo!
+   >> Quizás necesito entrenar en problemas más grandes
+         - Lo que hace que un problema sea difícil puede depender del tamaño!
+
+
+>  <logistics>
+   planners=[lama-first, lazy-greedy, lazy-greedy]
+   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0
+   <init_policy_entropy_coeffs: 1, None>
+   goal_policy_entropy_coeffs: 0.0, None
+   difficulty_rescale_factor=1
+   new difficulty normalization
+
+   > Ejecutándose en casa
+   > logs: init_policy/version_204
+   > saved_models: both_policies_261   
