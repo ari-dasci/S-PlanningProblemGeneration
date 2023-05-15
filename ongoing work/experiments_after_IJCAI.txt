@@ -155,16 +155,7 @@
          - Aumentar el número de capas/predicados
          - Añadir counting operations en reduce para que aprenda a contar
 
-
-   >>> Creo que esto no es verdad porque se generan problemas con dos ciudades también cuando los entropy coeffs
-       son más bajos
-   >> Creo que tiende a generar problemas con solo dos ciudades cuando los action entropy coeffs
-      son muy altos porque cada ciudad generada necesita 1) un aeropuerto y 2) un camión.
-      Por tanto, añadir una ciudad restringe las siguientes acciones (para preservar la consistency
-      se debe añadir el aeropuerto y el camión) y, consecuentemente, la action entropy baja (al limitarse
-      el número de alternativas).
-         > Si quiero generar problemas con más de dos ciudades debo:
-            - Bajar la action entropy
-            - Promover la diversidad de otra forma (ej.: diversity reward)
+   > Si quiero generar problemas con más de dos ciudades debo:
+      - Promover la diversidad de otra forma (ej.: diversity reward)
 
    >> Si veo que la goal_policy entropy es muy baja, quizás debería usar un goal_policy entropy coeff > 0

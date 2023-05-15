@@ -1,31 +1,45 @@
-Debería probar más hiperparámetros distintos en blocksworld
-   - Realicé pruebas en logistics y después usé los mismos hiperparámetros en blocksworld!!
+-------------------------- TODO
 
-Ver si puedo generar problemas con varias ciudades en logistics sin tener que fijar <min_cities=2>
+>> Experimentos blocksworld
 
->> Mejorar generalización logistics - Varias alternativas
+   -Debería probar más hiperparámetros distintos en blocksworld
+    Realicé pruebas en logistics y después usé los mismos hiperparámetros en blocksworld!!
 
-   - Cambiar normalización dificultad (geometric average y normalizar a 1)
-      > Probar distintos valores de action entropy
 
-   - Entrenar sobre problemas más grandes (20 átomos)
+>> Experimentos logistics
+   
+   - Ver si puedo generar problemas con varias ciudades en logistics sin tener que fijar <min_cities=2>
 
-   - Probar a normalizar num_atoms y num_objs cada tipo dados como input a la NLM por el número
-     actual de átomos en vez del número máximo
+   > Mejorar generalización y diversidad logistics - Varias alternativas
 
-   - Añadir reduce operation a la NLM (suma de proporciones) para que aprenda a contar
+      - Probar distintos valores de init y goal_policy entropy
 
-   - Diversity reward
-      - Probar distintos coeficientes
-      - Tener también en cuenta el num de atoms instanciados en cada tipo de obj
+      - Entrenar sobre problemas más grandes (20 átomos)
 
-   - Entrenar en problemas de distintos tamaños
-      - Normalizar dificultad de manera separada para cada tamaño de problema
+      - Probar a normalizar num_atoms y num_objs cada tipo dados como input a la NLM por el número
+        actual de átomos en vez del número máximo
 
-Crear lenguaje para expresar consistency rules
-   Mirar pytholog
+      - Añadir reduce operation a la NLM (suma de proporciones) para que aprenda a contar
 
-------
+      - Aumentar la complejidad de la NLM
+
+      - Diversity reward
+         - Probar distintos coeficientes
+         - Tener también en cuenta el num de atoms instanciados en cada tipo de obj
+
+      - Entrenar en problemas de distintos tamaños
+         - Normalizar dificultad de manera separada para cada tamaño de problema
+
+>> Consistency language
+   
+   - Mirar pyprover y ver si lo uso
+
+
+>> Diversity measurements
+
+   - Probar método de Isabel Cenamor
+
+-------------------------- Next steps
 
 1. Encontrar un buen valor de action entropy para logistics
 
