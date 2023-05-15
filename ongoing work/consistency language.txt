@@ -46,6 +46,9 @@
 	- sanity checks curr_state
 		- It is instanceof RelationalState
 
+		> In check_eventual_consistency_state
+			- The state contains at least one atom of each required predicate type
+
 	- sanity checks action
 		- it is a tuple
 		- action[0] is a string and the name is in available_predicates
@@ -58,9 +61,32 @@
 		  associated with the atom to add (@action) -> very expensive to check
 
 
-> Declarative (FOL) functionality
+> Declarative (FOL) functionality -> we need to parse the RelationalState, action and obj_types and obtain the corresponding knowledge base
+
+	- FOL formulas where constants are objects and with the state atoms
+	- pred_type(atom, pred) -> true if atom is of predicate type "pred"
+	- arity(atom, ar) -> true if the arity of the atom is "ar"
+	- type(obj, t) -> true if the object is of type "t"
+	- child_type(obj, t) -> true if the object is of type "t" OR
+	  its type inherits from t
+	- new(obj) -> true if the object is not in the state (it is virtual)
+
+	> count(expr) -> return number of var substitutions that make
+	  true the expression
+	  Example: "how many locations does a city "city" have?" ->
+	           count( in-city(X, city) AND type(X, location) )
 
 
-> Imperative (Python-based) functionality
+> Imperative functionality:
 
+	>> CREO QUE ESTO SE PUEDE HACER CON PROLOG (Prolog puede devolver qué var substitution hace verdad una fórmula!!)
+
+	- get_pred_type(atom) -> return predicate of atom
+	- get_arity(atom) -> get arity (number of objects) of atom
+	- get_type(obj) -> return type of obj
+	- is_new(obj) -> true if obj is not in the state (it is a virtual object)
+
+
+---- TENGO QUE VER SI USO PROLOG O LO IMPLEMENTO YO!!
+	- PROLOG no permite quantifiers (exists and forall)
 

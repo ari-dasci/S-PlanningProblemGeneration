@@ -857,7 +857,7 @@ def test_train_init_and_goal_policy_logistics():
 										   epsilon_goal_policy=0.1)
 
 	# Train the goal generation policy
-	directed_generator.train_generative_policies(training_iterations = 10000)
+	directed_generator.train_generative_policies(training_iterations = 100000)
 
 """
 We load the trained init and goal policies and use them to generate problems for the logistics domain.
@@ -980,7 +980,7 @@ def test_load_models_and_resume_training_logistics():
 	print(f">> Init model {init_policy_path} and goal model {goal_policy_path} loaded")
 
 	# Train the goal generation policy
-	directed_generator.train_generative_policies(training_iterations = 10000, start_it=curr_it+1) # +1 because we need to start with the next iteration
+	directed_generator.train_generative_policies(training_iterations = 100000, start_it=curr_it+1) # +1 because we need to start with the next iteration
 
 
 # ------------------ Blocksworld
@@ -1080,7 +1080,7 @@ def test_train_init_and_goal_policy_blocksworld():
 										   epsilon_goal_policy=0.1)
 
 	# Train the goal generation policy
-	directed_generator.train_generative_policies(training_iterations = 10000)
+	directed_generator.train_generative_policies(training_iterations = 100000)
 
 """
 We load the trained init and goal policies and use them to generate problems for the blocksworld domain.
@@ -1203,7 +1203,7 @@ def test_load_models_and_resume_training_blocksworld():
 	print(f">> Init model {init_policy_path} and goal model {goal_policy_path} loaded")
 
 	# Train the goal generation policy
-	directed_generator.train_generative_policies(training_iterations = 10000, start_it=curr_it+1) # +1 because we need to start with the next iteration
+	directed_generator.train_generative_policies(training_iterations = 100000, start_it=curr_it+1) # +1 because we need to start with the next iteration
 
 """
 

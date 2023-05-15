@@ -1014,9 +1014,10 @@ class ValidatorLogistics(ValidatorPredOrder):
 		if not ('package' in state_objs_types and 'airplane' in state_objs_types):
 			return False
 
-
 		# Every city must contain at least one truck
+		# Forall X ( type(X, city) -> ( Exists Y in-city(Y, X) AND Exists Z type(Z, truck) AND at(Z, Y) ) )
 		city_objs = [ind for ind, obj_type in enumerate(state_objs_types) if obj_type=='city'] # Obtain indexes of objects of type city
+		
 
 		# Iterate over each city
 		for city_obj in city_objs:
