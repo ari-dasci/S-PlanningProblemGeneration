@@ -882,8 +882,8 @@ def test_load_models_and_generate_problems_logistics():
 	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_260/init_policy_its-1800.ckpt"
-	goal_policy_path = "saved_models/both_policies_260/goal_policy_its-1800.ckpt"
+	init_policy_path = "saved_models/both_policies_259/init_policy_its-5000.ckpt"
+	goal_policy_path = "saved_models/both_policies_259/goal_policy_its-5000.ckpt"
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
@@ -920,7 +920,7 @@ def test_load_models_and_generate_problems_logistics():
 	num_problems = 10
 
 	directed_generator.generate_problems(num_problems, max_atoms_init_state=40, max_actions_init_state=1,
-									     max_actions_goal_state=2.0, max_planning_time=600, verbose=False)
+									     max_actions_goal_state=2.0, max_planning_time=600, verbose=True)
 
 
 def test_load_models_and_resume_training_logistics():
@@ -1236,8 +1236,8 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems()
 
 	#test_generate_random_problems_logistics()
-	test_train_init_and_goal_policy_logistics()
-	#test_load_models_and_generate_problems_logistics()	
+	#test_train_init_and_goal_policy_logistics()
+	test_load_models_and_generate_problems_logistics()	
 	#test_load_models_and_resume_training_logistics()
 
 	#test_generate_random_problems_blocksworld()

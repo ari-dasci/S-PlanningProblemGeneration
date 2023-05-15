@@ -61,6 +61,62 @@
    > logs: init_policy/version_206
    > saved_models: both_policies_259
 
+   > Entrenamiento (its=5900)
+      - Tiempo (DaSCI): 3d 20h
+      - r_diff (goal_policy) = 60
+      - r_eventual=-0.01
+      - init_policy_entropy 0.6, goal_policy_entropy 0.1
+      - term_cond_prob init_policy y goal_policy ambas convergen a 0
+      - num_objs:
+         - city: 2.1
+         - airport: 5.5
+         - location: 0.005
+         - airplane: 1
+         - truck: 2.1 (igual que city)
+         - package: 6.2
+
+         - Resumen:
+            - Se generan problemas con 2 ciudades, un avión, muchos airports,
+              sin locations, un camión por cada ciudad y muchos packages
+
+   > Problemas (its=5000)
+      - max_atoms = 15
+         - diff = [63.9 53.3 59.9] (muy alta)
+            - todos con 15 átomos
+         - diversidad baja!!
+            - Problemas con 2 y 3 ciudades
+            - Entre distintos problemas solo suele variar el número de airports y packages (y esto solo varía un poco)
+
+      - max_atoms = 20
+         - diff = [125. 98.6 116.4] (muy alta)
+         - Problemas con 2 y 3 ciudades
+
+      - max_atoms = 30  
+         - diff = [257.6 221.2 244. ] (medio-alta)
+         - Problemas con 3, 4 y 5 ciudades
+
+      - max_atoms = 40
+         - diff = [450.7 388.8 454.7] (medio-baja)
+         - Problemas con hasta 7 ciudades (aunque la media son 5 ciudades)
+         - muy parecidos entre sí
+
+   >> Análisis de resultados
+      > El número de ciudades sí escala medio-bien pero, a pesar de esto, la dificultad escala mal!!
+         <<<Al no haber locations, se pueden llevar los paquetes de un sitio a otro usando solo aviones directamente!! (la goal policy solo usa la acción fly, pero no drive (con trucks))>>>
+         - Si quiero que la dificultad escale mejor, creo que tiene que aprender a generar problemas
+           donde se usen tanto los aviones como los camiones para llevar paquetes 
+
+            >>> Dos opciones:
+               - Entrenar en problemas más grandes
+               - Probar a aumentar la entropía de la goal_policy
+
+      > A pesar de usar action_entropy_coeffs=1, los problemas son poco diversos!
+         - Creo que la action_entropy no es una buena forma de motivar la diversidad:
+           dado que el mismo problema se puede generar de distintas formas (añadiendo los átomos
+           en distinto orden), una alta entropía puede resultar en problemas con poca diversidad!!
+         
+            >>> Debería usar diversity reward!!!
+
 
 >  <logistics>
    planners=[lama-first, lazy-greedy, lazy-greedy]
@@ -141,6 +197,18 @@
 
 
 ------- MIRAR ESTO
+
+   >> Debería intentar que se generen problemas con locations y que la goal policy
+      utilice la acción "drive"!!!
+      - Entrenar en problemas más grandes (quizás en problemas con 15 átomos
+        los problemas son más difíciles si no se usa "drive" ni hay locations)
+      - Entrenar en problemas de distintos tamaños
+      - Aumentar la entropía de la goal policy
+
+   >> Creo que la action entropy no es una buena forma de motivar la diversidad (policies
+      con alta entropía pueden dar lugar a problemas parecidos, simplemente añadiendo los átomos
+      en un orden distinto)
+      - Debería usar diversity reward
 
    >> El número de objetos generados con action_entropy_coeffs=1 y 10 son muy parecidos!!!
       - Esto parece indicar que esta forma de generar problemas es la que maximiza la dificultad!
