@@ -96,7 +96,7 @@
          - Problemas con 3, 4 y 5 ciudades
 
       - max_atoms = 40
-         - diff = [450.7 388.8 454.7] (medio-baja)
+         - diff = [450.7 388.8 454.7] (media)
          - Problemas con hasta 7 ciudades (aunque la media son 5 ciudades)
          - muy parecidos entre sí
 
@@ -193,8 +193,66 @@
 
    > Ejecutándose en casa
    > logs: init_policy/version_204
-   > saved_models: both_policies_261   
+   > saved_models: both_policies_261
 
+   > Entrenamiento (its=9000)
+      - Tiempo (casa): 3d
+      - r_diff (goal_policy)= 42
+      - r_eventual=-0.02
+      - init_policy_entropy=0.85, goal_policy_entropy=0.1
+      - term_cond_prob init_policy converge a 0 y la goal_policy_entropy a 0.01
+      - num_objs:
+         - city: 2
+         - airport: 5.5
+         - location: 1.3
+         - airplane: 1.1
+         - truck: 2.4
+         - package: 4.7   
+
+      >> El número de objetos es muy parecido
+         a cuando se usa init_policy_entropy_coeffs=0.1!!
+         La mayor diferencia es que ahora sí se generan
+         locations
+
+   > Problemas (its=7500)
+      - max_atoms = 15
+         - diff = [45.4 39.3 38.9] (alta)
+            - todos con 15 átomos
+         - diversidad media-alta
+            - Todos los problemas con dos ciudades
+            - El resto de objetos muy diversos
+
+      - max_atoms = 20
+         - diff = [75.4 61.1 72.1] (alta)
+         - diversidad media-alta
+            - Todos los problemas con dos ciudades
+            - El resto de objetos muy diversos
+
+      - max_atoms = 30
+         - diff = [171.3 132.4 160.1] (media)
+         - diversidad media
+            - Todos los problemas con dos ciudades
+            - El resto de objetos muy diversos
+
+      - max_atoms = 40
+         - diff = [373.3 270.5 353.3] (media-baja)
+         - diversidad media
+            - Todos los problemas con dos ciudades
+            - El resto de objetos muy diversos
+
+   >> Se usa drive para generar los objetivos!!!
+
+   >> La dificultad de los problemas y generalización es peor
+      que al usar init_policy_action_entropy=0.1
+   >> Ahora, al aumentar el tamaño de problema, no aumenta
+      el número de ciudades
+
+   >> init_policy action_coeff es mejor 0.1 que 1!!!
+      - No obstante, creo que no es un buen acercamiento para generar problemas diversos
+         - Debería usar diversity reward!!!
+
+
+---- Experimentos para mejorar generalización
 
 >  <logistics>
    planners=[lama-first, lazy-greedy, lazy-greedy]
@@ -207,6 +265,22 @@
    > Ejecutándose en DaSCI
    > logs: init_policy/version_207
    > saved_models: both_policies_262
+
+
+>  <logistics>
+   planners=[lama-first, lazy-greedy, lazy-greedy]
+   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0
+   <init_policy_entropy_coeffs: 0.1, None>
+   goal_policy_entropy_coeffs: 0, None
+   difficulty_rescale_factor=1
+   new difficulty normalization
+   <max_atoms_init_state=20>
+
+   > Ejecutándose en casa
+   > logs: init_policy/version_205
+   > saved_models: both_policies_263
+
+
 
 
 
