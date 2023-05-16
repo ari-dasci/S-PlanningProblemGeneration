@@ -266,19 +266,36 @@
    > logs: init_policy/version_207
    > saved_models: both_policies_262
 
+   > Paré el entrenamiento a mitad, tras 1.6k train its
+      - La init y goal policies entropy caen muy rápido!!
+      - Se generan problemas con varias ciudades, pero donde cada ciudad
+        suele tener un único camión y airport, sin locations! -> Poca diversidad!!
+
 
 >  <logistics>
    planners=[lama-first, lazy-greedy, lazy-greedy]
-   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0
+   <max_atoms_init_state=20>, max_actions_init_state=1, max_actions_goal_state=2.0
    <init_policy_entropy_coeffs: 0.1, None>
    goal_policy_entropy_coeffs: 0, None
    difficulty_rescale_factor=1
    new difficulty normalization
-   <max_atoms_init_state=20>
 
    > Ejecutándose en casa
    > logs: init_policy/version_205
    > saved_models: both_policies_263
+
+
+>  <logistics>
+   planners=[lama-first, lazy-greedy, lazy-greedy]
+   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0
+   <init_policy_entropy_coeffs: 0.2, None>
+   <goal_policy_entropy_coeffs: 0.2, None>
+   difficulty_rescale_factor=1
+   new difficulty normalization
+
+   > Ejecutándose en DaSCI
+   > logs: init_policy/version_208
+   > saved_models: both_policies_264
 
 
 
@@ -300,7 +317,7 @@
       en un orden distinto)
       - Debería usar diversity reward
 
-   >> El número de objetos generados con action_entropy_coeffs=1 y 10 son muy parecidos!!!
+   >> El número de objetos generados con action_entropy_coeffs=0.1 y 1 son muy parecidos!!!
       - Esto parece indicar que esta forma de generar problemas es la que maximiza la dificultad!
          - Si esto es el caso, quizás esté haciendo overfitting a un tamaño de problemas ->
            debería entrenar en problemas de distintos tamaños, para que aprenda a generalizar

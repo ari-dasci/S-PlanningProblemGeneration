@@ -842,7 +842,7 @@ def test_train_init_and_goal_policy_logistics():
 										   res_connections_initial_state_nlm=False,
 										   exclude_self_inital_state_nlm=True,
 										   lr_initial_state_nlm = 1e-3,
-										   entropy_coeff_init_state_policy = 0.1,
+										   entropy_coeff_init_state_policy = 0.2,
 										   entropy_annealing_coeffs_init_state_policy = None,
 										   epsilon_init_state_policy=0.1,
 
@@ -852,7 +852,7 @@ def test_train_init_and_goal_policy_logistics():
 										   res_connections_goal_nlm=False,
 										   exclude_self_goal_nlm=True,
 										   lr_goal_nlm = 1e-3,
-										   entropy_coeff_goal_policy = 0.1,
+										   entropy_coeff_goal_policy = 0.2,
 										   entropy_annealing_coeffs_goal_policy = None,
 										   epsilon_goal_policy=0.1)
 
@@ -882,8 +882,8 @@ def test_load_models_and_generate_problems_logistics():
 	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_261/init_policy_its-7500.ckpt"
-	goal_policy_path = "saved_models/both_policies_261/goal_policy_its-7500.ckpt"
+	init_policy_path = "saved_models/both_policies_262/init_policy_its-1590.ckpt"
+	goal_policy_path = "saved_models/both_policies_262/goal_policy_its-1590.ckpt"
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
@@ -897,7 +897,7 @@ def test_load_models_and_generate_problems_logistics():
 
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   allowed_virtual_objects=virtual_objects,
-										   max_atoms_init_state=20, max_actions_init_state=1, max_actions_goal_state=2.0,
+										   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0,
 										   device='cpu', max_objs_cache_reduce_masks=0,
 										  
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
