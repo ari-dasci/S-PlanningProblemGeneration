@@ -24,6 +24,8 @@ import sys
 #	- CREO QUE YA AQUÍ LOS PROBLEMAS DE NESIG SERÁN MENOS DIVERSOS QUE LOS DEL INSTANCE GENERATOR
 
 """
+>>> Comparación features Insights from the IPC 2018 Benchmarks con Improved Features for Runtime Prediction...
+
 - Features (Improved Features for Runtime Prediction...) -> 305 features, 144 features after removing non-deterministic features and unique features
 	- MpSAT -> SAT (satisfiability) features
 	- fdProbing -> run FD and measure features from the search

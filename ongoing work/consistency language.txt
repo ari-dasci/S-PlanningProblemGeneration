@@ -79,14 +79,46 @@
 
 > Imperative functionality:
 
-	>> CREO QUE ESTO SE PUEDE HACER CON PROLOG (Prolog puede devolver qué var substitution hace verdad una fórmula!!)
-
-	- get_pred_type(atom) -> return predicate of atom
-	- get_arity(atom) -> get arity (number of objects) of atom
 	- get_type(obj) -> return type of obj
 	- is_new(obj) -> true if obj is not in the state (it is a virtual object)
+	--- Más
 
 
----- TENGO QUE VER SI USO PROLOG O LO IMPLEMENTO YO!!
-	- PROLOG no permite quantifiers (exists and forall)
+----------- Estructura del código
 
+> Clases para implementar FOL
+	- Hacer que los objetos puedan ser índices!!!
+
+	- FOL formulas con quantifiers, and, or, not, etc.
+	- También con equality y inequality
+	- También con counting quantifiers
+	- Un método "proves" para ver si dado una FOL formula (correspondiente al PDDL state),
+	  se puede demostrar que otra fórmula (la consistency rule) es true o no
+
+
+> Métodos para imperative functionality (clase padre consistency_validator)
+ 	- Cuando se llama al método de consistency_check dado por el usuario, se crea un 
+	  ContextManager que hace que el RelState pasado como parámetro esté disponible
+	  (y que métodos como get_type(obj) se puedan llamar sin pasar el RelState como argumento)
+
+> Métodos llamados desde el código interno de NeSIG (mismos parámetros que los métodos
+  que usa el consistency validator actual) (clase padre consistency_validator)
+	- A partir de los argumentos, se crea un knowledge base en FOL y también se almacena
+	  en el context_manager
+
+	- Se llama al método de consistency_check proporcionado por el usuario
+
+
+> Métodos proporcionados por el usuario (clase hija consistency_validator), que únicamente reciben como 
+  parámetros:
+	- El nombre del átomo a añadir y una lista de los objetos en los que está instanciado
+	  (para comprobar la continuous consistency)
+	- Sin parámetros (para la eventual consistency)
+
+	Estos dos métodos devuelven true o false, según si se cumplen las consistency rules
+
+
+>>> Clases
+	- Consistency validator (padre)
+	- Consistency validator (hijo, hereda)
+	- Clases para FOL formulas
