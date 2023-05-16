@@ -833,7 +833,7 @@ def test_train_init_and_goal_policy_logistics():
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   allowed_virtual_objects=virtual_objects,
 										   penalization_continuous_consistency=-0.1,
-										   max_atoms_init_state=20, max_actions_init_state=1, max_actions_goal_state=2.0,
+										   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0,
 										   device='cuda', max_objs_cache_reduce_masks=30,
 
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
@@ -852,7 +852,7 @@ def test_train_init_and_goal_policy_logistics():
 										   res_connections_goal_nlm=False,
 										   exclude_self_goal_nlm=True,
 										   lr_goal_nlm = 1e-3,
-										   entropy_coeff_goal_policy = 0,
+										   entropy_coeff_goal_policy = 0.1,
 										   entropy_annealing_coeffs_goal_policy = None,
 										   epsilon_goal_policy=0.1)
 
