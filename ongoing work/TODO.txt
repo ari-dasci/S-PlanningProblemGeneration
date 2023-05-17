@@ -12,9 +12,18 @@
 
    > Mejorar generalización y diversidad logistics - Varias alternativas
 
+      >>> Objetivo actual: hacer que se generen problemas con locations y donde la goal_policy
+          use tanto la acción fly como drive (para así generar problemas diversos y posiblemente
+          generalizar mejor). También se deberían generar problemas con más de dos ciudades (para que
+          escale conforme aumentamos el tamaño de problema)
+
       - Probar distintos valores de init y goal_policy entropy
+         - También aumentar la entropía de la goal_policy para ver si así no "converge prematuramente"
+           y aprende a usar tanto la acción drive como fly
 
       - Entrenar sobre problemas más grandes (20 átomos)
+         - Quizás se generan problemas sin locations porque, para problemas pequeños, esos son los más
+           difíciles
 
       - Probar a normalizar num_atoms y num_objs cada tipo dados como input a la NLM por el número
         actual de átomos en vez del número máximo
@@ -24,11 +33,28 @@
       - Aumentar la complejidad de la NLM
 
       - Diversity reward
+         - Creo que la action entropy no es una buena forma de motivar la diversidad (se pueden generar
+           los mismos problemas añadiendo los átomos en un orden distinto)
          - Probar distintos coeficientes
          - Tener también en cuenta el num de atoms instanciados en cada tipo de obj
+         - Probar también a tener en cuenta el goal del problema (comparar los init states y goal states
+           de los problemas)
 
       - Entrenar en problemas de distintos tamaños
          - Normalizar dificultad de manera separada para cada tamaño de problema
+
+      >> El número de objetos generados con action_entropy_coeffs=0.1 y 1 son muy parecidos!!!
+         - Esto parece indicar que esta forma de generar problemas es la que maximiza la dificultad!
+            - Si esto es el caso, quizás esté haciendo overfitting a un tamaño de problemas ->
+              debería entrenar en problemas de distintos tamaños, para que aprenda a generalizar
+
+         - Opción 2: quizás el problema es la goal policy (al no tener action_entropy_coeff, converge demasiado
+           pronto)
+            - Debería hacer experimentos usando goal_policy entropy_coeff
+
+         - Opción 3: quizás la NLM no puede aprender "patrones" para generar problemas más complejos
+            - Aumentar el número de capas/predicados
+            - Añadir counting operations en reduce para que aprenda a contar
 
 >> Consistency language
    
@@ -51,5 +77,18 @@
 -------------------------- Next steps
 
 1. Encontrar un buen valor de action entropy para logistics
+   - Quiero ver si al usar goal_action entropy la goal policy aprende a usar tanto acciones drive
+     como fly
 
 2. Probar a entrenar sobre problemas con 20 átomos, para ver si mejora la generalización
+   - Quiero ver si en problemas con 20 átomos el tipo de problema que maximiza la dificultad
+     es igual que con 15 átomos o cambia algo. También ver si generaliza mejor.
+
+3. Probar diversity reward.
+   - Quiero que se generen problemas con más de dos ciudades y con locations
+
+4. Aumentar la expresividad de la NLM
+   - Añadir counting quantifiers
+   - Aumentar número de predicados a 16
+
+5. Entrenar sobre problemas de varios tamaños

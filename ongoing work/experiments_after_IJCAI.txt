@@ -279,10 +279,11 @@
    goal_policy_entropy_coeffs: 0, None
    difficulty_rescale_factor=1
    new difficulty normalization
+   <minibatch_size=50>
 
    > Ejecutándose en casa
-   > logs: init_policy/version_205
-   > saved_models: both_policies_263
+   > logs: init_policy/version_205, version_206
+   > saved_models: both_policies_263, 265
 
 
 >  <logistics>
@@ -296,44 +297,3 @@
    > Ejecutándose en DaSCI
    > logs: init_policy/version_208
    > saved_models: both_policies_264
-
-
-
-   -- Quizás añade solo dos ciudades porque, al añadir una tercera, debe asegurarse de que
-      tiene un truck y eso puede resultar en una penalización si no (dificultad 0 y r_eventual_consistency)
-      - Probar a bajar el r_eventual_consistency coeff o a ponerlo a 0 (con la dificultad debería
-        ser suficiente)
-
-
-
-------- MIRAR ESTO
-
-   >> Debería intentar que se generen problemas con locations y que la goal policy
-      utilice la acción "drive"!!!
-      - Entrenar en problemas más grandes (quizás en problemas con 15 átomos
-        los problemas son más difíciles si no se usa "drive" ni hay locations)
-      - Entrenar en problemas de distintos tamaños
-      - Aumentar la entropía de la goal policy
-
-   >> Creo que la action entropy no es una buena forma de motivar la diversidad (policies
-      con alta entropía pueden dar lugar a problemas parecidos, simplemente añadiendo los átomos
-      en un orden distinto)
-      - Debería usar diversity reward
-
-   >> El número de objetos generados con action_entropy_coeffs=0.1 y 1 son muy parecidos!!!
-      - Esto parece indicar que esta forma de generar problemas es la que maximiza la dificultad!
-         - Si esto es el caso, quizás esté haciendo overfitting a un tamaño de problemas ->
-           debería entrenar en problemas de distintos tamaños, para que aprenda a generalizar
-
-      - Opción 2: quizás el problema es la goal policy (al no tener action_entropy_coeff, converge demasiado
-        pronto)
-         - Debería hacer experimentos usando goal_policy entropy_coeff
-
-      - Opción 3: quizás la NLM no puede aprender "patrones" para generar problemas más complejos
-         - Aumentar el número de capas/predicados
-         - Añadir counting operations en reduce para que aprenda a contar
-
-   > Si quiero generar problemas con más de dos ciudades debo:
-      - Promover la diversidad de otra forma (ej.: diversity reward)
-
-   >> Si veo que la goal_policy entropy es muy baja, quizás debería usar un goal_policy entropy coeff > 0

@@ -833,8 +833,8 @@ def test_train_init_and_goal_policy_logistics():
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   allowed_virtual_objects=virtual_objects,
 										   penalization_continuous_consistency=-0.1,
-										   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0,
-										   device='cuda', max_objs_cache_reduce_masks=30,
+										   max_atoms_init_state=20, max_actions_init_state=1, max_actions_goal_state=2.0,
+										   device='cuda', max_objs_cache_reduce_masks=25,
 
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 										   mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
@@ -842,7 +842,7 @@ def test_train_init_and_goal_policy_logistics():
 										   res_connections_initial_state_nlm=False,
 										   exclude_self_inital_state_nlm=True,
 										   lr_initial_state_nlm = 1e-3,
-										   entropy_coeff_init_state_policy = 0.2,
+										   entropy_coeff_init_state_policy = 0.1,
 										   entropy_annealing_coeffs_init_state_policy = None,
 										   epsilon_init_state_policy=0.1,
 
@@ -852,7 +852,7 @@ def test_train_init_and_goal_policy_logistics():
 										   res_connections_goal_nlm=False,
 										   exclude_self_goal_nlm=True,
 										   lr_goal_nlm = 1e-3,
-										   entropy_coeff_goal_policy = 0.2,
+										   entropy_coeff_goal_policy = 0,
 										   entropy_annealing_coeffs_goal_policy = None,
 										   epsilon_goal_policy=0.1)
 
@@ -943,9 +943,9 @@ def test_load_models_and_resume_training_logistics():
 	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
 
 	# Create the generator and load the trained models
-	curr_it = 1450 # It of the loaded model, used to resume training
-	init_policy_path = "saved_models/both_policies_239/init_policy_its-{}.ckpt".format(curr_it)
-	goal_policy_path = "saved_models/both_policies_239/goal_policy_its-{}.ckpt".format(curr_it)
+	curr_it = 1780 # It of the loaded model, used to resume training
+	init_policy_path = "saved_models/both_policies_263/init_policy_its-{}.ckpt".format(curr_it)
+	goal_policy_path = "saved_models/both_policies_263/goal_policy_its-{}.ckpt".format(curr_it)
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
@@ -960,7 +960,7 @@ def test_load_models_and_resume_training_logistics():
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   allowed_virtual_objects=virtual_objects,
 										   penalization_continuous_consistency=-0.1,
-										   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0,
+										   max_atoms_init_state=20, max_actions_init_state=1, max_actions_goal_state=2.0,
 										   device='cuda', max_objs_cache_reduce_masks=25,
 										  
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
@@ -1236,13 +1236,13 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems()
 
 	#test_generate_random_problems_logistics()
-	test_train_init_and_goal_policy_logistics()
+	#test_train_init_and_goal_policy_logistics()
 	#test_load_models_and_generate_problems_logistics()	
-	#test_load_models_and_resume_training_logistics()
+	test_load_models_and_resume_training_logistics()
 
 	#test_generate_random_problems_blocksworld()
 	#test_train_init_and_goal_policy_blocksworld()
 	#test_load_models_and_generate_problems_blocksworld()	
 	#test_load_models_and_resume_training_blocksworld()
 
-	# >>> I am currently using the same planners for blocksworld and logistics
+	# CHANGE MINIBATCH_SIZE BACK TO 75!!

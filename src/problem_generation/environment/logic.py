@@ -14,6 +14,9 @@ class Term():
 	def name(self):
 		return self._name
 
+	def __hash__(self):
+		return hash(self._name)
+
 	# --- Shorthand Operations ---
 	# Used to simplify notation
 
@@ -34,6 +37,9 @@ class Constant(Term):
 		# @name String representing the name of the constant
 		self._name = name # We could call super().__init__(name) but we do it this way for efficiency purposes
 
+	def __hash__(self):
+		return hash(f'c{self._name}')
+
 
 # A (lifted) variable. Variables are bound (grounded) to constants. Example: x = Variable('x')
 class Variable(Term):
@@ -42,6 +48,8 @@ class Variable(Term):
 		# @name String representing the name of the variable
 		self._name = name # We could call super().__init__(name) but we do it this way for efficiency purposes
 
+	def __hash__(self):
+		return hash(f'v{self._name}')
 
 """
 Abstract class defining a FOL formula. All other classes representing particular FOL formulas
@@ -80,11 +88,53 @@ class Formula(ABC):
 	def __or__(self, other_formula):
 		return Or(self, other_formula)
 
+	# Implication (>>) (since there is no -> operator)
+	def __rshift__(self, other_formula):
+		return Implies(self, other_formula)
+
+	# Biconditional/iff (**) (since there is no <-> operator)
+	def __pow__(self, other_formula):
+		return Iff(self, other_formula)
 
 
 # Custom exception that is raised whenever we try to evaluate a formula that has some free variables.
 class UnboundVariableException(Exception):
 	pass
+
+
+"""
+A predicate. When instantiated on variables/constants, it becomes (returns) an atom.
+Example:
+	on = Predicate("on")
+
+	a, b = Constant('a'), Constant('b')
+	x = Variable('x')
+
+	atom1 = on(b, a)
+	atom2 = on(x, b)
+"""
+class Predicate():
+
+	def __init__(self, pred_name, arity):
+		# @pred_name Name of the predicate associated with the atom
+		# @arity Arity of the predicate (i.e., number of arguments)
+		self._pred_name = pred_name
+		self._arity = arity
+
+	def __call__(self, *args):
+		# @args Variables/constants the atom will be instantiated on
+
+		assert len(args) == self._arity, f"Wrong number of arguments. The arity of the predicate is {self._arity}"
+
+		return Atom(self._pred_name, *args)
+
+	@property
+	def pred_name(self):
+		return self._pred_name
+
+	@property
+	def arity(self):
+		return self._arity
 
 
 # An atom. For example: on(x,y)
@@ -126,32 +176,6 @@ class Atom(Formula):
 
 		# We test whether the ground atom is in @kb or not
 		return ground_atom in kb[1]
-
-	
-"""
-A predicate. When instantiated on variables/constants, it becomes (returns) an atom.
-Example:
-	on = Predicate("on")
-
-	a, b = Constant('a'), Constant('b')
-	x = Variable('x')
-
-	atom1 = on(b, a)
-	atom2 = on(x, b)
-"""
-class Predicate():
-
-	def __init__(self, pred_name):
-		# @pred_name Name of the predicate associated with the atom
-		self._pred_name = pred_name
-
-	def __call__(self, *args):
-		# @args Variables/constants the atom will be instantiated on
-		return Atom(self._pred_name, *args)
-
-	@property
-	def pred_name(self):
-		return self._pred_name
 
 
 # A formula corresponding to the negation of another subformula. Example: not ontable(a)
@@ -218,6 +242,66 @@ class Or(Formula):
 
 		# At this point, we know all subformulas are False
 		return False
+
+# A formula corresponding to the material implication of two subformulas. Example: ontable(x) -> ~on(x,y)
+class Implies(Formula):
+
+	def __init__(self, first_subformula, second_subformula):
+		# @first_subformula The first subformula in the implication
+		# @second_subformula The second subformula in the implication
+
+		self._first_subformula = first_subformula
+		self._second_subformula = second_subformula
+
+	@property
+	def first_subformula(self):
+		return self._first_subformula
+
+	@property
+	def second_subformula(self):
+		return self._second_subformula
+
+	def evaluate(self, kb, var_subs=dict()):
+		"""
+		x -> y = not x or y
+		We evaluate the two subformulas and use the above expression to return
+		the result of the evaluation
+		"""		
+		first_evaluation = self._first_subformula.evaluate(kb, var_subs)
+		second_evaluation = self._second_subformula.evaluate(kb, var_subs)
+
+		return (not first_evaluation or second_evaluation)
+
+
+# A formula corresponding to the biconditional (XNOR) of two subformulas. Example: ontable(x) <-> ontable(y)                             
+class Iff(Formula):
+
+	def __init__(self, first_subformula, second_subformula):
+		# @first_subformula The first subformula in the biconditional
+		# @second_subformula The second subformula in the biconditional
+
+		self._first_subformula = first_subformula
+		self._second_subformula = second_subformula
+
+	@property
+	def first_subformula(self):
+		return self._first_subformula
+
+	@property
+	def second_subformula(self):
+		return self._second_subformula
+
+	def evaluate(self, kb, var_subs=dict()):
+		"""
+		x <-> y = (x and y) or (not x and not y)
+		We evaluate the two subformulas and use the above expression to return
+		the result of the evaluation
+		"""		
+		first_evaluation = self._first_subformula.evaluate(kb, var_subs)
+		second_evaluation = self._second_subformula.evaluate(kb, var_subs)
+
+		return ( (first_evaluation and second_evaluation) or \
+			     (not first_evaluation and not second_evaluation) )
 
 
 # A formula corresponding to the equality of two constants or variables. Example: x == y. Example 2: a == b.
@@ -292,3 +376,234 @@ class Neq(Formula):
 
 		# Check if the two constants are the same one (they have the same name)
 		return c1 != c2
+
+
+# A formula corresponding to the existential quantifier (There Exists (E)) over some variable and subformula.
+# Example: TE(x, ontable(x)) would be equal to E x: ontable(x)
+class TE(Formula):
+
+	def __init__(self, variable, subformula):
+		# @variable The variable that is quantified
+		# @subformula The formula over which to apply the quantification
+
+		assert isinstance(variable, Variable), "Argument 'variable' must be an instance of class 'Variable'"
+
+		self._variable = variable
+		self._subformula = subformula
+
+	@property
+	def variable(self):
+		return self._variable
+
+	@property
+	def subformula(self):
+		return self._subformula
+
+	def evaluate(self, kb, var_subs=dict()):
+		"""
+			This method binds self._variable to every object/constant in @kb
+			and evaluates the resulting subformula. As soon as some binding
+			of self._variable to some object results in a True evaluation,
+			it returns True. Otherwise, it returns False.
+		"""
+
+		# Copy the dictionary so that @var_subs is not modified
+		_var_subs = var_subs.copy()
+
+		objects = kb[0]
+
+		# Iterate over each object in the knowledge base
+		for curr_obj in objects:
+			# Bind the variable to the current object
+			_var_subs[self._variable] = curr_obj
+
+			# Evaluate the resulting ground formula
+			# As soon as some binding results in a True evaluation,
+			# we can return True
+			if self._subformula.evaluate(kb, _var_subs) == True: # for better readibility
+				return True
+
+		return False
+
+	# --- Shorthands Operations ---
+	# They are used to transform from a normal existential quantifier (TE)
+	# to a counting one (TEC)
+
+	# Counting quantifier where there needs to be exactly @num different number
+	# of instantiations
+	def __eq__(self, num):
+		assert isinstance(num, int), "Parameter 'num' must be an integer"
+
+		return TEC(self._variable, num, num, self._subformula)
+
+	# Counting quantifier where there needs to be strictly less than @num different number
+	# of instantiations
+	def __lt__(self, num):
+		assert isinstance(num, int), "Parameter 'num' must be an integer"
+
+		# num-1 because because there needs to be <strictly> less than num different instantiations
+		return TEC(self._variable, 0, num-1, self._subformula)
+
+	# Counting quantifier where there needs to be less or equal than @num different number
+	# of instantiations
+	def __le__(self, num):
+		assert isinstance(num, int), "Parameter 'num' must be an integer"
+
+		return TEC(self._variable, 0, num, self._subformula)
+
+	# Counting quantifier where there needs to be strictly more than @num different number
+	# of instantiations
+	def __gt__(self, num):
+		assert isinstance(num, int), "Parameter 'num' must be an integer"
+
+		# num+1 because because there needs to be <strictly> more than num different instantiations
+		return TEC(self._variable, num+1, -1, self._subformula)
+
+	# Counting quantifier where there needs to be more or equal than @num different number
+	# of instantiations
+	def __ge__(self, num):
+		assert isinstance(num, int), "Parameter 'num' must be an integer"
+
+		# num+1 because because there needs to be <strictly> more than num different instantiations
+		return TEC(self._variable, num, -1, self._subformula)
+
+
+	
+# A formula corresponding to the universal quantifier (For All (A)) over some variable and subformula.
+# Example: FA(x, ontable(x)) would be equal to A x: ontable(x)
+class FA(Formula):
+
+	def __init__(self, variable, subformula):
+		# @variable The variable that is quantified
+		# @subformula The formula over which to apply the quantification
+
+		assert isinstance(variable, Variable), "Argument 'variable' must be an instance of class 'Variable'"
+
+		self._variable = variable
+		self._subformula = subformula
+
+	@property
+	def variable(self):
+		return self._variable
+
+	@property
+	def subformula(self):
+		return self._subformula
+
+	def evaluate(self, kb, var_subs=dict()):
+		"""
+			This method binds self._variable to every object/constant in @kb
+			and evaluates the resulting subformula. As soon as some binding
+			of self._variable to some object results in a False evaluation,
+			it returns False. Otherwise, it returns True.
+		"""
+
+		# Copy the dictionary so that @var_subs is not modified
+		_var_subs = var_subs.copy()
+
+		objects = kb[0]
+
+		# Iterate over each object in the knowledge base
+		for curr_obj in objects:
+			# Bind the variable to the current object
+			_var_subs[self._variable] = curr_obj
+
+			# Evaluate the resulting ground formula
+			# As soon as some binding results in a False evaluation,
+			# we can return False
+			if self._subformula.evaluate(kb, _var_subs) == False: # for better readibility
+				return False
+
+		return True
+
+
+# A formula corresponding to the counting quantifier (E(min, max)) over some variable and formula.
+# TEC(var, min, max, subformula) is interpreted as: "There exists between min and max (both included)
+# different instantiations (groundings) of variable 'var' that make 'subformula' true".
+# A max value of -1 means there is no maximum, i.e., TEC(var, min, -1, subformula) equals There exists >= min
+# instantiations of var that make subformula true.
+# If min==max, then there need to be exactly min (or max) instantiations
+class TEC(Formula):
+
+	def __init__(self, variable, min_num, max_num, subformula):
+		# @variable The variable that is quantified
+		# @min_num The minimum number of different instantiations in order for the formula to be True
+		# @max_num The maximum number of different instantiations in order for the formula to be True
+		#      @max=-1 means there is no maximum
+		# @subformula The formula over which to apply the quantification
+
+		assert isinstance(variable, Variable), "Argument 'variable' must be an instance of class 'Variable'"
+		assert min_num >= 0, "Argument 'min_num' must be greater or equal to 0"
+		assert max_num >= min_num or max_num == -1, "Argument 'max_num' must be greater or equal to 'min_num' \
+		                                             or equal to -1 (meaning there is no maximum)"  
+
+		self._variable = variable
+		self._min_num = min_num
+		self._max_num = max_num
+		self._subformula = subformula
+
+	@property
+	def variable(self):
+		return self._variable
+
+	@property
+	def subformula(self):
+		return self._subformula
+
+	@property
+	def min_num(self):
+		return self._min_num
+
+	@property
+	def max_num(self):
+		return self._max_num
+	
+	def evaluate(self, kb, var_subs=dict()):
+		"""
+			This method binds self._variable to every object/constant in @kb
+			and evaluates the resulting subformula. It counts the number of
+			True evaluations and returns True if this number is between
+			self._min_num and self._max_num (both included).
+		"""
+
+		# Copy the dictionary so that @var_subs is not modified
+		_var_subs = var_subs.copy()
+
+		objects = kb[0]
+
+		# If there is no maximum number of evaluations, we set as this number
+		# the number of objects in @kb (since this is the maximum number of
+		# true evaluations)
+		min_num = self._min_num
+		max_num = len(objects) if self._max_num == -1 else self._max_num
+
+		# Iterate over each object in the knowledge base
+		num_true_evaluations = 0
+
+		for curr_obj in objects:
+			# Bind the variable to the current object
+			_var_subs[self._variable] = curr_obj
+
+			# Evaluate the resulting ground formula
+			num_true_evaluations = num_true_evaluations+1 if self._subformula.evaluate(kb, _var_subs) == True \
+			                       else num_true_evaluations # for better readibility
+
+			# If the current number of true evaluations is already greater than the maximum, we can already
+			# return False
+			if num_true_evaluations > max_num:
+				return False
+
+		# Check if the number of true evaluations is in [min_number, max_number]
+		# Note: there is no need to check whether num_true_evaluations <= max_number, but we still do for better
+		#       readibility
+		return num_true_evaluations >= min_num and num_true_evaluations <= max_num
+
+
+"""
+TODO:
+
+Counting quantifier that instead of True or False, returns the number of different
+bindings that make the expression true
+Maybe TEC().evaluate() can return a second value!
+
+"""
