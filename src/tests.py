@@ -882,8 +882,8 @@ def test_load_models_and_generate_problems_logistics():
 	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_265/init_policy_its-3400.ckpt"
-	goal_policy_path = "saved_models/both_policies_265/goal_policy_its-3400.ckpt"
+	init_policy_path = "saved_models/both_policies_264/init_policy_its-2800.ckpt"
+	goal_policy_path = "saved_models/both_policies_264/goal_policy_its-2800.ckpt"
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
@@ -919,7 +919,7 @@ def test_load_models_and_generate_problems_logistics():
 	# Generate the set of problems with the trained initial policy
 	num_problems = 10
 
-	directed_generator.generate_problems(num_problems, max_atoms_init_state=40, max_actions_init_state=1,
+	directed_generator.generate_problems(num_problems, max_atoms_init_state=30, max_actions_init_state=1,
 									     max_actions_goal_state=2.0, max_planning_time=600, verbose=True)
 
 
