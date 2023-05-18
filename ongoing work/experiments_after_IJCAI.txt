@@ -285,6 +285,64 @@
    > logs: init_policy/version_205, version_206
    > saved_models: both_policies_263, 265
 
+   > Entrenamiento (its=3400, paré el entrenamiento a mitad)
+      - Tiempo (casa): 1d 15h
+      - r_diff (goal_policy)= 85 (seguía aumentando)
+      - r_eventual=-0.02
+      - init_policy_entropy=0.7, goal_policy_entropy=0.1
+      - term_cond_prob init_policy y goal_policy convergen a 0
+      - num_objs:
+         - city: 2.5 (bajando)
+         - airport: 5.4
+         - location: 0.1
+         - airplane: 1
+         - truck: 4.4
+         - package: 8.8  
+
+      >>> Básicamente los mismos objetos que entrenando en problemas de
+          tamaño 15!!!!
+          La principal diferencia es que hay más camiones (aunque si hubiera
+          entrenado durante más probablemente habría disminuido) y que
+          hay más paquetes
+          Se generan problemas con pocas ciudades (para el tamaño) y
+          sin locations!! 
+
+   > Problemas (its=3400)
+      - max_atoms = 15
+         - diff = [53.9 42.9 46.6] (alta)
+         - diversidad media-alta
+            - Problemas con 2, 3 y 4 ciudades
+            - Sin locations
+            - Los num objs varían bastante
+
+      - max_atoms = 20
+         - diff = [95.8 77.4 87.9] (alta)
+         - Problemas con 2 y 3 ciudades
+
+      - max_atoms = 30
+         - diff = [220.4 170.5 191.6] (media)
+         - Problemas con 2, 3 y 4 ciudades
+
+      - max_atoms = 40
+         - diff = [389.4 298.7 341.] (media-baja)
+         - Problemas con solo 2 y 3 ciudades!
+         - Solo escala el número de paquetes
+
+   >>> Los resultados no mejoran al entrenar en problemas de 20 átomos!!!
+      > Se siguen generando problemas sin locations y pocas ciudades
+         - Parece que el "tipo" de problema difícil es igual para 15 que
+           20 átomos (con pocas ciudades y sin locations)
+      > La generalización no mejora (de hecho empeora, pero creo que es por
+        haber parado el entrenamiento a mitad)
+         - La dificultad para problemas grandes es menor que al entrenar
+           sobre 15 átomos
+         - No escala el número de ciudades     
+
+   << Debería entrenar sobre 15 átomos! >>
+
+
+
+
 
 >  <logistics>
    planners=[lama-first, lazy-greedy, lazy-greedy]

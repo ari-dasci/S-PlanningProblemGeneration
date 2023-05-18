@@ -833,7 +833,7 @@ def test_train_init_and_goal_policy_logistics():
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   allowed_virtual_objects=virtual_objects,
 										   penalization_continuous_consistency=-0.1,
-										   max_atoms_init_state=20, max_actions_init_state=1, max_actions_goal_state=2.0,
+										   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0,
 										   device='cuda', max_objs_cache_reduce_masks=25,
 
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
@@ -882,8 +882,8 @@ def test_load_models_and_generate_problems_logistics():
 	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_262/init_policy_its-1590.ckpt"
-	goal_policy_path = "saved_models/both_policies_262/goal_policy_its-1590.ckpt"
+	init_policy_path = "saved_models/both_policies_265/init_policy_its-3400.ckpt"
+	goal_policy_path = "saved_models/both_policies_265/goal_policy_its-3400.ckpt"
 
 	# NLM layers without predicates of arity 3
 	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
@@ -919,7 +919,7 @@ def test_load_models_and_generate_problems_logistics():
 	# Generate the set of problems with the trained initial policy
 	num_problems = 10
 
-	directed_generator.generate_problems(num_problems, max_atoms_init_state=15, max_actions_init_state=1,
+	directed_generator.generate_problems(num_problems, max_atoms_init_state=40, max_actions_init_state=1,
 									     max_actions_goal_state=2.0, max_planning_time=600, verbose=True)
 
 
@@ -960,7 +960,7 @@ def test_load_models_and_resume_training_logistics():
 	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
 										   allowed_virtual_objects=virtual_objects,
 										   penalization_continuous_consistency=-0.1,
-										   max_atoms_init_state=20, max_actions_init_state=1, max_actions_goal_state=2.0,
+										   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0,
 										   device='cuda', max_objs_cache_reduce_masks=25,
 										  
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
@@ -1237,12 +1237,10 @@ if __name__ == "__main__":
 
 	#test_generate_random_problems_logistics()
 	#test_train_init_and_goal_policy_logistics()
-	#test_load_models_and_generate_problems_logistics()	
-	test_load_models_and_resume_training_logistics()
+	test_load_models_and_generate_problems_logistics()	
+	#test_load_models_and_resume_training_logistics()
 
 	#test_generate_random_problems_blocksworld()
 	#test_train_init_and_goal_policy_blocksworld()
 	#test_load_models_and_generate_problems_blocksworld()	
 	#test_load_models_and_resume_training_blocksworld()
-
-	# CHANGE MINIBATCH_SIZE BACK TO 75!!

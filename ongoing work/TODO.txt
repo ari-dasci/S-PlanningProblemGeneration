@@ -76,6 +76,21 @@
 
 -------------------------- Next steps
 
+>>> No se generan de manera "natural" problemas con locations. Dos posibilidades:
+   - Los problemas más difíciles para tamaños pequeños de problema (<20 átomos)
+     no tienen locations
+      - Solución: usar diversity reward ("obligar" a la NLM a generar problemas con
+                  locations aunque no sean tan difíciles, para que así generalice mejor)
+
+   - La NLM no es suficientemente expresiva para aprender a generar problemas difíciles
+     usando locations
+      - Solución: aumentar NLM expressivity con counting quantifiers y más predicados
+
+
+
+
+
+
 1. Encontrar un buen valor de action entropy para logistics
    - Quiero ver si al usar goal_action entropy la goal policy aprende a usar tanto acciones drive
      como fly
