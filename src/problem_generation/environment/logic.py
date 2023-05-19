@@ -2,6 +2,7 @@
 # evaluate them given some knowledge base, corresponding to a set of PDDL atoms.
 
 from abc import ABC, abstractmethod
+from itertools import product
 
 # Either a constant/object or a variable
 class Term():
@@ -372,7 +373,7 @@ class Neq(Formula):
 			c1 = t1.name if isinstance(t1, Constant) else var_subs[t1].name
 			c2 = t2.name if isinstance(t2, Constant) else var_subs[t2].name
 		except KeyError:
-			raise UnboundVariableException("Unbound Variable when trying to evaluate the equality operation (!=)")
+			raise UnboundVariableException("Unbound Variable when trying to evaluate the inequality operation (!=)")
 
 		# Check if the two constants are the same one (they have the same name)
 		return c1 != c2
@@ -599,11 +600,44 @@ class TEC(Formula):
 		return num_true_evaluations >= min_num and num_true_evaluations <= max_num
 
 
-"""
-TODO:
+# Given a list of free variables, it returns how many bindings of these variables make a given formula true.
+# It also returns the specific bindings that make it true.
+class Count():
 
-Counting quantifier that instead of True or False, returns the number of different
-bindings that make the expression true
-Maybe TEC().evaluate() can return a second value!
+	def __init__(self, formula, *variables):
+		# @formula The formula to evaluate
+		# @variables List of free variables over which to count
+		self._formula = formula
+		self._variables = tuple(variables)
 
-"""
+	@property
+	def formula(self):
+		return self._formula
+
+	@property
+	def variables(self):
+		return self._variables
+
+	def evaluate(self, kb):
+		"""
+		It obtains all the possible bindings of the variables in self._variables to the objects
+		in @kb. Then, it obtains all the bindings for which self._formula is evaluated to True
+		(given @kb).
+		It returns the number of true bindings and a tuple with the particular true bindings.
+		"""
+
+		# Obtain a list with all the possible variable bindings	
+		kb_objects = kb[0]
+		free_vars = self._variables
+		formula = self._formula
+
+		possible_bindings_list = product(*[product((v,), kb_objects) for v in free_vars])
+		possible_bindings_dict = [dict(b) for b in possible_bindings_list]
+
+		# Evaluate the formula for each possible binding
+		true_bindings = tuple([b for b in possible_bindings_dict if formula.evaluate(kb, b)])
+
+		return len(true_bindings), true_bindings
+
+	
+	

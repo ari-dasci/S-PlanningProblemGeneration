@@ -52,5 +52,9 @@ print("Evaluation:", TEC(y, 4, -1, on(y,b0) & (y!=b1)).evaluate(kb2))
 print("Evaluation:", TEC(y, 3, 3, on(y,b0) & (y!=b1)).evaluate(kb2))
 print("Evaluation:", TEC(x, 1, 1, TE(y, on(y,x)) ).evaluate(kb2)) # How many blocks have another block on top
 print("Evaluation:", TEC(x, 2, -1, TE(y, on(y,x)) ).evaluate(kb2))
-
 print("Evaluation:", ( TE(x, TE(y, on(y,x))) == 1  ).evaluate(kb2)) 
+
+print("---")
+print("Count:", [ (x.name, b[x].name) for b in Count( on(x,b0), x).evaluate(kb2)[1] ] )
+print("Count:", [ (b[x].name, b[y].name) for b in Count( on(x,y) & (x!=y), x, y).evaluate(kb2)[1] ] )
+print("Count:", [ (y.name, b[y].name) for b in Count( FA(x, on(x,y) | (x==y)), y ).evaluate(kb2)[1] ] ) # Only b0 has all other blocks on top of it

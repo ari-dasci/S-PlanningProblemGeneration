@@ -95,14 +95,21 @@
 
 1. Encontrar un buen valor de action entropy para logistics
    - Quiero ver si al usar goal_action entropy la goal policy aprende a usar tanto acciones drive
-     como fly
+     como fly -> NO
 
 2. Probar a entrenar sobre problemas con 20 átomos, para ver si mejora la generalización
    - Quiero ver si en problemas con 20 átomos el tipo de problema que maximiza la dificultad
      es igual que con 15 átomos o cambia algo. También ver si generaliza mejor.
+   NO -> generaliza igual de mal y los problemas son del mismo tipo que con 15 átomos.
+   Entrenar en 15 átomos no cambia nada!
 
 3. Probar diversity reward.
-   - Quiero que se generen problemas con más de dos ciudades y con locations
+   - Quiero que se generen problemas con más de dos ciudades y con locations -> sí (para diversity_rescale_factor=10)
+
+   >>> VER CÓMO MEJORAR DIVERSITY REWARD
+      - Tener en cuenta no solo el número (proporción) de objetos y átomos de cada tipo sino también cómo se relacionan!!!
+
+
 
 4. Aumentar la expresividad de la NLM
    - Añadir counting quantifiers

@@ -413,4 +413,14 @@
 
    > Ejecutándose en DaSCI
    > logs: init_policy/version_209
-   > saved_models: both_policies_267
+   > saved_models: both_policies_266
+
+
+
+   >>> Cambiar diversity reward para que se usen proporciones de objetos y átomos
+       en vez del valor absoluto (de otra forma, se generan problemas más pequeños
+       para así variar el número de objetos)
+
+   >>> Cambiar diversity reward para que también tenga en cuenta el num de objs
+       de cada tipo con el que se relaciona cada tipo de objs de media (y su varianza)
+       a través de cada átomo -> ver cómo hacer esto
