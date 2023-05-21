@@ -455,7 +455,6 @@
            goal_policy entropy 
 
 
-
 >  <logistics>
    planners=[lama-first, lazy-greedy, lazy-greedy]
    max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0
@@ -466,6 +465,41 @@
    > Ejecutándose en DaSCI
    > logs: init_policy/version_209
    > saved_models: both_policies_266
+
+   > Entrenamiento (its=3800)
+      - Tiempo (casa): 2d 12h
+      - r_diff (goal_policy)= 50
+      - r_eventual=0
+      - init_policy_entropy=0.1, goal_policy_entropy=0.14
+      - term_cond_prob init_policy y goal_policy convergen a 0
+      - num_objs:
+         - city: 3
+         - airport: 3
+         - location: 0
+         - airplane: 1
+         - truck: 3
+         - package: 8 
+
+   > Problemas (its=3500)
+      - max_atoms = 15
+         - diff = [53.  47.9 49.5] (medio-alta)
+         - diversidad muy baja!!!
+            - De los 10 problemas, 9 son idénticos
+
+      - max_atoms = 20
+         - diff = [85.4  81.5 145.2] (alta)
+         - Problemas con 3 y 4 ciudades
+
+      - max_atoms = 30
+         - diff = [174, 174, 451274] (alta)
+         - Problemas con 5 y 6 ciudades
+
+      - max_atoms = 40
+         - diff = [268 268 8.925558e+05] (media alta)
+         - Problemas con 7 y 8 ciudades
+
+   >>> diversity_rescale_factor=1 es demasiado bajo!
+      - Se generan problemas casi idénticos
 
 
 

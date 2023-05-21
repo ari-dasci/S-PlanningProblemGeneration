@@ -98,6 +98,25 @@
 
 
 
+>>> Cambiar diversity reward para que se usen proporciones de objetos y átomos
+    en vez del valor absoluto (de otra forma, se generan problemas más pequeños
+    para así variar el número de objetos)
+
+>>> Cambiar diversity reward para que también tenga en cuenta el num de objs
+    de cada tipo con el que se relaciona cada tipo de objs de media (y su varianza)
+    a través de cada átomo -> ver cómo hacer esto
+    - Así, quizás no se generen problemas donde cada ciudad solo tiene un truck y airport
+    - Probar también a disminuir lentamente la goal_policy entropy hasta 0
+
+>>> Debería hacer un experimento con goal_policy entropy (y quizás init), bajándola poco a poco
+    hasta 0
+
+
+
+
+
+
+
 1. Encontrar un buen valor de action entropy para logistics
    - Quiero ver si al usar goal_action entropy la goal policy aprende a usar tanto acciones drive
      como fly -> NO
