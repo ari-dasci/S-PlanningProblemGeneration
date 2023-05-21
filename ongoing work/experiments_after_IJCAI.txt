@@ -403,6 +403,58 @@
    > logs: init_policy/version_207
    > saved_models: both_policies_266
 
+   > Entrenamiento (its=7000)
+      - Tiempo (casa): 2d 12h
+      - r_diff (goal_policy)= 40
+      - r_eventual=-0.05
+      - init_policy_entropy=0.3, goal_policy_entropy=0.2
+      - term_cond_prob init_policy = 0.015, goal_policy = 0.05
+      - num_objs:
+         - city: 3.2
+         - airport: 3.2
+         - location: 0.8
+         - airplane: 1.1
+         - truck: 3.2
+         - package: 6.5  
+
+   > Problemas (its=6000)
+      - max_atoms = 15
+         - diff = [40.7 41.3 42.2] (medio-alta)
+         - diversidad media-baja
+            - Problemas con 2, 3 y 4 ciudades
+            - Cada ciudad tiene un solo camión y, la mayoría
+              de las veces, un solo airport
+            - Hay pocas locations
+
+      - max_atoms = 20
+         - diff = [82. 71.4 73.5] (alta)
+         - Problemas con 2 hasta 6 ciudades
+
+      - max_atoms = 30
+         - diff = [170. 138.8 153.3] (medio-baja)
+         - Problemas con hasta 6 ciudades
+         - Se generan problemas con varias locations!!!
+
+      - max_atoms = 40
+         - diff = [238.5 215.8 282.] (baja)
+         - Problemas con hasta 9 ciudades
+         - Se generan problemas con varias locations!!! 
+
+   >>> Análisis de resultados
+      - El número de ciudades escala bien
+      - En los problemas de cierto tamaño, se añaden un número moderado de locations!
+      - No obstante, la dificultad escala mal
+      >>> Aunque se generan problemas con locations, la goal-policy
+        no usa la acción drive!!!
+        2 posibles causas:
+         - El número de locations en problemas de 15 átomos
+           es muy pequeño como para que aprenda -> aumentar
+           el número de locations generados
+         - La goal_policy converge prematuramente a solo usar
+           acciones fly,load y unload pero no drive -> usar
+           goal_policy entropy 
+
+
 
 >  <logistics>
    planners=[lama-first, lazy-greedy, lazy-greedy]
@@ -417,10 +469,17 @@
 
 
 
+
+
    >>> Cambiar diversity reward para que se usen proporciones de objetos y átomos
        en vez del valor absoluto (de otra forma, se generan problemas más pequeños
        para así variar el número de objetos)
 
+   >>> Debería hacer un experimento con goal_policy entropy (y quizás init), bajándola poco a poco
+       hasta 0
+
    >>> Cambiar diversity reward para que también tenga en cuenta el num de objs
        de cada tipo con el que se relaciona cada tipo de objs de media (y su varianza)
        a través de cada átomo -> ver cómo hacer esto
+       - Así, quizás no se generen problemas donde cada ciudad solo tiene un truck y airport
+       - Probar también a disminuir lentamente la goal_policy entropy hasta 0

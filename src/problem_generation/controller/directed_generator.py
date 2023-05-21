@@ -726,7 +726,7 @@ class DirectedGenerator():
 	         to be close to 1.
 	"""
 	def get_problem_difficulty(self, problem, max_difficulty=None, rescale_factor=1, max_planning_time=600):
-		max_difficulty=[50000,50000,50000]
+		max_difficulty=[1e6,1e6,1e6]
 
 		# Encode the problem in PDDL
 		# > This method also selects the goal atoms corresponding to the goal predicates given by the user

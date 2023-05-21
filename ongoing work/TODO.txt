@@ -88,7 +88,12 @@
 
 
 
-
+>> Creo que la dificultad escala mal porque NeSIG no aprende a generar problemas con locations
+   y donde la goal_policy use acciones drive. Solución:
+      1. Generar problemas más diversos aún, para que hasta los problemas pequeños (15 atoms)
+        tengan un número alto de locations -> cambiar diversity reward, usar policy_entropy
+      2. Hacer que la goal_policy aprenda a usar acciones drive -> usar goal_policy_entropy
+         (quizás empezar en un valor alto y que se haga annealing hasta 0) 
 
 
 
