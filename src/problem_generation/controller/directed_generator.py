@@ -886,6 +886,7 @@ class DirectedGenerator():
 
 	"""
 	Auxiliary method used by _add_diversity_reward(), in order to obtain the feature vector associated with each state.
+	It returns both the feature vector and a feature of weights, used to calculate the weighted average of feature differences.
 
 	@allowed_object_types A list with the object types that we can find in the initial state. If None, we assume
 	                      it is equal to @init_state.types
@@ -905,39 +906,13 @@ class DirectedGenerator():
 		# <Number of objects and atoms of each type>
 		
 		# Count percentage of objects of each type
-		num_objs_each_type = [objs.count(t)/num_objs for t in types]
+		num_objs_each_type = np.array([objs.count(t)/num_objs for t in types], dtype=float)
 
 		# Count percentage of atoms of each predicate type
-		num_atoms_each_pred = [atom_names.count(p)/num_atoms for p in pred_names]
+		num_atoms_each_pred = np.array([atom_names.count(p)/num_atoms for p in pred_names], dtype=float)
 
 
 		# <Mean and std of the number of objects each object relates to>
-
-		# <Features que miden con qué objetos se relaciona cada objeto>
-		# Para cada tipo de objeto, ver el número de tuplas (pred_type, obj_type) medio (y varianza)
-		# con el que se relaciona
-		"""
-		Ej.: cada ciudad de media se relaciona (mediante in-city) con un airport
-		     el std es muy alto -> cada ciudad se relaciona (con in-city) con distinto num de airports
-		     (no es lo mismo que dada dos ciudades cada una tenga tres airports a que una tenga 1 y otra 5
-			 (la media es igual, por lo que hace falta calcular el std))
-		
-		Método:
-			- Diccionario que dado un obj_type y pred_type asigne un número -> QUE SEA EL MISMO PARA DISTINTAS TRAINING ITS!
-
-			>>> Debería crear un numpy array para l e inicializar todos los valores a 0
-			- Puedo generar la lista l: para cada átomo pred_type(o1, o2, ..., on), calculo el número de objetos num_t
-				de cada tipo t. Entonces, itero sobre cada uno de los objetos oi en los que está instanciado y sumo
-				para cada tipo t, num_t a l[oi][pred_type][t]. Si oi es de tipo t_i, tengo que restar 1 a l[oi][pred_type][t_i].
-			- Tras esto, obtengo l2 a partir de l: itero sobre cada tipo de objeto t. Para cada t, obtengo los índices a,b,c...
-				de los objetos de tipo t y creo una lista con todos los elementos de tipo t: 
-				l2[t][pred_type][obj_type] = [l[a][pred_type][obj_type], l[b][pred_type][obj_type], ...]
-			- Calculo la media y std para cada elemento de l2 (y normalizo por el número de objetos del estado)
-			- Hago flatten de l2 y devuelvo el mean y std para cada combinación obj_type, pred_type, obj_type
-				(primero devolver un vector con las medias y después otro con las std)
-		"""
-
-		# AQUI
 
 		# Obtain dictionaries that assign a number to every type and predicate
 		# Pred names to indices
@@ -973,12 +948,55 @@ class DirectedGenerator():
 				# Substract one to the type of curr_obj (else, we would be counting one extra type for curr_obj)
 				l[curr_obj][curr_pred_ind][ type_to_ind_dict[objs[curr_obj]] ] -= 1
 
+		# Obtain list l2[obj_type_i][pred_type][obj_type_j]:
+		# l2[obj_type_i][pred_type][obj_type_j] is equal to the np array [l[a][pred_type][obj_type_j], l[b][pred_type][obj_type_j], ...]
+		# where a, b, ... are all the objects of type obj_type_i
+		l2 = np.empty(shape=(num_types, num_preds, num_types), dtype=object)
 
+		for curr_type in types:
+			curr_type_ind = type_to_ind_dict[curr_type]
 
+			# Obtain the indices of all the objects of type curr_type
+			obj_inds_curr_type = [i for i, t in enumerate(objs) if t == curr_type]
 
-		# Append all the features
-		state_features = num_objs_each_type + num_atoms_each_pred
-		return state_features	
+			# We do this loop because we can't simply do l2[curr_type_ind,:,:]=l[obj_inds_curr_type,:,:]
+			# I know there should be a more efficient way :(
+			for p_ind in num_preds:
+				for t_ind in num_types:
+					l2[curr_type_ind, p_ind, t_ind] = l[obj_inds_curr_type, p_ind, t_ind]
+
+		# Obtain a list with the averages and a list with the standard deviations
+		# for every sublist in l2[i,j,k]
+		l_mean = np.empty(shape=(num_types, num_preds, num_types), dtype=float)
+		l_std = np.empty(shape=(num_types, num_preds, num_types), dtype=float)
+
+		for i in num_types:
+			for j in num_preds:
+				for k in num_types:
+					l_mean[i,j,k] = np.mean(l2[i,j,k])
+					l_std[i,j,k] = np.std(l2[i,j,k])
+
+		# Flatten the two arrays
+		l_mean = l_mean.flatten()
+		l_std = l_std.flatten()
+
+		# Stack all the features
+		# state_features = [num_objs_each_type, num_atoms_each_pred, l_mean, l_std]
+
+		# Concatenate all the features
+		state_features = np.concatenate((num_objs_each_type, num_atoms_each_pred, l_mean, l_std))
+
+		# Obtain the weight vector for doing the weighted average of feature differences
+		# The more features in each one of the four previous arrays -> the less weight each feature has
+		# Note: this weith vector is the same for all the initial states of the same domain
+		weights_num_objs_each_type = [1/num_objs_each_type.size]*num_objs_each_type.size
+		weights_num_atoms_each_pred = [1/num_atoms_each_pred.size]*num_atoms_each_pred.size
+		weights_l_mean = [1/l_mean.size]*l_mean.size
+		weights_l_std = [1/l_std.size]*l_std.size
+
+		weights = weights_num_objs_each_type + weights_num_atoms_each_pred + weights_l_mean + weights_l_std
+
+		return state_features, weights	
 
 	"""
 	Auxiliary method used by _add_diversity_reward(), in order to obtain the distances between init_states.
@@ -986,17 +1004,21 @@ class DirectedGenerator():
 	@list_consistent_inds List with the indexes (rows) of @feature_matrix corresponding to eventual-consistent problems.
 	                      If a problem is inconsistent, we assign a distance of 0 from it to any other problem.
 	"""
-	def _get_distance_matrix(self, feature_matrix, list_consistent_inds):
+	def _get_distance_matrix(self, feature_matrix, feature_weights, list_consistent_inds):
 		epsilon = 1e-6
 		num_states, num_features = feature_matrix.shape
 		distance_matrix = np.zeros((num_states,num_states), dtype=np.float32)
 
 		for i in range(num_states):
 			for j in range(i+1, num_states):
-				distance_matrix[i, j] = distance_matrix[j, i] = np.mean(np.abs(feature_matrix[i] - feature_matrix[j]) / (feature_matrix[i] + feature_matrix[j] + epsilon)) \
+				curr_features_diff = np.abs(feature_matrix[i] - feature_matrix[j]) / (feature_matrix[i] + feature_matrix[j] + epsilon)
+
+				distance_matrix[i, j] = distance_matrix[j, i] = np.average(curr_features_diff, weights=feature_weights) \
 																if (i in list_consistent_inds and j in list_consistent_inds) else 0.0
-			
-				# distance_matrix[i, j] = distance_matrix[j, i] = np.mean(np.abs(feature_matrix[i] - feature_matrix[j]) / (epsilon + np.minimum(feature_matrix[i], feature_matrix[j])))		
+
+				# OLD
+				#distance_matrix[i, j] = distance_matrix[j, i] = np.mean(np.abs(feature_matrix[i] - feature_matrix[j]) / (feature_matrix[i] + feature_matrix[j] + epsilon)) \
+				#												if (i in list_consistent_inds and j in list_consistent_inds) else 0.0
 
 		return distance_matrix
 
@@ -1039,15 +1061,17 @@ class DirectedGenerator():
 		num_consistent_trajectories = len(consistent_inds)
 
 		# For each init_state in init_state_list, obtain its associated features
-		init_state_feature_vectors = [self._obtain_dist_features(init_state, allowed_object_types) for init_state in init_state_list]
-		feature_matrix = np.array(init_state_feature_vectors, dtype=np.float32)
+		init_state_features_and_weights = [self._obtain_dist_features(init_state, allowed_object_types) for init_state in init_state_list]
+		feature_matrix = np.array([x[0] for x in init_state_features_and_weights], dtype=np.float32)
+		feature_weights = init_state_features_and_weights[0][1] # We obtain the feature weights for the same init_state, since it is the same for all of them	
+		
 
 
 		#print("\n\n> feature_matrix", feature_matrix)
 
 
 		# Obtain the distance matrix between pairs of init_states, according to init_state_feature_vectors
-		distance_matrix = self._get_distance_matrix(feature_matrix, consistent_inds)
+		distance_matrix = self._get_distance_matrix(feature_matrix, feature_weights, consistent_inds)
 
 
 		#print("\n\n> distance_matrix", distance_matrix)
