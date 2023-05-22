@@ -886,17 +886,95 @@ class DirectedGenerator():
 
 	"""
 	Auxiliary method used by _add_diversity_reward(), in order to obtain the feature vector associated with each state.
+
+	@allowed_object_types A list with the object types that we can find in the initial state. If None, we assume
+	                      it is equal to @init_state.types
 	"""
-	def _obtain_dist_features(self, init_state, types, pred_names):
-		objs = tuple(init_state.objects)
+	def _obtain_dist_features(self, init_state, allowed_object_types=None):
+		types = init_state.types if allowed_object_types is None else allowed_object_types # We only care about the allowed object types
+		predicates = init_state.predicates
+		pred_names = init_state.predicate_names
+		objs = tuple(init_state.objects) # Tuple with the type of each object in the state
 		atoms = init_state.atoms
 		atom_names = tuple([a[0] for a in atoms])
+		num_types = len(types)
+		num_preds = len(predicates)
+		num_objs = len(objs)
+		num_atoms = len(atoms)
+	
+		# <Number of objects and atoms of each type>
+		
+		# Count percentage of objects of each type
+		num_objs_each_type = [objs.count(t)/num_objs for t in types]
 
-		# Count number of objects of each type
-		num_objs_each_type = [objs.count(t) for t in types]
+		# Count percentage of atoms of each predicate type
+		num_atoms_each_pred = [atom_names.count(p)/num_atoms for p in pred_names]
 
-		# Count number of atoms of each predicate type
-		num_atoms_each_pred = [atom_names.count(p) for p in pred_names]
+
+		# <Mean and std of the number of objects each object relates to>
+
+		# <Features que miden con qué objetos se relaciona cada objeto>
+		# Para cada tipo de objeto, ver el número de tuplas (pred_type, obj_type) medio (y varianza)
+		# con el que se relaciona
+		"""
+		Ej.: cada ciudad de media se relaciona (mediante in-city) con un airport
+		     el std es muy alto -> cada ciudad se relaciona (con in-city) con distinto num de airports
+		     (no es lo mismo que dada dos ciudades cada una tenga tres airports a que una tenga 1 y otra 5
+			 (la media es igual, por lo que hace falta calcular el std))
+		
+		Método:
+			- Diccionario que dado un obj_type y pred_type asigne un número -> QUE SEA EL MISMO PARA DISTINTAS TRAINING ITS!
+
+			>>> Debería crear un numpy array para l e inicializar todos los valores a 0
+			- Puedo generar la lista l: para cada átomo pred_type(o1, o2, ..., on), calculo el número de objetos num_t
+				de cada tipo t. Entonces, itero sobre cada uno de los objetos oi en los que está instanciado y sumo
+				para cada tipo t, num_t a l[oi][pred_type][t]. Si oi es de tipo t_i, tengo que restar 1 a l[oi][pred_type][t_i].
+			- Tras esto, obtengo l2 a partir de l: itero sobre cada tipo de objeto t. Para cada t, obtengo los índices a,b,c...
+				de los objetos de tipo t y creo una lista con todos los elementos de tipo t: 
+				l2[t][pred_type][obj_type] = [l[a][pred_type][obj_type], l[b][pred_type][obj_type], ...]
+			- Calculo la media y std para cada elemento de l2 (y normalizo por el número de objetos del estado)
+			- Hago flatten de l2 y devuelvo el mean y std para cada combinación obj_type, pred_type, obj_type
+				(primero devolver un vector con las medias y después otro con las std)
+		"""
+
+		# AQUI
+
+		# Obtain dictionaries that assign a number to every type and predicate
+		# Pred names to indices
+		pred_to_ind_dict = init_state.pred_names_to_indices_dict
+
+		# (allowed) object types to indices
+		type_indices = list(range(len(types)))
+		type_to_ind_dict = dict(zip(types, type_indices)) # 'airplane' : 0, 'location' : 1
+		ind_to_type_dict = dict(zip(type_indices, types)) # 0 : 'airplane', 1 : 'location'
+
+		# Obtain list l[obj_ind][pred_type][obj_type]:
+		# For each object "obj_ind", measure with how many objects of each type "obj_type" it relates according
+		# to atoms of type "pred_type". An object "relates" to another one if they are instantiated on the same
+		# atom (regardless of position)
+		l = np.zeros(shape=(num_objs, num_preds, num_types), dtype=np.uint16) # Initialized to zeros
+
+		for curr_atom in atoms:
+			curr_pred_type = curr_atom[0] # Predicate type of the current atom
+
+			# <Calculate how many objects of each type the atom is instantiated on>
+			# Convert from obj indexes to obj_types
+			types_objs_in_atom = [objs[obj_ind] for obj_ind in curr_atom[1]]
+
+			# list_num_objs_each_type[i]=n -> curr_atom is instantiated on "n" objects of type associated with index "i"
+			list_num_objs_each_type = [types_objs_in_atom.count(ind_to_type_dict[type_ind]) for type_ind in type_indices]
+
+			# <For each object curr_atom is instantiated on, sum the number of objects of each type it is instantiated on>
+			curr_pred_ind = pred_to_ind_dict[curr_pred_type]
+
+			for curr_obj in curr_atom[1]:
+				l[curr_obj][curr_pred_ind] += np.array(list_num_objs_each_type, dtype=np.uint16)
+
+				# Substract one to the type of curr_obj (else, we would be counting one extra type for curr_obj)
+				l[curr_obj][curr_pred_ind][ type_to_ind_dict[objs[curr_obj]] ] -= 1
+
+
+
 
 		# Append all the features
 		state_features = num_objs_each_type + num_atoms_each_pred
@@ -935,10 +1013,13 @@ class DirectedGenerator():
 
 	@init_policy_trajectories_lens List containing, at each position i, the length of the trajectory number i
 								   in @init_policy_trajectories
+	@allowed_object_types A list with the object types that we can find in the initial state. If None, we assume
+						it is equal to @init_state.types 
 
 	<Note>: init_policy_trajectories is modified in-place
 	"""
-	def _add_diversity_reward(self, init_policy_trajectories, init_policy_trajectories_lens, diversity_rescale_factor=1.0):
+	def _add_diversity_reward(self, init_policy_trajectories, init_policy_trajectories_lens, allowed_object_types=None,
+			                  diversity_rescale_factor=1.0):
 		# Obtain the indexes which delimit each individual trajectory in init_policy_trajectories
 		list_delims = [sum(init_policy_trajectories_lens[:i+1]) for i in range(len(init_policy_trajectories_lens))]
 
@@ -958,12 +1039,7 @@ class DirectedGenerator():
 		num_consistent_trajectories = len(consistent_inds)
 
 		# For each init_state in init_state_list, obtain its associated features
-		# (number of objects of each type and number of atoms of each predicate)
-		types = init_state_list[0].types
-		predicates = init_state_list[0].predicates
-		pred_names = [p[0] for p in predicates]
-
-		init_state_feature_vectors = [self._obtain_dist_features(init_state, types, pred_names) for init_state in init_state_list]
+		init_state_feature_vectors = [self._obtain_dist_features(init_state, allowed_object_types) for init_state in init_state_list]
 		feature_matrix = np.array(init_state_feature_vectors, dtype=np.float32)
 
 
@@ -1512,7 +1588,8 @@ class DirectedGenerator():
 			#print("\n\n Rewards before diversity", [sample[-2] for sample in init_policy_trajectories])
 
 			# Obtain diversity reward for the init_policy_trajectories
-			self._add_diversity_reward(init_policy_trajectories, init_policy_trajectories_lens)
+			allowed_object_types = tuple(sorted(set(self._allowed_virtual_objects))) # Obtain the list of types of the possible virtual objects
+			self._add_diversity_reward(init_policy_trajectories, init_policy_trajectories_lens, allowed_object_types=allowed_object_types)
 
 			#print("\n\n Rewards after diversity", [sample[-2] for sample in init_policy_trajectories])
 

@@ -112,7 +112,7 @@ class RelationalState():
             self._arity_and_ind_to_predicate_dict[(p_arity, p_ind)] = p
             
             ind_list[p_arity] += 1 # Add 1 to the index, so that next predicate of the same arity gets a different associated index
-        
+ 
 
     def __copy__(self):
         new_copy = RelationalState(self._types.copy(), self._type_hierarchy.copy(), self._predicates.copy(), self._objects.copy(),
@@ -239,8 +239,7 @@ class RelationalState():
     Returns the list of virtual objects of the state. They are returned as a list with their types, e.g., ['truck','truck','city']
 
     @allowed_predicates List of predicates names representing the predicate types of atoms which can be added to the state
-                        in the current phase. Obtained by calling StateValidator.predicates_in_current_phase().
-                        If None, all the predicates are allowed.
+                        in the current phase.
     @allowed_virtual_objects List of object types which can be added as virtual objects.
                              If None, all object types can be added as virtual objects.
     """
