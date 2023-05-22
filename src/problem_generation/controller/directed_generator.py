@@ -911,6 +911,10 @@ class DirectedGenerator():
 		# Count percentage of atoms of each predicate type
 		num_atoms_each_pred = np.array([atom_names.count(p)/num_atoms for p in pred_names], dtype=float)
 
+		#print("num_objs_each_type", num_objs_each_type)
+		#print("num_atoms_each_pred", num_atoms_each_pred)
+		#print(objs)
+		#print(atoms)
 
 		# <Mean and std of the number of objects each object relates to>
 
@@ -948,10 +952,16 @@ class DirectedGenerator():
 				# Substract one to the type of curr_obj (else, we would be counting one extra type for curr_obj)
 				l[curr_obj][curr_pred_ind][ type_to_ind_dict[objs[curr_obj]] ] -= 1
 
+
+		#print("-----------------")
+		#print("l", l)
+
 		# Obtain list l2[obj_type_i][pred_type][obj_type_j]:
 		# l2[obj_type_i][pred_type][obj_type_j] is equal to the np array [l[a][pred_type][obj_type_j], l[b][pred_type][obj_type_j], ...]
 		# where a, b, ... are all the objects of type obj_type_i
 		l2 = np.empty(shape=(num_types, num_preds, num_types), dtype=object)
+		l2.fill(np.array([0], dtype=np.uint16)) # We fill every position with np.array([0]) in case the init state does not contain any object
+		                                        # of the type associated with that position
 
 		for curr_type in types:
 			curr_type_ind = type_to_ind_dict[curr_type]
@@ -961,22 +971,33 @@ class DirectedGenerator():
 
 			# We do this loop because we can't simply do l2[curr_type_ind,:,:]=l[obj_inds_curr_type,:,:]
 			# I know there should be a more efficient way :(
-			for p_ind in num_preds:
-				for t_ind in num_types:
-					l2[curr_type_ind, p_ind, t_ind] = l[obj_inds_curr_type, p_ind, t_ind]
+			if len(obj_inds_curr_type) > 0: # If there are no objects of curr_type in the state, then skip this step
+				for p_ind in range(num_preds):
+					for t_ind in range(num_types):
+						l2[curr_type_ind, p_ind, t_ind] = l[obj_inds_curr_type, p_ind, t_ind]
+
+
+		#print("-----------------")
+		#print("types", types)
+		#print("l2", l2)
 
 		# Obtain a list with the averages and a list with the standard deviations
 		# for every sublist in l2[i,j,k]
 		l_mean = np.empty(shape=(num_types, num_preds, num_types), dtype=float)
 		l_std = np.empty(shape=(num_types, num_preds, num_types), dtype=float)
 
-		for i in num_types:
-			for j in num_preds:
-				for k in num_types:
+		for i in range(num_types):
+			for j in range(num_preds):
+				for k in range(num_types):
 					l_mean[i,j,k] = np.mean(l2[i,j,k])
 					l_std[i,j,k] = np.std(l2[i,j,k])
 
 		# Flatten the two arrays
+
+		#print("-----")
+		#print("l_mean", l_mean)
+		#print("l_std", l_std)
+
 		l_mean = l_mean.flatten()
 		l_std = l_std.flatten()
 
@@ -1013,8 +1034,13 @@ class DirectedGenerator():
 			for j in range(i+1, num_states):
 				curr_features_diff = np.abs(feature_matrix[i] - feature_matrix[j]) / (feature_matrix[i] + feature_matrix[j] + epsilon)
 
-				distance_matrix[i, j] = distance_matrix[j, i] = np.average(curr_features_diff, weights=feature_weights) \
+				# Don't use feature weights
+				distance_matrix[i, j] = distance_matrix[j, i] = np.average(curr_features_diff, weights=None) \
 																if (i in list_consistent_inds and j in list_consistent_inds) else 0.0
+
+				# --- Use feature weights ---
+				#distance_matrix[i, j] = distance_matrix[j, i] = np.average(curr_features_diff, weights=feature_weights) \
+				#												if (i in list_consistent_inds and j in list_consistent_inds) else 0.0
 
 				# OLD
 				#distance_matrix[i, j] = distance_matrix[j, i] = np.mean(np.abs(feature_matrix[i] - feature_matrix[j]) / (feature_matrix[i] + feature_matrix[j] + epsilon)) \
@@ -1041,7 +1067,7 @@ class DirectedGenerator():
 	<Note>: init_policy_trajectories is modified in-place
 	"""
 	def _add_diversity_reward(self, init_policy_trajectories, init_policy_trajectories_lens, allowed_object_types=None,
-			                  diversity_rescale_factor=1.0):
+			                  diversity_rescale_factor=100.0):
 		# Obtain the indexes which delimit each individual trajectory in init_policy_trajectories
 		list_delims = [sum(init_policy_trajectories_lens[:i+1]) for i in range(len(init_policy_trajectories_lens))]
 
@@ -1071,6 +1097,8 @@ class DirectedGenerator():
 
 
 		# Obtain the distance matrix between pairs of init_states, according to init_state_feature_vectors
+		# --- Right now, we don't use featur weights since the features associated with how objects of each type
+		# relate to each other is a lot sparser than the other features ---
 		distance_matrix = self._get_distance_matrix(feature_matrix, feature_weights, consistent_inds)
 
 
