@@ -1067,7 +1067,7 @@ class DirectedGenerator():
 	<Note>: init_policy_trajectories is modified in-place
 	"""
 	def _add_diversity_reward(self, init_policy_trajectories, init_policy_trajectories_lens, allowed_object_types=None,
-			                  diversity_rescale_factor=100.0):
+			                  diversity_rescale_factor=10.0):
 		# Obtain the indexes which delimit each individual trajectory in init_policy_trajectories
 		list_delims = [sum(init_policy_trajectories_lens[:i+1]) for i in range(len(init_policy_trajectories_lens))]
 
