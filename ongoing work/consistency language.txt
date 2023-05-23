@@ -78,47 +78,57 @@
 
 
 > Imperative functionality:
+	- Creo que pasando como parámetro relational state es suficiente, aunque quizás puedo crear "shortcut methods"
+	  como is_new(obj)
 
-	- get_type(obj) -> return type of obj
 	- is_new(obj) -> true if obj is not in the state (it is a virtual object)
 	--- Más
 
 
------------ Estructura del código
+--------------- NUEVO
 
-> Clases para implementar FOL
-	- Hacer que los objetos puedan ser índices!!!
+>>> Estructura de clases
 
-	- FOL formulas con quantifiers, and, or, not, etc.
-	- También con equality y inequality
-	- También con counting quantifiers
-	- Un método "proves" para ver si dado una FOL formula (correspondiente al PDDL state),
-	  se puede demostrar que otra fórmula (la consistency rule) es true o no
+	> ConsistencyValidator (creado por mí, abstract class) -> Se llama desde NeSIG
+		- kb (knowledge base, como class attribute)
 
+		- evaluate(cls, Formula o Count)
+		- _preprocess_and_check_continuous_consistency_state_and_action(cls, rel_state, pred_name, atom_obj_inds, atom_obj_types)
+		- _preprocess_and_check_eventual_consistency_state(cls, rel_state)
 
-> Métodos para imperative functionality (clase padre consistency_validator)
- 	- Cuando se llama al método de consistency_check dado por el usuario, se crea un 
-	  ContextManager que hace que el RelState pasado como parámetro esté disponible
-	  (y que métodos como get_type(obj) se puedan llamar sin pasar el RelState como argumento)
+			Estos dos métodos (abstractos) anteriores se encargan de crear la knowledge base (ver si creo un context manager) y hacer las comprobaciones estándar
+			(objs del tipo correcto, sin objetos repetidos, el átomo no está ya en el estado, etc.)
+			Tras esto, llaman a check_continuous_consistency_state_and_action y check_eventual_consistency_state (métodos proporcionados por el usuario)
 
-> Métodos llamados desde el código interno de NeSIG (mismos parámetros que los métodos
-  que usa el consistency validator actual) (clase padre consistency_validator)
-	- A partir de los argumentos, se crea un knowledge base en FOL y también se almacena
-	  en el context_manager
-
-	- Se llama al método de consistency_check proporcionado por el usuario
+	> ConsistencyValidator<Dominio> (creado por el usuario, hereda de ConsistencyValidator)
+		- check_continuous_consistency_state_and_action(cls, rel_state, pred_name, atom_obj_inds, atom_obj_types)
+		- check_eventual_consistency_state(cls, rel_state)
 
 
-> Métodos proporcionados por el usuario (clase hija consistency_validator), que únicamente reciben como 
-  parámetros:
-	- El nombre del átomo a añadir y una lista de los objetos en los que está instanciado
-	  (para comprobar la continuous consistency)
-	- Sin parámetros (para la eventual consistency)
-
-	Estos dos métodos devuelven true o false, según si se cumplen las consistency rules
 
 
->>> Clases
-	- Consistency validator (padre)
-	- Consistency validator (hijo, hereda)
-	- Clases para FOL formulas
+> Método check_consistency_state_and_action del usuario
+  Params: (rel_state, pred_name, atom_obj_inds (una tupla de ints), atom_obj_types (una tupla de strings))
+
+  >> Parámetros atom_obj_inds (ints) y atom_obj_types (strs) pueden usarse con RelationalState pero no con FOL! (FOL necesita variables y constantes)
+
+  	> Si quiere usar evaluate, el usuario debe crear variables y constantes de manera "manual" (Ej.: o1 = Constant(atom_obj_inds[0]))
+
+  Programación funcional -> usar métodos y propiedades de RelationalState
+  	- Nota: >> los objetos virtuales NO están en el rel_state <<
+  	        Debería añadir un método is_virtual(obj)
+
+  	- Añadir propiedades obj_types y obj_inds
+
+  Programación declarativa -> usar clases FOL
+  	- Nota: >> los objetos virtual SÍ están en la knowledge base
+  		- Cada objeto virtual tiene un átomo virtual(obj)
+
+  	- Se crea un método evaluate() al que se le pasa una expresión FOL
+  	  y llama sobre esta expresión a evaluate con el knowledge base
+
+
+> Método check_eventual_consistency_state del usuario
+	Params: (rel_state)
+
+
