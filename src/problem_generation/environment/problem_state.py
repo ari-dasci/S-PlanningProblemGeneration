@@ -344,6 +344,10 @@ class ProblemState:
 		if action in self._initial_state.atoms:
 			return False
 		
+		# Check that the atom contains no repeated parameters
+		if len(action[1]) != len(set(action[1])):
+			return False
+		
 		# Check the continuous consistency rules by calling the consistency validator
 		if self._consistency_validator is None: # If there is no consistency validator, we assume the action is consistent
 			return True

@@ -30,7 +30,6 @@ class Term():
 		return Neq(self, other_term)
 
 
-
 # A constant/object. Variables are bound (grounded) to constants. Example: block1 = Constant('block1')
 class Constant(Term):
 
