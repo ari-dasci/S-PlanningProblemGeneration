@@ -1,4 +1,5 @@
 import itertools
+import functools
 
 from .relational_state import RelationalState
 
@@ -310,9 +311,6 @@ class ProblemState:
 	Checks if the initial state resulting from applying @action to self._initial_state is consistent or not.
 	This method only checks the continuous consistency rules (as eventual consistency is only checked for the totally generated initial state).
 	<Note>: this method has to be called BEFORE adding the new objects (present in @action but not in the current_state) to the current_state.
-	<Note 2>: we assume that the types of the objects in the atom are correct, i.e., the type of each object in @action (given by @obj_types)
-			  inherits from the corresponding object type of the predicate associated with action.
-			  Example: ['on'[1,0]] -> objects 1 and 0 must be of type "block", due to the predicate ['on', ['block', 'block']]
 
 	@action A new atom to add to the initial state, represented as ('on', (1, 0))
 	@obj_types The type of each object in @action[1], regardless of whether it is in the state or corresponds to a virtual object.
@@ -320,13 +318,32 @@ class ProblemState:
 	def is_init_state_action_consistent(self, action, obj_types):
 		# Encode action in tuple form (in case it was a list)
 		action = (action[0], tuple(action[1]))
+		pred_names = self._initial_state.predicate_names
 
-		state_atoms = self._initial_state.atoms
+		# <Check that the atom is valid>, i.e., it corresponds to a valid predicate type and is instantiated
+		# on a correct number of objects (according to the predicate arity) and with the correct type
+
+		# It is of a valid predicate type
+		assert action[0] in pred_names, f"New atom has a wrong predicate type {action[0]}"
+
+		# It is instantiated on a correct number of objects according to its arity
+		arity = self._initial_state.get_predicate_arity(action[0])
+		assert len(action[1]) == arity, f"New atom should be instantiated on {arity} objects"
+		assert len(obj_types) == arity, "Number of elements of parameter 'obj_types' is not equal to the atom arity"
+		
+		# The objects of the atom are of the correct type
+		type_hierarchy = self._initial_state.type_hierarchy
+		predicate = self._initial_state.get_predicate_from_name(action[0]) # Predicate associated with current atom @action
+
+		inheritance_comp_list = [o_t in type_hierarchy[p_t] for o_t, p_t in zip(obj_types, predicate[1])]
+		all_types_correct = functools.reduce(lambda a, b: a and b, inheritance_comp_list)
+
+		assert all_types_correct, "New atom is instantiated on objects of incorrect type"
 
 		# Check that the atom to add (@action) is not already present in the current state
-		if action in state_atoms:
+		if action in self._initial_state.atoms:
 			return False
-
+		
 		# Check the continuous consistency rules by calling the consistency validator
 		if self._consistency_validator is None: # If there is no consistency validator, we assume the action is consistent
 			return True

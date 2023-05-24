@@ -74,7 +74,7 @@
      no son muy buenos (ej.: la mayoría de features no se pueden extraer para blocksworld), usar las features
      que uso para diversity reward (que además son fáciles de entender)
 
--------------------------- Next steps
+-------------------------- Analysis
 
 >>> No se generan de manera "natural" problemas con locations. Dos posibilidades:
    - Los problemas más difíciles para tamaños pequeños de problema (<20 átomos)
@@ -100,12 +100,17 @@
     hasta 0
 
 
+---------------------- Next experiments
 
+- Diversity reward
+   - Probar diversity_rescale_factor=50
 
-3. Probar a usar tanto diversity_reward como init y goal action entropy
+- Policy entropy (además de diversity reward)
+   - Empezar con un policy entropy alto para la init y goal policies e ir reduciéndolo a 0
+     Ej.: entropy_coeff_init_state_policy = 0.5, entropy_annealing_coeffs_init_state_policy = (5000, 0)
 
-4. Aumentar la expresividad de la NLM
-   - Añadir counting quantifiers
-   - Aumentar número de predicados a 16
+- Aumentar expresividad NLM
+   - Añadir reduce operation for counting
+   - Aumentar número de predicados a 16 en cada capa
 
-5. Entrenar sobre problemas de varios tamaños
+- Entrenar sobre problemas de varios tamaños

@@ -196,6 +196,16 @@ class RelationalState():
     @property
     def objects(self): # Note: without virtual objects
         return self._objects
+    
+    # Used for consistency validator
+    @property
+    def object_types(self): # Just an alias for self.objects, although we return them as a tuple
+        return tuple(self._objects)
+    
+    # Used for consistency validator
+    @property
+    def object_inds(self): # Returns a list of object indexes (from 0 to num_objects-1)
+        return tuple(range(len(self._objects)))
 
     @property
     def atoms(self):
@@ -215,6 +225,28 @@ class RelationalState():
         
         return max(existing_arities)
     
+    """
+    Returns the predicate associated with @pred_name
+    """
+    def get_predicate_from_name(self, pred_name):
+        pred_index = self.predicate_names.index(pred_name)
+
+        return self._predicates[pred_index]
+
+    """
+    Returns the arity of the predicate whose name is @pred_name
+    """
+    def get_predicate_arity(self, pred_name):
+        pred_index = self.predicate_names.index(pred_name)
+
+        return len(self._predicates[pred_index][1]) # Return the arity
+
+    """
+    Returns whether @obj_ind is virtual, i.e., it does not exist in the state (self).
+    """
+    def is_virtual(self, obj_ind):
+        return obj_ind >= len(self._objects)
+
     """
     Given a predicate arity and its index, this function returns the predicate ['pred_name', [obj_types_list]]
     """
