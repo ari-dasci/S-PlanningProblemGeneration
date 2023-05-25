@@ -1,7 +1,7 @@
 # Consistency rules for the logistics domain
 
-from consistency_validator import ConsistencyValidator
-from logic import *
+from .consistency_validator import ConsistencyValidator
+from .logic import *
 
 class ConsistencyValidatorLogistics(ConsistencyValidator):
 
@@ -73,6 +73,11 @@ class ConsistencyValidatorLogistics(ConsistencyValidator):
 
 		virtual = self.virtual
 		_type = self.type
+
+		# Define variables to be used
+		x = Variable('x')
+		y = Variable('y')
+		z = Variable('z')
 
 		# The problem must contain at least one airplane and one package
 		formula_1 = TE(x, _type(x, airplane)) & TE(x, _type(x, package))

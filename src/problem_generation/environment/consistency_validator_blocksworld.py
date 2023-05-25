@@ -1,7 +1,7 @@
 # Consistency rules for the blocksworld domain
 
-from consistency_validator import ConsistencyValidator
-from logic import *
+from .consistency_validator import ConsistencyValidator
+from .logic import *
 
 class ConsistencyValidatorBlocksworld(ConsistencyValidator):
 
@@ -16,6 +16,9 @@ class ConsistencyValidatorBlocksworld(ConsistencyValidator):
 		holding = self.holding
 
 		virtual = self.virtual
+
+		# Define variables to be used
+		x = Variable('x')
 
 		"""
 		(ontable x)
@@ -58,12 +61,13 @@ class ConsistencyValidatorBlocksworld(ConsistencyValidator):
 		"""
 		(holding x)
 			- x is new
+			- holding(*) does not exist in the state
 			- handempty() does not exist in the state
 		"""
 		if atom_pred == 'holding':
 			a = atom_obj_consts[0]
 
-			formula = virtual(a) & ~handempty()
+			formula = virtual(a) & ~handempty() & ~TE(x, holding(x))
 
 			return self._evaluate(formula)
 
@@ -72,8 +76,6 @@ class ConsistencyValidatorBlocksworld(ConsistencyValidator):
 			- holding(*) does not exist in the state
 		"""
 		if atom_pred == 'handempty':
-			a = atom_obj_consts[0]
-
 			formula = ~TE(x, holding(x))
 
 			return self._evaluate(formula)
@@ -89,6 +91,10 @@ class ConsistencyValidatorBlocksworld(ConsistencyValidator):
 
 		virtual = self.virtual
 
+		# Define variables to be used
+		x = Variable('x')
+		y = Variable('y')
+
 		# The problem must have either an atom holding(*) or handempty
 		formula_1 = TE(x, holding(x)) | handempty()
 
@@ -96,4 +102,4 @@ class ConsistencyValidatorBlocksworld(ConsistencyValidator):
 		# holding(x) or have another block y on top
 		formula_2 = FA(x, ( ~holding(x) & ~TE(y, on(y,x)) ) >> clear(x) )
 
-		self._evaluate(formula_1 & formula_2)
+		return self._evaluate(formula_1 & formula_2)

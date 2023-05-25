@@ -60,7 +60,6 @@ class ProblemState:
 
 		self._consistency_validator = consistency_validator
 
-
 	def __copy__(self):
 		new_copy = ProblemState(self._parser, self._predicates_to_consider_for_goal.copy(), None, self._penalization_continuous_consistency,
 								self._penalization_eventual_consistency, self._penalization_non_applicable_action, self._consistency_validator)
@@ -332,13 +331,14 @@ class ProblemState:
 		assert len(obj_types) == arity, "Number of elements of parameter 'obj_types' is not equal to the atom arity"
 		
 		# The objects of the atom are of the correct type
-		type_hierarchy = self._initial_state.type_hierarchy
-		predicate = self._initial_state.get_predicate_from_name(action[0]) # Predicate associated with current atom @action
+		if len(obj_types) > 0:
+			type_hierarchy = self._initial_state.type_hierarchy
+			predicate = self._initial_state.get_predicate_from_name(action[0]) # Predicate associated with current atom @action
 
-		inheritance_comp_list = [o_t in type_hierarchy[p_t] for o_t, p_t in zip(obj_types, predicate[1])]
-		all_types_correct = functools.reduce(lambda a, b: a and b, inheritance_comp_list)
+			inheritance_comp_list = [o_t in type_hierarchy[p_t] for o_t, p_t in zip(obj_types, predicate[1])]
+			all_types_correct = functools.reduce(lambda a, b: a and b, inheritance_comp_list)
 
-		assert all_types_correct, "New atom is instantiated on objects of incorrect type"
+			assert all_types_correct, "New atom is instantiated on objects of incorrect type"
 
 		# Check that the atom to add (@action) is not already present in the current state
 		if action in self._initial_state.atoms:
@@ -352,7 +352,8 @@ class ProblemState:
 		if self._consistency_validator is None: # If there is no consistency validator, we assume the action is consistent
 			return True
 		else:
-			return self._consistency_validator.check_continuous_consistency_state_and_action(self._initial_state, action, obj_types)
+			return self._consistency_validator.preprocess_and_check_continuous_consistency(self._initial_state, action, obj_types)
+
 
 	"""
 	Checks if the initial state (self._initial_state) meets the eventual consistency rules and returns
@@ -363,9 +364,7 @@ class ProblemState:
 		if self._consistency_validator is None:
 			eventual_consistency_is_met = True
 		else:
-			# eventual_consistency_is_met = (self.init_state_contains_all_required_predicates() and self._consistency_validator.check_eventual_consistency_state(self._initial_state))
-			# The state validator is now the one that checks if the current initial state contains all the required predicates
-			eventual_consistency_is_met = self._consistency_validator.check_eventual_consistency_state(self._initial_state)
+			eventual_consistency_is_met = self._consistency_validator.preprocess_and_check_eventual_consistency(self._initial_state)
 
 		# Return the associated reward
 		if eventual_consistency_is_met:

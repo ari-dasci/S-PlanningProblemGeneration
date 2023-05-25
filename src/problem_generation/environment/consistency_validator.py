@@ -3,7 +3,7 @@
 # (for particular domains such as blocksworld or logistics) must inherit from
 
 from abc import ABC, abstractmethod
-from logic import Formula, Count, Constant, Predicate
+from .logic import Formula, Count, Constant, Predicate
 
 class ConsistencyValidator(ABC):
 	"""
@@ -18,9 +18,8 @@ class ConsistencyValidator(ABC):
 	"""
 	Returns _predicates_required.
 	"""
-	@classmethod
-	def required_pred_names(cls):
-		return cls._predicates_required
+	def required_pred_names(self):
+		return self._predicates_required
 
 
 	def __init__(self, types, predicates):
@@ -59,9 +58,6 @@ class ConsistencyValidator(ABC):
 	Evaluates the formula or count object @formula on the knowledge base of the class (self._knowledge_base)
 	"""
 	def _evaluate(self, formula):
-		assert formula.__class__ in (Formula, Count), \
-			   "Parameter 'formula' must be an instance of either class Formula or Count"
-
 		return formula.evaluate(self._knowledge_base)
 
 
@@ -143,7 +139,7 @@ class ConsistencyValidator(ABC):
 		preds_in_state = set([a[0] for a in state_atoms])
 
 		# <Check the state contains at least one atom of each required predicate type>
-		for pred in cls._predicates_required:
+		for pred in self._predicates_required:
 			if pred not in preds_in_state:
 				return False
 

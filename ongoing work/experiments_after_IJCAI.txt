@@ -569,7 +569,7 @@
    > saved_models: both_policies_268
 
    > Entrenamiento (its=3800)
-      - Tiempo (casa): 2d 8h
+      - Tiempo (dasci): 2d 8h
       - r_diff (goal_policy)= 42
       - r_eventual=0
       - init_policy_entropy=0.3, goal_policy_entropy=0.2
@@ -614,3 +614,16 @@
           y de vuelta repetidas veces antes de hacer unload)
 
 
+>  <logistics>
+   planners=[lama-first, lazy-greedy, lazy-greedy]
+   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0
+   init_policy_entropy_coeffs: 0.0, None
+   goal_policy_entropy_coeffs: 0.0, None
+   new_diversity_reward
+   no feature weights
+   <diversity_rescale_factor=10.0>
+   <max_actions_goal_state=10.0>
+
+   > Ejecutándose en casa
+   > logs: init_policy/version_209
+   > saved_models: both_policies_269

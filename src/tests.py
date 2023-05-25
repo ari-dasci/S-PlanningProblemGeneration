@@ -728,7 +728,8 @@ Test RandomGenerator class for the logistics domain.
 def test_generate_random_problems_logistics():
 	from problem_generation.controller.controller import RandomGenerator
 	from problem_generation.environment.planner import Planner
-	from problem_generation.environment.state_validator import ValidatorLogistics
+	#from problem_generation.environment.state_validator import ValidatorLogistics # OLD
+	from problem_generation.environment.consistency_validator_logistics import ConsistencyValidatorLogistics
 
 	from lifted_pddl import Parser
 
@@ -741,7 +742,10 @@ def test_generate_random_problems_logistics():
 	# Goal predicates
 	goal_predicates = {('at', ('package','location'))}
 
-	random_generator = RandomGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics)
+	# Consistency validator
+	consistency_validator = ConsistencyValidatorLogistics(parser.types, parser.predicates)
+
+	random_generator = RandomGenerator(parser, planner, goal_predicates, consistency_validator=consistency_validator)
 
 	num_problems_to_generate = 10
 
@@ -754,6 +758,7 @@ def test_generate_random_problems_logistics():
 Test problem_generator.py to generate random problems for the logistics domain.
 
 This function (_NEW) generates several problems in parallel.
+"""
 """
 def test_generate_random_problems_logistics_NEW():
 	from problem_generation.controller.problem_generator import ProblemGenerator
@@ -789,7 +794,7 @@ def test_generate_random_problems_logistics_NEW():
 	problem_generator.save_problems(problems, problems_path='../data/problems/random_problems/', problems_name='logistics_random_problem', 
 									metrics_file_path = '../data/problems/random_problems/random_problems_metrics.txt',
 								    max_planning_time=600, verbose=True)
-
+"""
 
 """
 Tests the functionality of directed_generator.py used to train both the initial and goal generation policies for the logistics domain.
@@ -797,7 +802,8 @@ Tests the functionality of directed_generator.py used to train both the initial 
 def test_train_init_and_goal_policy_logistics():
 	from problem_generation.controller.directed_generator import DirectedGenerator
 	from problem_generation.environment.planner import Planner
-	from problem_generation.environment.state_validator import ValidatorLogistics
+	#from problem_generation.environment.state_validator import ValidatorLogistics # OLD
+	from problem_generation.environment.consistency_validator_logistics import ConsistencyValidatorLogistics
 
 	from lifted_pddl import Parser
 
@@ -812,6 +818,9 @@ def test_train_init_and_goal_policy_logistics():
 
 	# Virtual objects
 	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
+
+	# Consistency validator
+	consistency_validator = ConsistencyValidatorLogistics(parser.types, parser.predicates)
 
 	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
 	# nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]] # -> Preds arity 3
@@ -830,10 +839,10 @@ def test_train_init_and_goal_policy_logistics():
 
 	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
 
-	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
+	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=consistency_validator,
 										   allowed_virtual_objects=virtual_objects,
 										   penalization_continuous_consistency=-0.1,
-										   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0,
+										   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=10.0,
 										   device='cuda', max_objs_cache_reduce_masks=25,
 
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
@@ -865,7 +874,8 @@ We load the trained init and goal policies and use them to generate problems for
 def test_load_models_and_generate_problems_logistics():
 	from problem_generation.controller.directed_generator import DirectedGenerator
 	from problem_generation.environment.planner import Planner
-	from problem_generation.environment.state_validator import ValidatorLogistics
+	#from problem_generation.environment.state_validator import ValidatorLogistics # OLD
+	from problem_generation.environment.consistency_validator_logistics import ConsistencyValidatorLogistics
 
 	from lifted_pddl import Parser
 
@@ -881,6 +891,9 @@ def test_load_models_and_generate_problems_logistics():
 	# Virtual objects
 	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
 
+	# Consistency validator
+	consistency_validator = ConsistencyValidatorLogistics(parser.types, parser.predicates)
+
 	# Create the generator and load the trained models
 	init_policy_path = "saved_models/both_policies_268/init_policy_its-3500.ckpt"
 	goal_policy_path = "saved_models/both_policies_268/goal_policy_its-3500.ckpt"
@@ -895,9 +908,9 @@ def test_load_models_and_generate_problems_logistics():
 
 	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
 
-	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
+	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=consistency_validator,
 										   allowed_virtual_objects=virtual_objects,
-										   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0,
+										   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=10.0,
 										   device='cpu', max_objs_cache_reduce_masks=0,
 										  
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
@@ -920,13 +933,14 @@ def test_load_models_and_generate_problems_logistics():
 	num_problems = 10
 
 	directed_generator.generate_problems(num_problems, max_atoms_init_state=15, max_actions_init_state=1,
-									     max_actions_goal_state=2.0, max_planning_time=600, verbose=True)
+									     max_actions_goal_state=10.0, max_planning_time=600, verbose=True)
 
 
 def test_load_models_and_resume_training_logistics():
 	from problem_generation.controller.directed_generator import DirectedGenerator
 	from problem_generation.environment.planner import Planner
-	from problem_generation.environment.state_validator import ValidatorLogistics
+	#from problem_generation.environment.state_validator import ValidatorLogistics # OLD
+	from problem_generation.environment.consistency_validator_logistics import ConsistencyValidatorLogistics
 
 	from lifted_pddl import Parser
 
@@ -941,6 +955,9 @@ def test_load_models_and_resume_training_logistics():
 
 	# Virtual objects
 	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
+
+	# Consistency validator
+	consistency_validator = ConsistencyValidatorLogistics(parser.types, parser.predicates)
 
 	# Create the generator and load the trained models
 	curr_it = 1780 # It of the loaded model, used to resume training
@@ -957,10 +974,10 @@ def test_load_models_and_resume_training_logistics():
 
 	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
 
-	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorLogistics,
+	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=consistency_validator,
 										   allowed_virtual_objects=virtual_objects,
 										   penalization_continuous_consistency=-0.1,
-										   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0,
+										   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=10.0,
 										   device='cuda', max_objs_cache_reduce_masks=25,
 										  
 										   num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
@@ -992,7 +1009,8 @@ Test RandomGenerator class for the logistics domain.
 def test_generate_random_problems_blocksworld():
 	from problem_generation.controller.controller import RandomGenerator
 	from problem_generation.environment.planner import Planner
-	from problem_generation.environment.state_validator import ValidatorBlocksworld
+	# from problem_generation.environment.state_validator import ValidatorBlocksworld # OLD
+	from problem_generation.environment.consistency_validator_blocksworld import ConsistencyValidatorBlocksworld
 
 	from lifted_pddl import Parser
 
@@ -1005,7 +1023,10 @@ def test_generate_random_problems_blocksworld():
 	# Goal predicates
 	goal_predicates = {('on', ('block','block'))}
 
-	random_generator = RandomGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorBlocksworld)
+	# Consistency validator
+	consistency_validator = ConsistencyValidatorBlocksworld(parser.types, parser.predicates)
+
+	random_generator = RandomGenerator(parser, planner, goal_predicates, consistency_validator=consistency_validator)
 
 	num_problems_to_generate = 20 # 10
 
@@ -1020,7 +1041,9 @@ Tests the functionality of directed_generator.py used to train both the initial 
 def test_train_init_and_goal_policy_blocksworld():
 	from problem_generation.controller.directed_generator import DirectedGenerator
 	from problem_generation.environment.planner import Planner
-	from problem_generation.environment.state_validator import ValidatorBlocksworld
+	# from problem_generation.environment.state_validator import ValidatorBlocksworld # OLD
+	from problem_generation.environment.consistency_validator_blocksworld import ConsistencyValidatorBlocksworld
+
 
 	from lifted_pddl import Parser
 
@@ -1032,6 +1055,9 @@ def test_train_init_and_goal_policy_blocksworld():
 
 	# Goal predicates
 	goal_predicates = {('on', ('block','block'))}
+
+	# Consistency validator
+	consistency_validator = ConsistencyValidatorBlocksworld(parser.types, parser.predicates)
 
 	# Virtual objects
 	virtual_objects = None # No need to supply virtual objects (the method automatically detects 'block' as the only possible virtual object)
@@ -1053,7 +1079,7 @@ def test_train_init_and_goal_policy_blocksworld():
 
 	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
 
-	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorBlocksworld,
+	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=consistency_validator,
 										   allowed_virtual_objects=virtual_objects,
 										   penalization_continuous_consistency=-0.1,
 										   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0,
@@ -1088,7 +1114,9 @@ We load the trained init and goal policies and use them to generate problems for
 def test_load_models_and_generate_problems_blocksworld():
 	from problem_generation.controller.directed_generator import DirectedGenerator
 	from problem_generation.environment.planner import Planner
-	from problem_generation.environment.state_validator import ValidatorBlocksworld
+	# from problem_generation.environment.state_validator import ValidatorBlocksworld # OLD
+	from problem_generation.environment.consistency_validator_blocksworld import ConsistencyValidatorBlocksworld
+
 
 	from lifted_pddl import Parser
 
@@ -1100,6 +1128,9 @@ def test_load_models_and_generate_problems_blocksworld():
 
 	# Goal predicates
 	goal_predicates = {('on', ('block','block'))}
+
+	# Consistency validator
+	consistency_validator = ConsistencyValidatorBlocksworld(parser.types, parser.predicates)
 
 	# Virtual objects
 	virtual_objects = None
@@ -1118,7 +1149,7 @@ def test_load_models_and_generate_problems_blocksworld():
 
 	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
 
-	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorBlocksworld,
+	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=consistency_validator,
 										   allowed_virtual_objects=virtual_objects,
 										   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0,
 										   device='cpu', max_objs_cache_reduce_masks=0,
@@ -1149,7 +1180,9 @@ def test_load_models_and_generate_problems_blocksworld():
 def test_load_models_and_resume_training_blocksworld():
 	from problem_generation.controller.directed_generator import DirectedGenerator
 	from problem_generation.environment.planner import Planner
-	from problem_generation.environment.state_validator import ValidatorBlocksworld
+	# from problem_generation.environment.state_validator import ValidatorBlocksworld # OLD
+	from problem_generation.environment.consistency_validator_blocksworld import ConsistencyValidatorBlocksworld
+
 
 	from lifted_pddl import Parser
 
@@ -1164,6 +1197,9 @@ def test_load_models_and_resume_training_blocksworld():
 
 	# Virtual objects
 	virtual_objects = None
+
+	# Consistency validator
+	consistency_validator = ConsistencyValidatorBlocksworld(parser.types, parser.predicates)
 
 	# Create the generator and load the trained models
 	curr_it = 1040 # It of the loaded model, used to resume training
@@ -1180,7 +1216,7 @@ def test_load_models_and_resume_training_blocksworld():
 
 	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
 
-	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=ValidatorBlocksworld,
+	directed_generator = DirectedGenerator(parser, planner, goal_predicates, consistency_validator=consistency_validator,
 										   allowed_virtual_objects=virtual_objects,
 										   penalization_continuous_consistency=-0.1,
 										   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0,
@@ -1236,8 +1272,8 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems()
 
 	#test_generate_random_problems_logistics()
-	#test_train_init_and_goal_policy_logistics()
-	test_load_models_and_generate_problems_logistics()	
+	test_train_init_and_goal_policy_logistics()
+	#test_load_models_and_generate_problems_logistics()	
 	#test_load_models_and_resume_training_logistics()
 
 	#test_generate_random_problems_blocksworld()

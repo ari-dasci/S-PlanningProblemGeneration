@@ -1633,14 +1633,19 @@ class DirectedGenerator():
 			print(f"> Trajectories collected. Num samples:\n\t>Init policy trajectories: {len(init_policy_trajectories)} \
 					\n\t>Goal policy trajectories: {len(goal_policy_trajectories)}")
 
-
 			# QUITAR
 			#print("\n\nlen(init_policy_trajectories)", len(init_policy_trajectories))
 			#print("init_policy_trajectories_lens", init_policy_trajectories_lens)
 			#print("\n\n Rewards before diversity", [sample[-2] for sample in init_policy_trajectories])
 
 			# Obtain diversity reward for the init_policy_trajectories
-			allowed_object_types = tuple(sorted(set(self._allowed_virtual_objects))) # Obtain the list of types of the possible virtual objects
+
+			# Obtain the list of types of the possible virtual objects
+			if self._allowed_virtual_objects is None: # If None, it means all object types can be added as virtual objects
+				allowed_object_types = self._parser.types
+			else:
+				allowed_object_types = tuple(sorted(set(self._allowed_virtual_objects))) 
+				
 			self._add_diversity_reward(init_policy_trajectories, init_policy_trajectories_lens, allowed_object_types=allowed_object_types)
 
 			#print("\n\n Rewards after diversity", [sample[-2] for sample in init_policy_trajectories])
