@@ -568,6 +568,49 @@
    > logs: init_policy/version_210
    > saved_models: both_policies_268
 
+   > Entrenamiento (its=3800)
+      - Tiempo (casa): 2d 8h
+      - r_diff (goal_policy)= 42
+      - r_eventual=0
+      - init_policy_entropy=0.3, goal_policy_entropy=0.2
+      - term_cond_prob init_policy converge a 0, goal_policy converge a 0.035
+      - num_objs:
+         - city: 2.8
+         - airport: 2.9
+         - location: 0.4
+         - airplane: 1
+         - truck: 3.2
+         - package: 7.5
 
+   > Problemas (its=3500)
+      - max_atoms = 15
+         - diff = [42.6 40.1 41.4] (medio-alto)
+         - diversidad media-alta
+            - Problemas con 2 y 3 ciudades
+            - La mayoría de las ciudades tienen un solo airport y truck,
+              pero algunas tienen dos
+
+      - max_atoms = 20
+         - diff = [79.1 62.9 74.1]
+         - Problemas con 2-4 ciudades
+
+      - max_atoms = 30
+         - diff = [136.6 129. 138.1]
+         - Problemas con 5-6 ciudades
+
+      - max_atoms = 40
+         - diff = [256.1 228.1 300.3]
+         - Problemas con 6-9 ciudades    
+
+   >> Análisis
+      >> La goal_policy usa acciones tanto drive como fly
+      >> El número de ciudades escala
+      > La dificultad escala regular
+      > La mayoría de ciudades solo tienen un airport y truck
+        y hay pocas locations
+
+      >>> Nota: para problemas grandes, la goal_policy a veces
+          entra en bucle (ej.: un camión va de la location A a B
+          y de vuelta repetidas veces antes de hacer unload)
 
 
