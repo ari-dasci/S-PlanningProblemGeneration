@@ -3,7 +3,7 @@
 # (for particular domains such as blocksworld or logistics) must inherit from
 
 from abc import ABC, abstractmethod
-from logic import Formula, Count, Constant
+from logic import Formula, Count, Constant, Predicate
 
 class ConsistencyValidator(ABC):
 	"""
@@ -14,12 +14,14 @@ class ConsistencyValidator(ABC):
 	"""
 	_predicates_required = tuple()
 
+
 	"""
 	Returns _predicates_required.
 	"""
 	@classmethod
 	def required_pred_names(cls):
 		return cls._predicates_required
+
 
 	def __init__(self, types, predicates):
 		"""
@@ -37,6 +39,10 @@ class ConsistencyValidator(ABC):
 		for p_name, p_objs in predicates:
 			setattr(self, p_name, Predicate(p_name, len(p_objs)))  # Example: self.at
 
+		# Add predicates for object types and virtual objects
+		self.type = Predicate('type', 2)
+		self.virtual = Predicate('virtual', 1)
+
 		"""
 		A knowledge base which contains a FOL description of a given state.
 		It is a tuple (objs, atoms).
@@ -48,14 +54,16 @@ class ConsistencyValidator(ABC):
 		"""
 		self._knowledge_base = None		
 
+
 	"""
 	Evaluates the formula or count object @formula on the knowledge base of the class (self._knowledge_base)
 	"""
-	def evaluate(self, formula):
+	def _evaluate(self, formula):
 		assert formula.__class__ in (Formula, Count), \
 			   "Parameter 'formula' must be an instance of either class Formula or Count"
 
 		return formula.evaluate(self._knowledge_base)
+
 
 	"""
 	<< Method called internally from NeSIG >>
@@ -74,7 +82,7 @@ class ConsistencyValidator(ABC):
 	@new_atom The next atom to add (e.g,. ('on', (1, 0)) )
 	@obj_types List with the type of each object in the atom (@action[1]) -> In blocksworld there is only one type, so we do not need to check it 
 	"""
-	def preprocess_and_check_continuous_consistency_state_and_action(self, curr_state, new_atom, obj_types):
+	def preprocess_and_check_continuous_consistency(self, curr_state, new_atom, obj_types):
 		state_objs = curr_state.object_inds
 		state_obj_types = curr_state.object_types
 		state_atoms = curr_state.atoms 
@@ -90,6 +98,9 @@ class ConsistencyValidator(ABC):
 		kb_atoms = state_atoms.copy() # Copy so @curr_state is not modified
 
 		# Object types -> for each object "o" (int) of type "t" (string), we add an atom ('type', (o, t))
+		# Note: this does not take into account type hierarchy. Example: if o is of type "airport", we
+		# add ('type', (o, 'airport')) but not ('type', (o, 'location')), even though 'airport' inherits
+		# from 'location' in the type hierarchy
 		kb_atoms.update([ ('type', (obj_ind, state_obj_types[obj_ind]) ) for obj_ind in state_objs])
 
 		# Virtual objects -> we also add virtual objects to kb_objects and, for each one, its type and 
@@ -108,11 +119,11 @@ class ConsistencyValidator(ABC):
 		# Create constants for the objects @new_atom is instantiated on
 		new_atom_constants = tuple([Constant(obj_ind) for obj_ind in new_atom[1]])
 
-		is_atom_consistent = self.check_continuous_consistency_state_and_action(curr_state, new_atom[0], new_atom[1], new_atom_constants, obj_types)
+		is_atom_consistent = self.check_continuous_consistency(curr_state, new_atom[0], new_atom_constants, new_atom[1], obj_types)
+
+		self._knowledge_base = None
 
 		return is_atom_consistent
-
-
 
 
 	"""
@@ -125,7 +136,7 @@ class ConsistencyValidator(ABC):
 
 	@curr_state An instance of RelationalState
 	"""
-	def preprocess_and_check_eventual_consistency_state(self, curr_state):
+	def preprocess_and_check_eventual_consistency(self, curr_state):
 		state_objs = curr_state.object_inds # Represent the objects as a list of indexes, instead of ['block', 'block'...]
 		state_obj_types = curr_state.object_types
 		state_atoms = curr_state.atoms
@@ -154,6 +165,43 @@ class ConsistencyValidator(ABC):
 		# Assign knowledge base
 		self._knowledge_base = (kb_objects, kb_atoms)
 
-		is_state_consistent = self.check_eventual_consistency_state(curr_state)
+		is_state_consistent = self.check_eventual_consistency(curr_state)
+
+		self._knowledge_base = None	
 
 		return is_state_consistent
+
+
+	"""
+	Abstract method overriden by the user that contains the continuous consistency rules for a particular domain.
+	It returns whether the state resulting from adding the atom (@atom_pred, atom_obj_inds) to the current state
+	@curr_state is continuous-consistent or not.
+
+	@curr_state An instance of RelationalState, representing the current state the atom will be added to
+	@atom_pred The predicate type (as a string) of the atom to add to @curr_state
+	@atom_obj_consts A tuple containing the objects (each one as an instance of Constant) the new atom is intantiated on
+	@atom_obj_inds A tuple containing the objects (each one as an integer representing its index) the new atom is
+	               instantiated on
+	@atom_obj_types A list with the type (as a string) of each object the new atom is instantiated on
+
+	<Note>: The new atom to add can be instantiated on both "normal" objects (i.e., those present at @curr_state)
+	        and virtual objects (i.e., those that are NOT present at @curr_state but will be added alongside the new
+	        atom).
+	        In order to check if an object is virtual, use either self._evaluate(self.virtual(obj_constant)) (declarative
+	        form) or curr_state.is_virtual(obj_ind) (imperative form), where "obj_constant" is an instance of Constant
+	        representing the object and "obj_ind" is an integer representing the index of the object.
+	"""
+	@abstractmethod
+	def check_continuous_consistency(self, curr_state, atom_pred, atom_obj_consts, atom_obj_inds, atom_obj_types):
+		pass
+
+
+	"""
+	Abstract method overriden by the user that contains the eventual consistency rules for a particular domain.
+	It returns whether the totally-generated initial state @curr_state is eventual-consistent or not.
+
+	@curr_state An instance of RelationalState, representing the totally-generated initial state
+	"""
+	@abstractmethod
+	def check_eventual_consistency(self, curr_state):
+		pass
