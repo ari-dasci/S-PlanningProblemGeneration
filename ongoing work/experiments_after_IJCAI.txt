@@ -625,5 +625,22 @@
    <max_actions_goal_state=10.0>
 
    > Ejecutándose en casa
-   > logs: init_policy/version_209
-   > saved_models: both_policies_269
+   > logs: init_policy/version_209, 210
+   > saved_models: both_policies_269, 271
+
+
+>  <logistics>
+   planners=[lama-first, lazy-greedy, lazy-greedy]
+   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0
+   init_policy_entropy_coeffs: 0.0, None
+   goal_policy_entropy_coeffs: 0.0, None
+   new_diversity_reward
+   no feature weights
+   <diversity_rescale_factor=10.0>
+   <max_actions_goal_state=4.0>
+
+   > Ejecutándose en DaSCI
+   > logs: init_policy/version_211
+   > saved_models: both_policies_270
+
+   >>> VER SI DEBERÍA PONER disc_factor_difficulty=0.995 a 0.999 o a 1 !!!
