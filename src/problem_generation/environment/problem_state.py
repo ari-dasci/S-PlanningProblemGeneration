@@ -381,10 +381,10 @@ class ProblemState:
 	Object indexes (e.g., (1,0)) can index both objects in the state and virtual objects. In other words,
 	they index positions in the list [initial_state.objects + initial_state.virtual_objects].
 	"""
-	def get_continuous_consistent_init_state_actions(self, allowed_predicates=None, allowed_virtual_objects=None):
+	def get_continuous_consistent_init_state_actions(self, allowed_virtual_objects=None):
 		# Obtain the list of objects, virtual objects and both
 		objs_no_virtuals = self._initial_state.objects
-		virtual_objs = self._initial_state.virtual_objs_with_type(allowed_predicates, allowed_virtual_objects)
+		virtual_objs = self._initial_state.virtual_objs_with_type(allowed_virtual_objects)
 		objs_with_virtuals = objs_no_virtuals + virtual_objs
 
 		# We no longer use predicate_order, so we use all the existing predicates

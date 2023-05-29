@@ -383,19 +383,16 @@ class Generator():
 	@nlm_output_shape Shape of the last NLM layer, as a list of num_preds, e.g., [1,2,3,0]. Note: @nlm_output_shape must
 					  take into account the extra nullary predicate added for the termination condition (in case it is added).
 	@problem Instance of ProblemState containing the initial state the NLM is applied to.
-	@allowed_predicates Predicates which can be added to the state in the next action.
 	"""
-	def _get_mask_tensors_init_policy(self, nlm_output_shape, problem, allowed_predicates):  
+	# <CAMBIADO>
+	def _get_mask_tensors_init_policy(self, nlm_output_shape, problem):  
 		# Get the objects (including virtuals)
 		# Example: ['truck', 'airplane', 'package']
 		rel_state = problem.initial_state
-		objs_with_virtuals = rel_state.objects + rel_state.virtual_objs_with_type(allowed_predicates, self._allowed_virtual_objects)
+		objs_with_virtuals = rel_state.objects + rel_state.virtual_objs_with_type(self._allowed_virtual_objects)
 		num_objs_with_virtuals = len(objs_with_virtuals)
 		predicates = rel_state.predicates # Get the state predicates
 		pred_to_index_dict = rel_state.pred_names_to_indices_dict_each_arity
-
-		# Get the allowed predicates, i.e., those which can be added to rel_state -> We no longer use predicate_order
-		# allowed_preds = self._consistency_validator.predicates_in_current_phase(rel_state)
 
 		# Check if we can sample the termination condition (else it needs to be masked)
 		# It can be sampled iff rel_state contains every required_pred
@@ -409,7 +406,7 @@ class Generator():
 						if num_preds != 0 else None for r, num_preds in enumerate(nlm_output_shape)]
 
 		# Obtain list of atoms which can be added to the state (i.e., those that preserve continuous consistency)
-		consistent_atoms = problem.get_continuous_consistent_init_state_actions(allowed_predicates, self._allowed_virtual_objects)
+		consistent_atoms = problem.get_continuous_consistent_init_state_actions(self._allowed_virtual_objects)
 
 		# Unmask those tensor positions corresponding to the atoms in consistent_atoms
 		for atom in consistent_atoms:
@@ -488,11 +485,11 @@ class Generator():
 	Example: if the state contains two objects and we are going to add a new virtual object, we need to change @atom_to_add from
 			 ['on', [3, 0]] to ['on', [2,0]]
 	"""
-	def get_objs_to_add_and_atom_with_correct_indexes(self, rel_state, atom_to_add, allowed_predicates=None):
+	def get_objs_to_add_and_atom_with_correct_indexes(self, rel_state, atom_to_add):
 		state_preds = rel_state.predicates
 		objs_without_virtuals = rel_state.objects
 		num_objs_without_virtuals = len(objs_without_virtuals)
-		objs_with_virtuals = objs_without_virtuals + rel_state.virtual_objs_with_type(allowed_predicates, self._allowed_virtual_objects)
+		objs_with_virtuals = objs_without_virtuals + rel_state.virtual_objs_with_type(self._allowed_virtual_objects)
 		num_objs_with_virtuals = len(objs_with_virtuals)
 
 		# <Obtain the types of the objects atom_to_add is instantiated on>
@@ -1011,14 +1008,214 @@ class Generator():
 
 	"""
 	Obtains a set of trajectories correponding to the generation of a set of problem initial states. To obtain these trajectories,
-	either the initial state generation policies is used or they are obtained at random.
+	the initial state generation policy is used.
 	This method returns a tuple (problem, trajectory), where "problem" contains the problem corresponding to the state in the last
 	trajectory sample.
 	"""
 	# <CAMBIADO>
-	def _obtain_trajectories_init_policy(self, num_trajectories, list_max_atoms_init_state, list_max_actions_init_state, verbose=False):
-		pass
+	def _obtain_init_state_trajectories_directed(self, num_trajectories, list_max_atoms_init_state, list_max_actions_init_state, verbose=False):
+		# Information about the NLM of the initial state policy
+		init_nlm_max_pred_arity = self._initial_state_policy.actor_nlm.max_arity # This value corresponds to the breadth of the NLM
+		init_nlm_output_layer_shape = self._initial_state_policy.actor_nlm.num_output_preds_layers[-1]
 
+		trajectories = [[] for _ in range(num_trajectories)]
+
+		# < Generate states s0 >
+		# problems[i] represents the curr problem for trajectories[i]
+		problems = [ProblemState(self._parser, self._predicates_to_consider_for_goal, self._initial_state_info,
+								 self._penalization_continuous_consistency, self._penalization_eventual_consistency,
+								 consistency_validator=self._consistency_validator) for _ in range(num_trajectories)]
+
+		# < Generate initial states >
+		# initial_state_generated[i] is True if trajectories[i] has already been generated
+		initial_state_generated = [False for _ in range(num_trajectories)]
+
+		# Number of actions executed (including invalid actions that didn't change the state!)
+		actions_executed = [0 for _ in range(num_trajectories)] 
+
+		while False in initial_state_generated:
+			# < Use the policy to select an action >
+			# Actions are selected in parallel for all the trajectories
+			# Then, they are processed sequentially
+
+			list_state_tensors = []
+			list_num_objs_with_virtuals = []
+			list_mask_tensors = []
+
+			for i in range(num_trajectories):
+
+				# If problem[i] has already been generated, there's no need to sample an action
+				if initial_state_generated[i]:
+					list_state_tensors.append(None)
+					list_num_objs_with_virtuals.append(None)
+					list_mask_tensors.append(None)
+				else:
+					curr_state = problems[i].initial_state
+					perc_actions_executed = curr_state.num_atoms / list_max_atoms_init_state[i] # Obtain percentage of actions executed/atoms added (with respect to the max number of actions/atoms)
+					
+					# Obtain percentage of num atoms and objects for each type
+					# Note: num_objs without considering virtual objects
+					state_objs = curr_state.objects
+					dict_num_objs_each_type = {t : state_objs.count(t) / list_max_atoms_init_state[i] for t in curr_state.types}						
+					state_atoms = curr_state.atoms
+					state_atom_names = [atom[0] for atom in state_atoms]
+					dict_num_atoms_each_type = {pred_name : state_atom_names.count(pred_name) / list_max_atoms_init_state[i] for pred_name, _ in curr_state.predicates}
+
+					curr_state_tensors = curr_state.atoms_nlm_encoding(device=self.device, max_arity=init_nlm_max_pred_arity, 
+															allowed_virtual_objects=self._allowed_virtual_objects,
+															problem_size=list_max_atoms_init_state[i]*0.1,
+															perc_actions_executed=perc_actions_executed,
+															dict_num_objs_each_type=dict_num_objs_each_type,
+															dict_num_atoms_each_type=dict_num_atoms_each_type)	
+
+					# Calculate the number of objects in the state plus the number of virtual objects
+					num_objs_with_virtuals = curr_state.num_objects + curr_state.num_virtual_objects(self._allowed_virtual_objects)
+
+					# Mask tensors
+					mask_tensors = self._get_mask_tensors_init_policy(init_nlm_output_layer_shape, problems[i])
+
+					# Append the information about problem[i]
+					list_state_tensors.append(curr_state_tensors)
+					list_num_objs_with_virtuals.append(num_objs_with_virtuals)
+					list_mask_tensors.append(mask_tensors)
+
+
+			# Sample the action in parallel for all the trajectories
+			list_chosen_action_index_and_prob = self._initial_state_policy.select_actions(list_state_tensors, list_num_objs_with_virtuals, list_mask_tensors)
+
+			# < Process the actions >
+			# The actions are processed sequentially
+
+			for i in range(num_trajectories):
+				# If trajectory[i] has already been generated just skip the rest of the loop for it
+				if list_chosen_action_index_and_prob[i] is None:
+					continue
+
+				chosen_action_index, chosen_action_prob = list_chosen_action_index_and_prob[i]
+
+				curr_state = problems[i].initial_state
+				curr_state_copy = curr_state.copy() # Copy the state so that, when curr_state is modified, curr_state_copy is not
+
+				# Check if the chosen action corresponds to the termination condition
+				# chosen_action_index[0] == 0 -> predicate of arity 0
+				# chosen_action_index[-1] == init_nlm_output_layer_shape[0]-1 -> the last predicate of arity 0 (which corresponds to the termination condition)
+				termination_condition = (chosen_action_index[0] == 0 and chosen_action_index[-1] == init_nlm_output_layer_shape[0]-1)
+
+				if termination_condition:
+					initial_state_generated[i] = True
+					problems[i].end_initial_state_generation_phase()
+
+					r_continuous_consistency = 0
+					r_eventual_consistency = problems[i].get_eventual_consistency_reward_of_init_state()
+
+					if verbose:
+						print("- Termination condition")
+						print("- Eventual consistency reward:", r_eventual_consistency)
+				else:
+					# < Transform the chosen action index into a proper action -> atom and objects to add >
+					# chosen_action_index[0] is the predicate arity and chosen_action_index[-1] is the predicate index
+					# The indexes in between correspond to the object indeces the action/pred is instantiated on (if arity >= 1)
+					chosen_action_name = curr_state.get_predicate_by_arity_and_ind(chosen_action_index[0], chosen_action_index[-1])[0] # [0] to get the name
+					chosen_action = [chosen_action_name, chosen_action_index[1:-1]] # To form the chosen action, we add the action name and obj indexes like ['on', [1, 0]]
+
+					# Obtain the object types and objects to add as part of the chosen action. Also change the obj indexes of chosen_action
+					chosen_action, objs_to_add, obj_types = self.get_objs_to_add_and_atom_with_correct_indexes(curr_state, chosen_action)
+
+					# Represent the action (atom) as a tuple
+					chosen_action = (chosen_action[0], tuple(chosen_action[1]))
+
+					# Execute the action to obtain the reward (associated with the continuous consistency rules) and next state
+					_, r_continuous_consistency = problems[i].apply_action_to_initial_state(objs_to_add, chosen_action, obj_types)
+					actions_executed[i] += 1
+
+					if verbose:
+						print(f"- Action: {chosen_action} - Objects to add: {objs_to_add} - Consistency reward: {r_continuous_consistency}")
+
+					# Check if we have reached the maximum number of atoms allowed in the initial state (or the maximum number of actions
+					# in the trajectory)
+					# If so, stop generating the initial state and check if the eventual consistency rules are met
+
+					if problems[i].initial_state.num_atoms >= list_max_atoms_init_state[i] or actions_executed[i] >= list_max_actions_init_state[i]:		
+						initial_state_generated[i] = True
+						problems[i].end_initial_state_generation_phase()
+
+						r_eventual_consistency = problems[i].get_eventual_consistency_reward_of_init_state()
+
+						if verbose:
+							print("- Max num atoms or actions reached")
+							print("- Eventual consistency reward:", r_eventual_consistency)
+					else:
+						r_eventual_consistency = 0
+
+				# Append sample to the trajectory
+				trajectories[i].append( [curr_state_copy,
+										list_state_tensors[i], list_num_objs_with_virtuals[i], list_mask_tensors[i],
+										chosen_action_index, chosen_action_prob,
+										r_continuous_consistency, r_eventual_consistency, 0.0, 0.0] ) # The last 0.0 is used to store the old normalized difficulty mean (the one which increased during training, to be used for logging) 
+				# The 0.0 in the second-to-last position corresponds to r_difficulty
+		
+		return problems, trajectories
+
+			
+	"""
+	Obtains a set of trajectories correponding to the generation of a set of problem initial states. These trajectories are obtained
+	at random.
+	This method returns a tuple (problem, trajectory), where "problem" contains the problem corresponding to the state in the last
+	trajectory sample.
+	"""
+	def _obtain_init_state_trajectories_random(self, num_trajectories, list_max_actions_init_state, verbose=False, seed=None):
+		# Choose a seed
+		random.seed(seed)
+
+		domain_predicates = self._parser.predicates
+
+		# Generate num_trajectories
+		for i in range(num_trajectories):
+			# Initialize ProblemState instance
+			problem = ProblemState(self._parser, self._predicates_to_consider_for_goal, self._initial_state_info,
+						       consistency_validator=self._consistency_validator)
+			
+			# Decide how many actions will be used to generate the initial state
+			num_actions_for_init_state = list_max_actions_init_state[i]
+
+			if type(num_actions_for_init_state) == list or type(num_actions_for_init_state) == tuple:
+				num_actions_for_init_state = random.randint(num_actions_for_init_state[0], num_actions_for_init_state[1])
+
+			if verbose:
+				print(f"\n> Starting initial state generation phase - num_actions={num_actions_for_init_state}")
+
+			init_state_generated = False
+			atoms_added = 0 # A counter to know when to stop adding atoms to the init state
+
+			while not init_state_generated:
+				# Obtain all the atoms that can be added to the current init state, i.e., those that preserve continuous consistency
+				possible_atoms = problem.get_continuous_consistent_init_state_actions()	
+
+				# If there are no possible actions, we stop the generation
+				if len(possible_atoms) == 0:
+					if verbose:
+						print("There are no more consistent atoms to add. Finishing initial state generation phase...")
+
+					init_state_generated = True
+
+				# Select a random atom and add it to the initial state
+				else:		
+					# Select a random atom
+					chosen_atom = random.choice(possible_atoms)
+
+					# Obtain the object types and objects to add as part of the chosen atom. Also change the obj indexes of chosen_atom
+					chosen_atom, objs_to_add, obj_types = self.get_objs_to_add_and_atom_with_correct_indexes(problem.initial_state,
+																											[chosen_atom[0], list(chosen_atom[1])]) 
+
+					# Represent the atom back as a tuple
+					chosen_atom = (chosen_atom[0], tuple(chosen_atom[1])) 
+
+					# Add the atom along with its corresponding virtual objects to the initial state
+					problem.apply_action_to_initial_state(objs_to_add, chosen_atom, obj_types)
+					atoms_added += 1	
+
+					# TODO
+					# Obtain trajectory information
 
 
 

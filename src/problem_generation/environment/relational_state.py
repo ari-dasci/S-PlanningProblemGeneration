@@ -270,17 +270,12 @@ class RelationalState():
     """
     Returns the list of virtual objects of the state. They are returned as a list with their types, e.g., ['truck','truck','city']
 
-    @allowed_predicates List of predicates names representing the predicate types of atoms which can be added to the state
-                        in the current phase.
     @allowed_virtual_objects List of object types which can be added as virtual objects.
                              If None, all object types can be added as virtual objects.
     """
-    def virtual_objs_with_type(self, allowed_predicates=None, allowed_virtual_objects=None):
-        if allowed_predicates is None:
-            sorted_predicates = self._predicates
-        else:
-            sorted_predicates = sorted([p for p in self._predicates if p[0] in allowed_predicates])
-  
+    def virtual_objs_with_type(self, allowed_virtual_objects=None):
+        sorted_predicates = self._predicates
+
         virtual_objs_with_type = []
         num_virtual_objs_each_type = [0]*self.num_types
 
@@ -310,8 +305,8 @@ class RelationalState():
 
         return virtual_objs_with_type
 
-    def num_virtual_objects(self, allowed_predicates, allowed_virtual_objects):
-        return len(self.virtual_objs_with_type(allowed_predicates, allowed_virtual_objects))
+    def num_virtual_objects(self, allowed_virtual_objects):
+        return len(self.virtual_objs_with_type(allowed_virtual_objects))
 
     """
     Returns the state atoms in the encoding the NLM uses, as a list of tensors corresponding to predicates of different arities.
@@ -323,7 +318,6 @@ class RelationalState():
                       E.g., 'block' -> two because in on(block, block) there are two objects of type block.
                       If @add_object_types is False, we add n virtual objects in total, where n is the maximum
                       predicate arity (e.g., 2 in blocksworld).
-    @allowed_predicates Only used if add_virtual_objs = True. Determines which virtual objects are added to the state.
     @allowed_virtual_objects Onlye used if add_virtual_objs = True. Determines which virtual objects are added to the state.
     @add_object_types Used to differentiate between objects of different type.
                          If True, we add additional unary predicates which encode the object type of each object
@@ -342,7 +336,7 @@ class RelationalState():
     @dict_num_atoms_each_type A dictionary where keys correspond to predicate names and values are the number (or percentage) of atoms of each predicate in the current
                              state. They are added as extra nullary predicates.
     """
-    def atoms_nlm_encoding(self, device, max_arity = -1, add_virtual_objs = True, allowed_predicates = None, allowed_virtual_objects = None,
+    def atoms_nlm_encoding(self, device, max_arity = -1, add_virtual_objs = True, allowed_virtual_objects = None,
                            add_object_types=True, problem_size=-1, perc_actions_executed=-1, dict_num_objs_each_type=None, dict_num_atoms_each_type=None):      
         atoms_list = []
         
@@ -355,7 +349,7 @@ class RelationalState():
 
         # Add virtual objects
         if add_virtual_objs:
-            object_types.extend(self.virtual_objs_with_type(allowed_predicates, allowed_virtual_objects))
+            object_types.extend(self.virtual_objs_with_type(allowed_virtual_objects))
 
         # Calculate number of objects in the state (including virtuals if added)
         num_objs = len(object_types)
