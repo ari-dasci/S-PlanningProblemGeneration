@@ -800,6 +800,73 @@ def test_generate_random_problems_logistics_NEW():
 Tests the functionality of directed_generator.py used to train both the initial and goal generation policies for the logistics domain.
 """
 def test_train_init_and_goal_policy_logistics():
+	from problem_generation.controller.generator import Generator
+	from problem_generation.environment.planner import Planner
+	from problem_generation.environment.consistency_validator_logistics import ConsistencyValidatorLogistics
+
+	from lifted_pddl import Parser
+
+	domain_file_path = '../data/domains/logistics-domain.pddl'
+
+	parser = Parser()
+	parser.parse_domain(domain_file_path)
+	planner = Planner(domain_file_path)
+
+	# Goal predicates
+	goal_predicates = {('at', ('package','location'))}
+
+	# Virtual objects
+	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
+
+	# Consistency validator
+	consistency_validator = ConsistencyValidatorLogistics(parser.types, parser.predicates)
+	
+	# The goal_nlm_layers need to account for arity 4, as one action has 4 parameters
+	# We also need to have some predicates of arity 3 in the last layer or, else, there will be no predicates to compute the action of arity 4
+	
+	# NLM layers without predicates of arity 3
+	#init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+	#goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+
+	# NLM layers with predicates of arity 3
+	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+
+	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
+
+	directed_generator = Generator(parser, planner, goal_predicates, consistency_validator=consistency_validator,
+									allowed_virtual_objects=virtual_objects,
+									diversity_rescale_factor=10,
+									device='cuda', max_objs_cache_reduce_masks=25,
+
+									use_initial_state_policy=True,
+									num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
+									mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
+									io_residual_initial_state_nlm=True,
+									res_connections_initial_state_nlm=False,
+									exclude_self_inital_state_nlm=True,
+									lr_initial_state_nlm = 1e-3,
+									entropy_coeff_init_state_policy = 0,
+									entropy_annealing_coeffs_init_state_policy = None,
+									epsilon_init_state_policy=0.1,
+
+									use_goal_policy=True,
+									num_preds_inner_layers_goal_nlm=goal_policy_nlm_inner_layers,
+									mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
+									io_residual_goal_nlm=True,
+									res_connections_goal_nlm=False,
+									exclude_self_goal_nlm=True,
+									lr_goal_nlm = 1e-3,
+									entropy_coeff_goal_policy = 0,
+									entropy_annealing_coeffs_goal_policy = None,
+									epsilon_goal_policy=0.1)
+
+	# Train the goal generation policy
+	directed_generator.train_generative_policies(training_iterations = 100000, 
+					        					 max_atoms_init_state=15, max_actions_init_state=1.0, max_actions_goal_state=2.0)
+	
+	# OLD
+	"""
 	from problem_generation.controller.directed_generator import DirectedGenerator
 	from problem_generation.environment.planner import Planner
 	#from problem_generation.environment.state_validator import ValidatorLogistics # OLD
@@ -867,6 +934,7 @@ def test_train_init_and_goal_policy_logistics():
 
 	# Train the goal generation policy
 	directed_generator.train_generative_policies(training_iterations = 100000)
+	"""
 
 """
 We load the trained init and goal policies and use them to generate problems for the logistics domain.
