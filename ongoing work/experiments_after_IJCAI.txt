@@ -628,6 +628,50 @@
    > logs: init_policy/version_209, 210
    > saved_models: both_policies_269, 271
 
+   > Entrenamiento (its=7100)
+      - Tiempo (dasci): 2d 18h
+      - r_diff (goal_policy)= 42
+      - r_eventual=0
+      - init_policy_entropy=0.22, goal_policy_entropy=0.22
+      - term_cond_prob init_policy converge a 0, goal_policy converge a 0.045
+      - num_objs:
+         - city: 2.6
+         - airport: 2.6
+         - location: 0.4
+         - airplane: 1
+         - truck: 3
+         - package: 7.8
+
+   > Problemas (its=3500)
+      - max_atoms = 15
+         - diff = [43.3 43.3 40.1] (medio-alto)
+         - diversidad media-baja
+            - Problemas con 2 y 3 ciudades
+            - La mayoría de las ciudades tienen un solo airport y truck,
+              pero algunas tienen dos 
+            - Pocas locations
+
+      - max_atoms = 20
+         - diff = [72.5 68.2 60.3]
+         - Problemas con 3 y 4 ciudades
+
+      - max_atoms = 30
+         - diff = [73.2 60.1 63.1]
+         - Problemas con 3-6 ciudades
+
+      - max_atoms = 40
+         - diff = [1 1 1]
+            - Se samplea la termination condition justo al empezar a generar
+              el goal!!!
+         - Problemas con 2-6 ciudades
+
+   > Análisis
+      > Resultados muy parecidos (e incluso peores) a cuando uso max_actions_goal_state=2.0!
+      >>> CREO QUE EL PROBLEMA ES EL disc_factor_difficulty!!! (si no vale 1,
+          la r_diff se descuenta, por lo que a la goal_policy se la motiva a
+          generar el goal usando el mínimo número de acciones posible)
+
+
 
 >  <logistics>
    planners=[lama-first, lazy-greedy, lazy-greedy]
@@ -643,4 +687,14 @@
    > logs: init_policy/version_211
    > saved_models: both_policies_270
 
-   >>> VER SI DEBERÍA PONER disc_factor_difficulty=0.995 a 0.999 o a 1 !!!
+
+>>> Siguiente experimento
+   - PONER DISC_FACTOR_DIFFICULTY A 1!!! -> Si no, como las recompensas se descuentan,
+     la goal_policy priorizará obtener el goal (y así el r_diff) tan pronto como sea posible!
+
+   - LOS RESULTADOS CON max_actions_goal_state=10.0 deben ser igual o mejores que los que usan
+     max_actions_goal_state=4!!!
+
+   - Hacer que durante entrenamiento solo se use un planificador (LAMA-first) pero que en test
+     se sigan usando todos
+
