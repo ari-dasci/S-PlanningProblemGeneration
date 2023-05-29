@@ -1272,8 +1272,8 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems()
 
 	#test_generate_random_problems_logistics()
-	#test_train_init_and_goal_policy_logistics()
-	test_load_models_and_generate_problems_logistics()	
+	test_train_init_and_goal_policy_logistics()
+	#test_load_models_and_generate_problems_logistics()	
 	#test_load_models_and_resume_training_logistics()
 
 	#test_generate_random_problems_blocksworld()

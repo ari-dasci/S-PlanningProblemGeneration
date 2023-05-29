@@ -62,10 +62,10 @@ class Planner():
 	Calls the planner and solves the problem. It returns a string containing the planner's output. If there was a timeout,
 	it returns "timeout".
 
-	@max_planning_time In seconds, maximum time the planner can take. If it surpasses the threshold, a timeout is produced and we
-					   assume the problem was not solvable (even though maybe it is).
+	@planners_to_use List/tuple with the indexes of the planners (0,1 and/or 2) to use.
+	                 If None, we use all three of them (it is equivalent to planners_to_use=(0,1,2))
 	"""
-	def solve_problem(self, pddl_problem_path, max_planning_time = 600):
+	def solve_problem(self, pddl_problem_path, planners_to_use=None):
 		# Create the command to call the planner
 		planner_path = self._planner_path
 
@@ -89,25 +89,20 @@ class Planner():
 						 		 [self._python_call, planner_path, self._domain_file_path, pddl_problem_path, '--search', 'lazy_greedy([ff],preferred=[ff],cost_type=one,reopen_closed=false)'],
 						 		 [self._python_call, planner_path, self._domain_file_path, pddl_problem_path, '--search', 'lazy_greedy([add],preferred=[add],cost_type=one,reopen_closed=false)'] ] 						 
 		
+		if planners_to_use is None:
+			curr_planner_command_list = planner_command_list
+		else:
+			curr_planner_command_list = [x for ind, x in enumerate(planner_command_list) if ind in planners_to_use]
+
 
 		if self._num_planners_for_diff != len(planner_command_list):
 			raise Exception("self._num_planners_for_diff must be equal to the number of planners used to measure the problem difficulties")
 
 
-		# Call the planner and detect timeouts
-		# <TODO>
-		# Solve timeout bug (timeout option sometimes does not work)
+		# Call the planner
 		planner_outputs = []
 
-		for planner_command in planner_command_list:	
-			
-			"""
-			try:
-				curr_planner_output = subprocess.run(planner_command, timeout=max_planning_time, shell=False,
-											stdout=subprocess.PIPE).stdout.decode('utf-8')
-			except TimeoutExpired as e:
-				curr_planner_output = 'timeout'
-			"""
+		for planner_command in curr_planner_command_list:	
 
 			# Don't use timeout (it does not work in many cases)
 			curr_planner_output = subprocess.run(planner_command, shell=False,
@@ -121,37 +116,34 @@ class Planner():
 	Calls the planner, solves the problem and returns the number of expanded nodes. If the planner did not find a solution,
 	it returns -1.0.
 	<Note>: I don't know if the timeout actually works. If the problem is too complex I think the planner can get stuck.
-
-	@max_planning_time In seconds, maximum time the planner can take. If it surpasses the threshold, a timeout is produced and we
-					   assume the problem was not solvable (even though maybe it is).
 	"""
-	def get_problem_difficulty(self, pddl_problem_path, max_planning_time = 600):
-		planner_outputs = self.solve_problem(pddl_problem_path, max_planning_time)
+	def get_problem_difficulty(self, pddl_problem_path, planners_to_use=None):
+		planner_outputs = self.solve_problem(pddl_problem_path, planners_to_use)
 
 		expanded_nodes_list = []
 
 		for planner_output in planner_outputs:
 			# Check if there was a timeout -> we consider this case the same as when the planner does not find a solution
-			if planner_output == 'timeout':
-				expanded_nodes_list.append(-1.0)
-				
-			else:
-				# Check if the planner found a solution
-				if re.search("Solution found.", planner_output):
-					# Search for number of expanded nodes
-					curr_expanded_nodes = int(re.search(r"Expanded ([0-9]+) state\(s\)\.", planner_output).group(1))
-					curr_expanded_nodes += 1 # Add 1 in case the planner has expanded 0 nodes (in such case, we obtain NaN when we perform the logarithm)
-			
-				# Check if there was an outofmemory error (code 22, 20 or 12)
-				# If so, return -1.0 to signal that the planner could not find a solution
-				elif re.search("search exit code: 22", planner_output) or re.search("search exit code: 20", planner_output) \
-					 or re.search("search exit code: 12", planner_output):
-					curr_expanded_nodes = -1.0
-				else:
-					# If the planner output does not contain "Solution found.", that's because the problem goal was empty
-					# and it does not support axioms -> Therefore, the problem diff is 1 (can't be 0 to avoid NaN when we perform the logarithm)
-					curr_expanded_nodes = 1
+			#if planner_output == 'timeout':
+			#	expanded_nodes_list.append(-1.0)			
+			#else:
 
-				expanded_nodes_list.append(curr_expanded_nodes)
+			# Check if the planner found a solution
+			if re.search("Solution found.", planner_output):
+				# Search for number of expanded nodes
+				curr_expanded_nodes = int(re.search(r"Expanded ([0-9]+) state\(s\)\.", planner_output).group(1))
+				curr_expanded_nodes += 1 # Add 1 in case the planner has expanded 0 nodes (in such case, we obtain NaN when we perform the logarithm)
+		
+			# Check if there was an outofmemory error (code 22, 20 or 12)
+			# If so, return -1.0 to signal that the planner could not find a solution
+			elif re.search("search exit code: 22", planner_output) or re.search("search exit code: 20", planner_output) \
+					or re.search("search exit code: 12", planner_output):
+				curr_expanded_nodes = -1.0
+			else:
+				# If the planner output does not contain "Solution found.", that's because the problem goal was empty
+				# and it does not support axioms -> Therefore, the problem diff is 1 (can't be 0 to avoid NaN when we perform the logarithm)
+				curr_expanded_nodes = 1
+
+			expanded_nodes_list.append(curr_expanded_nodes)
 
 		return expanded_nodes_list

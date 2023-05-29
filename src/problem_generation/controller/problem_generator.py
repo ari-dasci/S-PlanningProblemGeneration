@@ -1,4 +1,5 @@
 """
+--- DEPRECATED ---
 This module implements functionality for generating a set of problems. They can be generated either at random or with a pre-trained directed_generator
 (i.e., generative policies). It also provides functionality for saving these problems to disk and solving them to obtain their difficulty.
 """

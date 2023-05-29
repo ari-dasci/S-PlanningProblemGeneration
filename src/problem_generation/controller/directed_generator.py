@@ -194,11 +194,6 @@ class DirectedGenerator():
 																				 max_objs_cache_reduce_masks=max_objs_cache_reduce_masks)
 
 
-		# QUITAR
-		#print("num_preds_all_layers_goal_nlm", num_preds_all_layers_goal_nlm)
-		#print("extra_preds_each_arity_goal_nlm", extra_preds_each_arity_goal_nlm)
-
-
 	# ------- Getters and Setters --------
 		
 
