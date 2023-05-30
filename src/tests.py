@@ -940,6 +940,75 @@ def test_train_init_and_goal_policy_logistics():
 We load the trained init and goal policies and use them to generate problems for the logistics domain.
 """
 def test_load_models_and_generate_problems_logistics():
+	from problem_generation.controller.generator import Generator
+	from problem_generation.environment.planner import Planner
+	from problem_generation.environment.consistency_validator_logistics import ConsistencyValidatorLogistics
+
+	from lifted_pddl import Parser
+
+	domain_file_path = '../data/domains/logistics-domain.pddl'
+
+	parser = Parser()
+	parser.parse_domain(domain_file_path)
+	planner = Planner(domain_file_path)
+
+	# Goal predicates
+	goal_predicates = {('at', ('package','location'))}
+
+	# Virtual objects
+	virtual_objects = ('city', 'location', 'airport', 'package', 'truck', 'airplane')
+
+	# Consistency validator
+	consistency_validator = ConsistencyValidatorLogistics(parser.types, parser.predicates)
+
+	# Create the generator and load the trained models
+	init_policy_path = "saved_models/both_policies_272/init_policy_its-1600.ckpt"
+	goal_policy_path = "saved_models/both_policies_272/goal_policy_its-1600.ckpt"
+	
+	# The goal_nlm_layers need to account for arity 4, as one action has 4 parameters
+	# We also need to have some predicates of arity 3 in the last layer or, else, there will be no predicates to compute the action of arity 4
+	
+	# NLM layers without predicates of arity 3
+	#init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+	#goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+
+	# NLM layers with predicates of arity 3
+	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+
+	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
+	
+	generator = Generator(parser, planner, goal_predicates, consistency_validator=consistency_validator,
+							allowed_virtual_objects=virtual_objects,
+							device='cpu', max_objs_cache_reduce_masks=0,
+										  
+							use_initial_state_policy=True,
+							num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
+							mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
+							io_residual_initial_state_nlm=True,
+							res_connections_initial_state_nlm=False,
+							exclude_self_inital_state_nlm=True,
+							load_init_state_policy_checkpoint_name=init_policy_path,
+
+							use_goal_policy=True,
+							num_preds_inner_layers_goal_nlm=goal_policy_nlm_inner_layers,
+							mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
+							io_residual_goal_nlm=True,
+							res_connections_goal_nlm=False,
+							exclude_self_goal_nlm=True,
+							load_goal_policy_checkpoint_name=goal_policy_path)
+
+	print(f">> Init model {init_policy_path} and goal model {goal_policy_path} loaded")
+
+	# Generate the set of problems with the trained initial policy
+	num_problems = 10
+
+	generator.generate_problems(num_problems, max_atoms_init_state=40, max_actions_init_state=1,
+								 max_actions_goal_state=2, verbose=True)	
+	
+	
+	# OLD
+	"""
 	from problem_generation.controller.directed_generator import DirectedGenerator
 	from problem_generation.environment.planner import Planner
 	#from problem_generation.environment.state_validator import ValidatorLogistics # OLD
@@ -1002,6 +1071,7 @@ def test_load_models_and_generate_problems_logistics():
 
 	directed_generator.generate_problems(num_problems, max_atoms_init_state=40, max_actions_init_state=1,
 									     max_actions_goal_state=10.0, max_planning_time=600, verbose=True)
+	"""
 
 
 def test_load_models_and_resume_training_logistics():
@@ -1340,11 +1410,14 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems()
 
 	#test_generate_random_problems_logistics()
-	test_train_init_and_goal_policy_logistics()
-	#test_load_models_and_generate_problems_logistics()	
+	#test_train_init_and_goal_policy_logistics()
+	test_load_models_and_generate_problems_logistics()	
 	#test_load_models_and_resume_training_logistics()
 
 	#test_generate_random_problems_blocksworld()
 	#test_train_init_and_goal_policy_blocksworld()
 	#test_load_models_and_generate_problems_blocksworld()	
 	#test_load_models_and_resume_training_blocksworld()
+
+
+	# CAMBIAR test_generate_random_problems_logistics y resto de métodos!!!

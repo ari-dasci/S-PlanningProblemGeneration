@@ -688,6 +688,50 @@
    > saved_models: both_policies_270
 
 
+
+------ Pruebas NeSIG ablations
+
+>  <logistics>
+   <only lama-first for training>
+   max_atoms_init_state=15
+   init_policy_entropy_coeffs: 0.0, None
+   goal_policy_entropy_coeffs: 0.0, None
+   diversity_rescale_factor=10.0
+   <max_actions_goal_state=2.0>
+   <disc_factor_difficulty=1>
+   <train_both_policies>
+
+   > Ejecutándose en casa
+   > logs: init_policy/version_211
+   > saved_models: both_policies_272
+
+   > Entrenamiento(its=1700, lo paré a mitad)
+      - Tiempo: 11h
+      - Resultados muy parecidos a experimento con
+        tres planners en entrenamiento y disc_factor_difficulty=0.995
+        No obstante, el tiempo de entrenamiento es bastante menos!
+
+   > Problemas (its=1600)
+      - max_atoms = 15
+         - diff = [42.  33.8 38.1]
+
+      - max_atoms = 20
+         - diff = [72.  56.9 69.3]
+
+      - max_atoms = 30
+         - diff = [138.3 104.2 132.9]
+
+      - max_atoms = 40
+         - diff = [236.3 190.3 250.1]
+         
+   > Análisis
+      - Parece que todo funciona correctamente
+      - Parece que la dificultad evaluada en training con un solo planner
+        después generaliza a los otros dos planners! 
+
+
+
+
 >>> Siguiente experimento
    - PONER DISC_FACTOR_DIFFICULTY A 1!!! -> Si no, como las recompensas se descuentan,
      la goal_policy priorizará obtener el goal (y así el r_diff) tan pronto como sea posible!

@@ -493,8 +493,8 @@ class RelationalState():
         # This extra predicate has to be added AFTER stacking init_state_nlm_encoding and goal_state_nlm_encoding
         # The same with the predicates representing object types
         with torch.no_grad():
-            init_state_nlm_encoding = self.atoms_nlm_encoding(device, max_arity, False, None, None, False, -1, -1, None, None) # add_virtual_objs=False, as we do not need to add virtual objects
-            goal_state_nlm_encoding = goal_state.atoms_nlm_encoding(device, max_arity, False, None, None, False, -1, -1, None, None)
+            init_state_nlm_encoding = self.atoms_nlm_encoding(device, max_arity, False, None, False, -1, -1, None, None) # add_virtual_objs=False, as we do not need to add virtual objects
+            goal_state_nlm_encoding = goal_state.atoms_nlm_encoding(device, max_arity, False, None, False, -1, -1, None, None)
 
             # Stack goal_state_nlm_encoding to init_state_nlm_encoding
             both_states_nlm_encoding = []

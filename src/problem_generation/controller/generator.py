@@ -384,7 +384,6 @@ class Generator():
 					  take into account the extra nullary predicate added for the termination condition (in case it is added).
 	@problem Instance of ProblemState containing the initial state the NLM is applied to.
 	"""
-	# <CAMBIADO>
 	def _get_mask_tensors_init_policy(self, nlm_output_shape, problem):  
 		# Get the objects (including virtuals)
 		# Example: ['truck', 'airplane', 'package']
@@ -536,7 +535,6 @@ class Generator():
 
 	<Note>: this method is inplace (does not return the trajectory but transforms it inplace)
 	"""
-	# <CAMBIADO>
 	def _sum_rewards_trajectory(self, trajectory):
 		
 		r_continuous_sum = 0
@@ -634,7 +632,6 @@ class Generator():
 	<Note2>: We no longer use a rescale factor for the difficulty. It is no longer needed as we normalize difficulties
 	         to be close to 1.
 	"""
-	# <CAMBIADO>
 	def get_problem_difficulty(self, problem, phase, max_difficulty=1e6):
 		# Encode the problem in PDDL
 		# > This method also selects the goal atoms corresponding to the goal predicates given by the user
@@ -663,7 +660,7 @@ class Generator():
 		# If the difficulty was -1, then there was an outofmemory error. We substitute it for max_difficulty
 		problem_difficulty_list = [max_difficulty if diff == -1.0 else diff for ind, diff in enumerate(problem_difficulty_list)]
 
-		# Return both the scaled and real difficulty
+		# Return the difficulties
 		return problem_difficulty_list
 
 
@@ -956,7 +953,6 @@ class Generator():
 
 	<Note>: init_policy_trajectories is modified in-place
 	"""
-	# <CAMBIADO>
 	def _add_diversity_reward(self, init_policy_trajectories, init_policy_trajectories_lens, allowed_object_types=None):
 		# Obtain the indexes which delimit each individual trajectory in init_policy_trajectories
 		list_delims = [sum(init_policy_trajectories_lens[:i+1]) for i in range(len(init_policy_trajectories_lens))]
@@ -1248,7 +1244,6 @@ class Generator():
 		goal_nlm_output_layer_shape = self._goal_policy.actor_nlm.num_output_preds_layers[-1]
 
 		list_num_objs = [problem.initial_state.num_objects for problem in problems]
-		list_r_difficulties_real = [[] for _ in range(num_trajectories)]
 
 		trajectories = [[] for _ in range(num_trajectories)]
 
@@ -1337,11 +1332,9 @@ class Generator():
 					# Call the planner to obtain the difficulty of the problem generated
 					# This method also selects the goal atoms corresponding to the goal predicates given by the user
 					if calculate_difficulty:
-						r_difficulty_real_list, r_difficulty_list = self.get_problem_difficulty(problems[i], phase=phase)
+						r_difficulty_list = self.get_problem_difficulty(problems[i], phase=phase)
 					else:
-						r_difficulty_real_list, r_difficulty_list = None, None
-								
-					list_r_difficulties_real[i] = r_difficulty_real_list
+						r_difficulty_list = None
 
 				# If the selected action is not the termination condition, execute it
 				else:
@@ -1367,11 +1360,10 @@ class Generator():
 						# Call the planner to obtain the difficulty of the problem generated
 						# This method also selects the goal atoms corresponding to the goal predicates given by the user
 						if calculate_difficulty:
-							r_difficulty_real_list, r_difficulty_list = self.get_problem_difficulty(problems[i], phase=phase)
+							r_difficulty_list = self.get_problem_difficulty(problems[i], phase=phase)
 						else:
-							r_difficulty_real_list, r_difficulty_list = None, None
-						
-						list_r_difficulties_real[i] = r_difficulty_real_list
+							r_difficulty_list = None
+
 					else:
 						r_difficulty_list = 0.0 # Before calculating the problem difficulty, it must be fully generated
 
@@ -1382,7 +1374,7 @@ class Generator():
 										0.0, 0.0, r_difficulty_list, 0.0] ) # The 0.0 after r_difficulty_list is used to store the old normalized difficulty mean (the one which increased during training, to be used for logging) 
 				# The two first 0.0 correspond to the continuous and eventual consistency rewards, respectively
 				
-		return problems, list_r_difficulties_real, trajectories
+		return problems, trajectories
 
 
 	"""
@@ -1397,7 +1389,6 @@ class Generator():
 		random.seed(seed)
 
 		num_trajectories = len(problems)
-		list_r_difficulties_real = [[] for _ in range(num_trajectories)]
 	
 		trajectories = [[] for _ in range(num_trajectories)]
 
@@ -1438,11 +1429,9 @@ class Generator():
 					# Call the planner to obtain the difficulty of the problem generated
 					# This method also selects the goal atoms corresponding to the goal predicates given by the user
 					if calculate_difficulty:
-						r_difficulty_real_list, r_difficulty_list = self.get_problem_difficulty(problem, phase=phase)
+						r_difficulty_list = self.get_problem_difficulty(problem, phase=phase)
 					else:
-						r_difficulty_real_list, r_difficulty_list = None, None
-								
-					list_r_difficulties_real[i] = r_difficulty_real_list
+						r_difficulty_list = None
 
 				# Select a random action to execute
 				else:
@@ -1468,11 +1457,10 @@ class Generator():
 						# Call the planner to obtain the difficulty of the problem generated
 						# This method also selects the goal atoms corresponding to the goal predicates given by the user
 						if calculate_difficulty:
-							r_difficulty_real_list, r_difficulty_list = self.get_problem_difficulty(problem, phase=phase)
+							r_difficulty_list = self.get_problem_difficulty(problem, phase=phase)
 						else:
-							r_difficulty_real_list, r_difficulty_list = None, None
-									
-						list_r_difficulties_real[i] = r_difficulty_real_list
+							r_difficulty_list = None
+
 					else:
 						r_difficulty_list = 0.0 # Before calculating the problem difficulty, it must be fully generated
 
@@ -1483,7 +1471,7 @@ class Generator():
 										 0.0, 0.0, r_difficulty_list, 0.0] ) # The 0.0 after r_difficulty_list is used to store the old normalized difficulty mean (the one which increased during training, to be used for logging) 
 				# The two first 0.0 correspond to the continuous and eventual consistency rewards, respectively
 					
-		return problems, list_r_difficulties_real, trajectories
+		return problems, trajectories
 
 
 	"""
@@ -1511,9 +1499,9 @@ class Generator():
 
 		# <Obtain trajectories with the goal policy>
 		if self._use_goal_policy:
-			_, _, goal_policy_trajectories = self._obtain_goal_trajectories_directed(problems, 'train', list_max_actions_goal_state)
+			_, goal_policy_trajectories = self._obtain_goal_trajectories_directed(problems, 'train', list_max_actions_goal_state)
 		else:
-			_, _, goal_policy_trajectories = self._obtain_goal_trajectories_random(problems, 'train', list_max_actions_goal_state)
+			_, goal_policy_trajectories = self._obtain_goal_trajectories_random(problems, 'train', list_max_actions_goal_state)
 
 		# <Calculate the normalized mean of the planner difficulties in the goal policy trajectories>
 		self._calculate_normalized_mean_planner_diffs(goal_policy_trajectories)
@@ -1790,9 +1778,9 @@ class Generator():
 
 		# <Generate a goal state with the goal policy>
 		if self._use_goal_policy:
-			final_problem, _, _ = self._obtain_goal_trajectories_directed([init_problem], 'test', [max_actions_goal_state], calculate_difficulty=False, verbose=verbose)
+			final_problem, _ = self._obtain_goal_trajectories_directed([init_problem], 'test', [max_actions_goal_state], calculate_difficulty=False, verbose=verbose)
 		else:
-			final_problem, _, _ = self._obtain_goal_trajectories_random([init_problem], 'test', [max_actions_goal_state], calculate_difficulty=False, verbose=verbose)
+			final_problem, _ = self._obtain_goal_trajectories_random([init_problem], 'test', [max_actions_goal_state], calculate_difficulty=False, verbose=verbose)
 	
 		final_problem = final_problem[0]
 		
@@ -1801,7 +1789,7 @@ class Generator():
 		elapsed_time = end_time - start_time
 
 		# Solve the problem in order to obtain its difficulty
-		problem_difficulties, _ = self.get_problem_difficulty(final_problem, 'test')
+		problem_difficulties = self.get_problem_difficulty(final_problem, 'test')
 
 		# <Obtain the PDDL encoding of the problem>
 		# Note: this method also selects at the goal state the predicates given by the user, in order to obtain the problem goal (:goal)
