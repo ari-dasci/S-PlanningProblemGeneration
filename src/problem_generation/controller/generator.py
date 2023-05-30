@@ -1677,7 +1677,8 @@ class Generator():
 
 			if self._use_goal_policy:
 				# We train the goal policy if either there are enough samples or there is no initial state policy to train
-				if not self._use_initial_state_policy or len(goal_policy_trajectories) >= minibatch_size / 2:
+				if len(goal_policy_trajectories) >= minibatch_size / 2 or \
+				   (not self._use_initial_state_policy and len(goal_policy_trajectories) > 0):
 					# Create training dataset and dataloader with the collected trajectories
 					trajectory_dataset_goal_policy = ReinforceDataset(goal_policy_trajectories)
 					trajectory_dataloader_goal_policy= torch.utils.data.DataLoader(dataset=trajectory_dataset_goal_policy, batch_size=minibatch_size,

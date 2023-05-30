@@ -1,14 +1,9 @@
-all: random
+TYPED=sokoban-generator-typed
 
-random:
-	$(MAKE) -C random
+all: $(TYPED)
+
+$(TYPED): $(TYPED).cpp
+	$(CXX) $(TYPED).cpp -o $(TYPED)
 
 clean:
-	cd random && make clean
-
-test: random
-	./random/sokoban-generator-typed -n 5 -b 1 -w 0
-	./random/sokoban-generator-untyped -n 5 -b 1 -w 0
-	./choose-suite.py
-
-.PHONY: random
+	rm -f $(TYPED)

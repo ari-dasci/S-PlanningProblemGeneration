@@ -1,32 +1,6 @@
-This generator has not been used for IPC 2011.
-All the problems have been taken from IPC 2008.
+>>> Code adapted from https://github.com/AI-Planning/pddl-generators/tree/main/sokoban
+>>> All copyright to the respective authors
 
-The IPC 2011 organizers
-
-
-
-* pddl-generators note
-
-`build-program.py` converts microban / multiban / hexoban data into PDDL.
-
-`choose-suite.py` analyzes instances in `rolling_stone_data.py` and
-select problem instances for satisficing and optimal track.
-
-From the message above, it seems these problem generators (which are based on
-existing microban benchmarks etc.) are not used for IPC2011.
-
-
-
-Scripts in `random/` are randomized generators that are used for generating
-instances for IPC2008, which was also used for IPC2011.
-
-
-usage:
-
-OPTIONS   DESCRIPTIONS
-
--n <num>    grid size (minimal 5)
--b <num>    number of boxes (minimal 1)
--w <num>    number of walls (minimal 0)
--s <num>    random seed
-
+>>> How to run the generator:
+	- Compile: make
+	- Example run (in linux): ./sokoban-generator-typed -n 5 -b 2 -w 1 -s 10
