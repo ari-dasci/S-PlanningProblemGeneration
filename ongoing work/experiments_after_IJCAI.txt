@@ -699,7 +699,7 @@
    diversity_rescale_factor=10.0
    <max_actions_goal_state=2.0>
    <disc_factor_difficulty=1>
-   <train_both_policies>
+   <train both policies>
 
    > Ejecutándose en casa
    > logs: init_policy/version_211
@@ -728,6 +728,23 @@
       - Parece que todo funciona correctamente
       - Parece que la dificultad evaluada en training con un solo planner
         después generaliza a los otros dos planners! 
+
+
+>  <logistics>
+   <only lama-first for training>
+   max_atoms_init_state=15
+   init_policy_entropy_coeffs: 0.0, None
+   goal_policy_entropy_coeffs: 0.0, None
+   diversity_rescale_factor=10.0
+   <max_actions_goal_state=2.0>
+   <disc_factor_difficulty=1>
+   <train only init state policy>
+
+   > Ejecutándose en casa
+   > logs: init_policy/version_212 (no hay goal_policy logs)
+   > saved_models: both_policies_273
+
+   
 
 
 

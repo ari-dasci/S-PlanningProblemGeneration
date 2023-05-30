@@ -1,4 +1,4 @@
-(define (domain typed-sokoban)
+(define (domain sokoban)
 (:requirements :typing :negative-preconditions)
 (:types loc)
 
