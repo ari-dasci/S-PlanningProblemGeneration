@@ -744,6 +744,42 @@
    > logs: init_policy/version_212 (no hay goal_policy logs)
    > saved_models: both_policies_273
 
+   > Entrenamiento (its=1150, parado a mitad)
+      - Tiempo: 3h 30min
+      - Aprende, aunque la r_diff sube mucho más lentamente
+        que si entrenamos ambas generative policies
+
+   > Problemas (its=1100)
+      - max_atoms = 15
+         - diff = [3.4 3.2 3.2]
+
+      - max_atoms = 20
+         - diff = [5.9 4.7 4.8]
+
+      - max_atoms = 30
+         - diff = [8.3 7.4 7.4]
+
+      - max_atoms = 40
+         - diff = [11.3 9.4 9.1]
+
+   > Análisis:
+      - Aprende aunque mucho peor que con ambas generative policies
+
+
+>  <logistics>
+   <only lama-first for training>
+   max_atoms_init_state=15
+   init_policy_entropy_coeffs: 0.0, None
+   goal_policy_entropy_coeffs: 0.0, None
+   diversity_rescale_factor=10.0
+   <max_actions_goal_state=2.0>
+   <disc_factor_difficulty=1>
+   <train only goal policy>
+
+   > Ejecutándose en casa
+   > logs: goal_policy/version_190 (no hay init_policy logs)
+   > saved_models: both_policies_274
+
    
 
 

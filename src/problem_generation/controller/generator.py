@@ -1179,7 +1179,7 @@ class Generator():
 				curr_state_copy = problem.initial_state.copy()
 
 				# Obtain all the atoms that can be added to the current init state, i.e., those that preserve continuous consistency
-				possible_atoms = problem.get_continuous_consistent_init_state_actions()	
+				possible_atoms = problem.get_continuous_consistent_init_state_actions(self._allowed_virtual_objects)	
 
 				# If there are no possible actions, we stop the generation
 				if len(possible_atoms) == 0:
@@ -1199,6 +1199,8 @@ class Generator():
 					chosen_atom, objs_to_add, obj_types = self.get_objs_to_add_and_atom_with_correct_indexes(problem.initial_state,
 																											[chosen_atom[0], list(chosen_atom[1])]) 
 
+					# AQUI
+
 					# Represent the atom back as a tuple
 					chosen_atom = (chosen_atom[0], tuple(chosen_atom[1])) 
 
@@ -1216,6 +1218,8 @@ class Generator():
 						init_state_generated = True
 						problem.end_initial_state_generation_phase()
 						r_eventual_consistency = problem.get_eventual_consistency_reward_of_init_state()
+					else:
+						r_eventual_consistency = 0
 
 				trajectories[i].append( [curr_state_copy,
 										 None, None, None,
@@ -1671,51 +1675,53 @@ class Generator():
 
 			# -- Goal state policy
 
-			if self._use_goal_policy and len(goal_policy_trajectories) >= minibatch_size / 2:
-				# Create training dataset and dataloader with the collected trajectories
-				trajectory_dataset_goal_policy = ReinforceDataset(goal_policy_trajectories)
-				trajectory_dataloader_goal_policy= torch.utils.data.DataLoader(dataset=trajectory_dataset_goal_policy, batch_size=minibatch_size,
-																	collate_fn=TransformReinforceDatasetSample(), shuffle=True,
-																	num_workers=0) # Change to shuffle=False if we need to keep the order in the transitions (s,a,s')
+			if self._use_goal_policy:
+				# We train the goal policy if either there are enough samples or there is no initial state policy to train
+				if not self._use_initial_state_policy or len(goal_policy_trajectories) >= minibatch_size / 2:
+					# Create training dataset and dataloader with the collected trajectories
+					trajectory_dataset_goal_policy = ReinforceDataset(goal_policy_trajectories)
+					trajectory_dataloader_goal_policy= torch.utils.data.DataLoader(dataset=trajectory_dataset_goal_policy, batch_size=minibatch_size,
+																		collate_fn=TransformReinforceDatasetSample(), shuffle=True,
+																		num_workers=0) # Change to shuffle=False if we need to keep the order in the transitions (s,a,s')
 
-				# Train the policy
+					# Train the policy
 
-				goal_policy_train_epochs = epochs_per_train_it
+					goal_policy_train_epochs = epochs_per_train_it
 
-				# OLD
-				"""
-				goal_policy_train_epochs = 0
+					# OLD
+					"""
+					goal_policy_train_epochs = 0
 
-				if len(goal_policy_trajectories) > minibatch_size / 2:
-					goal_policy_train_epochs += 1
-				if len(goal_policy_trajectories) > 2*10*trajectories_per_train_it / 4:
-					goal_policy_train_epochs += 1
-				if len(goal_policy_trajectories) > 3*10*trajectories_per_train_it / 4:
-					goal_policy_train_epochs += 1
-				"""
+					if len(goal_policy_trajectories) > minibatch_size / 2:
+						goal_policy_train_epochs += 1
+					if len(goal_policy_trajectories) > 2*10*trajectories_per_train_it / 4:
+						goal_policy_train_epochs += 1
+					if len(goal_policy_trajectories) > 3*10*trajectories_per_train_it / 4:
+						goal_policy_train_epochs += 1
+					"""
 
 
-				if self.device.type == 'cuda':
-					trainer_goal_policy = pl.Trainer(max_epochs=goal_policy_train_epochs, logger=logger_goal_policy,
-														accelerator='gpu', devices=1, enable_checkpointing=False)
-				else:
-					trainer_goal_policy = pl.Trainer(max_epochs=goal_policy_train_epochs, logger=logger_goal_policy,
-														accelerator='cpu', enable_checkpointing=False)
+					if self.device.type == 'cuda':
+						trainer_goal_policy = pl.Trainer(max_epochs=goal_policy_train_epochs, logger=logger_goal_policy,
+															accelerator='gpu', devices=1, enable_checkpointing=False)
+					else:
+						trainer_goal_policy = pl.Trainer(max_epochs=goal_policy_train_epochs, logger=logger_goal_policy,
+															accelerator='cpu', enable_checkpointing=False)
 
-				trainer_goal_policy.fit(self._goal_policy, trajectory_dataloader_goal_policy)
+					trainer_goal_policy.fit(self._goal_policy, trajectory_dataloader_goal_policy)
 
-				if self.device.type == 'cuda':
-						self._goal_policy.to('cuda')
+					if self.device.type == 'cuda':
+							self._goal_policy.to('cuda')
 
-				# Linearly anneal the entropy regularization of the policy
-				if goal_policy_train_epochs > 0:
-					self._goal_policy.reduce_entropy()
+					# Linearly anneal the entropy regularization of the policy
+					if goal_policy_train_epochs > 0:
+						self._goal_policy.reduce_entropy()
 
-				# Save a checkpoint
-				if its_per_model_checkpoint != -1 and i > 0 and i % its_per_model_checkpoint == 0:
-					trainer_goal_policy.save_checkpoint(checkpoints_folder + f'/goal_policy_its-{i}.ckpt') # Both actor and critic NLMs are saved
+					# Save a checkpoint
+					if its_per_model_checkpoint != -1 and i > 0 and i % its_per_model_checkpoint == 0:
+						trainer_goal_policy.save_checkpoint(checkpoints_folder + f'/goal_policy_its-{i}.ckpt') # Both actor and critic NLMs are saved
 
-				del trainer_goal_policy
+					del trainer_goal_policy
 
 		# Close temporary file used for storing the problems generated during training
 		self._fd_temp_problem.close()
