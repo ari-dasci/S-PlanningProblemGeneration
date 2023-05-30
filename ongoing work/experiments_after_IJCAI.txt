@@ -780,7 +780,51 @@
    > logs: goal_policy/version_190 (no hay init_policy logs)
    > saved_models: both_policies_274
 
-   
+   > Entrenamiento (its=1150, parado a mitad)
+      - Tiempo: 1h 47min
+      - Aprende, aunque la r_diff sube más lentamente
+        que si entrenamos ambas generative policies
+      - La r_diff sube más rápidamente que cuando solo
+        entrenamos la init policy -> parece que la goal
+        policy es más importante que la init policy!!
+
+   > Problemas (its=1100)
+      - max_atoms = 15
+         - diff = [11.8 11. 11.3]
+
+      - max_atoms = 20
+         - diff = [11.7 10.1 10.4]
+
+      - max_atoms = 30
+         - diff = [26.8 20.2 20.7]
+
+      - max_atoms = 40
+         - diff = [43.4 32.5 34.2]
+
+   > Análisis
+      - Aprende peor que con ambas generative policies pero mejor
+        que solo entrenando la init_policy
+
+
+>  <logistics>
+   <random generator (no generative policies)>
+
+   > Problemas
+      - max_atoms = 15
+         - diff = [7.3 5.9 6.5]
+
+      - max_atoms = 20
+         - diff = [5.6 4.8 5. ] 
+
+      - max_atoms = 30
+         - diff = [8.8 7.8 7.8] 
+
+      - max_atoms = 40
+         - diff = [8.  6.8 6.8]
+
+   > Análisis
+      - Dificultad muy baja! (más baja que entrenando solo una
+        de las dos generative policies)
 
 
 

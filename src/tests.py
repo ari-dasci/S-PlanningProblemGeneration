@@ -749,7 +749,7 @@ def test_generate_random_problems_logistics():
 
 	# Generate random problems
 	num_problems = 10
-	generator.generate_problems(num_problems, max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2,
+	generator.generate_problems(num_problems, max_atoms_init_state=40, max_actions_init_state=1, max_actions_goal_state=2,
 			     				problems_path = '../data/problems/random_problems/',
 								problems_name = 'bw_random',
 								metrics_file_path = '../data/problems/random_problems/random_problems_metrics.txt')
@@ -872,7 +872,7 @@ def test_train_init_and_goal_policy_logistics():
 									diversity_rescale_factor=10,
 									device='cuda', max_objs_cache_reduce_masks=25,
 
-									use_initial_state_policy=False,
+									use_initial_state_policy=True,
 									num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 									mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
 									io_residual_initial_state_nlm=True,
@@ -995,8 +995,8 @@ def test_load_models_and_generate_problems_logistics():
 	consistency_validator = ConsistencyValidatorLogistics(parser.types, parser.predicates)
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_273/init_policy_its-1100.ckpt"
-	goal_policy_path = "saved_models/both_policies_273/goal_policy_its-1100.ckpt"
+	init_policy_path = "saved_models/both_policies_274/init_policy_its-1100.ckpt"
+	goal_policy_path = "saved_models/both_policies_274/goal_policy_its-1100.ckpt"
 	
 	# The goal_nlm_layers need to account for arity 4, as one action has 4 parameters
 	# We also need to have some predicates of arity 3 in the last layer or, else, there will be no predicates to compute the action of arity 4
@@ -1016,7 +1016,7 @@ def test_load_models_and_generate_problems_logistics():
 							allowed_virtual_objects=virtual_objects,
 							device='cpu', max_objs_cache_reduce_masks=0,
 										  
-							use_initial_state_policy=False,
+							use_initial_state_policy=True,
 							num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
 							mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
 							io_residual_initial_state_nlm=True,
@@ -1555,6 +1555,3 @@ if __name__ == "__main__":
 	#test_load_models_and_resume_training_blocksworld()
 
 	#test_generate_random_problems_sokoban()
-
-	# CAMBIAR test_generate_random_problems_logistics y resto de métodos!!!
-	# CAMBIAR use_init_state_policy y use_goal_policy!
