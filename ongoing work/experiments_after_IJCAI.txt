@@ -874,15 +874,27 @@
         de las dos generative policies)
 
 
+>  <sokoban>
+   <max_atoms_init_state=40+15, max_actions_init_state=1, max_actions_goal_state=1>
+   init_policy_entropy_coeffs: 0.0, None
+   goal_policy_entropy_coeffs: 0.0, None
+   diversity_rescale_factor=10.0
+
+   > Ejecutándose en Casa
+   > logs: init_policy/version_0
+   > saved_models: both_policies_275
 
 
->>> Siguiente experimento
-   - PONER DISC_FACTOR_DIFFICULTY A 1!!! -> Si no, como las recompensas se descuentan,
-     la goal_policy priorizará obtener el goal (y así el r_diff) tan pronto como sea posible!
 
-   - LOS RESULTADOS CON max_actions_goal_state=10.0 deben ser igual o mejores que los que usan
-     max_actions_goal_state=4!!!
+>  <logistics>
+   max_atoms_init_state=15, max_actions_init_state=1, <max_actions_goal_state=4.0>
+   init_policy_entropy_coeffs: 0.0, None
+   goal_policy_entropy_coeffs: 0.0, None
+   <diversity_rescale_factor=50.0>
 
-   - Hacer que durante entrenamiento solo se use un planificador (LAMA-first) pero que en test
-     se sigan usando todos
+   > Ejecutándose en DaSCI
+   > logs: init_policy/version_212
+   > saved_models: both_policies_276
+
+   
 
