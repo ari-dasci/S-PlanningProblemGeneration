@@ -274,6 +274,10 @@ class RelationalState():
                              If None, all object types can be added as virtual objects.
     """
     def virtual_objs_with_type(self, allowed_virtual_objects=None):
+        # If no object type can be added as virtual object, then return no virtual objects
+        if allowed_virtual_objects is not None and len(allowed_virtual_objects) == 0:
+            return list()
+        
         sorted_predicates = self._predicates
 
         virtual_objs_with_type = []

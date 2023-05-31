@@ -795,12 +795,9 @@ class Generator():
 	"""
 	Auxiliary method used by _add_diversity_reward(), in order to obtain the feature vector associated with each state.
 	It returns both the feature vector and a feature of weights, used to calculate the weighted average of feature differences.
-
-	@allowed_object_types A list with the object types that we can find in the initial state. If None, we assume
-	                      it is equal to @init_state.types
 	"""
-	def _obtain_dist_features(self, init_state, allowed_object_types=None):
-		types = init_state.types if allowed_object_types is None else allowed_object_types # We only care about the allowed object types
+	def _obtain_dist_features(self, init_state):
+		types = init_state.types
 		predicates = init_state.predicates
 		pred_names = init_state.predicate_names
 		objs = tuple(init_state.objects) # Tuple with the type of each object in the state
@@ -948,12 +945,10 @@ class Generator():
 
 	@init_policy_trajectories_lens List containing, at each position i, the length of the trajectory number i
 								   in @init_policy_trajectories
-	@allowed_object_types A list with the object types that we can find in the initial state. If None, we assume
-						it is equal to @init_state.types 
 
 	<Note>: init_policy_trajectories is modified in-place
 	"""
-	def _add_diversity_reward(self, init_policy_trajectories, init_policy_trajectories_lens, allowed_object_types=None):
+	def _add_diversity_reward(self, init_policy_trajectories, init_policy_trajectories_lens):
 		# Obtain the indexes which delimit each individual trajectory in init_policy_trajectories
 		list_delims = [sum(init_policy_trajectories_lens[:i+1]) for i in range(len(init_policy_trajectories_lens))]
 
@@ -970,7 +965,7 @@ class Generator():
 		num_consistent_trajectories = len(consistent_inds)
 
 		# For each init_state in init_state_list, obtain its associated features
-		init_state_features_and_weights = [self._obtain_dist_features(init_state, allowed_object_types) for init_state in init_state_list]
+		init_state_features_and_weights = [self._obtain_dist_features(init_state) for init_state in init_state_list]
 		feature_matrix = np.array([x[0] for x in init_state_features_and_weights], dtype=np.float32)
 		feature_weights = init_state_features_and_weights[0][1] # We obtain the feature weights for the same init_state, since it is the same for all of them	
 		
@@ -1620,16 +1615,10 @@ class Generator():
 					\n\t>Goal policy trajectories: {len(goal_policy_trajectories)}")
 
 			# Obtain diversity reward for the init_policy_trajectories
-
-			# Obtain the list of types of the possible virtual objects
-			if self._allowed_virtual_objects is None: # If None, it means all object types can be added as virtual objects
-				allowed_object_types = self._parser.types
-			else:
-				allowed_object_types = tuple(sorted(set(self._allowed_virtual_objects))) 
 				
 			# If we are generating the initial state at random, we don't need to calculate the diversity reward
 			if self._use_initial_state_policy:
-				self._add_diversity_reward(init_policy_trajectories, init_policy_trajectories_lens, allowed_object_types=allowed_object_types)
+				self._add_diversity_reward(init_policy_trajectories, init_policy_trajectories_lens)
 
 			# Normalize the rewards
 			self._normalize_rewards_init_policy(init_policy_trajectories)

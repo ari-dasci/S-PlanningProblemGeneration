@@ -1508,6 +1508,7 @@ def test_generate_random_problems_sokoban():
 	"""
 	<Initial state s0>
 	It corresponds to an empty 5x5 grid.
+	It contains 40 atoms.
 		0  1  2  3  4
 		5  6  7  8  9
 		10 11 12 13 14
@@ -1538,14 +1539,103 @@ def test_generate_random_problems_sokoban():
 						  use_initial_state_policy=False, use_goal_policy=False)
 
 	# Generate random problems
-	num_problems = 1 #10
-	generator.generate_problems(num_problems, max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2,
+	num_problems = 10
+	generator.generate_problems(num_problems, max_atoms_init_state=40+10, max_actions_init_state=1, max_actions_goal_state=2,
 			     				problems_path = '../data/problems/random_problems/',
 								problems_name = 'bw_random',
 								metrics_file_path = '../data/problems/random_problems/random_problems_metrics.txt')
 
 
-	# VER SI LOS VIRTUAL OBJS SON VACÍOS!
+def test_train_init_and_goal_policy_sokoban():
+	from problem_generation.controller.generator import Generator
+	from problem_generation.environment.planner import Planner
+	from problem_generation.environment.consistency_validator_sokoban import ConsistencyValidatorSokoban
+	from problem_generation.environment.relational_state import RelationalState
+
+	from lifted_pddl import Parser
+
+	domain_file_path = '../data/domains/sokoban-domain.pddl'
+
+	parser = Parser()
+	parser.parse_domain(domain_file_path)
+	planner = Planner(domain_file_path)
+
+	"""
+	<Initial state s0>
+	It corresponds to an empty 5x5 grid.
+	It contains 40 atoms.
+		0  1  2  3  4
+		5  6  7  8  9
+		10 11 12 13 14
+		15 16 17 18 19
+		20 21 22 23 24	
+	"""
+	initial_state_info = RelationalState(parser.types, parser.type_hierarchy, parser.predicates,
+				      		objects=['loc']*25,
+							atoms={ ('connected-right', (0, 1)), ('connected-right', (1, 2)), ('connected-right', (2, 3)), ('connected-right', (3, 4)),
+		   							('connected-right', (5, 6)), ('connected-right', (6, 7)), ('connected-right', (7, 8)), ('connected-right', (8, 9)),
+									('connected-right', (10, 11)), ('connected-right', (11, 12)), ('connected-right', (12, 13)), ('connected-right', (13, 14)),		
+									('connected-right', (15, 16)), ('connected-right', (16, 17)), ('connected-right', (17, 18)), ('connected-right', (18, 19)),		
+									('connected-right', (20, 21)), ('connected-right', (21, 22)), ('connected-right', (22, 23)), ('connected-right', (23, 24)),		
+
+									('connected-up', (5, 0)), ('connected-up', (6, 1)), ('connected-up', (7, 2)), ('connected-up', (8, 3)), ('connected-up', (9, 4)),
+									('connected-up', (10, 5)), ('connected-up', (11, 6)), ('connected-up', (12, 7)), ('connected-up', (13, 8)), ('connected-up', (14, 9)),	
+									('connected-up', (15, 10)), ('connected-up', (16, 11)), ('connected-up', (17, 12)), ('connected-up', (18, 13)), ('connected-up', (19, 14)),
+									('connected-up', (20, 15)), ('connected-up', (21, 16)), ('connected-up', (22, 17)), ('connected-up', (23, 18)), ('connected-up', (24, 19)),
+									})
+
+	# Goal predicates
+	goal_predicates = {('at-box', ('loc',))}
+
+	# Consistency validator
+	consistency_validator = ConsistencyValidatorSokoban(parser.types, parser.predicates)
+
+	# Virtual objects
+	virtual_objects = [] # No virtual objects can be added (all the objects are already present from the start)
+
+	# The goal_nlm_layers need to account for arity 4, as one action has 4 parameters
+	# We also need to have some predicates of arity 3 in the last layer or, else, there will be no predicates to compute the action of arity 4
+	
+	# NLM layers without predicates of arity 3
+	#init_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+	#goal_policy_nlm_inner_layers = [[8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0], [8,8,8,0]]
+
+	# NLM layers with predicates of arity 3
+	init_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+	goal_policy_nlm_inner_layers = [[8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8], [8,8,8,8]]
+
+	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
+
+	generator = Generator(parser, planner, goal_predicates, initial_state_info, consistency_validator=consistency_validator,
+									allowed_virtual_objects=virtual_objects,
+									diversity_rescale_factor=10,
+									device='cuda', max_objs_cache_reduce_masks=25,
+
+									use_initial_state_policy=True,
+									num_preds_inner_layers_initial_state_nlm=init_policy_nlm_inner_layers,
+									mlp_hidden_layers_initial_state_nlm=nlm_hidden_layers_mlp,
+									io_residual_initial_state_nlm=True,
+									res_connections_initial_state_nlm=False,
+									exclude_self_inital_state_nlm=True,
+									lr_initial_state_nlm = 1e-3,
+									entropy_coeff_init_state_policy = 0,
+									entropy_annealing_coeffs_init_state_policy = None,
+									epsilon_init_state_policy=0.1,
+
+									use_goal_policy=True,
+									num_preds_inner_layers_goal_nlm=goal_policy_nlm_inner_layers,
+									mlp_hidden_layers_goal_nlm=nlm_hidden_layers_mlp,
+									io_residual_goal_nlm=True,
+									res_connections_goal_nlm=False,
+									exclude_self_goal_nlm=True,
+									lr_goal_nlm = 1e-3,
+									entropy_coeff_goal_policy = 0,
+									entropy_annealing_coeffs_goal_policy = None,
+									epsilon_goal_policy=0.1)
+
+	# Train the goal generation policy
+	generator.train_generative_policies(training_iterations = 100000, minibatch_size=50,
+					        			max_atoms_init_state=40+15, max_actions_init_state=1.0, max_actions_goal_state=1.0)
 
 """
 
@@ -1586,4 +1676,7 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems_blocksworld()	
 	#test_load_models_and_resume_training_blocksworld()
 
-	test_generate_random_problems_sokoban()
+	#test_generate_random_problems_sokoban()
+	test_train_init_and_goal_policy_sokoban()
+
+	# Añadir resto de métodos!!
