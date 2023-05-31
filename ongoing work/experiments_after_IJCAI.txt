@@ -687,6 +687,53 @@
    > logs: init_policy/version_211
    > saved_models: both_policies_270
 
+   > Entrenamiento (its=8000)
+      - Tiempo (dasci): 5d 16h
+      - r_diff (goal_policy)= 70 (la r_diff deja casi de aumentar en its=6000)
+      - r_eventual=0
+      - init_policy_entropy=0.22, goal_policy_entropy=0.35
+      - term_cond_prob init_policy converge a 0, goal_policy converge a 0.045
+      - num_objs:
+         - city: 2.1
+         - airport: 2.1
+         - location: 1.8
+         - airplane: 2
+         - truck: 2.1
+         - package: 7
+
+   > Problemas (its=8000)
+      - max_atoms = 15
+         - diff = [71.3 51.2 55.6] (alta)
+         - diversidad media-baja
+            - Problemas con 2 y 3 ciudades
+            - La mayoría de los problemas son idénticos o muy
+              parecidos!!!
+
+      - max_atoms = 20
+         - diff = [131.6  87.1 100.6]
+         - Problemas con 2 y 3 ciudades
+
+      - max_atoms = 30
+         - diff = [13.5 11.5 11.6]
+         - Problemas con 3 y 4 ciudades
+         - En algunos problemas la goal_policy samplea la
+           termination condition antes de tiempo!!!
+
+      - max_atoms = 40
+         - diff = [1. 1. 1.]
+         - Problemas con 4-6 ciudades
+         - En todos los problemas la goal_policy samplea la
+           termination condition al empezar!!!
+
+   > Análisis
+      - Se generan problemas tanto con locations como con varias ciudades
+        y donde la goal_policy usa tanto "fly" como "drive"!!!
+      - La dificultad para los problemas con 15 y 20 átomos
+        aumenta respecto a cuando se usaba max_actions_goal_state=2
+      - No obstante, la diversidad es bastante baja
+      - Además, la goal_policy no generaliza bien a problemas de mayor
+        tamaño (ejecuta la termination condition antes de tiempo) 
+
 
 
 ------ Pruebas NeSIG ablations
