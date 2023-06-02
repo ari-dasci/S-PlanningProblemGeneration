@@ -119,7 +119,18 @@ def generate_pddl_problem(init_state, goal_state):
 	
 	problem += ')\n'
 	
-		
+	# Goal
+	problem += '(:goal (and\n'
+	
+	# goal boxes positions
+	box_pos_list_goal = [ind for ind, cell in enumerate(goal_state) if cell=='box']
+	
+	for b_p in box_pos_list_goal:
+		problem += f'(at-box cell_{b_p})\n'
+	
+	problem += '))\n)'
+	
+	return problem
 	
 
 if __name__ == '__main__':
@@ -128,10 +139,13 @@ if __name__ == '__main__':
 	goal_state = generate_goal_state(init_state)
 
 	# Convert to PDDL
-	generate_pddl_problem(init_state, goal_state)
+	problem = generate_pddl_problem(init_state, goal_state)
+	
+	# Check solvability
 
 	print(init_state)
 	print(goal_state)
+	print(problem)
 
 
 
