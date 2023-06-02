@@ -77,11 +77,28 @@ def generate_goal_state(init_state):
 
 	return goal_state
 
+def generate_pddl_problem(init_state, goal_state):
+	num_cells = map_size[0]*map_size[1]
+	problem = """(define (problem sokoban-random-instance-generator)
+		     (:domain sokoban)
+		     (:objects
+		     """
+	# Objects
+	for i in range(num_cells):
+		problem += "cell_" + i + " "
+	problem += "- loc\n)\n"
+	
+	
+		
+	
 
 if __name__ == '__main__':
 	# Generate the init and goal states
 	init_state = generate_init_state()
 	goal_state = generate_goal_state(init_state)
+
+	# Convert to PDDL
+	generate_pddl_problem(init_state, goal_state)
 
 	print(init_state)
 	print(goal_state)
