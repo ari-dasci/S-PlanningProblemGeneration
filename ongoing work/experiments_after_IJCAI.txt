@@ -884,6 +884,30 @@
    > logs: init_policy/version_0
    > saved_models: both_policies_275
 
+   > Entrenamiento (its=1800)
+      - Tiempo: 2d 14h
+      - r_diff (goal_policy)= 2.5e+6
+      - r_eventual=0
+      - init_policy_entropy=0.12, goal_policy_entropy=0.35
+      - term_cond_prob init_policy converge a 0, goal_policy oscila alrededor de 0.4
+      - num_atoms:
+         - at-wall: 0
+         - at-box: 7
+
+   > Problemas (its=1800)
+      - max_atoms = 40+15, map_size=5x5
+         - diff = [2410691 1935919 1051775]
+         - diversidad muy baja
+            - Todos los problemas con 7 boxes y sin walls
+            - Hay problemas idénticos y en muchos las cajas están en los mismos sitios!!!
+
+   > Análisis
+      - Los problema son muy difíciles, por lo que el planner tarda mucho en resolverlos
+        y el entrenamiento se ralentiza muchísimo!!!
+         >>> Por lo pronto, debería intentar resolver los problemas en paralelo!
+
+      - La diversidad de los problemas es muy baja!!!
+         >>> Debo aumentar la diversity reward y, quizás, aplicar np.log a r_diff!
 
 
 >  <logistics>
@@ -896,5 +920,14 @@
    > logs: init_policy/version_212
    > saved_models: both_policies_276
 
-   
+
+>  <logistics>
+   max_atoms_init_state=15, max_actions_init_state=1, <max_actions_goal_state=10.0>
+   init_policy_entropy_coeffs: 0.0, None
+   goal_policy_entropy_coeffs: 0.0, None
+   <diversity_rescale_factor=50.0>
+
+   > Ejecutándose en Casa
+   > logs: init_policy/version_1
+   > saved_models: both_policies_277   
 

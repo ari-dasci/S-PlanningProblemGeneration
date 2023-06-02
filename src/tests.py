@@ -865,7 +865,7 @@ def test_train_init_and_goal_policy_logistics():
 
 	# Train the goal generation policy
 	generator.train_generative_policies(training_iterations = 100000, 
-					        			max_atoms_init_state=15, max_actions_init_state=1.0, max_actions_goal_state=4.0)
+					        			max_atoms_init_state=15, max_actions_init_state=1.0, max_actions_goal_state=10.0)
 
 
 """
@@ -937,7 +937,7 @@ def test_load_models_and_generate_problems_logistics():
 	num_problems = 10
 
 	generator.generate_problems(num_problems, max_atoms_init_state=15, max_actions_init_state=1,
-								 max_actions_goal_state=4, verbose=True)	
+								 max_actions_goal_state=10, verbose=True)	
 	
 
 def test_load_models_and_resume_training_logistics():
@@ -1453,8 +1453,8 @@ def test_load_models_and_generate_problems_sokoban():
 	virtual_objects = [] # No virtual objects can be added (all the objects are already present from the start)
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_274/init_policy_its-1100.ckpt"
-	goal_policy_path = "saved_models/both_policies_274/goal_policy_its-1100.ckpt"
+	init_policy_path = "saved_models/both_policies_275/init_policy_its-1800.ckpt"
+	goal_policy_path = "saved_models/both_policies_275/goal_policy_its-1800.ckpt"
 
 	# The goal_nlm_layers need to account for arity 4, as one action has 4 parameters
 	# We also need to have some predicates of arity 3 in the last layer or, else, there will be no predicates to compute the action of arity 4
