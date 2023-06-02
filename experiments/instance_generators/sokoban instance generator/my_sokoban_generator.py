@@ -77,6 +77,61 @@ def generate_goal_state(init_state):
 
 	return goal_state
 
+def generate_pddl_problem(init_state, goal_state):
+	num_cells = map_size[0]*map_size[1]
+	problem = """(define (problem sokoban-random-instance-generator)
+		     (:domain sokoban)
+		     (:objects
+		     """
+	# Objects
+	for i in range(num_cells):
+		problem += "cell_" + i + " "
+	problem += "- loc\n)\n"
+	
+	# Cell connectivity
+	num_rows, num_cols = map_size
+	problem += '(:init\n'
+	
+	# connected-right
+	for curr_row in range(num_rows):
+		for curr_col in range(num_cols-1):
+			problem += f'(connected-right cell_{curr_row*num_cols+curr_col} cell_{curr_row*num_cols+curr_col+1})\n'
+			
+	# connected-up
+	for curr_row in range(1, num_rows):
+		for curr_col in range(num_cols):
+			problem += f'(connected-right cell_{curr_row*num_cols+curr_col} cell_{(curr_row-1)*num_cols+curr_col})\n'
+			
+	# robot position
+	problem += f'(at-robot cell_{init_state.index("robot")})\n'
+	
+	# walls positions
+	wall_pos_list = [ind for ind, cell in enumerate(init_state) if cell=='wall']
+	
+	for w_p in wall_pos_list:
+		problem += f'(at-wall cell_{w_p})\n'
+		
+	# boxes positions
+	box_pos_list = [ind for ind, cell in enumerate(init_state) if cell=='box']
+	
+	for b_p in box_pos_list:
+		problem += f'(at-box cell_{b_p})\n'
+	
+	problem += ')\n'
+	
+	# Goal
+	problem += '(:goal (and\n'
+	
+	# goal boxes positions
+	box_pos_list_goal = [ind for ind, cell in enumerate(goal_state) if cell=='box']
+	
+	for b_p in box_pos_list_goal:
+		problem += f'(at-box cell_{b_p})\n'
+	
+	problem += '))\n)'
+	
+	return problem
+	
 
 """
 planner_commands = [ ['python3', planner_path, '--alias', 'lama-first', domain_path, problem_path],
@@ -90,8 +145,14 @@ if __name__ == '__main__':
 	init_state = generate_init_state()
 	goal_state = generate_goal_state(init_state)
 
+	# Convert to PDDL
+	problem = generate_pddl_problem(init_state, goal_state)
+	
+	# Check solvability
+
 	print(init_state)
 	print(goal_state)
+	print(problem)
 
 
 
