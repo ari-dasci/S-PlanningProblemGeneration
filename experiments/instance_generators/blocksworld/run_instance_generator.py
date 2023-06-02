@@ -104,8 +104,8 @@ def solve_problems_and_write_difficulty():
 			# Can't use ehc(ff()) or eager_waster because sometimes it does not find a solution (search exit 12) and planning times are too large
 			# THESE THREE LAMA-BASED PLANNERS CAN EFFICIENTLY SOLVE PROBLEMS OF UP TO 40 ATOMS (and more)
 			planner_commands = [ ['python3', planner_path, '--alias', 'lama-first', domain_path, problem_path],
-								 ['python3', planner_path, domain_path, problem_path, '--search', """lazy_greedy([ff],preferred=[ff],cost_type=one,reopen_closed=false)"""],
-						 		 ['python3', planner_path, domain_path, problem_path, '--search', """lazy_greedy([add],preferred=[add],cost_type=one,reopen_closed=false)"""] ]
+								 ['python3', planner_path, domain_path, problem_path, '--evaluator', "h=ff(transform=adapt_costs(one))", '--search', "lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)"],
+						 		 ['python3', planner_path, domain_path, problem_path, '--evaluator', "h=add(transform=adapt_costs(one))", '--search', "lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)"] ]
 
 			# Diff in case of timeout/out-of-memory error
 			# Lama-first, ehc(ff), weighted A* with lmcut

@@ -78,6 +78,13 @@ def generate_goal_state(init_state):
 	return goal_state
 
 
+"""
+planner_commands = [ ['python3', planner_path, '--alias', 'lama-first', domain_path, problem_path],
+								 ['python3', planner_path, domain_path, problem_path, '--evaluator', "h=ff(transform=adapt_costs(one))", '--search', "lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)"],
+						 		 ['python3', planner_path, domain_path, problem_path, '--evaluator', "h=add(transform=adapt_costs(one))", '--search', "lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)"] ]
+"""
+
+
 if __name__ == '__main__':
 	# Generate the init and goal states
 	init_state = generate_init_state()

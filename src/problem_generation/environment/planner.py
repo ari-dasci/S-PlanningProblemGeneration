@@ -86,9 +86,10 @@ class Planner():
 		# --- BLOCKSWORLD AND LOGISTICS ---
 		
 		planner_command_list = [ [self._python_call, planner_path, '--alias', 'lama-first', self._domain_file_path, pddl_problem_path],
-						 		 [self._python_call, planner_path, self._domain_file_path, pddl_problem_path, '--search', 'lazy_greedy([ff],preferred=[ff],cost_type=one,reopen_closed=false)'],
-						 		 [self._python_call, planner_path, self._domain_file_path, pddl_problem_path, '--search', 'lazy_greedy([add],preferred=[add],cost_type=one,reopen_closed=false)'] ] 						 
+						 		 [self._python_call, planner_path, self._domain_file_path, pddl_problem_path, '--evaluator', "h=ff(transform=adapt_costs(one))", '--search', "lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)"],
+						 		 [self._python_call, planner_path, self._domain_file_path, pddl_problem_path, '--evaluator', "h=add(transform=adapt_costs(one))", '--search', "lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)"] ] 						 
 		
+
 		if planners_to_use is None:
 			curr_planner_command_list = planner_command_list
 		else:
