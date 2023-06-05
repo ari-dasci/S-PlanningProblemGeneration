@@ -5,6 +5,14 @@
 >> Calcular la dificultad de los problemas en paralelo!!!
    - Ver discord FD
 
+         There are two types of files created by Fast Downward: the intermediate representation files (output.sas by default) and the generated plans (sas_plan by default in single-shot planner configurations, sas_plan.1 sas_plan.2 etc. for anytime configurations).
+         All are generated in the current working directory. So to avoid concurrent runs treading on each other's toes, starting them for separate directories is enough.
+         But you can also change the filenames used with command-line options for the driver:
+         ./fast-downward.py --sas-file MY_SAS_FILE_NAME --plan-file MY_PLAN_FILE_NAME will use MY_SAS_FILE_NAME instead of output.sas and MY_PLAN_FILE_NAME instead of sas_plan.
+         These options need to appear before the PDDL inputs.
+         For example: ./fast-downward.py --sas-file MY_SAS_FILE_NAME --plan-file MY_PLAN_FILE_NAME domain.pddl problem.pddl  --evaluator "h=ff(transform=adapt_costs(one))" --search "lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)"
+
+
 >> Ver si añado support for domain constants
 
 >> Experimentos sokoban
@@ -113,8 +121,6 @@ C:\Users\Usuario\Desktop\NeSIG\S-PlanningProblemGeneration\src\problem_generatio
 
 
 ---------------------- Next experiments
-
->>>> CAMBIAR SEARCH OPTIONS A LO QUE DIJO MALTE!!!
 
 >>> Hacer prueba midiendo la dificultad de los problemas en paralelo!!!
 

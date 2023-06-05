@@ -675,7 +675,7 @@
 
 >  <logistics>
    planners=[lama-first, lazy-greedy, lazy-greedy]
-   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=2.0
+   max_atoms_init_state=15, max_actions_init_state=1
    init_policy_entropy_coeffs: 0.0, None
    goal_policy_entropy_coeffs: 0.0, None
    new_diversity_reward
@@ -925,6 +925,7 @@
    max_atoms_init_state=15, max_actions_init_state=1, <max_actions_goal_state=10.0>
    init_policy_entropy_coeffs: 0.0, None
    goal_policy_entropy_coeffs: 0.0, None
+   disc_factor_diff=1
    <diversity_rescale_factor=50.0>
 
    > Ejecutándose en Casa
