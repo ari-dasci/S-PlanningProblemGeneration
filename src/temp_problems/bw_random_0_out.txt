@@ -1,0 +1,145 @@
+INFO     Running translator.
+INFO     translator stdin: None
+INFO     translator time limit: None
+INFO     translator memory limit: None
+INFO     translator command line string: 'C:\Users\Carlos\anaconda3\envs\problem-generation\python.exe' 'C:\Users\Carlos\Desktop\NeSIG\S-PlanningProblemGeneration\src\fast-downward\builds\release\bin\translate\translate.py' ./sokoban-domain.pddl ./bw_random_0.pddl --sas-file sas_plan_0
+Warning! SIGXCPU is not available on your platform. This means that the planner cannot be gracefully terminated when using a time limit, which, however, is probably supported on your platform anyway.
+Parsing...
+Parsing: [0.000s CPU, 0.003s wall-clock]
+Normalizing task... [0.000s CPU, 0.000s wall-clock]
+Instantiating...
+Generating Datalog program... [0.000s CPU, 0.001s wall-clock]
+Normalizing Datalog program...
+Normalizing Datalog program: [0.000s CPU, 0.004s wall-clock]
+Preparing model... [0.000s CPU, 0.003s wall-clock]
+Generated 49 rules.
+Computing model... [0.000s CPU, 0.014s wall-clock]
+311 relevant atoms
+620 auxiliary atoms
+931 final queue length
+1086 total queue pushes
+Completing instantiation... [0.000s CPU, 0.005s wall-clock]
+Instantiating: [0.000s CPU, 0.027s wall-clock]
+Computing fact groups...
+Finding invariants...
+4 initial candidates
+Finding invariants: [0.000s CPU, 0.002s wall-clock]
+Checking invariant weight... [0.000s CPU, 0.000s wall-clock]
+Instantiating groups... [0.000s CPU, 0.000s wall-clock]
+Collecting mutex groups... [0.000s CPU, 0.000s wall-clock]
+Choosing groups...
+25 uncovered facts
+Choosing groups: [0.000s CPU, 0.000s wall-clock]
+Building translation key... [0.000s CPU, 0.000s wall-clock]
+Computing fact groups: [0.000s CPU, 0.002s wall-clock]
+Building STRIPS to SAS dictionary... [0.000s CPU, 0.000s wall-clock]
+Building dictionary for full mutex groups... [0.000s CPU, 0.000s wall-clock]
+Building mutex information...
+Building mutex information: [0.000s CPU, 0.000s wall-clock]
+Translating task...
+Processing axioms...
+Simplifying axioms... [0.000s CPU, 0.000s wall-clock]
+Translator axioms removed by simplifying: 0
+Computing negative axioms... [0.000s CPU, 0.000s wall-clock]
+Processing axioms: [0.000s CPU, 0.001s wall-clock]
+Translating task: [0.016s CPU, 0.006s wall-clock]
+49 effect conditions simplified
+0 implied preconditions added
+Detecting unreachable propositions...
+21 operators removed
+0 axioms removed
+17 propositions removed
+Detecting unreachable propositions: [0.000s CPU, 0.002s wall-clock]
+Reordering and filtering variables...
+20 of 20 variables necessary.
+0 of 1 mutex groups necessary.
+94 of 94 operators necessary.
+0 of 0 axiom rules necessary.
+Reordering and filtering variables: [0.000s CPU, 0.001s wall-clock]
+Translator variables: 20
+Translator derived variables: 0
+Translator facts: 59
+Translator goal facts: 3
+Translator mutex groups: 0
+Translator total mutex groups size: 0
+Translator operators: 94
+Translator axioms: 0
+Translator task size: 569
+warning: could not determine peak memory
+Writing output... [0.000s CPU, 0.003s wall-clock]
+Done! [0.016s CPU, 0.046s wall-clock]
+translate exit code: 0
+
+INFO     Running search (release).
+INFO     search stdin: sas_plan_0
+INFO     search time limit: None
+INFO     search memory limit: None
+INFO     search command line string: 'C:\Users\Carlos\Desktop\NeSIG\S-PlanningProblemGeneration\src\fast-downward\builds\release\bin\downward.exe' --evaluator 'h=ff(transform=adapt_costs(one))' --search 'lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)' --internal-plan-file plan_0 < sas_plan_0
+[t=2.96e-05s, 716 KB] reading input...
+[t=0.0013749s, 744 KB] done reading input!
+[t=0.0040566s, 1080 KB] Simplifying 168 unary operators... done! [168 unary operators]
+[t=0.0042313s, 1096 KB] time to simplify: 0.0001835s
+[t=0.0042926s, 1096 KB] Initializing additive heuristic...
+[t=0.0043021s, 1096 KB] Initializing FF heuristic...
+[t=0.0044074s, 1096 KB] Building successor generator...done!
+[t=0.0045566s, 1108 KB] peak memory difference for successor generator creation: 12 KB
+[t=0.0046227s, 1108 KB] time for successor generation creation: 0.0001281s
+[t=0.0046428s, 1108 KB] Variables: 20
+[t=0.0046521s, 1108 KB] FactPairs: 59
+[t=0.0046604s, 1108 KB] Bytes per state: 4
+[t=0.0049011s, 1128 KB] Conducting lazy best first search, (real) bound = 2147483647
+[t=0.0049461s, 1128 KB] New best heuristic value for ff(transform = adapt_costs(one)): 9
+[t=0.0049568s, 1128 KB] g=0, 1 evaluated, 0 expanded
+[t=0.0049746s, 1128 KB] Initial heuristic value for ff(transform = adapt_costs(one)): 9
+[t=0.0049962s, 1128 KB] New best heuristic value for ff(transform = adapt_costs(one)): 8
+[t=0.0050055s, 1128 KB] g=1, 2 evaluated, 1 expanded
+[t=0.0051186s, 1128 KB] New best heuristic value for ff(transform = adapt_costs(one)): 6
+[t=0.0051337s, 1128 KB] g=4, 9 evaluated, 8 expanded
+[t=0.0053033s, 1128 KB] New best heuristic value for ff(transform = adapt_costs(one)): 4
+[t=0.005317s, 1128 KB] g=8, 23 evaluated, 22 expanded
+[t=0.0064758s, 1128 KB] New best heuristic value for ff(transform = adapt_costs(one)): 3
+[t=0.0064907s, 1128 KB] g=19, 129 evaluated, 118 expanded
+[t=0.0065128s, 1128 KB] New best heuristic value for ff(transform = adapt_costs(one)): 2
+[t=0.0065216s, 1128 KB] g=20, 130 evaluated, 119 expanded
+[t=0.0065409s, 1128 KB] New best heuristic value for ff(transform = adapt_costs(one)): 1
+[t=0.0065499s, 1128 KB] g=21, 131 evaluated, 120 expanded
+[t=0.0065676s, 1128 KB] Solution found!
+[t=0.0065776s, 1128 KB] Actual search time: 0.0016626s
+move-up obj22 obj17 (1)
+move-up obj17 obj12 (1)
+push-right obj12 obj13 obj14 (1)
+move-down obj13 obj18 (1)
+move-right obj18 obj19 (1)
+push-up obj19 obj14 obj9 (1)
+move-left obj14 obj13 (1)
+move-down obj13 obj18 (1)
+move-left obj18 obj17 (1)
+push-left obj17 obj16 obj15 (1)
+move-up obj16 obj11 (1)
+move-up obj11 obj6 (1)
+move-up obj6 obj1 (1)
+move-right obj1 obj2 (1)
+push-down obj2 obj7 obj12 (1)
+move-right obj7 obj8 (1)
+move-down obj8 obj13 (1)
+push-left obj13 obj12 obj11 (1)
+move-up obj12 obj7 (1)
+move-left obj7 obj6 (1)
+push-down obj6 obj11 obj16 (1)
+push-down obj11 obj16 obj21 (1)
+[t=0.0065861s, 1128 KB] Plan length: 22 step(s).
+[t=0.0065861s, 1128 KB] Plan cost: 22
+[t=0.0065861s, 1128 KB] Expanded 121 state(s).
+[t=0.0065861s, 1128 KB] Reopened 0 state(s).
+[t=0.0065861s, 1128 KB] Evaluated 132 state(s).
+[t=0.0065861s, 1128 KB] Evaluations: 132
+[t=0.0065861s, 1128 KB] Generated 395 state(s).
+[t=0.0065861s, 1128 KB] Dead ends: 10 state(s).
+[t=0.0065861s, 1128 KB] Number of registered states: 132
+[t=0.0065861s, 1128 KB] Int hash set load factor: 132/256 = 0.515625
+[t=0.0065861s, 1128 KB] Int hash set resizes: 8
+[t=0.0065861s, 1128 KB] Search time: 0.0016875s
+[t=0.0065861s, 1128 KB] Total time: 0.0065861s
+Solution found.
+search exit code: 0
+
