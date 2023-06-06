@@ -681,26 +681,30 @@ class Generator():
 		if temp_folder[-1] != '/':
 			temp_folder = temp_folder + '/'
 
+		# Some problems are not eventual_consistent, so we cannot calculate their difficulty (it is 0)
+		# Firstly, we set the difficulty of every problem (i.e., last sample of every trajectory) to 0
+		# Secondly, we change the difficulty for those problems that are eventual consistent
+		consistent_problems = [problem for problem in problems if problem.is_goal_state_generated]
+		consistent_trajectories = [trajectory for trajectory in goal_policy_trajectories if len(trajectory)>0]
+
 		# Encode the problems in PDDL and write them to disk
-		num_problems = len(problems)
+		num_problems = len(consistent_problems)
 		for i in range(num_problems):
 			with open(f"{temp_folder}{temp_problem_names}_{i}.pddl", 'w+') as f:
-				pddl_problem = problems[i].obtain_pddl_problem()
+				pddl_problem = consistent_problems[i].obtain_pddl_problem()
+				f.truncate(0) # Just in case it is needed to remove the contents of the file
 				f.write(pddl_problem)
 
 		# Solve them in parallel and calculate their difficulty
-		problem_difficulties = self._planner.get_problem_difficulties_in_parallel(temp_folder, temp_problem_names, num_processes, planners_to_use=(0,))
+		problem_difficulties = self._planner.get_problem_difficulties_in_parallel(temp_folder, temp_problem_names, num_problems, num_processes, planners_to_use=(0,))
 
 		# If the difficulty was -1, then there was an outofmemory error. We substitute it for max_difficulty
-		problem_difficulties = [max_difficulty if diff[0] == -1.0 else diff[0] for diff in problem_difficulties]
+		# diff_list[0] because we know that we are measuring the difficulty of each problem with a single planner
+		problem_difficulties = [[max_difficulty] if diff_list[0] == -1.0 else diff_list for diff_list in problem_difficulties]
 
 		# Write the difficulties in the last sample of the goal trajectories
-		for i in range(len(goal_policy_trajectories)):
-			goal_policy_trajectories[i][-1][-2] = problem_difficulties[i]
-
-		# AQUI
-
-
+		for i in range(len(consistent_trajectories)):
+			consistent_trajectories[i][-1][-2] = problem_difficulties[i]
 
 
 

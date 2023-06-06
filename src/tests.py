@@ -963,9 +963,9 @@ def test_load_models_and_resume_training_logistics():
 	consistency_validator = ConsistencyValidatorLogistics(parser.types, parser.predicates)
 
 	# Create the generator and load the trained models
-	curr_it = 1230 # It of the loaded model, used to resume training
-	init_policy_path = "saved_models/both_policies_269/init_policy_its-{}.ckpt".format(curr_it)
-	goal_policy_path = "saved_models/both_policies_269/goal_policy_its-{}.ckpt".format(curr_it)
+	curr_it = 3060 # It of the loaded model, used to resume training
+	init_policy_path = "saved_models/both_policies_276/init_policy_its-{}.ckpt".format(curr_it)
+	goal_policy_path = "saved_models/both_policies_276/goal_policy_its-{}.ckpt".format(curr_it)
 	
 	# The goal_nlm_layers need to account for arity 4, as one action has 4 parameters
 	# We also need to have some predicates of arity 3 in the last layer or, else, there will be no predicates to compute the action of arity 4
@@ -1006,7 +1006,7 @@ def test_load_models_and_resume_training_logistics():
 	# Train the goal generation policy
 	# +1 because we need to start with the next iteration
 	generator.train_generative_policies(training_iterations = 100000, start_it=curr_it+1,
-					        					 max_atoms_init_state=15, max_actions_init_state=1.0, max_actions_goal_state=2.0)
+					        					 max_atoms_init_state=15, max_actions_init_state=1.0, max_actions_goal_state=4.0)
 
 
 # ------------------ Blocksworld
@@ -1621,9 +1621,9 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems()
 
 	#test_generate_random_problems_logistics()
-	test_train_init_and_goal_policy_logistics()
+	#test_train_init_and_goal_policy_logistics()
 	#test_load_models_and_generate_problems_logistics()	
-	#test_load_models_and_resume_training_logistics()
+	test_load_models_and_resume_training_logistics()
 
 	#test_generate_random_problems_blocksworld()
 	#test_train_init_and_goal_policy_blocksworld()

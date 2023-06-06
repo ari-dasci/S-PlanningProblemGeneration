@@ -115,7 +115,7 @@ class Planner():
 	"""
 	Like solve_problem, but it solves several problems in parallel
 	"""
-	def solve_problems_in_parallel(self, problems_folder, problem_names, num_processes, planners_to_use=None):
+	def solve_problems_in_parallel(self, problems_folder, problem_names, num_problems, num_processes, planners_to_use=None):
 		# Create the command to call the planner
 		planner_path = self._planner_path
 
@@ -131,14 +131,17 @@ class Planner():
 			planners_to_use = tuple(range(self._num_planners_for_diff))
 
 		# Solve the problems and calculate their difficulty in parallel
-		num_problems = len(problem_names)
-		planner_outputs = [[None]*len(planners_to_use)]*num_problems # Create list full of Nones
+
+		# Create list full of Nones
+		# planner_outputs = [[None]*len(planners_to_use)]*num_problems # We cannot do this or, else, all the list elements would share the reference!!!
+		planner_outputs = [ [None for _ in range(len(planners_to_use))] for _ in range(num_problems)]
 
 		for start_problem_id in range(0, num_problems, num_processes):
+			end_problem_id = start_problem_id+num_processes if start_problem_id+num_processes <= num_problems else num_problems
+
 			# Iterate over each planner to use
 			for curr_planner, curr_id_planner in zip(planners_to_use, range(len(planners_to_use))):
-				# Solve #num_processes problems in parallel with such planner
-				end_problem_id = start_problem_id+num_processes if start_problem_id+num_processes <= num_problems else num_problems
+				# Solve #num_processes problems in parallel with such planner			
 				open_files = []
 				processes = []
 
@@ -148,7 +151,8 @@ class Planner():
 					sas_path = f'{problems_folder}sas_plan_{i}'
 					plan_path = f'{problems_folder}plan_{i}'
 					problem_path = f'{problems_folder}{problem_names}_{i}.pddl'
-					output_file = open(f'output_{i}.txt', 'w+')
+					output_file = open(f'{problems_folder}output_{i}.txt', 'w+')
+					output_file.truncate(0)
 					open_files.append(output_file)
 
 					# List of search options to use
@@ -170,8 +174,9 @@ class Planner():
 					f.seek(0)
 					file_content = f.read()
 					planner_outputs[i][curr_id_planner] = file_content
+
 					f.close()
-				
+			
 		return planner_outputs
 
 
@@ -212,9 +217,9 @@ class Planner():
 		return expanded_nodes_list
 	
 
-	def get_problem_difficulties_in_parallel(self, problems_folder, problem_names, num_processes, planners_to_use=None):
+	def get_problem_difficulties_in_parallel(self, problems_folder, problem_names, num_problems, num_processes, planners_to_use=None):
 		# Solve the problems in parallel and get the output of FD
-		planner_outputs = self.solve_problems_in_parallel(problems_folder, problem_names, num_processes, planners_to_use)
+		planner_outputs = self.solve_problems_in_parallel(problems_folder, problem_names, num_problems, num_processes, planners_to_use)
 
 		expanded_nodes_list = []
 
