@@ -632,7 +632,7 @@ class Generator():
 	<Note2>: We no longer use a rescale factor for the difficulty. It is no longer needed as we normalize difficulties
 	         to be close to 1.
 	"""
-	def get_problem_difficulty(self, problem, phase, max_difficulty=1e6):
+	def get_problem_difficulty(self, problem, phase, max_difficulty=5e6):
 		# Encode the problem in PDDL
 		# > This method also selects the goal atoms corresponding to the goal predicates given by the user
 		pddl_problem = problem.obtain_pddl_problem()
@@ -643,7 +643,6 @@ class Generator():
 		self._fd_temp_problem.truncate()
 
 		# Obtain its difficulty
-
 		if phase == 'train':
 			planners_to_use = (0,)
 		elif phase == 'test':
@@ -662,6 +661,43 @@ class Generator():
 
 		# Return the difficulties
 		return problem_difficulty_list
+
+	"""
+	Like get_problem_difficulty, but we get the problem difficulties in parallel.
+	This method is only used in training, so we know phase="train".
+
+	@problems List with the problems for which to calculate the difficulty
+	@goal_policy_trajectories List with the goal policy trajectories for which to store the problem difficulties (in the last sample of each trajectory)
+							  Note: we assume problems[i] is associated with goal_policy_trajectories[i]
+	@num_processes Number of parallel processes to spawn
+	@max_difficulty The difficulty we consider a problem has when it could not be solved by the corresponding planner
+	                (outofmemory error).
+	@temp_folder Path of the folder where to save the temporary PDDL files
+	@temp_problem_names Names (without the index) of the temporary PDDL files
+	"""
+	def get_problem_difficulties_in_parallel(self, problems, goal_policy_trajectories, num_processes=8, max_difficulty=5e6,
+					  						 temp_folder='temp_problems/', temp_problem_names='temp_problem'):
+		pass
+
+		if temp_folder[-1] != '/':
+			temp_folder = temp_folder + '/'
+
+		# <AQUI>
+
+		# Encode the problems in PDDL and write them to disk
+		num_problems = len(problems)
+		for i in range(num_problems):
+			with open(f"{temp_folder}{temp_problem_names}_{i}.pddl", 'w+') as f:
+				pddl_problem = problems[i].obtain_pddl_problem()
+				f.write(pddl_problem)
+
+		# Solve them in parallel and calculate their difficulty
+		problem_difficulties = pass
+
+		# If the difficulty was -1, then there was an outofmemory error. We substitute it for max_difficulty
+		problem_difficulties = [max_difficulty if diff == -1.0 else diff for diff in problem_difficulties]
+
+		# TODO: Write the difficulties in the last sample of the goal trajectories
 
 
 	"""
@@ -1502,9 +1538,12 @@ class Generator():
 
 		# <Obtain trajectories with the goal policy>
 		if self._use_goal_policy:
-			_, goal_policy_trajectories = self._obtain_goal_trajectories_directed(problems, 'train', list_max_actions_goal_state)
+			problems, goal_policy_trajectories = self._obtain_goal_trajectories_directed(problems, 'train', list_max_actions_goal_state, calculate_difficulty=False)
 		else:
-			_, goal_policy_trajectories = self._obtain_goal_trajectories_random(problems, 'train', list_max_actions_goal_state)
+			problems, goal_policy_trajectories = self._obtain_goal_trajectories_random(problems, 'train', list_max_actions_goal_state, calculate_difficulty=False)
+
+		# <Calculate problem difficulties in parallel>
+		self.get_problem_difficulties_in_parallel(problems, goal_policy_trajectories)
 
 		# <Calculate the normalized mean of the planner difficulties in the goal policy trajectories>
 		self._calculate_normalized_mean_planner_diffs(goal_policy_trajectories)

@@ -114,6 +114,64 @@ class Planner():
 		return planner_outputs
 
 	"""
+	Like solve_problem, but it solves several problems in parallel
+	"""
+	def solve_problems_in_parallel(self, problems_folder, problem_names, num_processes, planners_to_use=None):
+		# Create the command to call the planner
+		planner_path = self._planner_path
+
+		if planner_path[-1] != '/':
+			planner_path = planner_path + '/'
+
+		planner_path = planner_path + 'fast-downward.py' # Path to the script to call fast downward
+
+		if problems_folder[-1] != '/':
+			problems_folder = problems_folder + '/'
+
+		if planners_to_use is None:
+			planners_to_use = tuple(range(self._num_planners_for_diff))
+
+		# Solve the problems and calculate their difficulty in parallel
+		num_problems = len(problem_names)
+
+		for start_problem_id in range(0, num_problems, num_processes):
+			# Iterate over each planner to use
+			for curr_id_planner in planners_to_use:
+				# Solve #num_processes problems in parallel with such planner
+				end_problem_id = start_problem_id+num_processes if start_problem_id+num_processes <= num_problems else num_problems
+
+				for i in range(start_problem_id, end_problem_id):
+					# Solve problem i with planner given by curr_id_planner
+
+					sas_path = f'{problems_folder}sas_plan_{i}'
+					plan_path = f'{problems_folder}plan_{i}'
+					problem_path = f'{problems_folder}{problem_names}_{i}.pddl'
+					output_file = open(f'output_{i}.txt', 'w+')
+
+					# List of search options to use
+					planner_command_list = [ [self._python_call, planner_path, '--sas-file', sas_path, '--plan-file', plan_path, '--alias', 'lama-first', self._domain_file_path, problem_path],
+						 		 			 [self._python_call, planner_path, '--sas-file', sas_path, '--plan-file', plan_path, self._domain_file_path, problem_path, '--evaluator', "h=ff(transform=adapt_costs(one))", '--search', "lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)"],
+						 		 			 [self._python_call, planner_path, '--sas-file', sas_path, '--plan-file', plan_path, self._domain_file_path, problem_path, '--evaluator', "h=add(transform=adapt_costs(one))", '--search', "lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)"] ]
+
+					planner_command = planner_command_list[curr_id_planner]
+
+					# AQUI
+				
+				output_file.close()
+
+
+
+			# <Solve problem i>
+
+
+
+
+
+
+		
+
+
+	"""
 	Calls the planner, solves the problem and returns the number of expanded nodes. If the planner did not find a solution,
 	it returns -1.0.
 	<Note>: I don't know if the timeout actually works. If the problem is too complex I think the planner can get stuck.
@@ -148,3 +206,9 @@ class Planner():
 			expanded_nodes_list.append(curr_expanded_nodes)
 
 		return expanded_nodes_list
+	
+
+	def get_problem_difficulties_in_parallel(self, problems_folder, problem_names, num_processes, planners_to_use=None):
+		pass
+
+		# AQUI
