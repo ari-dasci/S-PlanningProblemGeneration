@@ -535,14 +535,17 @@ class GenerativePolicy(pl.LightningModule):
 		# < Logs >
 		# Store the logs
 		# self.current_epoch == 0 and self.global_step == 0 -> only store the logs for the first training iteration of PPO
-		if self.current_epoch == 0 and self.global_step == 0:
+		# self.curr_log_iteration % 5 == 0 -> only store logs once every 5 iterations
+		if self.current_epoch == 0 and self.global_step == 0 and self.curr_log_iteration % 5 == 0:
 			# Calculate probability of termination condition
 			with torch.no_grad():
 				term_cond_prob_tensor = torch.tensor([ torch.exp(action_log_probs_list[0][i][-1].detach()) for i in range(train_batch_len) ], device=self.device)
 				mean_term_cond_prob = torch.mean(term_cond_prob_tensor)
 	
-			self.logger.experiment.add_scalar("Total Reward Normalized", reward_total_norm, global_step=self.curr_log_iteration)
-			self.logger.experiment.add_scalars('Rewards', {'Reward Continuous': reward_continuous, 'Reward Eventual': reward_eventual, 'Reward Difficulty': reward_difficulty_old},
+			# self.logger.experiment.add_scalar("Total Reward Normalized", reward_total_norm, global_step=self.curr_log_iteration)
+			#self.logger.experiment.add_scalars('Rewards', {'Reward Continuous': reward_continuous, 'Reward Eventual': reward_eventual, 'Reward Difficulty': reward_difficulty_old},
+			#								   global_step=self.curr_log_iteration)
+			self.logger.experiment.add_scalars('Rewards', {'Reward Eventual': reward_eventual, 'Reward Difficulty': reward_difficulty_old},
 											   global_step=self.curr_log_iteration)
 			self.logger.experiment.add_scalar("Actor Policy Entropy", policy_entropy.item(), global_step=self.curr_log_iteration)
 			self.logger.experiment.add_scalars('Actor Losses', {'Total Loss': actor_loss.item(), 'PPO Loss': PPO_loss.item(), 'Entropy Loss': entropy_loss.item()},
@@ -578,8 +581,8 @@ class GenerativePolicy(pl.LightningModule):
 
 			self.logger.experiment.add_scalars('Atom types', dict_mean_atoms_each_type, global_step=self.curr_log_iteration)
 
-
-			self.curr_log_iteration += 1
+			# We now increase this counter outside the generative_policy, since we do not log every it
+			# self.curr_log_iteration += 1
 
 		
 		return loss

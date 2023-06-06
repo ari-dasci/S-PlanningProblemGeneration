@@ -1652,6 +1652,7 @@ class Generator():
 													enable_checkpointing=False)
 							
 				trainer_init_policy.fit(self._initial_state_policy, trajectory_dataloader_init_policy)
+				self._initial_state_policy.curr_log_iteration += 1
 
 				# Seems like we need to move the lightning_module back to the GPU after every call to Trainer.fit()
 				if self.device.type == 'cuda':
@@ -1703,6 +1704,7 @@ class Generator():
 															accelerator='cpu', enable_checkpointing=False)
 
 					trainer_goal_policy.fit(self._goal_policy, trajectory_dataloader_goal_policy)
+					self._goal_policy.curr_log_iteration += 1
 
 					if self.device.type == 'cuda':
 							self._goal_policy.to('cuda')
