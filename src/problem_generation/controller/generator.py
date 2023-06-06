@@ -657,7 +657,7 @@ class Generator():
 		problem_difficulty_list = self._planner.get_problem_difficulty(self._temp_problem_path, planners_to_use)		
 
 		# If the difficulty was -1, then there was an outofmemory error. We substitute it for max_difficulty
-		problem_difficulty_list = [max_difficulty if diff == -1.0 else diff for ind, diff in enumerate(problem_difficulty_list)]
+		problem_difficulty_list = [max_difficulty if diff == -1.0 else diff for diff in problem_difficulty_list]
 
 		# Return the difficulties
 		return problem_difficulty_list
@@ -677,12 +677,9 @@ class Generator():
 	"""
 	def get_problem_difficulties_in_parallel(self, problems, goal_policy_trajectories, num_processes=8, max_difficulty=5e6,
 					  						 temp_folder='temp_problems/', temp_problem_names='temp_problem'):
-		pass
-
+		
 		if temp_folder[-1] != '/':
 			temp_folder = temp_folder + '/'
-
-		# <AQUI>
 
 		# Encode the problems in PDDL and write them to disk
 		num_problems = len(problems)
@@ -692,12 +689,19 @@ class Generator():
 				f.write(pddl_problem)
 
 		# Solve them in parallel and calculate their difficulty
-		problem_difficulties = pass
+		problem_difficulties = self._planner.get_problem_difficulties_in_parallel(temp_folder, temp_problem_names, num_processes, planners_to_use=(0,))
 
 		# If the difficulty was -1, then there was an outofmemory error. We substitute it for max_difficulty
-		problem_difficulties = [max_difficulty if diff == -1.0 else diff for diff in problem_difficulties]
+		problem_difficulties = [max_difficulty if diff[0] == -1.0 else diff[0] for diff in problem_difficulties]
 
-		# TODO: Write the difficulties in the last sample of the goal trajectories
+		# Write the difficulties in the last sample of the goal trajectories
+		for i in range(len(goal_policy_trajectories)):
+			goal_policy_trajectories[i][-1][-2] = problem_difficulties[i]
+
+		# AQUI
+
+
+
 
 
 	"""

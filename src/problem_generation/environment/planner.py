@@ -2,7 +2,6 @@
 # The planner used is FastDownward (https://www.fast-downward.org/)
 
 import subprocess
-from subprocess import TimeoutExpired
 import re
 import numpy as np
 import os
@@ -133,42 +132,47 @@ class Planner():
 
 		# Solve the problems and calculate their difficulty in parallel
 		num_problems = len(problem_names)
+		planner_outputs = [[None]*len(planners_to_use)]*num_problems # Create list full of Nones
 
 		for start_problem_id in range(0, num_problems, num_processes):
 			# Iterate over each planner to use
-			for curr_id_planner in planners_to_use:
+			for curr_planner, curr_id_planner in zip(planners_to_use, range(len(planners_to_use))):
 				# Solve #num_processes problems in parallel with such planner
 				end_problem_id = start_problem_id+num_processes if start_problem_id+num_processes <= num_problems else num_problems
+				open_files = []
+				processes = []
 
 				for i in range(start_problem_id, end_problem_id):
-					# Solve problem i with planner given by curr_id_planner
+					# Solve problem i with planner given by curr_planner
 
 					sas_path = f'{problems_folder}sas_plan_{i}'
 					plan_path = f'{problems_folder}plan_{i}'
 					problem_path = f'{problems_folder}{problem_names}_{i}.pddl'
 					output_file = open(f'output_{i}.txt', 'w+')
+					open_files.append(output_file)
 
 					# List of search options to use
 					planner_command_list = [ [self._python_call, planner_path, '--sas-file', sas_path, '--plan-file', plan_path, '--alias', 'lama-first', self._domain_file_path, problem_path],
 						 		 			 [self._python_call, planner_path, '--sas-file', sas_path, '--plan-file', plan_path, self._domain_file_path, problem_path, '--evaluator', "h=ff(transform=adapt_costs(one))", '--search', "lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)"],
 						 		 			 [self._python_call, planner_path, '--sas-file', sas_path, '--plan-file', plan_path, self._domain_file_path, problem_path, '--evaluator', "h=add(transform=adapt_costs(one))", '--search', "lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)"] ]
 
-					planner_command = planner_command_list[curr_id_planner]
+					planner_command = planner_command_list[curr_planner]
 
-					# AQUI
+					# Spawn a subprocess
+					p = subprocess.Popen(planner_command, stdout=output_file)
+					processes.append(p)
+
+				# Wait for all the processes to finish and read the output of FD
+				for i, p, f in zip(range(start_problem_id, end_problem_id), processes, open_files):
+					p.wait()
+
+					f.flush()
+					f.seek(0)
+					file_content = f.read()
+					planner_outputs[i][curr_id_planner] = file_content
+					f.close()
 				
-				output_file.close()
-
-
-
-			# <Solve problem i>
-
-
-
-
-
-
-		
+		return planner_outputs
 
 
 	"""
@@ -209,6 +213,34 @@ class Planner():
 	
 
 	def get_problem_difficulties_in_parallel(self, problems_folder, problem_names, num_processes, planners_to_use=None):
-		pass
+		# Solve the problems in parallel and get the output of FD
+		planner_outputs = self.solve_problems_in_parallel(problems_folder, problem_names, num_processes, planners_to_use)
 
-		# AQUI
+		expanded_nodes_list = []
+
+		for problem_output_list in planner_outputs:
+			expanded_nodes_curr_problem = []
+
+			for planner_output in problem_output_list:
+				# <Same code as in self.get_problem_difficulty>
+				# Check if the planner found a solution
+				if re.search("Solution found.", planner_output):
+					# Search for number of expanded nodes
+					curr_expanded_nodes = int(re.search(r"Expanded ([0-9]+) state\(s\)\.", planner_output).group(1))
+					curr_expanded_nodes += 1 # Add 1 in case the planner has expanded 0 nodes (in such case, we obtain NaN when we perform the logarithm)
+			
+				# Check if there was an outofmemory error (code 22, 20 or 12)
+				# If so, return -1.0 to signal that the planner could not find a solution
+				elif re.search("search exit code: 22", planner_output) or re.search("search exit code: 20", planner_output) \
+						or re.search("search exit code: 12", planner_output):
+					curr_expanded_nodes = -1.0
+				else:
+					# If the planner output does not contain "Solution found.", that's because the problem goal was empty
+					# and it does not support axioms -> Therefore, the problem diff is 1 (can't be 0 to avoid NaN when we perform the logarithm)
+					curr_expanded_nodes = 1
+
+				expanded_nodes_curr_problem.append(curr_expanded_nodes)
+			
+			expanded_nodes_list.append(expanded_nodes_curr_problem)
+
+		return expanded_nodes_list		
