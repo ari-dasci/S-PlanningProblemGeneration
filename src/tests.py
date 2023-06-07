@@ -982,7 +982,7 @@ def test_load_models_and_resume_training_logistics():
 
 	generator = Generator(parser, planner, goal_predicates, consistency_validator=consistency_validator,
 									allowed_virtual_objects=virtual_objects,
-									diversity_rescale_factor=10,
+									diversity_rescale_factor=50,
 									device='cuda', max_objs_cache_reduce_masks=25,
 
 									use_initial_state_policy=True,
