@@ -933,5 +933,61 @@
 
    > Ejecutándose en Casa
    > logs: init_policy/version_1
-   > saved_models: both_policies_277   
+   > saved_models: both_policies_277
+
+   > Entrenamiento (its=8000)
+      - Tiempo (casa): 9d
+      - r_diff (goal_policy)= 70
+      - r_eventual=0
+      - init_policy_entropy=0.13, goal_policy_entropy=0.35
+      - term_cond_prob init_policy converge a 0, goal_policy oscila alrededor de 0.003
+      - num_objs:
+         - city: 2.3
+         - airport: 2.3
+         - location: 0.7
+         - airplane: 1.3
+         - truck: 2.8
+         - package: 7.8
+
+   > Problemas (its=9000)
+      - max_atoms = 15
+         - diff = [68.3 58.6 67.8]
+         - diversidad media-alta
+            - la goal_policy usa drive y fly!!!
+            - problemas con 2 y 3 ciudades
+            - problemas con 0 o 1 location
+
+      - max_atoms = 20
+         - diff = [73.5  73.3 101.7]
+         - 2 y 3 ciudades
+
+      - max_atoms = 30
+         - diff = [96.4  94.3 147.6]
+         - 3 a 5 ciudades
+
+      - max_atoms = 40
+         - diff = [216.2 198.1 396.]
+         - 4 a 6 ciudades
+
+   > Análisis
+      - Los resultados son muy parecidos a cuando se usa max_actions_goal_state=4!!!
+      - La goal policy usa tanto drive como fly, pero los problemas tienen muy pocos
+        locations!
+      - La dificultad escala bastante mal
+      - Parece como si la goal policy no "aprovechara" la gran cantidad de acciones
+        que tiene a su alcance!!!
+      - Creo que debería aumentar la entropía de las políticas, para evitar que converjan
+        rápido
+
+
+
+
+
+
+
+   >>> CREO QUE LAS POLICIES CONVERGEN DEMASIADO PRONTO!!!
+      - Debería probar a aumentar diversity reward o usar policy entropy y repetir
+        experimentos con max_actions_goal_state=10!!!
+
+
 
