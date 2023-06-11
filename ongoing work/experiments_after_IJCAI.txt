@@ -923,6 +923,43 @@
    > logs: init_policy/version_212, 213
    > saved_models: both_policies_276, 278
 
+   > Entrenamiento (its=8000)
+      - Tiempo (casa): 7d
+      - r_diff (goal_policy)= 70
+      - r_eventual=0
+      - init_policy_entropy=0.1, goal_policy_entropy=0.2
+      - term_cond_prob init_policy converge a 0, goal_policy oscila alrededor de 0.002
+      - num_objs:
+         - city: 2.4
+         - airport: 2.4
+         - location: 0.6
+         - airplane: 1.4
+         - truck: 3
+         - package: 7.6
+
+    > Problemas (its=8000)
+      - max_atoms = 15
+         - diff = [73. 65.2 66.9]
+         - diversidad media
+            - la goal_policy usa drive y fly!!!
+            - problemas con 2 y 3 ciudades
+            - problemas con 0 o 1 location
+            - problemas bastante parecidos entre sí
+
+      - max_atoms = 20
+         - diff = [84.5 76.2 85.5]
+         - problemas con 2 y 3 ciudades
+
+      - max_atoms = 30
+         - diff = [124.5 120.7 163.3]
+         - problemas con 3 y 4 ciudades
+
+      - max_atoms = 40
+         - diff = [285.7 230.2 287.7]
+         - problemas con 2-5 ciudades
+
+   > La dificultad escala regular
+
 
 >  <logistics>
    max_atoms_init_state=15, max_actions_init_state=1, <max_actions_goal_state=10.0>
@@ -952,7 +989,7 @@
    > Problemas (its=9000)
       - max_atoms = 15
          - diff = [68.3 58.6 67.8]
-         - diversidad media-alta
+         - diversidad media
             - la goal_policy usa drive y fly!!!
             - problemas con 2 y 3 ciudades
             - problemas con 0 o 1 location
@@ -975,7 +1012,7 @@
         locations!
       - La dificultad escala bastante mal
       - Parece como si la goal policy no "aprovechara" la gran cantidad de acciones
-        que tiene a su alcance!!!
+        que tiene a su alcance (de ahí que la goal_policy entropy sea tan alta)!!
       - Creo que debería aumentar la entropía de las políticas, para evitar que converjan
         rápido
 
