@@ -835,10 +835,9 @@ def test_train_init_and_goal_policy_logistics():
 
 	nlm_hidden_layers_mlp = [0]*(len(init_policy_nlm_inner_layers)+1)
 
-	# CAMBIAR
 	generator = Generator(parser, planner, goal_predicates, consistency_validator=consistency_validator,
 									allowed_virtual_objects=virtual_objects,
-									diversity_rescale_factor=100,
+									diversity_rescale_factor=50,
 									device='cuda', max_objs_cache_reduce_masks=25,
 
 									use_initial_state_policy=True,
@@ -848,8 +847,8 @@ def test_train_init_and_goal_policy_logistics():
 									res_connections_initial_state_nlm=False,
 									exclude_self_inital_state_nlm=True,
 									lr_initial_state_nlm = 1e-3,
-									entropy_coeff_init_state_policy = 0,
-									entropy_annealing_coeffs_init_state_policy = None,
+									entropy_coeff_init_state_policy = 1,
+									entropy_annealing_coeffs_init_state_policy = (5000, 0.01),
 									epsilon_init_state_policy=0.1,
 
 									use_goal_policy=True,
@@ -859,8 +858,8 @@ def test_train_init_and_goal_policy_logistics():
 									res_connections_goal_nlm=False,
 									exclude_self_goal_nlm=True,
 									lr_goal_nlm = 1e-3,
-									entropy_coeff_goal_policy = 0,
-									entropy_annealing_coeffs_goal_policy = None,
+									entropy_coeff_goal_policy = 1,
+									entropy_annealing_coeffs_goal_policy = (5000, 0.01),
 									epsilon_goal_policy=0.1)
 
 	# Train the goal generation policy
@@ -982,7 +981,7 @@ def test_load_models_and_resume_training_logistics():
 
 	generator = Generator(parser, planner, goal_predicates, consistency_validator=consistency_validator,
 									allowed_virtual_objects=virtual_objects,
-									diversity_rescale_factor=100,
+									diversity_rescale_factor=50,
 									device='cuda', max_objs_cache_reduce_masks=25,
 
 									use_initial_state_policy=True,
