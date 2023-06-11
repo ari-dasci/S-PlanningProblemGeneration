@@ -112,11 +112,21 @@ C:\Users\Usuario\Desktop\NeSIG\S-PlanningProblemGeneration\src\problem_generatio
 ---------------------- Next experiments
 
 >>> disc_factor_difficulty=1, solo LAMA-first durante el entrenamiento
-    >>> LOS RESULTADOS CON max_actions_goal_state=10.0 deben ser igual o mejores que los que usan
-       max_actions_goal_state=4!!!
+   - En los últimos experimentos, ambos resultados son muy parecidos.
+
+
+
+- Uso max_actions_goal_state=5 porque creo que debería ser más que de sobra para generar goals
+  difíciles!!!
+   - Si asumimos que, en el peor de los casos, la goal_policy necesita 12 acciones para mover
+     cada paquete de un sitio a otro y que el número de paquetes de un problema es aproximadamente
+     la mitad del número de max_atoms, entonces la goal_policy necesita 6-7 veces max-atoms acciones
+     para mover los paquetes, en el peor de los casos (por ejemplo, si se usa un avión para
+     cargar primero todos los paquetes y después descargar todos, entonces se necesitan menos acciones)
 
 - Diversity reward
-   - Probar diversity_rescale_factor=50
+   - Probar diversity_rescale_factor=100
+
 
 - Policy entropy (además de diversity reward)
    - Empezar con un policy entropy alto para la init y goal policies e ir reduciéndolo a 0

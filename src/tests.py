@@ -838,7 +838,7 @@ def test_train_init_and_goal_policy_logistics():
 	# CAMBIAR
 	generator = Generator(parser, planner, goal_predicates, consistency_validator=consistency_validator,
 									allowed_virtual_objects=virtual_objects,
-									diversity_rescale_factor=50,
+									diversity_rescale_factor=100,
 									device='cuda', max_objs_cache_reduce_masks=25,
 
 									use_initial_state_policy=True,
@@ -865,7 +865,7 @@ def test_train_init_and_goal_policy_logistics():
 
 	# Train the goal generation policy
 	generator.train_generative_policies(training_iterations = 100000, 
-					        			max_atoms_init_state=15, max_actions_init_state=1.0, max_actions_goal_state=10.0)
+					        			max_atoms_init_state=15, max_actions_init_state=1.0, max_actions_goal_state=5.0)
 
 
 """
@@ -936,8 +936,8 @@ def test_load_models_and_generate_problems_logistics():
 	# Generate the set of problems with the trained initial policy
 	num_problems = 10
 
-	generator.generate_problems(num_problems, max_atoms_init_state=40, max_actions_init_state=1,
-								 max_actions_goal_state=4, verbose=True)	
+	generator.generate_problems(num_problems, max_atoms_init_state=15, max_actions_init_state=1,
+								 max_actions_goal_state=5, verbose=True)	
 	
 
 def test_load_models_and_resume_training_logistics():
@@ -982,7 +982,7 @@ def test_load_models_and_resume_training_logistics():
 
 	generator = Generator(parser, planner, goal_predicates, consistency_validator=consistency_validator,
 									allowed_virtual_objects=virtual_objects,
-									diversity_rescale_factor=50,
+									diversity_rescale_factor=100,
 									device='cuda', max_objs_cache_reduce_masks=25,
 
 									use_initial_state_policy=True,
@@ -1006,7 +1006,7 @@ def test_load_models_and_resume_training_logistics():
 	# Train the goal generation policy
 	# +1 because we need to start with the next iteration
 	generator.train_generative_policies(training_iterations = 100000, start_it=curr_it+1,
-					        					 max_atoms_init_state=15, max_actions_init_state=1.0, max_actions_goal_state=4.0)
+					        					 max_atoms_init_state=15, max_actions_init_state=1.0, max_actions_goal_state=5.0)
 
 
 # ------------------ Blocksworld
@@ -1621,8 +1621,8 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems()
 
 	#test_generate_random_problems_logistics()
-	#test_train_init_and_goal_policy_logistics()
-	test_load_models_and_generate_problems_logistics()	
+	test_train_init_and_goal_policy_logistics()
+	#test_load_models_and_generate_problems_logistics()	
 	#test_load_models_and_resume_training_logistics()
 
 	#test_generate_random_problems_blocksworld()
