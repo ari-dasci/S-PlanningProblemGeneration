@@ -115,6 +115,14 @@ C:\Users\Usuario\Desktop\NeSIG\S-PlanningProblemGeneration\src\problem_generatio
    - En los últimos experimentos, ambos resultados son muy parecidos.
 
 
+>>> Si estos dos últimos experimentos no salen bien probar a:
+   - Usar diversity_reward=100 (o más alto) y policy entropy
+   - Usar policy entropy más alto para la init policy que para la goal policy (o usar entropy_coeffs=0, None para la goal policy)
+     (tiene más sentido que la init policy tenga mucha entropía, para generar muchos estados
+      iniciales distintos, pero que la goal policy tenga menos entropía ya que tiene que saber
+      "resolver" cada uno de ellos)
+      La idea sería hacer que la init_policy sea muy "random" mientras que la goal_policy sea poco "random", de manera parecida
+      a la ablation donde solo se entrena a la goal_policy
 
 - Uso max_actions_goal_state=5 porque creo que debería ser más que de sobra para generar goals
   difíciles!!!
@@ -124,13 +132,6 @@ C:\Users\Usuario\Desktop\NeSIG\S-PlanningProblemGeneration\src\problem_generatio
      para mover los paquetes, en el peor de los casos (por ejemplo, si se usa un avión para
      cargar primero todos los paquetes y después descargar todos, entonces se necesitan menos acciones)
 
-- Diversity reward
-   - Probar diversity_rescale_factor=100
-
-
-- Policy entropy (además de diversity reward)
-   - Empezar con un policy entropy alto para la init y goal policies e ir reduciéndolo a 0
-     Ej.: entropy_coeff_init_state_policy = 0.5, entropy_annealing_coeffs_init_state_policy = (5000, 0)
 
 - Aumentar expresividad NLM
    - Añadir reduce operation for counting

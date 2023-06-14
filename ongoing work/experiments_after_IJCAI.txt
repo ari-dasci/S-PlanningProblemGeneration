@@ -1024,8 +1024,8 @@
    <diversity_rescale_factor=100>
 
    > Ejecutándose en Casa
-   > logs: init_policy/version_2
-   > saved_models: both_policies_279
+   > logs: init_policy/version_2, 3
+   > saved_models: both_policies_279, 281
 
 
 >  <logistics>
@@ -1037,6 +1037,17 @@
    > Ejecutándose en DaSCI
    > logs: init_policy/version_214
    > saved_models: both_policies_280
+
+
+
+>>> Si estos experimentos no salen probar a:
+   - Usar alta action entropy para la init policy pero baja (o ninguna) para la goal policy
+      - Quiero que la init policy genere muchos tipos distintos de problemas pero que la goal
+        policy sepa resolverlos bien (para la cual necesita una baja action entropy)
+
+   - Aumentar el diversity reward aún más
+
+   - Usar diversity reward alto + action entropy
 
    
 
