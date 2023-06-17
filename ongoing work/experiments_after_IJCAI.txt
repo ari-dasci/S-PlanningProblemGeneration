@@ -1024,9 +1024,9 @@
    <diversity_rescale_factor=100>
 
    > Ejecutándose en Casa
-   > logs: init_policy/version_2, 3
-   > saved_models: both_policies_279, 281
-
+   > logs: init_policy/version_2, 3, 4
+   > saved_models: both_policies_279, 281, 282
+ 
 
 >  <logistics>
    max_atoms_init_state=15, max_actions_init_state=1, <max_actions_goal_state=5.0>
@@ -1038,17 +1038,20 @@
    > logs: init_policy/version_214
    > saved_models: both_policies_280
 
-
-
->>> Si estos experimentos no salen probar a:
-   - Usar alta action entropy para la init policy pero baja (o ninguna) para la goal policy
-      - Quiero que la init policy genere muchos tipos distintos de problemas pero que la goal
-        policy sepa resolverlos bien (para la cual necesita una baja action entropy)
-
-   - Aumentar el diversity reward aún más
-
-   - Usar diversity reward alto + action entropy
-
    
 
 
+   >>> Creo que la entropía hace que las políticas exploren mejor!! Es por eso
+       que se generan problemas distintos que cuando no usaba action entropy (ej.:
+       con dos ciudades) y estos son más difíciles (a pesar de que la goal policy
+       tiene una entropía muy alta)
+       - Repetir prueba sin goal action entropy (la init policy debería generar problemas casi aleatorios
+         pero la goal policy debería saber resolverlos)
+       - Hacer prueba variando más lentamente la init action entropy (ej.: de 0.2 a 0.05) ->
+         quiero ver la gráfica de la init_policy entropy descender más lentamente (no en picado)
+       - Utilizar también un diversity reward más alto (para así evitar que se generen problemas
+         con solo dos ciudades o con pocos locations) -> hay que "obligar" a la init_policy a 
+         generar estados casi aleatorios
+       - Si esto no es suficiente, entrenar en problemas variando el tamaño, entre 10 y 20/25
+         átomos (y ver si debería añadir a la NLM un predicado que sea max_atoms_init_state (ahora
+         mismo lo he puesto a 0))

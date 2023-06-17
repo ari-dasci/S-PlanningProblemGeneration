@@ -85,6 +85,22 @@
 
 -------------------------- Analysis
 
+>>> Las NLMs son independientes del orden y número de objetos. No obstante creo que:
+   - Para aprender reglas que no dependan del número de objetos, deberían ser entrenados en problemas con distinto
+     num de objetos (problemas de distintos tamaños)
+   - Deberían entrenarse en problemas con un número suficientemente alto de objetos para que surjan reglas "complejas",
+     que relacionen un número alto de objetos (ej.: 3) entre sí
+   - Puede que en este caso, las "estrategia de generación" cambie según el tamaño del problema. Por ejemplo, que 
+     para problemas pequeños, para hacerlos difíciles haya que generar problemas sin locations pero, para problemas grandes,
+     sea necesario generar problemas con locations. Esto puede limitar la generalización a problemas de tamaño muy superior
+
+
+   >>> En definitiva, si no aprende la NLM con los experimentos de abajo hacer lo siguiente:
+      - Entrenar en problemas de distinto max_atoms, desde 10 hasta 20 o 25
+
+
+
+
 >>> No se generan de manera "natural" problemas con locations. Dos posibilidades:
    - Los problemas más difíciles para tamaños pequeños de problema (<20 átomos)
      no tienen locations
