@@ -3,38 +3,36 @@
 (:domain logistics)
 
 (:objects
-	obj0 obj3 obj5 - airport
+	obj0 obj3 obj6 obj9 - airport
 	obj1 obj4 - city
-	obj2 obj6 obj7 obj10 - truck
+	obj2 obj5 obj7 obj10 obj16 - truck
 	obj8 - airplane
-	obj9 - location
-	obj11 obj12 obj13 obj14 obj15 obj16 - package
+	obj11 obj12 obj13 obj14 obj15 - package
 )
 
 (:init
-	(at obj11 obj9)
-	(at obj13 obj9)
-	(at obj16 obj9)
-	(in-city obj5 obj4)
-	(at obj2 obj0)
+	(at obj11 obj0)
+	(in-city obj6 obj4)
+	(at obj13 obj6)
+	(at obj14 obj9)
 	(in-city obj9 obj1)
-	(at obj15 obj9)
-	(at obj6 obj5)
-	(at obj14 obj0)
+	(at obj2 obj0)
+	(at obj7 obj6)
+	(at obj16 obj3)
+	(at obj5 obj3)
 	(at obj10 obj9)
 	(in-city obj0 obj1)
-	(at obj8 obj5)
+	(at obj8 obj3)
 	(at obj12 obj9)
-	(at obj7 obj3)
 	(in-city obj3 obj4)
+	(at obj15 obj3)
 )
 
 (:goal (and
-	(at obj14 obj9)
-	(at obj16 obj3)
-	(at obj13 obj3)
-	(at obj12 obj5)
-	(at obj11 obj5)
-	(at obj15 obj3)
+	(at obj11 obj9)
+	(at obj12 obj3)
+	(at obj15 obj6)
+	(at obj13 obj0)
+	(at obj14 obj6)
 ))
 )

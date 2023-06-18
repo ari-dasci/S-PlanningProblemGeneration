@@ -1026,8 +1026,47 @@
    > Ejecutándose en Casa
    > logs: init_policy/version_2, 3, 4
    > saved_models: both_policies_279, 281, 282
- 
 
+   > Entrenamiento (its=8500)
+      - Tiempo (casa): 3d 12h
+      - r_diff (goal_policy)= 80
+      - r_eventual=0
+      - init_policy_entropy=0.2, goal_policy_entropy=0.25
+      - term_cond_prob init_policy converge a 0, goal_policy oscila alrededor de 0.0003
+      - num_objs:
+         - city: 2
+         - airport: 3.3
+         - location: 0.7
+         - airplane: 1
+         - truck: 4.2
+         - package: 5.9
+
+   > Problemas (its=8500)
+      - max_atoms = 15
+         - diff = [70.5 57.4 72. ]
+         - diversidad media-baja
+            - la goal_policy usa drive y fly!!!
+            - casi todos los problemas con 2 ciudades, solo uno con 3
+            - problemas con 0 o 1 location
+
+      - max_atoms = 20
+         - diff = [76.1 68.  77.4]
+         - problemas con 2 y 3 ciudades
+
+      - max_atoms = 30
+         - diff = [205.5 168.9 256.1]
+         - problemas con 3-5 ciudades
+
+      - max_atoms = 40
+         - diff = [429.9 338. 417.2]
+         - problemas con 3-5 ciudades
+
+   >>> Se generan problemas bastante difíciles y cuya dificultad escala muy
+       bien!!! No obstante, su diversidad debería mejorar
+      > Creo que debería aumentar el diversity reward o usar también
+        policy entropy
+  
+ 
 >  <logistics>
    max_atoms_init_state=15, max_actions_init_state=1, <max_actions_goal_state=5.0>
    <init_policy_entropy_coeffs: 1, (5000, 0.01)>
@@ -1037,6 +1076,64 @@
    > Ejecutándose en DaSCI
    > logs: init_policy/version_214
    > saved_models: both_policies_280
+
+   > Entrenamiento (its=8000)
+      - Tiempo (casa): 6d 10h
+      - r_diff (goal_policy)= <150> (muy alto!)
+      - r_eventual=0
+      - init_policy_entropy=0.3, goal_policy_entropy=0.65
+      - term_cond_prob init_policy y goal_policy convergen a alrededor de 0.0005
+      - num_objs:
+         - city: 2
+         - airport: 4.6
+         - location: 0.8
+         - airplane: 1
+         - truck: 2
+         - package: 6.5
+
+   > Problemas (its=8000)
+      - max_atoms = 15
+         - diff =  [64.2 55.3 55.3]
+         - diversidad media-baja
+            - la goal_policy usa drive y fly!!!
+            - problemas con 2 y 3 ciudades
+            - problemas con 0 o 1 location
+            - muchos problemas casi idénticos
+
+      - max_atoms = 20
+         - diff =  [239.1 163.7 227.6]
+         - problemas solo con dos ciudades!
+
+      - max_atoms = 30
+         - diff =  [733.  485.6 730.3]
+         - problemas solo con dos ciudades! 
+
+      - max_atoms = 40
+         - diff = [1196.  769.2 1202.4]
+         - problemas solo con dos ciudades! 
+
+      >>> Análisis
+         - Se generan problemas muy difíciles y la dificultad escala muy bien!!!
+         - No obstante, los problemas solo tienen dos ciudades y son muy poco diversos
+         - Parece que usar action entropy ayuda a explorar (ya que se generan problemas
+           más difíciles que cuando no se usa action entropy)
+         - Para evitar que se generen problemas con solo dos ciudades quizás haya que
+            - Bajar el goal action entropy (ya que, si no, la goal policy solo ejecuta
+              acciones casi al azar)
+            - Aumentar el diversity reward
+
+>  <logistics>
+   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=5.0
+   init_policy_entropy_coeffs: 0.0, None
+   goal_policy_entropy_coeffs: 0.0, None
+   <diversity_rescale_factor=500>
+
+   > Ejecutándose en Casa
+   > logs: init_policy/version_5
+   > saved_models: both_policies_283
+
+   
+
 
    
 

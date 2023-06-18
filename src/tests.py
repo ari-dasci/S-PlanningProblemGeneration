@@ -837,7 +837,7 @@ def test_train_init_and_goal_policy_logistics():
 
 	generator = Generator(parser, planner, goal_predicates, consistency_validator=consistency_validator,
 									allowed_virtual_objects=virtual_objects,
-									diversity_rescale_factor=100,
+									diversity_rescale_factor=500,
 									device='cuda', max_objs_cache_reduce_masks=25,
 
 									use_initial_state_policy=True,
@@ -893,8 +893,8 @@ def test_load_models_and_generate_problems_logistics():
 	consistency_validator = ConsistencyValidatorLogistics(parser.types, parser.predicates)
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_278/init_policy_its-8000.ckpt"
-	goal_policy_path = "saved_models/both_policies_278/goal_policy_its-8000.ckpt"
+	init_policy_path = "saved_models/both_policies_282/init_policy_its-8500.ckpt"
+	goal_policy_path = "saved_models/both_policies_282/goal_policy_its-8500.ckpt"
 	
 	# The goal_nlm_layers need to account for arity 4, as one action has 4 parameters
 	# We also need to have some predicates of arity 3 in the last layer or, else, there will be no predicates to compute the action of arity 4
@@ -981,7 +981,7 @@ def test_load_models_and_resume_training_logistics():
 
 	generator = Generator(parser, planner, goal_predicates, consistency_validator=consistency_validator,
 									allowed_virtual_objects=virtual_objects,
-									diversity_rescale_factor=100,
+									diversity_rescale_factor=500,
 									device='cuda', max_objs_cache_reduce_masks=25,
 
 									use_initial_state_policy=True,
@@ -1620,9 +1620,9 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems()
 
 	#test_generate_random_problems_logistics()
-	#test_train_init_and_goal_policy_logistics()
+	test_train_init_and_goal_policy_logistics()
 	#test_load_models_and_generate_problems_logistics()	
-	test_load_models_and_resume_training_logistics()
+	#test_load_models_and_resume_training_logistics()
 
 	#test_generate_random_problems_blocksworld()
 	#test_train_init_and_goal_policy_blocksworld()
