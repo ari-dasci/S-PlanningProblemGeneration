@@ -963,12 +963,12 @@ class Generator():
 				curr_features_diff = np.abs(feature_matrix[i] - feature_matrix[j]) / (feature_matrix[i] + feature_matrix[j] + epsilon)
 
 				# Don't use feature weights
-				distance_matrix[i, j] = distance_matrix[j, i] = np.average(curr_features_diff, weights=None) \
-																if (i in list_consistent_inds and j in list_consistent_inds) else 0.0
+				# distance_matrix[i, j] = distance_matrix[j, i] = np.average(curr_features_diff, weights=None) \
+				#												if (i in list_consistent_inds and j in list_consistent_inds) else 0.0
 
 				# --- Use feature weights ---
-				#distance_matrix[i, j] = distance_matrix[j, i] = np.average(curr_features_diff, weights=feature_weights) \
-				#												if (i in list_consistent_inds and j in list_consistent_inds) else 0.0
+				distance_matrix[i, j] = distance_matrix[j, i] = np.average(curr_features_diff, weights=feature_weights) \
+																if (i in list_consistent_inds and j in list_consistent_inds) else 0.0
 
 				# OLD
 				#distance_matrix[i, j] = distance_matrix[j, i] = np.mean(np.abs(feature_matrix[i] - feature_matrix[j]) / (feature_matrix[i] + feature_matrix[j] + epsilon)) \
