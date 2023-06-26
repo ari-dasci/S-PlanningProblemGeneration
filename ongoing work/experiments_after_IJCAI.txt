@@ -1132,6 +1132,48 @@
    > logs: init_policy/version_5
    > saved_models: both_policies_283
 
+   > Entrenamiento (its=25000)
+      - Tiempo (casa): 7d 21h
+      - r_diff (goal_policy)= 60
+      - r_eventual=-0.2
+      - init_policy_entropy=0.15, goal_policy_entropy=0.15
+      - term_cond_prob init_policy y goal_policy oscilan alrededor de 1e-3
+      - num_objs:
+         - city: 2
+         - airport: 2.1
+         - location: 2.8
+         - airplane: 1.3
+         - truck: 3.1
+         - package: 5.5   
+
+   > Problemas (its=25000)
+      - max_atoms = 15
+         - diff = [35.4 28.7 26.9] (baja)
+         - diversidad media-alta
+            - la goal_policy usa drive y fly!!!
+            - problemas con solo 2 ciudades!
+
+      - max_atoms = 20
+         - diff = [77.2 52.1 51.9]
+         - problemas con solo 2 ciudades!
+
+      - max_atoms = 30
+         - diff = [110.6 85.8 95.7]
+         - solo 2 problemas con tres ciudades 
+
+      - max_atoms = 40
+         - diff = [161.3 140. 166.9]
+         - problemas con solo 2 ciudades!    
+
+   > Análisis:
+      - Problemas muy diversos menos por el hecho de que solo tienen dos ciudades
+      - Problemas de dificultad baja -> puede que la razón sea que son demasiado
+        diversos (debería bajar el diversity_rescale_factor) o que solo tienen dos
+        ciudades
+
+      - Parece que la diversity_reward hace que se generen problemas con solo
+        dos ciudades!!!
+
    
 
 >  <logistics>
@@ -1143,7 +1185,62 @@
    > Ejecutándose en DaSCI
    > logs: init_policy/version_215
    > saved_models: both_policies_284
-   
+
+   > Entrenamiento (its=9000)
+      - Tiempo (dasci): 7d 20h
+      - r_diff (goal_policy)= 80
+      - r_eventual=0
+      - init_policy_entropy=0.1, goal_policy_entropy=0.35
+      - term_cond_prob init_policy converge a 0 y la goal_policy oscila alrededor de 5e-4
+      - num_objs:
+         - city: 2
+         - airport: 3.5
+         - location: 0.5
+         - airplane: 1
+         - truck: 2
+         - package: 8
+
+   > Problemas (its=9000)
+      - max_atoms = 15
+         - diff =  [90.9 57.3 65. ]
+         - diversidad muy baja!!!
+            - la goal_policy usa drive y fly!!!
+            - casi todos los problemas son idénticos
+            - solo se generan problemas con dos ciudades
+
+      - max_atoms = 20
+         - diff = [121.7  81.2  95.6]
+         - problemas solo con dos y tres ciudades
+
+      - max_atoms = 30
+         - diff = [272.6 192.  250.1]
+         - problemas con tres y cuatro ciudades
+
+      - max_atoms = 40
+         - diff = [315, 197, 258]
+         - problemas con tres y cuatro ciudades
+
+   > Análisis
+      > Se generan problemas menos difíciles que cuando también utilizábamos goal_entropy!!
+        (ver experimento anterior) -> DEBERÍAMOS USAR GOAL E INIT ENTROPY
+      > Problemas muy poco diversos -> una entropía final de 0.01 es muy baja
+      > La dificultad escala razonablemente bien (aunque debe mejorar)
+      > Puntos a mejorar:
+         - Diversidad
+         - Escalado dificultad
+
+
+
+
+
+   >>> SIGUIENTE EXPERIMENTO: Usar goal action entropy o no según resultados del último experimento.
+       Usar action entropy coeffs (0.5, 5000, 0.1) para la init y, quizás, también la goal policy.
+       SI USO GOAL POLICY ENTROY, SIEMPTRE TIENE QUE TERMINAR EN 0 AL FINAL! (ej.: usar (0.5,5000,0) 
+       para la goal policy). Esto es porque, mientras que la init policy quiero que siempre tenga
+       entropia para generar problemas diversos, en la goal policy solo quiero que tenga entropía
+       al principio para así que explore pero, una vez haya aprendido, me da igual si converge.
+
+
 
 
    >>> Creo que la entropía hace que las políticas exploren mejor!! Es por eso
@@ -1152,11 +1249,14 @@
        tiene una entropía muy alta)
        - Repetir prueba sin goal action entropy (la init policy debería generar problemas casi aleatorios
          pero la goal policy debería saber resolverlos)
+            - Ver si uso goal action entropy o no (solo init)
        - Hacer prueba variando más lentamente la init action entropy (ej.: de 0.2 a 0.05) ->
          quiero ver la gráfica de la init_policy entropy descender más lentamente (no en picado)
        - Utilizar también un diversity reward más alto (para así evitar que se generen problemas
          con solo dos ciudades o con pocos locations) -> hay que "obligar" a la init_policy a 
          generar estados casi aleatorios
+            - Probar a usar pesos, para que se generen problemas con varias ciudades
+
        - Si esto no es suficiente, entrenar en problemas variando el tamaño, entre 10 y 20/25
          átomos (y ver si debería añadir a la NLM un predicado que sea max_atoms_init_state (ahora
          mismo lo he puesto a 0))
