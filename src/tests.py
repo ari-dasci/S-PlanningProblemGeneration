@@ -847,8 +847,8 @@ def test_train_init_and_goal_policy_logistics():
 									res_connections_initial_state_nlm=False,
 									exclude_self_inital_state_nlm=True,
 									lr_initial_state_nlm = 1e-3,
-									entropy_coeff_init_state_policy = 1,
-									entropy_annealing_coeffs_init_state_policy = (5000, 0.01),
+									entropy_coeff_init_state_policy = 0.5,
+									entropy_annealing_coeffs_init_state_policy = (5000, 0.1),
 									epsilon_init_state_policy=0.1,
 
 									use_goal_policy=True,
@@ -858,8 +858,8 @@ def test_train_init_and_goal_policy_logistics():
 									res_connections_goal_nlm=False,
 									exclude_self_goal_nlm=True,
 									lr_goal_nlm = 1e-3,
-									entropy_coeff_goal_policy = 0,
-									entropy_annealing_coeffs_goal_policy = None,
+									entropy_coeff_goal_policy = 0.5,
+									entropy_annealing_coeffs_goal_policy = (5000, 0),
 									epsilon_goal_policy=0.1)
 
 	# Train the goal generation policy
@@ -935,7 +935,7 @@ def test_load_models_and_generate_problems_logistics():
 	# Generate the set of problems with the trained initial policy
 	num_problems = 10
 
-	generator.generate_problems(num_problems, max_atoms_init_state=40, max_actions_init_state=1,
+	generator.generate_problems(num_problems, max_atoms_init_state=15, max_actions_init_state=1,
 								 max_actions_goal_state=5, verbose=True)	
 	
 
@@ -1620,8 +1620,8 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems()
 
 	#test_generate_random_problems_logistics()
-	#test_train_init_and_goal_policy_logistics()
-	test_load_models_and_generate_problems_logistics()	
+	test_train_init_and_goal_policy_logistics()
+	#test_load_models_and_generate_problems_logistics()	
 	#test_load_models_and_resume_training_logistics()
 
 	#test_generate_random_problems_blocksworld()
