@@ -864,7 +864,7 @@ def test_train_init_and_goal_policy_logistics():
 
 	# Train the goal generation policy
 	generator.train_generative_policies(training_iterations = 100000, 
-					        			max_atoms_init_state=(10,20), max_actions_init_state=1.0, max_actions_goal_state=5.0)
+					        			max_atoms_init_state=15, max_actions_init_state=1.0, max_actions_goal_state=5.0)
 
 
 """

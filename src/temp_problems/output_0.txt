@@ -2,36 +2,37 @@ INFO     Running translator.
 INFO     translator stdin: None
 INFO     translator time limit: None
 INFO     translator memory limit: None
-INFO     translator command line string: 'C:\Users\Usuario\anaconda3\envs\problem-generation\python.exe' 'C:\Users\Usuario\Desktop\NeSIG\S-PlanningProblemGeneration\src\fast-downward\builds\release\bin\translate\translate.py' ../data/domains/logistics-domain.pddl temp_problems/temp_problem_0.pddl --sas-file temp_problems/sas_plan_0
+INFO     translator command line string: 'C:\Users\Carlos\anaconda3\envs\problem-generation\python.exe' 'C:\Users\Carlos\Desktop\NeSIG\S-PlanningProblemGeneration\src\fast-downward\builds\release\bin\translate\translate.py' ../data/domains/logistics-domain.pddl temp_problems/temp_problem_0.pddl --sas-file temp_problems/sas_plan_0
 Warning! SIGXCPU is not available on your platform. This means that the planner cannot be gracefully terminated when using a time limit, which, however, is probably supported on your platform anyway.
 Parsing...
-Parsing: [0.000s CPU, 0.001s wall-clock]
-Normalizing task... [0.000s CPU, 0.001s wall-clock]
+Parsing: [0.000s CPU, 0.007s wall-clock]
+Normalizing task... [0.000s CPU, 0.000s wall-clock]
 Instantiating...
 Generating Datalog program... [0.000s CPU, 0.000s wall-clock]
 Normalizing Datalog program...
-Normalizing Datalog program: [0.000s CPU, 0.001s wall-clock]
+Trivial rules: Converted to facts.
+Normalizing Datalog program: [0.000s CPU, 0.003s wall-clock]
 Preparing model... [0.000s CPU, 0.001s wall-clock]
-Generated 23 rules.
-Computing model... [0.000s CPU, 0.002s wall-clock]
-443 relevant atoms
-241 auxiliary atoms
-684 final queue length
-901 total queue pushes
-Completing instantiation... [0.000s CPU, 0.004s wall-clock]
-Instantiating: [0.000s CPU, 0.008s wall-clock]
+Generated 24 rules.
+Computing model... [0.000s CPU, 0.005s wall-clock]
+360 relevant atoms
+239 auxiliary atoms
+599 final queue length
+791 total queue pushes
+Completing instantiation... [0.000s CPU, 0.005s wall-clock]
+Instantiating: [0.000s CPU, 0.014s wall-clock]
 Computing fact groups...
 Finding invariants...
 6 initial candidates
-Finding invariants: [0.000s CPU, 0.000s wall-clock]
+Finding invariants: [0.000s CPU, 0.002s wall-clock]
 Checking invariant weight... [0.000s CPU, 0.000s wall-clock]
 Instantiating groups... [0.000s CPU, 0.000s wall-clock]
 Collecting mutex groups... [0.000s CPU, 0.000s wall-clock]
 Choosing groups...
-0 uncovered facts
-Choosing groups: [0.000s CPU, 0.000s wall-clock]
+1 uncovered facts
+Choosing groups: [0.000s CPU, 0.001s wall-clock]
 Building translation key... [0.000s CPU, 0.000s wall-clock]
-Computing fact groups: [0.000s CPU, 0.001s wall-clock]
+Computing fact groups: [0.000s CPU, 0.003s wall-clock]
 Building STRIPS to SAS dictionary... [0.000s CPU, 0.000s wall-clock]
 Building dictionary for full mutex groups... [0.000s CPU, 0.000s wall-clock]
 Building mutex information...
@@ -42,105 +43,89 @@ Simplifying axioms... [0.000s CPU, 0.000s wall-clock]
 Translator axioms removed by simplifying: 0
 Computing negative axioms... [0.000s CPU, 0.000s wall-clock]
 Processing axioms: [0.000s CPU, 0.000s wall-clock]
-Translating task: [0.000s CPU, 0.003s wall-clock]
+Translating task: [0.016s CPU, 0.005s wall-clock]
 0 effect conditions simplified
 0 implied preconditions added
 Detecting unreachable propositions...
 0 operators removed
 0 axioms removed
-10 propositions removed
-Detecting unreachable propositions: [0.000s CPU, 0.001s wall-clock]
+8 propositions removed
+Detecting unreachable propositions: [0.016s CPU, 0.004s wall-clock]
 Reordering and filtering variables...
-10 of 10 variables necessary.
-0 of 10 mutex groups necessary.
-252 of 252 operators necessary.
-0 of 0 axiom rules necessary.
-Reordering and filtering variables: [0.000s CPU, 0.001s wall-clock]
-Translator variables: 10
-Translator derived variables: 0
-Translator facts: 73
-Translator goal facts: 3
+1 of 9 variables necessary.
+0 of 8 mutex groups necessary.
+0 of 198 operators necessary.
+1 of 1 axiom rules necessary.
+Reordering and filtering variables: [0.000s CPU, 0.000s wall-clock]
+Translator variables: 1
+Translator derived variables: 1
+Translator facts: 2
+Translator goal facts: 1
 Translator mutex groups: 0
 Translator total mutex groups size: 0
-Translator operators: 252
-Translator axioms: 0
-Translator task size: 1010
+Translator operators: 0
+Translator axioms: 1
+Translator task size: 5
 warning: could not determine peak memory
-Writing output... [0.000s CPU, 0.003s wall-clock]
-Done! [0.000s CPU, 0.018s wall-clock]
+Writing output... [0.000s CPU, 0.001s wall-clock]
+Done! [0.031s CPU, 0.033s wall-clock]
 translate exit code: 0
 
 INFO     Running search (release).
 INFO     search stdin: temp_problems/sas_plan_0
 INFO     search time limit: None
 INFO     search memory limit: None
-INFO     search command line string: 'C:\Users\Usuario\Desktop\NeSIG\S-PlanningProblemGeneration\src\fast-downward\builds\release\bin\downward.exe' --evaluator 'hlm=lmcount(lm_factory=lm_reasonable_orders_hps(lm_rhw()),transform=adapt_costs(one),pref=false)' --evaluator 'hff=ff(transform=adapt_costs(one))' --search 'lazy_greedy([hff,hlm],preferred=[hff,hlm],cost_type=one,reopen_closed=false)' --internal-plan-file temp_problems/plan_0 < temp_problems/sas_plan_0
-[t=7.8e-06s, 736 KB] reading input...
-[t=0.0007728s, 780 KB] done reading input!
-[t=0.0018984s, 1124 KB] Initializing landmark count heuristic...
-[t=0.001917s, 1132 KB] Generating landmark graph...
-[t=0.0019379s, 1132 KB] Building a landmark graph with reasonable orders.
-[t=0.0019971s, 1132 KB] Initializing Exploration...
-[t=0.0021025s, 1168 KB] Generating landmarks using the RPG/SAS+ approach
-[t=0.0023444s, 1180 KB] Removed 0 reasonable or obedient reasonable orders
-[t=0.002357s, 1180 KB] Landmarks generation time: 0.0003766s
-[t=0.0023643s, 1180 KB] Discovered 7 landmarks, of which 3 are disjunctive and 0 are conjunctive.
-[t=0.0023714s, 1180 KB] 6 edges
-[t=0.0023779s, 1180 KB] approx. reasonable orders
-[t=0.0023854s, 1180 KB] approx. obedient reasonable orders
-[t=0.0023933s, 1180 KB] Removed 0 reasonable or obedient reasonable orders
-[t=0.0023995s, 1180 KB] Landmarks generation time: 0.0004766s
-[t=0.002406s, 1180 KB] Discovered 7 landmarks, of which 3 are disjunctive and 0 are conjunctive.
-[t=0.0024128s, 1180 KB] 6 edges
-[t=0.0024188s, 1180 KB] Landmark graph generation time: 0.0005036s
-[t=0.0024254s, 1180 KB] Landmark graph contains 7 landmarks, of which 3 are disjunctive and 0 are conjunctive.
-[t=0.002432s, 1180 KB] Landmark graph contains 6 orderings.
-[t=0.002503s, 1180 KB] Simplifying 252 unary operators... done! [252 unary operators]
-[t=0.0025773s, 1180 KB] time to simplify: 7.65e-05s
-[t=0.0026013s, 1180 KB] Initializing additive heuristic...
-[t=0.0026077s, 1180 KB] Initializing FF heuristic...
-[t=0.0026519s, 1180 KB] Building successor generator...done!
-[t=0.0027306s, 1180 KB] peak memory difference for successor generator creation: 0 KB
-[t=0.0027373s, 1180 KB] time for successor generation creation: 6.67e-05s
-[t=0.0027448s, 1180 KB] Variables: 10
-[t=0.002751s, 1180 KB] FactPairs: 73
-[t=0.0027569s, 1180 KB] Bytes per state: 4
-[t=0.0029065s, 1200 KB] Conducting lazy best first search, (real) bound = 2147483647
-[t=0.0029163s, 1200 KB] 3 initial landmarks, 3 goal landmarks
-[t=0.0029354s, 1200 KB] New best heuristic value for ff(transform = adapt_costs(one)): 4
-[t=0.0029426s, 1200 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 4
-[t=0.0029489s, 1200 KB] g=0, 1 evaluated, 0 expanded
-[t=0.0029654s, 1200 KB] Initial heuristic value for ff(transform = adapt_costs(one)): 4
-[t=0.0029718s, 1200 KB] Initial heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 4
-[t=0.0029937s, 1200 KB] New best heuristic value for ff(transform = adapt_costs(one)): 3
-[t=0.003s, 1200 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 3
-[t=0.0030062s, 1200 KB] g=1, 3 evaluated, 2 expanded
-[t=0.0030357s, 1200 KB] New best heuristic value for ff(transform = adapt_costs(one)): 2
-[t=0.0030421s, 1200 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 2
-[t=0.0030484s, 1200 KB] g=3, 5 evaluated, 4 expanded
-[t=0.0030656s, 1200 KB] New best heuristic value for ff(transform = adapt_costs(one)): 1
-[t=0.0030716s, 1200 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 1
-[t=0.0030777s, 1200 KB] g=4, 6 evaluated, 5 expanded
-[t=0.0030939s, 1200 KB] Solution found!
-[t=0.0031005s, 1200 KB] Actual search time: 0.0001784s
-drive obj10 obj9 obj2 (1)
-drive obj10 obj2 obj6 (1)
-load obj10 obj8 obj6 (1)
-drive obj10 obj6 obj2 (1)
-unload obj10 obj8 obj2 (1)
-[t=0.0031066s, 1200 KB] Plan length: 5 step(s).
-[t=0.0031066s, 1200 KB] Plan cost: 5
-[t=0.0031066s, 1200 KB] Expanded 6 state(s).
-[t=0.0031066s, 1200 KB] Reopened 0 state(s).
-[t=0.0031066s, 1200 KB] Evaluated 7 state(s).
-[t=0.0031066s, 1200 KB] Evaluations: 14
-[t=0.0031066s, 1200 KB] Generated 131 state(s).
-[t=0.0031066s, 1200 KB] Dead ends: 0 state(s).
-[t=0.0031066s, 1200 KB] Number of registered states: 7
-[t=0.0031066s, 1200 KB] Int hash set load factor: 7/8 = 0.875
-[t=0.0031066s, 1200 KB] Int hash set resizes: 3
-[t=0.0031066s, 1200 KB] Search time: 0.0002007s
-[t=0.0031066s, 1200 KB] Total time: 0.0031066s
+INFO     search command line string: 'C:\Users\Carlos\Desktop\NeSIG\S-PlanningProblemGeneration\src\fast-downward\builds\release\bin\downward.exe' --evaluator 'hlm=lmcount(lm_factory=lm_reasonable_orders_hps(lm_rhw()),transform=adapt_costs(one),pref=false)' --evaluator 'hff=ff(transform=adapt_costs(one))' --search 'lazy_greedy([hff,hlm],preferred=[hff,hlm],cost_type=one,reopen_closed=false)' --internal-plan-file temp_problems/plan_0 < temp_problems/sas_plan_0
+[t=2.15e-05s, 732 KB] reading input...
+[t=0.0001423s, 732 KB] done reading input!
+[t=0.0021405s, 1068 KB] Initializing landmark count heuristic...
+[t=0.0021569s, 1068 KB] Generating landmark graph...
+[t=0.002167s, 1068 KB] Building a landmark graph with reasonable orders.
+[t=0.0022227s, 1068 KB] Initializing Exploration...
+[t=0.0022374s, 1068 KB] Generating landmarks using the RPG/SAS+ approach
+[t=0.0022611s, 1072 KB] Removed 0 reasonable or obedient reasonable orders
+[t=0.0022694s, 1072 KB] Landmarks generation time: 5.32e-05s
+[t=0.0022764s, 1072 KB] Discovered 1 landmarks, of which 0 are disjunctive and 0 are conjunctive.
+[t=0.0022835s, 1072 KB] 0 edges
+[t=0.0022895s, 1072 KB] approx. reasonable orders
+[t=0.0022949s, 1072 KB] approx. obedient reasonable orders
+[t=0.0023008s, 1072 KB] Removed 0 reasonable or obedient reasonable orders
+[t=0.0023065s, 1072 KB] Landmarks generation time: 0.0001462s
+[t=0.0023132s, 1072 KB] Discovered 1 landmarks, of which 0 are disjunctive and 0 are conjunctive.
+[t=0.0023198s, 1072 KB] 0 edges
+[t=0.0023253s, 1072 KB] Landmark graph generation time: 0.0001711s
+[t=0.0023317s, 1072 KB] Landmark graph contains 1 landmarks, of which 0 are disjunctive and 0 are conjunctive.
+[t=0.0023385s, 1072 KB] Landmark graph contains 0 orderings.
+[t=0.0023802s, 1072 KB] Simplifying 1 unary operators... done! [1 unary operators]
+[t=0.0023925s, 1072 KB] time to simplify: 1.54e-05s
+[t=0.0023998s, 1072 KB] Initializing additive heuristic...
+[t=0.002405s, 1072 KB] Initializing FF heuristic...
+[t=0.0024854s, 1084 KB] Building successor generator...done!
+[t=0.0025025s, 1084 KB] peak memory difference for successor generator creation: 0 KB
+[t=0.0025084s, 1084 KB] time for successor generation creation: 5.4e-06s
+[t=0.0025172s, 1084 KB] Variables: 1
+[t=0.0025229s, 1084 KB] FactPairs: 2
+[t=0.0025283s, 1084 KB] Bytes per state: 4
+[t=0.0026868s, 1096 KB] Conducting lazy best first search, (real) bound = 2147483647
+[t=0.0027001s, 1096 KB] 1 initial landmarks, 1 goal landmarks
+[t=0.002719s, 1096 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 0
+[t=0.0027259s, 1096 KB] New best heuristic value for ff(transform = adapt_costs(one)): 0
+[t=0.0027318s, 1096 KB] g=0, 1 evaluated, 0 expanded
+[t=0.0027389s, 1096 KB] Solution found!
+[t=0.0027443s, 1096 KB] Actual search time: 3.96e-05s
+[t=0.0027505s, 1096 KB] Plan length: 0 step(s).
+[t=0.0027505s, 1096 KB] Plan cost: 0
+[t=0.0027505s, 1096 KB] Expanded 0 state(s).
+[t=0.0027505s, 1096 KB] Reopened 0 state(s).
+[t=0.0027505s, 1096 KB] Evaluated 1 state(s).
+[t=0.0027505s, 1096 KB] Evaluations: 2
+[t=0.0027505s, 1096 KB] Generated 0 state(s).
+[t=0.0027505s, 1096 KB] Dead ends: 0 state(s).
+[t=0.0027505s, 1096 KB] Number of registered states: 1
+[t=0.0027505s, 1096 KB] Int hash set load factor: 1/1 = 1
+[t=0.0027505s, 1096 KB] Int hash set resizes: 0
+[t=0.0027505s, 1096 KB] Search time: 6.49e-05s
+[t=0.0027505s, 1096 KB] Total time: 0.0027505s
 Solution found.
 search exit code: 0
 

@@ -1098,7 +1098,7 @@ class Generator():
 					# Train on a single problem size -> problem_size=0
 					curr_state_tensors = curr_state.atoms_nlm_encoding(device=self.device, max_arity=init_nlm_max_pred_arity, 
 															allowed_virtual_objects=self._allowed_virtual_objects,
-															problem_size=list_max_atoms_init_state[i]*0.01,
+															problem_size=0,
 															perc_actions_executed=perc_actions_executed,
 															dict_num_objs_each_type=dict_num_objs_each_type,
 															dict_num_atoms_each_type=dict_num_atoms_each_type)	
@@ -1334,7 +1334,7 @@ class Generator():
 					# Train on different problem sizes -> problem_size=list_max_actions_goal_state[i]*0.01
 					# Train on a single problem size -> problem_size=0
 					curr_goal_and_init_state_tensors = problems[i].initial_state.atoms_nlm_encoding_with_goal_state(curr_goal_state, self.device,
-																	goal_nlm_max_pred_arity, True, list_max_actions_goal_state[i]*0.01,
+																	goal_nlm_max_pred_arity, True, 0,
 																	perc_actions_executed,
 																	dict_num_objs_each_type=dict_num_objs_each_type, 
 																	dict_num_atoms_each_type_init_state=dict_num_atoms_each_type_init_state,
@@ -1971,7 +1971,7 @@ class Generator():
 		# Train on a single problem size -> problem_size=0
 		init_state_tensors = init_state.atoms_nlm_encoding(device=self.device, max_arity=init_nlm_max_pred_arity,
 														   allowed_virtual_objects=self._allowed_virtual_objects,
-														   problem_size=max_atoms_init_state*0.01,
+														   problem_size=0,
 														   perc_actions_executed=perc_actions_executed,
 														   dict_num_objs_each_type=dict_num_objs_each_type,
 														   dict_num_atoms_each_type=dict_num_atoms_each_type)
@@ -2016,7 +2016,7 @@ class Generator():
 		# Train on different problem sizes -> problem_size=max_actions_goal_state*0.01
 		# Train on a single problem size -> problem_size=0
 		init_and_goal_state_tensors = problem_state.initial_state.atoms_nlm_encoding_with_goal_state(goal_state, self.device, goal_nlm_max_pred_arity, 
-																									 True, max_actions_goal_state*0.01, perc_actions_executed,
+																									 True, 0, perc_actions_executed,
 																									 dict_num_objs_each_type=dict_num_objs_each_type, 
 																									 dict_num_atoms_each_type_init_state=dict_num_atoms_each_type_init_state,
                                            															 dict_num_atoms_each_type_goal_state=dict_num_atoms_each_type_goal_state)
