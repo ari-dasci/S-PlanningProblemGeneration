@@ -1227,7 +1227,6 @@
          - Diversidad
          - Escalado dificultad
 
-
 >  <logistics>
    max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=5.0
    <init_policy_entropy_coeffs: 0.5, (5000, 0.1)>
@@ -1238,6 +1237,71 @@
    > logs: init_policy/version_216
    > saved_models: both_policies_285
 
+      > Entrenamiento (its=7800)
+      - Tiempo (dasci): 6d 17
+      - r_diff (goal_policy)= 160 <muy alto!!>
+      - r_eventual=0
+      - init_policy_entropy=0.55, goal_policy_entropy=0.35
+      - term_cond_prob init_policy converge a 0 y la goal_policy oscila alrededor de 2e-4
+      - num_objs:
+         - city: 2.1
+         - airport: 5
+         - location: 0.85
+         - airplane: 1
+         - truck: 2.1
+         - package: 6 
+
+   > Problemas
+      > its=7000
+         - max_atoms = 15
+            - diff = [97.3 74.3 93.2] (muy alta!!!)
+            - diversidad media-baja
+               - la goal_policy usa drive y fly!!!
+               - Todos los problemas con dos ciudades
+               - Problemas bastante parecidos entre sí
+
+         - max_atoms = 20
+            - diff = [378.9 220.6 311. ] 
+            - todos los problemas con dos ciudades
+
+         - max_atoms = 30
+            - diff = [587.7 402.5 588.8] 
+            - problemas con dos y tres ciudades
+
+         - max_atoms = 40
+            - diff = [701.8 495.  712.8]
+            - problemas con dos y tres ciudades
+
+         >>> Se generan problemas muy difíciles pero con pocas ciudades
+            - La dificultad escala bien pero escalaría mejor si el número
+              de ciudades escalara según el problem size
+
+      > its=5000
+         - max_atoms = 15
+            - diff = [66.1 51. 57.2] (alta)
+            - diversidad alta!
+               - la goal_policy usa drive y fly!!!
+               - Problemas con dos y tres ciudades
+
+         - max_atoms = 20
+            - diff= [108.1  82.5  90.6]
+            - problemas con 2, 3 y 4 ciudades
+
+         - max_atoms = 30
+            - diff= [282.8 198.9 235.8]
+            - problemas con 2, 3 y 4 ciudades
+
+         - max_atoms = 40
+            - diff= [344.5 310.2 513.1]
+            - problemas con 2-5 ciudades
+
+         >>> Se generan problemas muy diversos y la dificultad y número de ciudades
+             escala bien con el problem size!!!
+
+   >>> Este es el mejor modelo hasta la fecha!!!
+      - No obstante, tengo que hacer "early stopping" porque si no la entropía
+        baja demasiado.
+      - Quizás debería aumentar los entropy coeffs!!!
 
 >  <logistics>
    max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=5.0
@@ -1250,21 +1314,38 @@
    > logs: init_policy/version_6
    > saved_models: both_policies_286
 
+   > Entrenamiento (its=60000)
+      - Tiempo (dasci): 6d 16h
+      - r_diff (goal_policy)= 20 (muy baja!!)
+      - r_eventual=-0.5 (no aprende!!)
+      - init_policy_entropy=0.15, goal_policy_entropy=0.5 (fluctúa mucho)
+      - term_cond_prob init_policy converge a 0 y la goal_policy oscila mucho alrededor de 2e-4
+      - num_objs:
+         El número de objetos fluctúa mucho!
+         Locations parece que converge a 0
+         Num cities y airports convergen a 2
+
+   >>> No aprende!!!
+      - Ahora al usar pesos para la diversity reward deja de aprender!!
+      - Debería bajar el diversity rescale factor!!!
+
+   
 
 
-   >>> Creo que la entropía hace que las políticas exploren mejor!! Es por eso
-       que se generan problemas distintos que cuando no usaba action entropy (ej.:
-       con dos ciudades) y estos son más difíciles (a pesar de que la goal policy
-       tiene una entropía muy alta)
-       - Repetir prueba sin goal action entropy (la init policy debería generar problemas casi aleatorios
-         pero la goal policy debería saber resolverlos)
-            - Ver si uso goal action entropy o no (solo init)
-       - Hacer prueba variando más lentamente la init action entropy (ej.: de 0.2 a 0.05) ->
-         quiero ver la gráfica de la init_policy entropy descender más lentamente (no en picado)
-       - Utilizar también un diversity reward más alto (para así evitar que se generen problemas
-         con solo dos ciudades o con pocos locations) -> hay que "obligar" a la init_policy a 
-         generar estados casi aleatorios
-            - Probar a usar pesos, para que se generen problemas con varias ciudades
+
+
+
+
+
+   >>> CREO QUE QUIZÁS NO DEBERÍA BAJAR LA GOAL_POLICY HASTA 0!!!! (se generan problemas
+       muy difíciles cuando la goal policy tiene una alta entropía!!!!)
+
+
+   >> Siguientes experimentos
+       - Si el experimento con diversity_entropy_reward y feature_weights no funciona (se generan problemas
+         con dos ciudades), probar a usar también init policy entropy (ej.: (0.5, 5000, 0)) para que no converja
+         tan rápido
+
 
        - Si esto no es suficiente, entrenar en problemas variando el tamaño, entre 10 y 20/25
          átomos (y ver si debería añadir a la NLM un predicado que sea max_atoms_init_state (ahora

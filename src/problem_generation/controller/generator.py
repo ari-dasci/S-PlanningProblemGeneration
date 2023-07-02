@@ -962,13 +962,13 @@ class Generator():
 			for j in range(i+1, num_states):
 				curr_features_diff = np.abs(feature_matrix[i] - feature_matrix[j]) / (feature_matrix[i] + feature_matrix[j] + epsilon)
 
-				# Don't use feature weights
-				# distance_matrix[i, j] = distance_matrix[j, i] = np.average(curr_features_diff, weights=None) \
-				#												if (i in list_consistent_inds and j in list_consistent_inds) else 0.0
+				# --- Don't use feature weights ---
+				distance_matrix[i, j] = distance_matrix[j, i] = np.average(curr_features_diff, weights=None) \
+																if (i in list_consistent_inds and j in list_consistent_inds) else 0.0
 
 				# --- Use feature weights ---
-				distance_matrix[i, j] = distance_matrix[j, i] = np.average(curr_features_diff, weights=feature_weights) \
-																if (i in list_consistent_inds and j in list_consistent_inds) else 0.0
+				#distance_matrix[i, j] = distance_matrix[j, i] = np.average(curr_features_diff, weights=feature_weights) \
+				#												if (i in list_consistent_inds and j in list_consistent_inds) else 0.0
 
 				# OLD
 				#distance_matrix[i, j] = distance_matrix[j, i] = np.mean(np.abs(feature_matrix[i] - feature_matrix[j]) / (feature_matrix[i] + feature_matrix[j] + epsilon)) \
@@ -1093,12 +1093,12 @@ class Generator():
 					state_atom_names = [atom[0] for atom in state_atoms]
 					dict_num_atoms_each_type = {pred_name : state_atom_names.count(pred_name) / list_max_atoms_init_state[i] for pred_name, _ in curr_state.predicates}
 
-					# DO NOT USE PROBLEM SIZE (i.e., set it to 0 regardless of problem size)
-					# OLD -> problem_size=list_max_atoms_init_state[i]*0.01
-					# NEW -> problem_size=0
+					# Only pass problem size as NLM input if we are training on different problem sizes
+					# Train on different problem sizes -> problem_size=list_max_atoms_init_state[i]*0.01
+					# Train on a single problem size -> problem_size=0
 					curr_state_tensors = curr_state.atoms_nlm_encoding(device=self.device, max_arity=init_nlm_max_pred_arity, 
 															allowed_virtual_objects=self._allowed_virtual_objects,
-															problem_size=0,
+															problem_size=list_max_atoms_init_state[i]*0.01,
 															perc_actions_executed=perc_actions_executed,
 															dict_num_objs_each_type=dict_num_objs_each_type,
 															dict_num_atoms_each_type=dict_num_atoms_each_type)	
@@ -1330,11 +1330,11 @@ class Generator():
 					dict_num_atoms_each_type_goal_state = {pred_name : state_atom_names_goal_state.count(pred_name) / list_max_actions_goal_state[i] \
 														   for pred_name, _ in curr_goal_state.predicates}
 
-					# DO NOT USE PROBLEM SIZE (i.e., set it to 0 regardless of problem size)
-					# OLD -> problem_size=list_max_atoms_goal_state[i]*0.01
-					# NEW -> problem_size=0
+					# Only pass problem size as NLM input if we are training on different problem sizes
+					# Train on different problem sizes -> problem_size=list_max_actions_goal_state[i]*0.01
+					# Train on a single problem size -> problem_size=0
 					curr_goal_and_init_state_tensors = problems[i].initial_state.atoms_nlm_encoding_with_goal_state(curr_goal_state, self.device,
-																	goal_nlm_max_pred_arity, True, 0,
+																	goal_nlm_max_pred_arity, True, list_max_actions_goal_state[i]*0.01,
 																	perc_actions_executed,
 																	dict_num_objs_each_type=dict_num_objs_each_type, 
 																	dict_num_atoms_each_type_init_state=dict_num_atoms_each_type_init_state,
@@ -1966,12 +1966,12 @@ class Generator():
 		state_atom_names = [atom[0] for atom in state_atoms]
 		dict_num_atoms_each_type = {pred_name : state_atom_names.count(pred_name) / max_atoms_init_state for pred_name, _ in init_state.predicates}
 
-		# DO NOT USE PROBLEM SIZE (i.e., set it to 0 regardless of problem size)
-		# OLD -> problem_size=max_atoms_init_state*0.01
-		# NEW -> problem_size=0
+		# Only pass problem size as NLM input if we are training on different problem sizes
+		# Train on different problem sizes -> problem_size=max_atoms_init_state*0.01
+		# Train on a single problem size -> problem_size=0
 		init_state_tensors = init_state.atoms_nlm_encoding(device=self.device, max_arity=init_nlm_max_pred_arity,
 														   allowed_virtual_objects=self._allowed_virtual_objects,
-														   problem_size=0,
+														   problem_size=max_atoms_init_state*0.01,
 														   perc_actions_executed=perc_actions_executed,
 														   dict_num_objs_each_type=dict_num_objs_each_type,
 														   dict_num_atoms_each_type=dict_num_atoms_each_type)
@@ -2012,11 +2012,11 @@ class Generator():
 		state_atom_names_goal_state = [atom[0] for atom in state_atoms_goal_state]
 		dict_num_atoms_each_type_goal_state = {pred_name : state_atom_names_goal_state.count(pred_name) / max_actions_goal_state for pred_name, _ in goal_state.predicates}
 				
-		# DO NOT USE PROBLEM SIZE (i.e., set it to 0 regardless of problem size)
-		# OLD -> problem_size=max_actions_goal_state*0.01
-		# NEW -> problem_size=0
+		# Only pass problem size as NLM input if we are training on different problem sizes
+		# Train on different problem sizes -> problem_size=max_actions_goal_state*0.01
+		# Train on a single problem size -> problem_size=0
 		init_and_goal_state_tensors = problem_state.initial_state.atoms_nlm_encoding_with_goal_state(goal_state, self.device, goal_nlm_max_pred_arity, 
-																									 True, 0, perc_actions_executed,
+																									 True, max_actions_goal_state*0.01, perc_actions_executed,
 																									 dict_num_objs_each_type=dict_num_objs_each_type, 
 																									 dict_num_atoms_each_type_init_state=dict_num_atoms_each_type_init_state,
                                            															 dict_num_atoms_each_type_goal_state=dict_num_atoms_each_type_goal_state)
