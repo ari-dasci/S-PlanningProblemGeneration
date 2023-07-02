@@ -1618,7 +1618,7 @@ class Generator():
 	                        For example, if max_atoms_init_state=15 and max_actions_goal_state=2, then we execute a maximum of 30 actions to generate
 				            problem goals.
 	"""
-	def train_generative_policies(self, training_iterations, start_it=0, epochs_per_train_it=1, trajectories_per_train_it=25, minibatch_size=75,
+	def train_generative_policies(self, training_iterations, start_it=0, epochs_per_train_it=1, trajectories_per_train_it=25, minibatch_size=50,
 								  its_per_model_checkpoint=10, checkpoint_folder="saved_models/both_policies", logs_name="both_policies",
 								  max_atoms_init_state=15, max_actions_init_state=1.0, max_actions_goal_state=2.0):
 		# Obtain folder name to save the model checkpoints in

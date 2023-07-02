@@ -1329,9 +1329,20 @@
       - Ahora al usar pesos para la diversity reward deja de aprender!!
       - Debería bajar el diversity rescale factor!!!
 
+>  <logistics>
+   <max_atoms_init_state=(10,20)>, max_actions_init_state=1, max_actions_goal_state=5.0
+   <init_policy_entropy_coeffs: 0.5, (5000, 0.2)>
+   <goal_policy_entropy_coeffs: 0.5, (5000, 0.1)>
+   <diversity_rescale_factor=0>
+   <no feature_weights for diversity_reward>
+   <nlm receives problem max size as input>
+   <minibatch_size=50>
+
+   > Ejecutándose en Casa
+   > logs: init_policy/version_7
+   > saved_models: both_policies_287
+
    
-
-
 
 
 
