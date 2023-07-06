@@ -1342,6 +1342,8 @@
    > logs: init_policy/version_7
    > saved_models: both_policies_287
 
+   >>> La entropía parece ser demasiado baja!!! (num_locations baja demasiado y num_cities converge a 2)
+
    
 >  <logistics>
    <max_atoms_init_state=15>, max_actions_init_state=1, max_actions_goal_state=5.0
@@ -1355,6 +1357,40 @@
    > Ejecutándose en DaSCI
    > logs: init_policy/version_217
    > saved_models: both_policies_288
+
+   >>> La entropía parece ser demasiado baja!!! (num_locations baja demasiado y num_cities converge a 2)
+
+
+
+
+>  <logistics>
+   <max_atoms_init_state=15>, max_actions_init_state=1, max_actions_goal_state=5.0
+   <init_policy_entropy_coeffs: 0.5, None>
+   <goal_policy_entropy_coeffs: 0.2, None>
+   <diversity_rescale_factor=0>
+   <no feature_weights for diversity_reward>
+   <nlm does NOT receive problem max size as input>
+   <minibatch_size=50>
+
+   > Ejecutándose en DaSCI
+   > logs: init_policy/version_218
+   > saved_models: both_policies_289
+
+
+>  <logistics>
+   <max_atoms_init_state=(10,20))>, max_actions_init_state=1, max_actions_goal_state=5.0
+   <init_policy_entropy_coeffs: 0.5, None>
+   <goal_policy_entropy_coeffs: 0.2, None>
+   <diversity_rescale_factor=0>
+   <no feature_weights for diversity_reward>
+   <nlm does NOT receive problem max size as input>
+   <minibatch_size=50>
+
+   > Ejecutándose en Casa
+   > logs: init_policy/version_8
+   > saved_models: both_policies_290
+
+
 
 
 
