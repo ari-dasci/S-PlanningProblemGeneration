@@ -1361,8 +1361,6 @@
    >>> La entropía parece ser demasiado baja!!! (num_locations baja demasiado y num_cities converge a 2)
 
 
-
-
 >  <logistics>
    <max_atoms_init_state=15>, max_actions_init_state=1, max_actions_goal_state=5.0
    <init_policy_entropy_coeffs: 0.5, None>
@@ -1376,18 +1374,57 @@
    > logs: init_policy/version_218
    > saved_models: both_policies_289
 
+   > Entrenamiento (its=10000)
+      - Tiempo (dasci): 9d
+      - r_diff (goal_policy)= 45
+      - r_eventual=-0.01
+      - init_policy_entropy=0.83, goal_policy_entropy=0.94
+      - term_cond_prob init_policy converge a 0 y la goal_policy oscila alrededor de 2e-3
+      - num_objs:
+         - city: 2.02
+         - airport: 5.3
+         - location: 0.8
+         - airplane: 1.1
+         - truck: 2.1
+         - package: 5.6
+
+   > Problemas
+      > its=10000
+         - max_atoms = 15
+            - diff = [37.9 31.2 35.7] (media-baja)
+            - diversidad media-alta
+               - la goal_policy usa drive y fly!!!
+               - Todos los problemas con dos ciudades
+               - Problemas muy diversos (más allá del hecho de que solo tienen dos ciudades)
+
+         - max_atoms = 20
+            - diff = [83.2 65.5 71.8] (media-alta)
+            - Todos los problemas con dos ciudades
+
+         - max_atoms = 30
+            - diff = [160.9 121.8 113.6] (media-baja)
+            - Todos los problemas con dos ciudades
+
+         - max_atoms = 40
+            - diff = [322.9 248.9 280.1] (media-baja)
+            - Todos los problemas con dos ciudades
+
+   >>> Solo se generan problemas con dos ciudades y la dificultad de los problemas es medio baja
+      - Creo que debería aumentar la init_policy_entropy y bajar la goal_policy_entropy
+
+
+
 
 >  <logistics>
-   <max_atoms_init_state=(10,20))>, max_actions_init_state=1, max_actions_goal_state=5.0
-   <init_policy_entropy_coeffs: 0.5, None>
-   <goal_policy_entropy_coeffs: 0.2, None>
-   <diversity_rescale_factor=0>
-   <no feature_weights for diversity_reward>
+   <max_atoms_init_state=15>, max_actions_init_state=1, max_actions_goal_state=5.0
+   <init_policy_entropy_coeffs: 1, None>
+   <goal_policy_entropy_coeffs: 0.05, None>
+   diversity_rescale_factor=0
    <nlm does NOT receive problem max size as input>
    <minibatch_size=50>
 
-   > Ejecutándose en Casa
-   > logs: init_policy/version_8
+   > Ejecutándose en DaSCI
+   > logs: init_policy/version_219
    > saved_models: both_policies_290
 
 
@@ -1395,16 +1432,26 @@
 
 
 
-   >>> CREO QUE QUIZÁS NO DEBERÍA BAJAR LA GOAL_POLICY HASTA 0!!!! (se generan problemas
-       muy difíciles cuando la goal policy tiene una alta entropía!!!!)
+
+----------------
+Mejor modelo hasta la fecha
+
+Early stopping en 5000 its
+diversity_rescale_factor=50
+<init_policy_entropy_coeffs: 0.5, (5000, 0.1)>
+<goal_policy_entropy_coeffs: 0.5, (5000, 0)>
+----------------
 
 
-   >> Siguientes experimentos
-       - Si el experimento con diversity_entropy_reward y feature_weights no funciona (se generan problemas
-         con dos ciudades), probar a usar también init policy entropy (ej.: (0.5, 5000, 0)) para que no converja
-         tan rápido
+-------- Siguientes experimentos
 
+> Ver mejores valores de entropía (para que no tenga que hacer early stopping)
+   - init=1, goal=0.05
+   - init=1, goal=0.1
 
-       - Si esto no es suficiente, entrenar en problemas variando el tamaño, entre 10 y 20/25
-         átomos (y ver si debería añadir a la NLM un predicado que sea max_atoms_init_state (ahora
-         mismo lo he puesto a 0))
+   - Si no, 
+   - init=0.5, goal=0.1
+   - init=0.5, goal=0.05
+
+> Probar si entrenar sobre varios tamaños de problema (10, 20) y (15, 20)
+  mejora la generalización
