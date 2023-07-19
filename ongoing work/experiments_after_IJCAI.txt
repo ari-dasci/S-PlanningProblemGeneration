@@ -1413,8 +1413,6 @@
       - Creo que debería aumentar la init_policy_entropy y bajar la goal_policy_entropy
 
 
-
-
 >  <logistics>
    <max_atoms_init_state=15>, max_actions_init_state=1, max_actions_goal_state=5.0
    <init_policy_entropy_coeffs: 1, None>
@@ -1427,8 +1425,71 @@
    > logs: init_policy/version_219
    > saved_models: both_policies_290
 
+   > Paré el entrenamiento a mitad a 7000 its
+      - Tiempo: 2d 22h
+      - num_cities baja hasta 2.02
+      - r_diff llega hasta 30
+      - goal_policy_entropy=0.91, init_policy_entropy=0.89
+      - r_eventual=-0.05
+      - num_objs:
+         - city: 2.02
+         - airport: 4.6
+         - location: 2.1
+         - airplane: 1.5
+         - truck: 2.5
+         - package: 4.3
 
 
+>  <logistics>
+   <max_atoms_init_state=15>, max_actions_init_state=1, max_actions_goal_state=5.0
+   <init_policy_entropy_coeffs: 1, None>
+   <goal_policy_entropy_coeffs: 0.1, None>
+   diversity_rescale_factor=0
+   <nlm does NOT receive problem max size as input>
+   <minibatch_size=50>
+
+   > Ejecutándose en Casa
+   > logs: init_policy/version_9
+   > saved_models: both_policies_291
+
+   > Paré el entrenamiento a mitad
+      - Resultados muy parecidos al experimento anterior (goal_policy_entropy_coeffs=0.05, None)
+      - num_cities baja hasta 2.02
+
+
+
+
+>  <logistics>
+   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=5.0
+   <init_policy_entropy_coeffs: 0.5, None>
+   <goal_policy_entropy_coeffs: 0.1, None>
+   <diversity_rescale_factor=50>
+   <use feature_weights for diversity_reward>
+   nlm does NOT receive problem max size as input
+
+   > Ejecutándose en Casa
+   > logs: init_policy/version_10
+   > saved_models: both_policies_292 (casa)
+
+
+>  <logistics>
+   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=5.0
+   <init_policy_entropy_coeffs: 0.2, None>
+   <goal_policy_entropy_coeffs: 0.1, None>
+   <diversity_rescale_factor=50>
+   <use feature_weights for diversity_reward>
+   nlm does NOT receive problem max size as input
+
+   > Ejecutándose en DaSCI
+   > logs: init_policy/version_221
+   > saved_models: both_policies_292 (dasci)
+
+
+
+
+  >>> VER SI ES MEJOR USAR init_policy_entropy 0.2 o 0.5!!!
+   - Ver cuándo se generan más ciudades
+   - Ver cuándo son más difíciles los problemas
 
 
 
@@ -1437,7 +1498,7 @@
 Mejor modelo hasta la fecha
 
 Early stopping en 5000 its
-diversity_rescale_factor=50
+diversity_rescale_factor=50 (sin feature_weights)
 <init_policy_entropy_coeffs: 0.5, (5000, 0.1)>
 <goal_policy_entropy_coeffs: 0.5, (5000, 0)>
 ----------------
@@ -1448,10 +1509,12 @@ diversity_rescale_factor=50
 > Ver mejores valores de entropía (para que no tenga que hacer early stopping)
    - init=1, goal=0.05
    - init=1, goal=0.1
+   -> No funcionan bien!!! La dificultad disminuye al aumentar los entropy_coeffs, pero no
+      aumenta el número de ciudades!
+   >>> CREO QUE ES NECESARIO USAR DIVERSITY_REWARD ADEMÁS DE POLICY ENTROPY
 
-   - Si no, 
-   - init=0.5, goal=0.1
-   - init=0.5, goal=0.05
+   - Experimentos con policy_entropy y diversity_reward
+      - Ver qué debería aumentar para que se generen más ciudades y a la vez problemas difíciles
+         - init_policy entropy o diversity_reward
 
-> Probar si entrenar sobre varios tamaños de problema (10, 20) y (15, 20)
-  mejora la generalización
+      - Probar goal_policy entropy vs no goal_policy entropy
