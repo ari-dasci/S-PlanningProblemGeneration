@@ -847,7 +847,7 @@ def test_train_init_and_goal_policy_logistics():
 									res_connections_initial_state_nlm=False,
 									exclude_self_inital_state_nlm=True,
 									lr_initial_state_nlm = 1e-3,
-									entropy_coeff_init_state_policy = 0.5,
+									entropy_coeff_init_state_policy = 0.2,
 									entropy_annealing_coeffs_init_state_policy = None,
 									epsilon_init_state_policy=0.1,
 
@@ -858,8 +858,8 @@ def test_train_init_and_goal_policy_logistics():
 									res_connections_goal_nlm=False,
 									exclude_self_goal_nlm=True,
 									lr_goal_nlm = 1e-3,
-									entropy_coeff_goal_policy = 0.1,
-									entropy_annealing_coeffs_goal_policy = None,
+									entropy_coeff_goal_policy = 0.2,
+									entropy_annealing_coeffs_goal_policy = (10000, 0),
 									epsilon_goal_policy=0.1)
 
 	# Train the goal generation policy
@@ -962,9 +962,9 @@ def test_load_models_and_resume_training_logistics():
 	consistency_validator = ConsistencyValidatorLogistics(parser.types, parser.predicates)
 
 	# Create the generator and load the trained models
-	curr_it = 8150 # It of the loaded model, used to resume training
-	init_policy_path = "saved_models/both_policies_281/init_policy_its-{}.ckpt".format(curr_it)
-	goal_policy_path = "saved_models/both_policies_281/goal_policy_its-{}.ckpt".format(curr_it)
+	curr_it = 26200 # It of the loaded model, used to resume training
+	init_policy_path = "saved_models/both_policies_294/init_policy_its-{}.ckpt".format(curr_it)
+	goal_policy_path = "saved_models/both_policies_294/goal_policy_its-{}.ckpt".format(curr_it)
 	
 	# The goal_nlm_layers need to account for arity 4, as one action has 4 parameters
 	# We also need to have some predicates of arity 3 in the last layer or, else, there will be no predicates to compute the action of arity 4

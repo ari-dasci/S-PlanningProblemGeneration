@@ -4,34 +4,36 @@ end_version
 begin_metric
 0
 end_metric
-10
+9
 begin_variable
 var0
 -1
 2
-Atom at(obj6, obj2)
-Atom at(obj6, obj8)
+Atom at(obj9, obj2)
+Atom at(obj9, obj8)
 end_variable
 begin_variable
 var1
 -1
 2
-Atom at(obj5, obj0)
-Atom at(obj5, obj7)
+Atom at(obj7, obj2)
+Atom at(obj7, obj8)
 end_variable
 begin_variable
 var2
 -1
-2
-Atom at(obj4, obj0)
-Atom at(obj4, obj7)
+3
+Atom at(obj5, obj0)
+Atom at(obj5, obj4)
+Atom at(obj5, obj6)
 end_variable
 begin_variable
 var3
 -1
-2
-Atom at(obj15, obj2)
-Atom at(obj15, obj8)
+3
+Atom at(obj15, obj0)
+Atom at(obj15, obj4)
+Atom at(obj15, obj6)
 end_variable
 begin_variable
 var4
@@ -39,65 +41,57 @@ var4
 4
 Atom at(obj13, obj0)
 Atom at(obj13, obj2)
-Atom at(obj13, obj7)
+Atom at(obj13, obj6)
 Atom at(obj13, obj8)
 end_variable
 begin_variable
 var5
 -1
-4
+3
 Atom at(obj12, obj0)
-Atom at(obj12, obj2)
-Atom at(obj12, obj7)
-Atom at(obj12, obj8)
+Atom at(obj12, obj4)
+Atom at(obj12, obj6)
 end_variable
 begin_variable
 var6
 -1
 2
-Atom at(obj11, obj2)
-Atom at(obj11, obj8)
+Atom at(obj10, obj2)
+Atom at(obj10, obj8)
 end_variable
 begin_variable
 var7
 -1
-2
-Atom at(obj10, obj0)
-Atom at(obj10, obj7)
+12
+Atom at(obj16, obj0)
+Atom at(obj16, obj2)
+Atom at(obj16, obj4)
+Atom at(obj16, obj6)
+Atom at(obj16, obj8)
+Atom in(obj16, obj10)
+Atom in(obj16, obj12)
+Atom in(obj16, obj13)
+Atom in(obj16, obj15)
+Atom in(obj16, obj5)
+Atom in(obj16, obj7)
+Atom in(obj16, obj9)
 end_variable
 begin_variable
 var8
 -1
 12
-Atom at(obj9, obj0)
-Atom at(obj9, obj2)
-Atom at(obj9, obj7)
-Atom at(obj9, obj8)
-Atom in(obj9, obj10)
-Atom in(obj9, obj11)
-Atom in(obj9, obj12)
-Atom in(obj9, obj13)
-Atom in(obj9, obj15)
-Atom in(obj9, obj4)
-Atom in(obj9, obj5)
-Atom in(obj9, obj6)
-end_variable
-begin_variable
-var9
--1
-12
-Atom at(obj16, obj0)
-Atom at(obj16, obj2)
-Atom at(obj16, obj7)
-Atom at(obj16, obj8)
-Atom in(obj16, obj10)
-Atom in(obj16, obj11)
-Atom in(obj16, obj12)
-Atom in(obj16, obj13)
-Atom in(obj16, obj15)
-Atom in(obj16, obj4)
-Atom in(obj16, obj5)
-Atom in(obj16, obj6)
+Atom at(obj11, obj0)
+Atom at(obj11, obj2)
+Atom at(obj11, obj4)
+Atom at(obj11, obj6)
+Atom at(obj11, obj8)
+Atom in(obj11, obj10)
+Atom in(obj11, obj12)
+Atom in(obj11, obj13)
+Atom in(obj11, obj15)
+Atom in(obj11, obj5)
+Atom in(obj11, obj7)
+Atom in(obj11, obj9)
 end_variable
 0
 begin_state
@@ -105,185 +99,184 @@ begin_state
 0
 0
 1
-3
-0
-0
-0
-0
 2
+0
+1
+2
+4
 end_state
 begin_goal
 2
+7 2
 8 1
-9 0
 end_goal
-116
+112
 begin_operator
-drive obj10 obj0 obj7
-0
-1
-0 7 0 1
-1
-end_operator
-begin_operator
-drive obj10 obj7 obj0
-0
-1
-0 7 1 0
-1
-end_operator
-begin_operator
-drive obj11 obj2 obj8
+drive obj10 obj2 obj8
 0
 1
 0 6 0 1
 1
 end_operator
 begin_operator
-drive obj11 obj8 obj2
+drive obj10 obj8 obj2
 0
 1
 0 6 1 0
 1
 end_operator
 begin_operator
-drive obj15 obj2 obj8
-0
-1
-0 3 0 1
-1
-end_operator
-begin_operator
-drive obj15 obj8 obj2
-0
-1
-0 3 1 0
-1
-end_operator
-begin_operator
-drive obj4 obj0 obj7
-0
-1
-0 2 0 1
-1
-end_operator
-begin_operator
-drive obj4 obj7 obj0
-0
-1
-0 2 1 0
-1
-end_operator
-begin_operator
-drive obj5 obj0 obj7
-0
-1
-0 1 0 1
-1
-end_operator
-begin_operator
-drive obj5 obj7 obj0
-0
-1
-0 1 1 0
-1
-end_operator
-begin_operator
-drive obj6 obj2 obj8
-0
-1
-0 0 0 1
-1
-end_operator
-begin_operator
-drive obj6 obj8 obj2
-0
-1
-0 0 1 0
-1
-end_operator
-begin_operator
-fly obj12 obj0 obj2
+drive obj12 obj0 obj4
 0
 1
 0 5 0 1
 1
 end_operator
 begin_operator
-fly obj12 obj0 obj7
+drive obj12 obj0 obj6
 0
 1
 0 5 0 2
 1
 end_operator
 begin_operator
-fly obj12 obj0 obj8
-0
-1
-0 5 0 3
-1
-end_operator
-begin_operator
-fly obj12 obj2 obj0
+drive obj12 obj4 obj0
 0
 1
 0 5 1 0
 1
 end_operator
 begin_operator
-fly obj12 obj2 obj7
+drive obj12 obj4 obj6
 0
 1
 0 5 1 2
 1
 end_operator
 begin_operator
-fly obj12 obj2 obj8
-0
-1
-0 5 1 3
-1
-end_operator
-begin_operator
-fly obj12 obj7 obj0
+drive obj12 obj6 obj0
 0
 1
 0 5 2 0
 1
 end_operator
 begin_operator
-fly obj12 obj7 obj2
+drive obj12 obj6 obj4
 0
 1
 0 5 2 1
 1
 end_operator
 begin_operator
-fly obj12 obj7 obj8
+drive obj15 obj0 obj4
 0
 1
-0 5 2 3
+0 3 0 1
 1
 end_operator
 begin_operator
-fly obj12 obj8 obj0
+drive obj15 obj0 obj6
 0
 1
-0 5 3 0
+0 3 0 2
 1
 end_operator
 begin_operator
-fly obj12 obj8 obj2
+drive obj15 obj4 obj0
 0
 1
-0 5 3 1
+0 3 1 0
 1
 end_operator
 begin_operator
-fly obj12 obj8 obj7
+drive obj15 obj4 obj6
 0
 1
-0 5 3 2
+0 3 1 2
+1
+end_operator
+begin_operator
+drive obj15 obj6 obj0
+0
+1
+0 3 2 0
+1
+end_operator
+begin_operator
+drive obj15 obj6 obj4
+0
+1
+0 3 2 1
+1
+end_operator
+begin_operator
+drive obj5 obj0 obj4
+0
+1
+0 2 0 1
+1
+end_operator
+begin_operator
+drive obj5 obj0 obj6
+0
+1
+0 2 0 2
+1
+end_operator
+begin_operator
+drive obj5 obj4 obj0
+0
+1
+0 2 1 0
+1
+end_operator
+begin_operator
+drive obj5 obj4 obj6
+0
+1
+0 2 1 2
+1
+end_operator
+begin_operator
+drive obj5 obj6 obj0
+0
+1
+0 2 2 0
+1
+end_operator
+begin_operator
+drive obj5 obj6 obj4
+0
+1
+0 2 2 1
+1
+end_operator
+begin_operator
+drive obj7 obj2 obj8
+0
+1
+0 1 0 1
+1
+end_operator
+begin_operator
+drive obj7 obj8 obj2
+0
+1
+0 1 1 0
+1
+end_operator
+begin_operator
+drive obj9 obj2 obj8
+0
+1
+0 0 0 1
+1
+end_operator
+begin_operator
+drive obj9 obj8 obj2
+0
+1
+0 0 1 0
 1
 end_operator
 begin_operator
@@ -294,7 +287,7 @@ fly obj13 obj0 obj2
 1
 end_operator
 begin_operator
-fly obj13 obj0 obj7
+fly obj13 obj0 obj6
 0
 1
 0 4 0 2
@@ -315,7 +308,7 @@ fly obj13 obj2 obj0
 1
 end_operator
 begin_operator
-fly obj13 obj2 obj7
+fly obj13 obj2 obj6
 0
 1
 0 4 1 2
@@ -329,21 +322,21 @@ fly obj13 obj2 obj8
 1
 end_operator
 begin_operator
-fly obj13 obj7 obj0
+fly obj13 obj6 obj0
 0
 1
 0 4 2 0
 1
 end_operator
 begin_operator
-fly obj13 obj7 obj2
+fly obj13 obj6 obj2
 0
 1
 0 4 2 1
 1
 end_operator
 begin_operator
-fly obj13 obj7 obj8
+fly obj13 obj6 obj8
 0
 1
 0 4 2 3
@@ -364,62 +357,14 @@ fly obj13 obj8 obj2
 1
 end_operator
 begin_operator
-fly obj13 obj8 obj7
+fly obj13 obj8 obj6
 0
 1
 0 4 3 2
 1
 end_operator
 begin_operator
-load obj10 obj16 obj0
-1
-7 0
-1
-0 9 0 4
-1
-end_operator
-begin_operator
-load obj10 obj16 obj7
-1
-7 1
-1
-0 9 2 4
-1
-end_operator
-begin_operator
-load obj10 obj9 obj0
-1
-7 0
-1
-0 8 0 4
-1
-end_operator
-begin_operator
-load obj10 obj9 obj7
-1
-7 1
-1
-0 8 2 4
-1
-end_operator
-begin_operator
-load obj11 obj16 obj2
-1
-6 0
-1
-0 9 1 5
-1
-end_operator
-begin_operator
-load obj11 obj16 obj8
-1
-6 1
-1
-0 9 3 5
-1
-end_operator
-begin_operator
-load obj11 obj9 obj2
+load obj10 obj11 obj2
 1
 6 0
 1
@@ -427,47 +372,31 @@ load obj11 obj9 obj2
 1
 end_operator
 begin_operator
-load obj11 obj9 obj8
+load obj10 obj11 obj8
 1
 6 1
 1
-0 8 3 5
+0 8 4 5
 1
 end_operator
 begin_operator
-load obj12 obj16 obj0
+load obj10 obj16 obj2
 1
-5 0
+6 0
 1
-0 9 0 6
-1
-end_operator
-begin_operator
-load obj12 obj16 obj2
-1
-5 1
-1
-0 9 1 6
+0 7 1 5
 1
 end_operator
 begin_operator
-load obj12 obj16 obj7
+load obj10 obj16 obj8
 1
-5 2
+6 1
 1
-0 9 2 6
-1
-end_operator
-begin_operator
-load obj12 obj16 obj8
-1
-5 3
-1
-0 9 3 6
+0 7 4 5
 1
 end_operator
 begin_operator
-load obj12 obj9 obj0
+load obj12 obj11 obj0
 1
 5 0
 1
@@ -475,63 +404,47 @@ load obj12 obj9 obj0
 1
 end_operator
 begin_operator
-load obj12 obj9 obj2
+load obj12 obj11 obj4
 1
 5 1
-1
-0 8 1 6
-1
-end_operator
-begin_operator
-load obj12 obj9 obj7
-1
-5 2
 1
 0 8 2 6
 1
 end_operator
 begin_operator
-load obj12 obj9 obj8
+load obj12 obj11 obj6
 1
-5 3
+5 2
 1
 0 8 3 6
 1
 end_operator
 begin_operator
-load obj13 obj16 obj0
+load obj12 obj16 obj0
 1
-4 0
+5 0
 1
-0 9 0 7
-1
-end_operator
-begin_operator
-load obj13 obj16 obj2
-1
-4 1
-1
-0 9 1 7
+0 7 0 6
 1
 end_operator
 begin_operator
-load obj13 obj16 obj7
+load obj12 obj16 obj4
 1
-4 2
+5 1
 1
-0 9 2 7
-1
-end_operator
-begin_operator
-load obj13 obj16 obj8
-1
-4 3
-1
-0 9 3 7
+0 7 2 6
 1
 end_operator
 begin_operator
-load obj13 obj9 obj0
+load obj12 obj16 obj6
+1
+5 2
+1
+0 7 3 6
+1
+end_operator
+begin_operator
+load obj13 obj11 obj0
 1
 4 0
 1
@@ -539,7 +452,7 @@ load obj13 obj9 obj0
 1
 end_operator
 begin_operator
-load obj13 obj9 obj2
+load obj13 obj11 obj2
 1
 4 1
 1
@@ -547,71 +460,103 @@ load obj13 obj9 obj2
 1
 end_operator
 begin_operator
-load obj13 obj9 obj7
+load obj13 obj11 obj6
 1
 4 2
-1
-0 8 2 7
-1
-end_operator
-begin_operator
-load obj13 obj9 obj8
-1
-4 3
 1
 0 8 3 7
 1
 end_operator
 begin_operator
-load obj15 obj16 obj2
+load obj13 obj11 obj8
+1
+4 3
+1
+0 8 4 7
+1
+end_operator
+begin_operator
+load obj13 obj16 obj0
+1
+4 0
+1
+0 7 0 7
+1
+end_operator
+begin_operator
+load obj13 obj16 obj2
+1
+4 1
+1
+0 7 1 7
+1
+end_operator
+begin_operator
+load obj13 obj16 obj6
+1
+4 2
+1
+0 7 3 7
+1
+end_operator
+begin_operator
+load obj13 obj16 obj8
+1
+4 3
+1
+0 7 4 7
+1
+end_operator
+begin_operator
+load obj15 obj11 obj0
 1
 3 0
 1
-0 9 1 8
+0 8 0 8
 1
 end_operator
 begin_operator
-load obj15 obj16 obj8
+load obj15 obj11 obj4
 1
 3 1
 1
-0 9 3 8
+0 8 2 8
 1
 end_operator
 begin_operator
-load obj15 obj9 obj2
+load obj15 obj11 obj6
 1
-3 0
-1
-0 8 1 8
-1
-end_operator
-begin_operator
-load obj15 obj9 obj8
-1
-3 1
+3 2
 1
 0 8 3 8
 1
 end_operator
 begin_operator
-load obj4 obj16 obj0
+load obj15 obj16 obj0
 1
-2 0
+3 0
 1
-0 9 0 9
-1
-end_operator
-begin_operator
-load obj4 obj16 obj7
-1
-2 1
-1
-0 9 2 9
+0 7 0 8
 1
 end_operator
 begin_operator
-load obj4 obj9 obj0
+load obj15 obj16 obj4
+1
+3 1
+1
+0 7 2 8
+1
+end_operator
+begin_operator
+load obj15 obj16 obj6
+1
+3 2
+1
+0 7 3 8
+1
+end_operator
+begin_operator
+load obj5 obj11 obj0
 1
 2 0
 1
@@ -619,7 +564,7 @@ load obj4 obj9 obj0
 1
 end_operator
 begin_operator
-load obj4 obj9 obj7
+load obj5 obj11 obj4
 1
 2 1
 1
@@ -627,55 +572,71 @@ load obj4 obj9 obj7
 1
 end_operator
 begin_operator
+load obj5 obj11 obj6
+1
+2 2
+1
+0 8 3 9
+1
+end_operator
+begin_operator
 load obj5 obj16 obj0
 1
-1 0
+2 0
 1
-0 9 0 10
+0 7 0 9
 1
 end_operator
 begin_operator
-load obj5 obj16 obj7
+load obj5 obj16 obj4
+1
+2 1
+1
+0 7 2 9
+1
+end_operator
+begin_operator
+load obj5 obj16 obj6
+1
+2 2
+1
+0 7 3 9
+1
+end_operator
+begin_operator
+load obj7 obj11 obj2
+1
+1 0
+1
+0 8 1 10
+1
+end_operator
+begin_operator
+load obj7 obj11 obj8
 1
 1 1
 1
-0 9 2 10
+0 8 4 10
 1
 end_operator
 begin_operator
-load obj5 obj9 obj0
+load obj7 obj16 obj2
 1
 1 0
 1
-0 8 0 10
+0 7 1 10
 1
 end_operator
 begin_operator
-load obj5 obj9 obj7
+load obj7 obj16 obj8
 1
 1 1
 1
-0 8 2 10
+0 7 4 10
 1
 end_operator
 begin_operator
-load obj6 obj16 obj2
-1
-0 0
-1
-0 9 1 11
-1
-end_operator
-begin_operator
-load obj6 obj16 obj8
-1
-0 1
-1
-0 9 3 11
-1
-end_operator
-begin_operator
-load obj6 obj9 obj2
+load obj9 obj11 obj2
 1
 0 0
 1
@@ -683,63 +644,31 @@ load obj6 obj9 obj2
 1
 end_operator
 begin_operator
-load obj6 obj9 obj8
+load obj9 obj11 obj8
 1
 0 1
 1
-0 8 3 11
+0 8 4 11
 1
 end_operator
 begin_operator
-unload obj10 obj16 obj0
+load obj9 obj16 obj2
 1
-7 0
+0 0
 1
-0 9 4 0
-1
-end_operator
-begin_operator
-unload obj10 obj16 obj7
-1
-7 1
-1
-0 9 4 2
+0 7 1 11
 1
 end_operator
 begin_operator
-unload obj10 obj9 obj0
+load obj9 obj16 obj8
 1
-7 0
+0 1
 1
-0 8 4 0
-1
-end_operator
-begin_operator
-unload obj10 obj9 obj7
-1
-7 1
-1
-0 8 4 2
+0 7 4 11
 1
 end_operator
 begin_operator
-unload obj11 obj16 obj2
-1
-6 0
-1
-0 9 5 1
-1
-end_operator
-begin_operator
-unload obj11 obj16 obj8
-1
-6 1
-1
-0 9 5 3
-1
-end_operator
-begin_operator
-unload obj11 obj9 obj2
+unload obj10 obj11 obj2
 1
 6 0
 1
@@ -747,47 +676,31 @@ unload obj11 obj9 obj2
 1
 end_operator
 begin_operator
-unload obj11 obj9 obj8
+unload obj10 obj11 obj8
 1
 6 1
 1
-0 8 5 3
+0 8 5 4
 1
 end_operator
 begin_operator
-unload obj12 obj16 obj0
+unload obj10 obj16 obj2
 1
-5 0
+6 0
 1
-0 9 6 0
-1
-end_operator
-begin_operator
-unload obj12 obj16 obj2
-1
-5 1
-1
-0 9 6 1
+0 7 5 1
 1
 end_operator
 begin_operator
-unload obj12 obj16 obj7
+unload obj10 obj16 obj8
 1
-5 2
+6 1
 1
-0 9 6 2
-1
-end_operator
-begin_operator
-unload obj12 obj16 obj8
-1
-5 3
-1
-0 9 6 3
+0 7 5 4
 1
 end_operator
 begin_operator
-unload obj12 obj9 obj0
+unload obj12 obj11 obj0
 1
 5 0
 1
@@ -795,63 +708,47 @@ unload obj12 obj9 obj0
 1
 end_operator
 begin_operator
-unload obj12 obj9 obj2
+unload obj12 obj11 obj4
 1
 5 1
-1
-0 8 6 1
-1
-end_operator
-begin_operator
-unload obj12 obj9 obj7
-1
-5 2
 1
 0 8 6 2
 1
 end_operator
 begin_operator
-unload obj12 obj9 obj8
+unload obj12 obj11 obj6
 1
-5 3
+5 2
 1
 0 8 6 3
 1
 end_operator
 begin_operator
-unload obj13 obj16 obj0
+unload obj12 obj16 obj0
 1
-4 0
+5 0
 1
-0 9 7 0
-1
-end_operator
-begin_operator
-unload obj13 obj16 obj2
-1
-4 1
-1
-0 9 7 1
+0 7 6 0
 1
 end_operator
 begin_operator
-unload obj13 obj16 obj7
+unload obj12 obj16 obj4
 1
-4 2
+5 1
 1
-0 9 7 2
-1
-end_operator
-begin_operator
-unload obj13 obj16 obj8
-1
-4 3
-1
-0 9 7 3
+0 7 6 2
 1
 end_operator
 begin_operator
-unload obj13 obj9 obj0
+unload obj12 obj16 obj6
+1
+5 2
+1
+0 7 6 3
+1
+end_operator
+begin_operator
+unload obj13 obj11 obj0
 1
 4 0
 1
@@ -859,7 +756,7 @@ unload obj13 obj9 obj0
 1
 end_operator
 begin_operator
-unload obj13 obj9 obj2
+unload obj13 obj11 obj2
 1
 4 1
 1
@@ -867,71 +764,103 @@ unload obj13 obj9 obj2
 1
 end_operator
 begin_operator
-unload obj13 obj9 obj7
+unload obj13 obj11 obj6
 1
 4 2
-1
-0 8 7 2
-1
-end_operator
-begin_operator
-unload obj13 obj9 obj8
-1
-4 3
 1
 0 8 7 3
 1
 end_operator
 begin_operator
-unload obj15 obj16 obj2
+unload obj13 obj11 obj8
+1
+4 3
+1
+0 8 7 4
+1
+end_operator
+begin_operator
+unload obj13 obj16 obj0
+1
+4 0
+1
+0 7 7 0
+1
+end_operator
+begin_operator
+unload obj13 obj16 obj2
+1
+4 1
+1
+0 7 7 1
+1
+end_operator
+begin_operator
+unload obj13 obj16 obj6
+1
+4 2
+1
+0 7 7 3
+1
+end_operator
+begin_operator
+unload obj13 obj16 obj8
+1
+4 3
+1
+0 7 7 4
+1
+end_operator
+begin_operator
+unload obj15 obj11 obj0
 1
 3 0
 1
-0 9 8 1
+0 8 8 0
 1
 end_operator
 begin_operator
-unload obj15 obj16 obj8
+unload obj15 obj11 obj4
 1
 3 1
 1
-0 9 8 3
+0 8 8 2
 1
 end_operator
 begin_operator
-unload obj15 obj9 obj2
+unload obj15 obj11 obj6
 1
-3 0
-1
-0 8 8 1
-1
-end_operator
-begin_operator
-unload obj15 obj9 obj8
-1
-3 1
+3 2
 1
 0 8 8 3
 1
 end_operator
 begin_operator
-unload obj4 obj16 obj0
+unload obj15 obj16 obj0
 1
-2 0
+3 0
 1
-0 9 9 0
-1
-end_operator
-begin_operator
-unload obj4 obj16 obj7
-1
-2 1
-1
-0 9 9 2
+0 7 8 0
 1
 end_operator
 begin_operator
-unload obj4 obj9 obj0
+unload obj15 obj16 obj4
+1
+3 1
+1
+0 7 8 2
+1
+end_operator
+begin_operator
+unload obj15 obj16 obj6
+1
+3 2
+1
+0 7 8 3
+1
+end_operator
+begin_operator
+unload obj5 obj11 obj0
 1
 2 0
 1
@@ -939,7 +868,7 @@ unload obj4 obj9 obj0
 1
 end_operator
 begin_operator
-unload obj4 obj9 obj7
+unload obj5 obj11 obj4
 1
 2 1
 1
@@ -947,55 +876,71 @@ unload obj4 obj9 obj7
 1
 end_operator
 begin_operator
+unload obj5 obj11 obj6
+1
+2 2
+1
+0 8 9 3
+1
+end_operator
+begin_operator
 unload obj5 obj16 obj0
 1
-1 0
+2 0
 1
-0 9 10 0
+0 7 9 0
 1
 end_operator
 begin_operator
-unload obj5 obj16 obj7
+unload obj5 obj16 obj4
+1
+2 1
+1
+0 7 9 2
+1
+end_operator
+begin_operator
+unload obj5 obj16 obj6
+1
+2 2
+1
+0 7 9 3
+1
+end_operator
+begin_operator
+unload obj7 obj11 obj2
+1
+1 0
+1
+0 8 10 1
+1
+end_operator
+begin_operator
+unload obj7 obj11 obj8
 1
 1 1
 1
-0 9 10 2
+0 8 10 4
 1
 end_operator
 begin_operator
-unload obj5 obj9 obj0
+unload obj7 obj16 obj2
 1
 1 0
 1
-0 8 10 0
+0 7 10 1
 1
 end_operator
 begin_operator
-unload obj5 obj9 obj7
+unload obj7 obj16 obj8
 1
 1 1
 1
-0 8 10 2
+0 7 10 4
 1
 end_operator
 begin_operator
-unload obj6 obj16 obj2
-1
-0 0
-1
-0 9 11 1
-1
-end_operator
-begin_operator
-unload obj6 obj16 obj8
-1
-0 1
-1
-0 9 11 3
-1
-end_operator
-begin_operator
-unload obj6 obj9 obj2
+unload obj9 obj11 obj2
 1
 0 0
 1
@@ -1003,11 +948,27 @@ unload obj6 obj9 obj2
 1
 end_operator
 begin_operator
-unload obj6 obj9 obj8
+unload obj9 obj11 obj8
 1
 0 1
 1
-0 8 11 3
+0 8 11 4
+1
+end_operator
+begin_operator
+unload obj9 obj16 obj2
+1
+0 0
+1
+0 7 11 1
+1
+end_operator
+begin_operator
+unload obj9 obj16 obj8
+1
+0 1
+1
+0 7 11 4
 1
 end_operator
 0
