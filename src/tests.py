@@ -847,7 +847,7 @@ def test_train_init_and_goal_policy_logistics():
 									res_connections_initial_state_nlm=False,
 									exclude_self_inital_state_nlm=True,
 									lr_initial_state_nlm = 1e-3,
-									entropy_coeff_init_state_policy = 0.2,
+									entropy_coeff_init_state_policy = 0.1,
 									entropy_annealing_coeffs_init_state_policy = None,
 									epsilon_init_state_policy=0.1,
 
@@ -893,8 +893,8 @@ def test_load_models_and_generate_problems_logistics():
 	consistency_validator = ConsistencyValidatorLogistics(parser.types, parser.predicates)
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_284/init_policy_its-9000.ckpt"
-	goal_policy_path = "saved_models/both_policies_284/goal_policy_its-9000.ckpt"
+	init_policy_path = "saved_models/both_policies_0/init_policy_its-25000.ckpt"
+	goal_policy_path = "saved_models/both_policies_0/goal_policy_its-25000.ckpt"
 	
 	# The goal_nlm_layers need to account for arity 4, as one action has 4 parameters
 	# We also need to have some predicates of arity 3 in the last layer or, else, there will be no predicates to compute the action of arity 4
@@ -935,7 +935,7 @@ def test_load_models_and_generate_problems_logistics():
 	# Generate the set of problems with the trained initial policy
 	num_problems = 10
 
-	generator.generate_problems(num_problems, max_atoms_init_state=15, max_actions_init_state=1,
+	generator.generate_problems(num_problems, max_atoms_init_state=40, max_actions_init_state=1,
 								 max_actions_goal_state=5, verbose=True)	
 	
 

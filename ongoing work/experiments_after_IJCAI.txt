@@ -1523,7 +1523,7 @@
    > saved_models: both_policies_293, 294, 295 (casa)
 
    > Entrenamiento (its=55000)
-      - Tiempo (dasci): 13d
+      - Tiempo (casa): 13d
       - r_diff (goal_policy)= 35
       - r_eventual=-0.25
       - init_policy_entropy=0.77, goal_policy_entropy=0.15
@@ -1543,16 +1543,69 @@
    max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=5.0
    <init_policy_entropy_coeffs: 0.2, None>
    <goal_policy_entropy_coeffs: 0.2, (10000, 0)>
-   <diversity_rescale_factor=50>
-   <use feature_weights for diversity_reward>
+   diversity_rescale_factor=50
+   use feature_weights for diversity_reward
    nlm does NOT receive problem max size as input
 
    > Ejecutándose en Casa
    > logs: init_policy/version_14
    > saved_models: both_policies_0
 
+   > Entrenamiento (its=25000, lo paré a mitad)
+      - Tiempo (casa): 7d
+      - r_diff (goal_policy)= 45 (y subiendo)
+      - r_eventual=-0.2
+      - init_policy_entropy=0.65, goal_policy_entropy=0.35
+      - term_cond_prob init_policy converge a 0 y la goal_policy oscila alrededor de 4e-4
+      - num_objs:
+         - city: 2.08
+         - airport: 2.8
+         - location: 2.35
+         - airplane: 2.4
+         - truck: 2.7
+         - package: 5.5
+
+   > Problemas
+      > its=25000
+         - max_atoms = 15
+            - diff = [40.1 36.2 43.6] (media)
+            - diversidad media-alta
+               - la goal_policy usa drive y fly!!!
+               - Todos los problemas con dos ciudades
+               - Problemas bastante diversos (más allá del hecho de que solo tienen dos ciudades)
+
+         - max_atoms = 20
+            - diff = [89.4 63.1 73.6] (media-alta)
+            - Todos los problemas con dos ciudades
+
+         - max_atoms = 30
+            - diff = [150.5 130.6 241.3] (media)
+            - Todos los problemas con dos ciudades
+
+         - max_atoms = 40
+            - diff = [403.7 296.2 694.6] (media)
+            - Todos los problemas con dos ciudades
+
+   >>> Análisis
+      - Se generan problema relativamente difíciles (la dificultad seguía aumentando cuando paré el entrenamiento) y diversos
+      - No obstante, el número de ciudades no escala con problem_size!!
+      - Usar init_policy=0.2 funciona mejor que 0.5
+      - Parece que es buena idea usar goal_policy=0.2, (10000, 0)
 
 
+>  <logistics>
+   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=5.0
+   <init_policy_entropy_coeffs: 0.1, None>
+   goal_policy_entropy_coeffs: 0.2, (10000, 0)
+   diversity_rescale_factor=50
+   use feature_weights for diversity_reward
+   nlm does NOT receive problem max size as input
+
+   > Ejecutándose en Casa
+   > logs: init_policy/version_15
+   > saved_models: both_policies_1
+
+   <<<SI EL NÚMERO DE CIUDADES DISMINUYE MUCHO, PARAR EL ENTRENAMIENTO A MITAD!>>>  
 
 
 
@@ -1584,9 +1637,15 @@ diversity_rescale_factor=50 (sin feature_weights)
             - entropy=0.2 genera problemas con más ciudades (2.16 vs 2.075)
             - entropy=0.2 funciona mejor!
 
-         - init_policy_entropy 0.2 vs 0.5 (con goal entropy annealed to 0)
-            - RUNNING
+         - init_policy_entropy 0.1 vs 0.2 vs 0.5 (con goal entropy annealed to 0)
+            - init_policy_entropy 0.2 funciona mejor que 0.5 (genera problemas más difíciles y con un poco más de ciudades!)
+            - Creo que es mejor usar goal_entropy=0.2, (10000, 0) que goal_entropy=0.1
+
+            --- RUNNING
+
+         - Utilizando el mejor init_policy_entropy (0.1 vs 0.2 vs 0.5) y goal_entropy=(0.2, 10000, 0), probar distintos diversity_rescale_factor (ej: 100)
          
+
 
    - Probar a usar ReLU y batchnorm
 
