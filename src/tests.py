@@ -837,7 +837,7 @@ def test_train_init_and_goal_policy_logistics():
 
 	generator = Generator(parser, planner, goal_predicates, consistency_validator=consistency_validator,
 									allowed_virtual_objects=virtual_objects,
-									diversity_rescale_factor=50,
+									diversity_rescale_factor=20,
 									device='cuda', max_objs_cache_reduce_masks=25,
 
 									use_initial_state_policy=True,
@@ -935,7 +935,7 @@ def test_load_models_and_generate_problems_logistics():
 	# Generate the set of problems with the trained initial policy
 	num_problems = 10
 
-	generator.generate_problems(num_problems, max_atoms_init_state=40, max_actions_init_state=1,
+	generator.generate_problems(num_problems, max_atoms_init_state=15, max_actions_init_state=1,
 								 max_actions_goal_state=5, verbose=True)	
 	
 
@@ -962,9 +962,9 @@ def test_load_models_and_resume_training_logistics():
 	consistency_validator = ConsistencyValidatorLogistics(parser.types, parser.predicates)
 
 	# Create the generator and load the trained models
-	curr_it = 26200 # It of the loaded model, used to resume training
-	init_policy_path = "saved_models/both_policies_294/init_policy_its-{}.ckpt".format(curr_it)
-	goal_policy_path = "saved_models/both_policies_294/goal_policy_its-{}.ckpt".format(curr_it)
+	curr_it = 10630 # It of the loaded model, used to resume training
+	init_policy_path = "saved_models/both_policies_5/init_policy_its-{}.ckpt".format(curr_it)
+	goal_policy_path = "saved_models/both_policies_5/goal_policy_its-{}.ckpt".format(curr_it)
 	
 	# The goal_nlm_layers need to account for arity 4, as one action has 4 parameters
 	# We also need to have some predicates of arity 3 in the last layer or, else, there will be no predicates to compute the action of arity 4
@@ -981,7 +981,7 @@ def test_load_models_and_resume_training_logistics():
 
 	generator = Generator(parser, planner, goal_predicates, consistency_validator=consistency_validator,
 									allowed_virtual_objects=virtual_objects,
-									diversity_rescale_factor=50,
+									diversity_rescale_factor=20,
 									device='cuda', max_objs_cache_reduce_masks=25,
 
 									use_initial_state_policy=True,

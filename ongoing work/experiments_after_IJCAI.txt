@@ -1593,7 +1593,7 @@
       - Parece que es buena idea usar goal_policy=0.2, (10000, 0)
 
 
->  <logistics>
+>>>  <logistics>
    max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=5.0
    <init_policy_entropy_coeffs: 0.1, None>
    goal_policy_entropy_coeffs: 0.2, (10000, 0)
@@ -1605,7 +1605,104 @@
    > logs: init_policy/version_15
    > saved_models: both_policies_1
 
-   <<<SI EL NÚMERO DE CIUDADES DISMINUYE MUCHO, PARAR EL ENTRENAMIENTO A MITAD!>>>  
+   > Entrenamiento (its=16000, lo paré a mitad)
+      - Tiempo (casa): 4d
+      - r_diff (goal_policy)= 38 (y subiendo)
+      - r_eventual=-0.3
+      - init_policy_entropy=0.53, goal_policy_entropy=0.3
+      - term_cond_prob init_policy converge a 0 y la goal_policy también
+      - num_objs:
+         - city: 2.55
+         - airport: 2.67
+         - location: 0.3
+         - airplane: 3
+         - truck: 2.8
+         - package: 6.1
+
+   >>> Análisis
+      - Se generan problemas relativamente difíciles (la dificultad seguía aumentando cuando paré el entrenamiento) y más o menos diversos
+      - El problema es que casi todas las ciudades tienen un único airport y los problemas tienen pocos locations
+
+
+>  <logistics>
+   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=5.0
+   <init_policy_entropy_coeffs: 0.2, None>
+   goal_policy_entropy_coeffs: 0.2, (10000, 0)
+   <diversity_rescale_factor=100>
+   use feature_weights for diversity_reward
+   nlm does NOT receive problem max size as input
+
+   > Ejecutándose en Casa
+   > logs: init_policy/version_16, 17
+   > saved_models: both_policies_2, 3
+
+   > Entrenamiento (its=11000, lo paré a mitad)
+      - Tiempo (casa): 2d aprox.
+      - r_diff (goal_policy)= 18
+      - r_eventual=-0.47 (muy alta!!! Genera problemas inconsistentes!!)
+      - init_policy_entropy=0.65, goal_policy_entropy=0.8
+      - term_cond_prob init_policy converge a 0 y la goal_policy alrededor de 1e-4
+      - num_objs:
+         - city: 2.02
+         - airport: 2.7
+         - location: 2
+         - airplane: 2.8
+         - truck: 4.1
+         - package: 3.4
+
+   >>> Análisis
+      - Al aumentar diversity_rescale_factor a 100 no aprende!!
+         - r_diff es baja
+         - r_eventual es alta (se generan problemas inconsistentes)
+
+      - Además, se generan problemas con pocas ciudades!!!
+
+
+>  <logistics>
+   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=5.0
+   <init_policy_entropy_coeffs: 0.1, None>
+   goal_policy_entropy_coeffs: 0.2, (10000, 0)
+   <diversity_rescale_factor=100>
+   use feature_weights for diversity_reward
+   nlm does NOT receive problem max size as input
+
+   > Ejecutándose en Casa
+   > logs: init_policy/version_18
+   > saved_models: both_policies_4
+
+   > Paré el entrenamiento a mitad porque num_cities era 2.048
+
+
+>  <logistics>
+   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=5.0
+   <init_policy_entropy_coeffs: 0.2, None>
+   goal_policy_entropy_coeffs: 0.2, (10000, 0)
+   <diversity_rescale_factor=20>
+   use feature_weights for diversity_reward
+   nlm does NOT receive problem max size as input
+
+   > Ejecutándose en Casa
+   > logs: init_policy/version_19, 20
+   > saved_models: both_policies_5, 6
+
+   >>> Paré el entrenamiento a mitad porque num_cities era 2.043
+      - Además, la dificultad era menos que usando diversity_rescale_factor=50
+        (la diff era alrededor de 30)
+
+
+>  <logistics>
+   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=5.0
+   <init_policy_entropy_coeffs: 0.1, None>
+   goal_policy_entropy_coeffs: 0.2, (10000, 0)
+   <diversity_rescale_factor=20>
+   use feature_weights for diversity_reward
+   nlm does NOT receive problem max size as input
+
+   > Ejecutándose en Casa
+   > logs: init_policy/version_21
+
+
+
 
 
 
@@ -1620,6 +1717,12 @@ diversity_rescale_factor=50 (sin feature_weights)
 
 
 -------- Siguientes experimentos
+
+> Mejor resultado por ahora
+   init_policy_entropy_coeffs: 0.1, None>
+   goal_policy_entropy_coeffs: 0.2, (10000, 0)
+   diversity_rescale_factor=50
+
 
 > Ver mejores valores de entropía (para que no tenga que hacer early stopping)
    - init=1, goal=0.05
@@ -1641,13 +1744,31 @@ diversity_rescale_factor=50 (sin feature_weights)
             - init_policy_entropy 0.2 funciona mejor que 0.5 (genera problemas más difíciles y con un poco más de ciudades!)
             - Creo que es mejor usar goal_entropy=0.2, (10000, 0) que goal_entropy=0.1
 
-            --- RUNNING
+            >>> No sé si es mejor usar init_policy entropy=0.1 o 0.2 (creo que 0.1)
+               -0.1: se generan problemas con bastantes ciudades pero pocos airports y locations
+               -0.2: se generan problemas con pocas ciudades (no escalan) pero muchos airports y locations 
 
-         - Utilizando el mejor init_policy_entropy (0.1 vs 0.2 vs 0.5) y goal_entropy=(0.2, 10000, 0), probar distintos diversity_rescale_factor (ej: 100)
-         
+         - Experimentos distintos diversity_rescale_factor
+            - init_policy_entropy 0.2, diversity_rescale_factor=100
+               - Peor que usando diversity_rescale_factor=50, las generative policies no aprenden!!! (y se generan pocas ciudades)
+
+            - init_policy_entropy 0.1, diversity_rescale_factor=100        
+               - De igual forma, se generan problemas con pocas ciudades 
+
+            - init_policy_entropy 0.2, diversity_rescale_factor=20
+               - Se generan problemas con pocas ciudades y peor dificultad que con diversity_rescale_factor=50
+
+            - init_policy_entropy 0.1, diversity_rescale_factor=20        
+               - TODO 
+
+            >>> HYPOTHESIS:
+               - diversity_rescale_factor=100 es demasiado alto
+               - Creo que init_policy_entropy=0.1 es mejor que 0.2
+
 
 
    - Probar a usar ReLU y batchnorm
 
    - Una vez tenga el mejor modelo, ver si entrenar en problemas de distintos tamaños (ej.: 10-20 max-atoms)
      ayuda en algo o no
+      - Quizás ayude a que escale el número de ciudades según el problem size
