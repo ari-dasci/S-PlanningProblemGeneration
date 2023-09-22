@@ -1701,7 +1701,43 @@
    > Ejecutándose en Casa
    > logs: init_policy/version_21
 
+   >>> Lo paré a mitad (its=5900)
+      - Tiempo (casa): 2d aprox.
+      - r_diff (goal_policy)= 60
+      - r_eventual=-0.15
+      - init_policy_entropy=0.6, goal_policy_entropy=0.85 (y bajando)
+      - num_objs:
+         - city: 2.09 (y bajando)
+         - airport: 2.17
+         - location: 2.23
+         - airplane: 1.48
+         - truck: 2.33
+         - package: 6.76
 
+   >>> Análisis
+      - La entropía es demasiado baja (se generan problemas muy parecidos)
+      - Además, el número de ciudades es bajo y casi todas las ciudades tienen
+        un solo aiport
+      - No obstante, el número de locations es alto
+      
+      >>> Nota: quizás debería haber usado goal_policy_entropy_coeffs: 0.2, (5000, 0) o parecido
+         (la dificultad aumenta muy rápido y la goal_policy entropy es aún bastante alta)
+
+
+
+>  <logistics>
+   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=5.0
+   <init_policy_entropy_coeffs: 0.1, None>
+   goal_policy_entropy_coeffs: 0.2, (10000, 0)
+   <diversity_rescale_factor=50>
+   use feature_weights for diversity_reward
+   nlm does NOT receive problem max size as input
+   <diversity reward without inconsistent problems>
+
+   > Ejecutándose en Casa
+   > logs: init_policy/version_22
+
+   
 
 
 
@@ -1713,6 +1749,14 @@ Early stopping en 5000 its
 diversity_rescale_factor=50 (sin feature_weights)
 <init_policy_entropy_coeffs: 0.5, (5000, 0.1)>
 <goal_policy_entropy_coeffs: 0.5, (5000, 0)>
+----------------
+
+----------------
+Mejor modelo hasta la fecha (sin early stopping)
+
+diversity_rescale_factor=50 (con feature_weights)
+<init_policy_entropy_coeffs: 0.1, None>
+<goal_policy_entropy_coeffs: 0.2, (10000, 0)>
 ----------------
 
 
@@ -1759,11 +1803,32 @@ diversity_rescale_factor=50 (sin feature_weights)
                - Se generan problemas con pocas ciudades y peor dificultad que con diversity_rescale_factor=50
 
             - init_policy_entropy 0.1, diversity_rescale_factor=20        
-               - TODO 
+               - Se generan problemas con pocas ciudades y airports (poca diversidad), aunque con muchas locations.
+                 La dificultad es alta
 
-            >>> HYPOTHESIS:
+            >>> Conclusiones:
                - diversity_rescale_factor=100 es demasiado alto
-               - Creo que init_policy_entropy=0.1 es mejor que 0.2
+               - init_policy_entropy=0.1 es mejor que 0.2
+               >>> Mejor modelo de los experimentos:
+                     init_policy_entropy_coeffs: 0.1, None>
+                     goal_policy_entropy_coeffs: 0.2, (10000, 0)
+                     diversity_rescale_factor=50
+
+
+   - Experimentos diversity_reward without inconsistent problems
+      - diversity_rescale_factor=50, init_policy_entropy=0.1, goal_policy_entropy_coeffs: 0.2, (10000, 0)
+         - RUNNING
+
+
+
+      >>> Hypothesis
+         - Creo que la razón por la que el modelo con diversity_rescale_factor=100 no aprende (ej.: alta eventual consistency reward)
+           es porque doy diversity_reward también a los problemas inconsistentes. Si esta recompensa es muy alta, la init policy
+           puede aprender a generar estados iniciales muy diversos incluso si estos son inconsistentes
+
+
+
+
 
 
 

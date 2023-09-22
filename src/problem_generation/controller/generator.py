@@ -1002,10 +1002,16 @@ class Generator():
 
 		# Obtain which trajectories are eventual-consistent (the last sample in the trajectory has r_eventual=0)
 		
-		# OLD -> only use consistent trajectories
-		# consistent_inds = [i for i, sample in enumerate(last_sample_list) if sample[-5] == 0]
-		# NEW -> use all trajectories
-		consistent_inds = list(range(len(last_sample_list))) # A list from 0 to num_trajectories-1		
+		"""
+		A sample of @init_policy_trajectories is of the form:
+		(rel_state, state_tensors, num_objs, mask_tensors, chosen_action_index, chosen_action_prob,
+		r_continuous, r_eventual, r_difficulty_new, r_difficulty_old, r_total, state_values)"""
+
+		# Only use consistent trajectories
+		consistent_inds = [i for i, sample in enumerate(last_sample_list) if sample[-5] == 0]
+		# Use all trajectories
+		# consistent_inds = list(range(len(last_sample_list))) # A list from 0 to num_trajectories-1		
+
 		num_consistent_trajectories = len(consistent_inds)
 
 		# For each init_state in init_state_list, obtain its associated features
@@ -1188,7 +1194,12 @@ class Generator():
 										chosen_action_index, chosen_action_prob,
 										r_continuous_consistency, r_eventual_consistency, 0.0, 0.0] ) # The last 0.0 is used to store the old normalized difficulty mean (the one which increased during training, to be used for logging) 
 				# The 0.0 in the second-to-last position corresponds to r_difficulty
-		
+
+				# HERE
+				# sample[-5]
+
+
+
 		return problems, trajectories
 
 			
