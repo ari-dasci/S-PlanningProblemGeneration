@@ -1737,36 +1737,114 @@
    > Ejecutándose en Casa
    > logs: init_policy/version_22
 
-   
+   > Entrenamiento (its=17000
+      - Tiempo (casa): 10d aprox.
+      - r_diff (goal_policy)= 100 (muy alta!!! aunque después baja a 70)
+      - r_eventual=-0.02 (muy alta!!! Genera problemas inconsistentes!!)
+      - init_policy_entropy=0.68, goal_policy_entropy=0.2
+      - term_cond_prob init_policy converge a 0 y la goal_policy alrededor de 1e-3
+      - num_objs:
+         - city: 2.06 (el número de ciudades llegó a 2.8 pero desde ese punto nunca dejó de bajar hasta 2)
+         - airport: 2.8
+         - location: 2.7
+         - airplane: 2.2
+         - truck: 2.9
+         - package: 4.4
+
+   > Problemas
+      > its=15000
+         - max_atoms = 15
+            - diff = [109. 82.7 114.5] (muy alta!)
+            - diversidad media-alta
+               - Todos los problemas con 2 ciudades menos uno (con tres ciudades)
+               - Problemas con muchos locations
+               - El resto de objetos varían bastante
+
+         - max_atoms = 20
+            - diff = [238.3 162.8 185.4]
+            - Problemas con 2 y 3 ciudades (aumenta el número de problemas con 3 ciudades)
+
+         - max_atoms = 30
+            - diff = [830.4 527.6 1686.8]
+            - Problemas con 2 y 3 ciudades
+
+         - max_atoms = 40
+            - diff = [969.7 709.8 5815.4]
+            - Problemas con 2 y 3 ciudades
+
+      > its=10000
+         - max_atoms = 15
+            - diff = [34.6 30.6 33.4] (media)
+            - diversidad alta
+               - Problemas con dos y tres ciudades
+
+         - max_atoms = 20
+            - diff = [67.2 61.4 74.8]
+            - Problemas con 2 y 3 ciudades
+
+         - max_atoms = 30
+            - diff = [202.6 160.7 264.3]
+            - Problemas con 2 y 3 ciudades y un problema con 4 ciudades
+
+         - max_atoms = 40
+            - diff = [323.8 248. 1350.7]
+            - Problemas con 2, 3 y 4 ciudades
+
+   >>> Análisis
+      - Mejor num its=15000
+      - Se generan problemas difíciles y diversos!
+         - Los problemas tienen locations y más de dos ciudades (aunque debería aumentar un poco el número de ciudades)
+
+      - La dificultad escala bien, pero no el número de ciudades
+
+
+>  <logistics>
+   max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=5.0
+   <init_policy_entropy_coeffs: 0.1, None>
+   <goal_policy_entropy_coeffs: 0.2, (5000, 0)>
+   <diversity_rescale_factor=50>
+   use feature_weights for diversity_reward
+   nlm does NOT receive problem max size as input
+   <diversity reward without inconsistent problems>
+
+   > Ejecutándose en DaSCI
+   > logs: init_policy/version_0 (DaSCI)
+
+   >>> Creo que es mejor disminuir la entropía más rápido 
+       (usar goal_policy_entropy_coeffs: 0.2, (5000, 0) que
+       goal_policy_entropy_coeffs: 0.2, (10000, 0))
+
+
+>  <logistics>
+   <max_atoms_init_state=(10,20)>, max_actions_init_state=1, max_actions_goal_state=5.0
+   init_policy_entropy_coeffs: 0.1, None
+   <goal_policy_entropy_coeffs: 0.2, (5000, 0)>
+   diversity_rescale_factor=50
+   use feature_weights for diversity_reward
+   <nlm receives problem max size as input>
+   <diversity reward without inconsistent problems>
+
+   > Ejecutándose en Casa
+   > logs: init_policy/version_22
 
 
 
 
-----------------
-Mejor modelo hasta la fecha
 
-Early stopping en 5000 its
-diversity_rescale_factor=50 (sin feature_weights)
-<init_policy_entropy_coeffs: 0.5, (5000, 0.1)>
-<goal_policy_entropy_coeffs: 0.5, (5000, 0)>
-----------------
+----- Mejor modelo hasta la fecha (logistics)
 
-----------------
-Mejor modelo hasta la fecha (sin early stopping)
-
-diversity_rescale_factor=50 (con feature_weights)
+max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=5.0
 <init_policy_entropy_coeffs: 0.1, None>
-<goal_policy_entropy_coeffs: 0.2, (10000, 0)>
-----------------
+goal_policy_entropy_coeffs: 0.2, (10000, 0)
+<diversity_rescale_factor=50>
+use feature_weights for diversity_reward
+nlm does NOT receive problem max size as input
+<diversity reward without inconsistent problems>
+
+--------
 
 
 -------- Siguientes experimentos
-
-> Mejor resultado por ahora
-   init_policy_entropy_coeffs: 0.1, None>
-   goal_policy_entropy_coeffs: 0.2, (10000, 0)
-   diversity_rescale_factor=50
-
 
 > Ver mejores valores de entropía (para que no tenga que hacer early stopping)
    - init=1, goal=0.05
@@ -1817,8 +1895,17 @@ diversity_rescale_factor=50 (con feature_weights)
 
    - Experimentos diversity_reward without inconsistent problems
       - diversity_rescale_factor=50, init_policy_entropy=0.1, goal_policy_entropy_coeffs: 0.2, (10000, 0)
-         - RUNNING
+         - Mejores resultados hasta la fecha!
 
+      - diversity_rescale_factor=50, init_policy_entropy=0.1, goal_policy_entropy_coeffs: 0.2, (5000, 0)
+         - Creo que los resultados son mejores que usando goal_entropy=0.2, 5000, 0
+            - Se generan más ciudades y los problemas también son difíciles
+
+      >>> Resultados hasta ahora
+         - Funciona mucho mejor que cuando doy diversity_reward a todos los problemas!!!!
+            - Los problemas son muy diversos, con muchas ciudades, airports y locations
+            - Además, la eventual_consistency reward es muy buena
+            - Los problemas también son muy difíciles!!
 
 
       >>> Hypothesis
@@ -1827,6 +1914,9 @@ diversity_rescale_factor=50 (con feature_weights)
            puede aprender a generar estados iniciales muy diversos incluso si estos son inconsistentes
 
 
+   - Experimentos training on problems of different size
+      - max_atoms=(10,20)
+         - RUNNING
 
 
 

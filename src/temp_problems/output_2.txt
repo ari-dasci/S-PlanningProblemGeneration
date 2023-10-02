@@ -5,7 +5,7 @@ INFO     translator memory limit: None
 INFO     translator command line string: 'C:\Users\Usuario\anaconda3\envs\problem-generation\python.exe' 'C:\Users\Usuario\Desktop\NeSIG\S-PlanningProblemGeneration\src\fast-downward\builds\release\bin\translate\translate.py' ../data/domains/logistics-domain.pddl temp_problems/temp_problem_2.pddl --sas-file temp_problems/sas_plan_2
 Warning! SIGXCPU is not available on your platform. This means that the planner cannot be gracefully terminated when using a time limit, which, however, is probably supported on your platform anyway.
 Parsing...
-Parsing: [0.000s CPU, 0.003s wall-clock]
+Parsing: [0.000s CPU, 0.000s wall-clock]
 Normalizing task... [0.000s CPU, 0.000s wall-clock]
 Instantiating...
 Generating Datalog program... [0.000s CPU, 0.000s wall-clock]
@@ -13,13 +13,13 @@ Normalizing Datalog program...
 Normalizing Datalog program: [0.000s CPU, 0.000s wall-clock]
 Preparing model... [0.000s CPU, 0.000s wall-clock]
 Generated 23 rules.
-Computing model... [0.000s CPU, 0.005s wall-clock]
-265 relevant atoms
-125 auxiliary atoms
-390 final queue length
-466 total queue pushes
-Completing instantiation... [0.000s CPU, 0.002s wall-clock]
-Instantiating: [0.000s CPU, 0.007s wall-clock]
+Computing model... [0.000s CPU, 0.000s wall-clock]
+242 relevant atoms
+130 auxiliary atoms
+372 final queue length
+441 total queue pushes
+Completing instantiation... [0.000s CPU, 0.000s wall-clock]
+Instantiating: [0.000s CPU, 0.000s wall-clock]
 Computing fact groups...
 Finding invariants...
 6 initial candidates
@@ -30,8 +30,8 @@ Collecting mutex groups... [0.000s CPU, 0.000s wall-clock]
 Choosing groups...
 0 uncovered facts
 Choosing groups: [0.000s CPU, 0.000s wall-clock]
-Building translation key... [0.000s CPU, 0.000s wall-clock]
-Computing fact groups: [0.000s CPU, 0.000s wall-clock]
+Building translation key... [0.016s CPU, 0.016s wall-clock]
+Computing fact groups: [0.016s CPU, 0.016s wall-clock]
 Building STRIPS to SAS dictionary... [0.000s CPU, 0.000s wall-clock]
 Building dictionary for full mutex groups... [0.000s CPU, 0.000s wall-clock]
 Building mutex information...
@@ -42,32 +42,32 @@ Simplifying axioms... [0.000s CPU, 0.000s wall-clock]
 Translator axioms removed by simplifying: 0
 Computing negative axioms... [0.000s CPU, 0.000s wall-clock]
 Processing axioms: [0.000s CPU, 0.000s wall-clock]
-Translating task: [0.000s CPU, 0.005s wall-clock]
+Translating task: [0.000s CPU, 0.000s wall-clock]
 0 effect conditions simplified
 0 implied preconditions added
 Detecting unreachable propositions...
 0 operators removed
 0 axioms removed
-10 propositions removed
-Detecting unreachable propositions: [0.000s CPU, 0.001s wall-clock]
+7 propositions removed
+Detecting unreachable propositions: [0.000s CPU, 0.000s wall-clock]
 Reordering and filtering variables...
-10 of 10 variables necessary.
-0 of 10 mutex groups necessary.
-120 of 120 operators necessary.
+7 of 7 variables necessary.
+0 of 7 mutex groups necessary.
+106 of 106 operators necessary.
 0 of 0 axiom rules necessary.
-Reordering and filtering variables: [0.000s CPU, 0.001s wall-clock]
-Translator variables: 10
+Reordering and filtering variables: [0.000s CPU, 0.000s wall-clock]
+Translator variables: 7
 Translator derived variables: 0
-Translator facts: 63
-Translator goal facts: 6
+Translator facts: 54
+Translator goal facts: 4
 Translator mutex groups: 0
 Translator total mutex groups size: 0
-Translator operators: 120
+Translator operators: 106
 Translator axioms: 0
-Translator task size: 547
+Translator task size: 463
 warning: could not determine peak memory
-Writing output... [0.000s CPU, 0.003s wall-clock]
-Done! [0.000s CPU, 0.020s wall-clock]
+Writing output... [0.000s CPU, 0.000s wall-clock]
+Done! [0.016s CPU, 0.016s wall-clock]
 translate exit code: 0
 
 INFO     Running search (release).
@@ -75,151 +75,153 @@ INFO     search stdin: temp_problems/sas_plan_2
 INFO     search time limit: None
 INFO     search memory limit: None
 INFO     search command line string: 'C:\Users\Usuario\Desktop\NeSIG\S-PlanningProblemGeneration\src\fast-downward\builds\release\bin\downward.exe' --evaluator 'hlm=lmcount(lm_factory=lm_reasonable_orders_hps(lm_rhw()),transform=adapt_costs(one),pref=false)' --evaluator 'hff=ff(transform=adapt_costs(one))' --search 'lazy_greedy([hff,hlm],preferred=[hff,hlm],cost_type=one,reopen_closed=false)' --internal-plan-file temp_problems/plan_2 < temp_problems/sas_plan_2
-[t=1.14e-05s, 800 KB] reading input...
-[t=0.0004728s, 820 KB] done reading input!
-[t=0.001575s, 1164 KB] Initializing landmark count heuristic...
-[t=0.0015933s, 1164 KB] Generating landmark graph...
-[t=0.0016101s, 1164 KB] Building a landmark graph with reasonable orders.
-[t=0.0016764s, 1164 KB] Initializing Exploration...
-[t=0.0017418s, 1176 KB] Generating landmarks using the RPG/SAS+ approach
-[t=0.0022065s, 1216 KB] Removed 0 reasonable or obedient reasonable orders
-[t=0.0022201s, 1216 KB] Landmarks generation time: 0.0005556s
-[t=0.0022277s, 1216 KB] Discovered 30 landmarks, of which 6 are disjunctive and 0 are conjunctive.
-[t=0.0022355s, 1216 KB] 56 edges
-[t=0.0022422s, 1216 KB] approx. reasonable orders
-[t=0.002288s, 1216 KB] approx. obedient reasonable orders
-[t=0.0023094s, 1216 KB] Removed 0 reasonable or obedient reasonable orders
-[t=0.0023166s, 1216 KB] Landmarks generation time: 0.0007172s
-[t=0.0023236s, 1216 KB] Discovered 30 landmarks, of which 6 are disjunctive and 0 are conjunctive.
-[t=0.0023306s, 1216 KB] 56 edges
-[t=0.002337s, 1216 KB] Landmark graph generation time: 0.0007454s
-[t=0.002344s, 1216 KB] Landmark graph contains 30 landmarks, of which 6 are disjunctive and 0 are conjunctive.
-[t=0.002351s, 1216 KB] Landmark graph contains 56 orderings.
-[t=0.0024092s, 1216 KB] Simplifying 120 unary operators... done! [120 unary operators]
-[t=0.0024565s, 1216 KB] time to simplify: 4.93e-05s
-[t=0.0024761s, 1216 KB] Initializing additive heuristic...
-[t=0.0024875s, 1216 KB] Initializing FF heuristic...
-[t=0.0025522s, 1216 KB] Building successor generator...done!
-[t=0.0026161s, 1228 KB] peak memory difference for successor generator creation: 12 KB
-[t=0.0026231s, 1228 KB] time for successor generation creation: 4.97e-05s
-[t=0.0026319s, 1228 KB] Variables: 10
-[t=0.0026407s, 1228 KB] FactPairs: 63
-[t=0.0026473s, 1228 KB] Bytes per state: 4
-[t=0.002841s, 1240 KB] Conducting lazy best first search, (real) bound = 2147483647
-[t=0.0028516s, 1240 KB] 8 initial landmarks, 6 goal landmarks
-[t=0.0028778s, 1240 KB] New best heuristic value for ff(transform = adapt_costs(one)): 24
-[t=0.0028854s, 1240 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 22
-[t=0.0028924s, 1240 KB] g=0, 1 evaluated, 0 expanded
-[t=0.0029113s, 1240 KB] Initial heuristic value for ff(transform = adapt_costs(one)): 24
-[t=0.0029186s, 1240 KB] Initial heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 22
-[t=0.0030051s, 1240 KB] New best heuristic value for ff(transform = adapt_costs(one)): 23
-[t=0.003012s, 1240 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 21
-[t=0.0030218s, 1240 KB] g=1, 8 evaluated, 7 expanded
-[t=0.0030937s, 1240 KB] New best heuristic value for ff(transform = adapt_costs(one)): 22
-[t=0.0031063s, 1240 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 20
-[t=0.0031161s, 1240 KB] g=2, 12 evaluated, 11 expanded
-[t=0.0031766s, 1240 KB] New best heuristic value for ff(transform = adapt_costs(one)): 21
-[t=0.0031847s, 1240 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 19
-[t=0.0031915s, 1240 KB] g=3, 16 evaluated, 15 expanded
-[t=0.0032412s, 1240 KB] New best heuristic value for ff(transform = adapt_costs(one)): 20
-[t=0.0032523s, 1240 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 18
-[t=0.003259s, 1240 KB] g=4, 20 evaluated, 19 expanded
-[t=0.0032943s, 1240 KB] New best heuristic value for ff(transform = adapt_costs(one)): 19
-[t=0.0033012s, 1240 KB] g=5, 23 evaluated, 22 expanded
-[t=0.0033511s, 1240 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 17
-[t=0.0033594s, 1240 KB] g=5, 27 evaluated, 26 expanded
-[t=0.0033935s, 1240 KB] New best heuristic value for ff(transform = adapt_costs(one)): 18
-[t=0.0034012s, 1240 KB] g=6, 29 evaluated, 28 expanded
-[t=0.003476s, 1240 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 16
-[t=0.0041224s, 1240 KB] g=6, 36 evaluated, 35 expanded
-[t=0.004175s, 1240 KB] New best heuristic value for ff(transform = adapt_costs(one)): 17
-[t=0.0041865s, 1240 KB] g=7, 37 evaluated, 36 expanded
-[t=0.0042675s, 1240 KB] New best heuristic value for ff(transform = adapt_costs(one)): 16
-[t=0.0042768s, 1240 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 15
-[t=0.004286s, 1240 KB] g=8, 41 evaluated, 40 expanded
-[t=0.0043627s, 1240 KB] New best heuristic value for ff(transform = adapt_costs(one)): 15
-[t=0.004372s, 1240 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 14
-[t=0.0043808s, 1240 KB] g=9, 45 evaluated, 44 expanded
-[t=0.0044575s, 1240 KB] New best heuristic value for ff(transform = adapt_costs(one)): 14
-[t=0.0044675s, 1240 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 13
-[t=0.0044764s, 1240 KB] g=10, 49 evaluated, 48 expanded
-[t=0.004522s, 1240 KB] New best heuristic value for ff(transform = adapt_costs(one)): 13
-[t=0.004535s, 1240 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 12
-[t=0.004544s, 1240 KB] g=11, 51 evaluated, 50 expanded
-[t=0.0046237s, 1240 KB] New best heuristic value for ff(transform = adapt_costs(one)): 12
-[t=0.0046328s, 1240 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 11
-[t=0.0046436s, 1240 KB] g=12, 55 evaluated, 54 expanded
-[t=0.004713s, 1240 KB] New best heuristic value for ff(transform = adapt_costs(one)): 11
-[t=0.0047233s, 1240 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 10
-[t=0.0047329s, 1240 KB] g=13, 59 evaluated, 58 expanded
-[t=0.0047731s, 1240 KB] New best heuristic value for ff(transform = adapt_costs(one)): 10
-[t=0.0047831s, 1240 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 9
-[t=0.0047919s, 1240 KB] g=14, 61 evaluated, 60 expanded
-[t=0.004816s, 1240 KB] New best heuristic value for ff(transform = adapt_costs(one)): 9
-[t=0.0048253s, 1240 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 8
-[t=0.0048343s, 1240 KB] g=15, 62 evaluated, 61 expanded
-[t=0.0048586s, 1240 KB] New best heuristic value for ff(transform = adapt_costs(one)): 8
-[t=0.0048674s, 1240 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 7
-[t=0.0048763s, 1240 KB] g=16, 63 evaluated, 62 expanded
-[t=0.0048996s, 1240 KB] New best heuristic value for ff(transform = adapt_costs(one)): 7
-[t=0.0049085s, 1240 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 6
-[t=0.0049175s, 1240 KB] g=17, 64 evaluated, 63 expanded
-[t=0.0049486s, 1240 KB] New best heuristic value for ff(transform = adapt_costs(one)): 6
-[t=0.0049576s, 1240 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 5
-[t=0.0049669s, 1240 KB] g=18, 65 evaluated, 64 expanded
-[t=0.0050021s, 1240 KB] New best heuristic value for ff(transform = adapt_costs(one)): 5
-[t=0.0050112s, 1240 KB] g=19, 67 evaluated, 66 expanded
-[t=0.0050459s, 1240 KB] New best heuristic value for ff(transform = adapt_costs(one)): 4
-[t=0.0050548s, 1240 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 4
-[t=0.0050635s, 1240 KB] g=20, 69 evaluated, 68 expanded
-[t=0.0051016s, 1240 KB] New best heuristic value for ff(transform = adapt_costs(one)): 3
-[t=0.0051113s, 1240 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 3
-[t=0.0051199s, 1240 KB] g=21, 71 evaluated, 70 expanded
-[t=0.0051622s, 1240 KB] New best heuristic value for ff(transform = adapt_costs(one)): 2
-[t=0.0051712s, 1240 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 2
-[t=0.0051798s, 1240 KB] g=22, 73 evaluated, 72 expanded
-[t=0.005204s, 1240 KB] New best heuristic value for ff(transform = adapt_costs(one)): 1
-[t=0.0052145s, 1240 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 1
-[t=0.0052234s, 1240 KB] g=23, 74 evaluated, 73 expanded
-[t=0.0052444s, 1240 KB] Solution found!
-[t=0.0052544s, 1240 KB] Actual search time: 0.0023975s
-load obj2 obj5 obj0 (1)
-load obj2 obj14 obj0 (1)
-load obj2 obj13 obj0 (1)
-load obj2 obj10 obj0 (1)
-fly obj2 obj0 obj3 (1)
-load obj2 obj6 obj3 (1)
-unload obj2 obj5 obj3 (1)
-load obj9 obj5 obj3 (1)
-unload obj2 obj14 obj3 (1)
-unload obj2 obj13 obj3 (1)
-load obj9 obj13 obj3 (1)
-load obj2 obj11 obj3 (1)
-unload obj2 obj10 obj3 (1)
-load obj9 obj10 obj3 (1)
-drive obj9 obj3 obj15 (1)
-unload obj9 obj5 obj15 (1)
-unload obj9 obj13 obj15 (1)
-unload obj9 obj10 obj15 (1)
-fly obj2 obj3 obj0 (1)
-unload obj2 obj6 obj0 (1)
-unload obj2 obj11 obj0 (1)
-load obj8 obj11 obj0 (1)
-drive obj8 obj0 obj7 (1)
-unload obj8 obj11 obj7 (1)
-[t=0.0052631s, 1240 KB] Plan length: 24 step(s).
-[t=0.0052631s, 1240 KB] Plan cost: 24
-[t=0.0052631s, 1240 KB] Expanded 74 state(s).
-[t=0.0052631s, 1240 KB] Reopened 0 state(s).
-[t=0.0052631s, 1240 KB] Evaluated 75 state(s).
-[t=0.0052631s, 1240 KB] Evaluations: 150
-[t=0.0052631s, 1240 KB] Generated 972 state(s).
-[t=0.0052631s, 1240 KB] Dead ends: 0 state(s).
-[t=0.0052631s, 1240 KB] Number of registered states: 75
-[t=0.0052631s, 1240 KB] Int hash set load factor: 75/128 = 0.585938
-[t=0.0052631s, 1240 KB] Int hash set resizes: 7
-[t=0.0052631s, 1240 KB] Search time: 0.0024229s
-[t=0.0052631s, 1240 KB] Total time: 0.0052631s
+[t=1.34e-05s, 800 KB] reading input...
+[t=0.0004209s, 816 KB] done reading input!
+[t=0.0015993s, 1160 KB] Initializing landmark count heuristic...
+[t=0.0016183s, 1160 KB] Generating landmark graph...
+[t=0.0016339s, 1160 KB] Building a landmark graph with reasonable orders.
+[t=0.001694s, 1160 KB] Initializing Exploration...
+[t=0.0017593s, 1180 KB] Generating landmarks using the RPG/SAS+ approach
+[t=0.0021901s, 1220 KB] Removed 0 reasonable or obedient reasonable orders
+[t=0.002212s, 1220 KB] Landmarks generation time: 0.0005324s
+[t=0.002221s, 1220 KB] Discovered 30 landmarks, of which 0 are disjunctive and 0 are conjunctive.
+[t=0.0022292s, 1220 KB] 83 edges
+[t=0.0022412s, 1220 KB] approx. reasonable orders
+[t=0.0022892s, 1220 KB] approx. obedient reasonable orders
+[t=0.0023108s, 1220 KB] Removed 0 reasonable or obedient reasonable orders
+[t=0.0023181s, 1220 KB] Landmarks generation time: 0.0006936s
+[t=0.0023273s, 1220 KB] Discovered 30 landmarks, of which 0 are disjunctive and 0 are conjunctive.
+[t=0.0023345s, 1220 KB] 84 edges
+[t=0.0023411s, 1220 KB] Landmark graph generation time: 0.0007245s
+[t=0.0023483s, 1220 KB] Landmark graph contains 30 landmarks, of which 0 are disjunctive and 0 are conjunctive.
+[t=0.0023556s, 1220 KB] Landmark graph contains 84 orderings.
+[t=0.0024528s, 1220 KB] Simplifying 106 unary operators... done! [106 unary operators]
+[t=0.0024977s, 1220 KB] time to simplify: 4.68e-05s
+[t=0.0025165s, 1220 KB] Initializing additive heuristic...
+[t=0.0025251s, 1220 KB] Initializing FF heuristic...
+[t=0.0025872s, 1220 KB] Building successor generator...done!
+[t=0.0026417s, 1224 KB] peak memory difference for successor generator creation: 4 KB
+[t=0.0026483s, 1224 KB] time for successor generation creation: 4.03e-05s
+[t=0.0026595s, 1224 KB] Variables: 7
+[t=0.0026664s, 1224 KB] FactPairs: 54
+[t=0.0026727s, 1224 KB] Bytes per state: 4
+[t=0.0029292s, 1244 KB] Conducting lazy best first search, (real) bound = 2147483647
+[t=0.0029502s, 1244 KB] 7 initial landmarks, 4 goal landmarks
+[t=0.0029835s, 1244 KB] New best heuristic value for ff(transform = adapt_costs(one)): 23
+[t=0.0029937s, 1244 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 23
+[t=0.0030032s, 1244 KB] g=0, 1 evaluated, 0 expanded
+[t=0.0030226s, 1244 KB] Initial heuristic value for ff(transform = adapt_costs(one)): 23
+[t=0.0030387s, 1244 KB] Initial heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 23
+[t=0.0032368s, 1244 KB] New best heuristic value for ff(transform = adapt_costs(one)): 22
+[t=0.0032683s, 1244 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 22
+[t=0.0032779s, 1244 KB] g=2, 15 evaluated, 14 expanded
+[t=0.003315s, 1244 KB] New best heuristic value for ff(transform = adapt_costs(one)): 21
+[t=0.0033245s, 1244 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 21
+[t=0.0033335s, 1244 KB] g=3, 17 evaluated, 16 expanded
+[t=0.003394s, 1244 KB] New best heuristic value for ff(transform = adapt_costs(one)): 20
+[t=0.0034197s, 1244 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 20
+[t=0.0034282s, 1244 KB] g=4, 21 evaluated, 20 expanded
+[t=0.0034674s, 1244 KB] New best heuristic value for ff(transform = adapt_costs(one)): 19
+[t=0.0034784s, 1244 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 19
+[t=0.0034872s, 1244 KB] g=5, 23 evaluated, 22 expanded
+[t=0.003521s, 1244 KB] New best heuristic value for ff(transform = adapt_costs(one)): 18
+[t=0.0035378s, 1244 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 18
+[t=0.003547s, 1244 KB] g=6, 25 evaluated, 24 expanded
+[t=0.0035964s, 1244 KB] New best heuristic value for ff(transform = adapt_costs(one)): 17
+[t=0.0036074s, 1244 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 17
+[t=0.0036188s, 1244 KB] g=7, 28 evaluated, 27 expanded
+[t=0.0036545s, 1244 KB] New best heuristic value for ff(transform = adapt_costs(one)): 16
+[t=0.0036736s, 1244 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 16
+[t=0.0036834s, 1244 KB] g=8, 30 evaluated, 29 expanded
+[t=0.0037172s, 1244 KB] New best heuristic value for ff(transform = adapt_costs(one)): 15
+[t=0.0037264s, 1244 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 15
+[t=0.0037357s, 1244 KB] g=9, 32 evaluated, 31 expanded
+[t=0.0038134s, 1244 KB] New best heuristic value for ff(transform = adapt_costs(one)): 14
+[t=0.0038229s, 1244 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 14
+[t=0.0038439s, 1244 KB] g=11, 37 evaluated, 36 expanded
+[t=0.0039201s, 1244 KB] New best heuristic value for ff(transform = adapt_costs(one)): 13
+[t=0.0039321s, 1244 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 13
+[t=0.0039395s, 1244 KB] g=12, 42 evaluated, 41 expanded
+[t=0.0040173s, 1244 KB] New best heuristic value for ff(transform = adapt_costs(one)): 12
+[t=0.0040248s, 1244 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 12
+[t=0.0040318s, 1244 KB] g=14, 50 evaluated, 49 expanded
+[t=0.0040642s, 1244 KB] New best heuristic value for ff(transform = adapt_costs(one)): 11
+[t=0.0040727s, 1244 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 11
+[t=0.0040885s, 1244 KB] g=15, 52 evaluated, 51 expanded
+[t=0.0041487s, 1244 KB] New best heuristic value for ff(transform = adapt_costs(one)): 10
+[t=0.0041607s, 1244 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 10
+[t=0.0041698s, 1244 KB] g=16, 56 evaluated, 55 expanded
+[t=0.0042254s, 1244 KB] New best heuristic value for ff(transform = adapt_costs(one)): 9
+[t=0.0042415s, 1244 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 9
+[t=0.0042513s, 1244 KB] g=17, 58 evaluated, 57 expanded
+[t=0.0042974s, 1244 KB] New best heuristic value for ff(transform = adapt_costs(one)): 8
+[t=0.0043208s, 1244 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 8
+[t=0.0043372s, 1244 KB] g=18, 61 evaluated, 60 expanded
+[t=0.0043837s, 1244 KB] New best heuristic value for ff(transform = adapt_costs(one)): 7
+[t=0.0044059s, 1244 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 7
+[t=0.0044157s, 1244 KB] g=19, 63 evaluated, 62 expanded
+[t=0.0044765s, 1244 KB] New best heuristic value for ff(transform = adapt_costs(one)): 6
+[t=0.0044872s, 1244 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 6
+[t=0.0044976s, 1244 KB] g=21, 66 evaluated, 65 expanded
+[t=0.0045562s, 1244 KB] New best heuristic value for ff(transform = adapt_costs(one)): 5
+[t=0.0045784s, 1244 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 5
+[t=0.0045877s, 1244 KB] g=23, 70 evaluated, 69 expanded
+[t=0.0046253s, 1244 KB] New best heuristic value for ff(transform = adapt_costs(one)): 4
+[t=0.0046541s, 1244 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 4
+[t=0.0046639s, 1244 KB] g=24, 72 evaluated, 71 expanded
+[t=0.0046974s, 1244 KB] New best heuristic value for ff(transform = adapt_costs(one)): 3
+[t=0.0047101s, 1244 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 3
+[t=0.0047209s, 1244 KB] g=25, 74 evaluated, 73 expanded
+[t=0.0047573s, 1244 KB] New best heuristic value for ff(transform = adapt_costs(one)): 2
+[t=0.0047672s, 1244 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 2
+[t=0.0047763s, 1244 KB] g=27, 76 evaluated, 75 expanded
+[t=0.0047964s, 1244 KB] New best heuristic value for ff(transform = adapt_costs(one)): 1
+[t=0.0048127s, 1244 KB] New best heuristic value for lmcount(lm_factory = lm_reasonable_orders_hps(lm_rhw), transform = adapt_costs(one), pref = false): 1
+[t=0.0048231s, 1244 KB] g=28, 77 evaluated, 76 expanded
+[t=0.0048513s, 1244 KB] Solution found!
+[t=0.0048652s, 1244 KB] Actual search time: 0.0019064s
+drive obj6 obj0 obj11 (1)
+load obj6 obj12 obj11 (1)
+drive obj6 obj11 obj0 (1)
+unload obj6 obj12 obj0 (1)
+load obj8 obj12 obj0 (1)
+drive obj6 obj0 obj2 (1)
+load obj6 obj16 obj2 (1)
+drive obj6 obj2 obj9 (1)
+unload obj6 obj16 obj9 (1)
+fly obj8 obj0 obj3 (1)
+unload obj8 obj12 obj3 (1)
+load obj5 obj12 obj3 (1)
+drive obj5 obj3 obj10 (1)
+load obj5 obj14 obj10 (1)
+drive obj5 obj10 obj15 (1)
+unload obj5 obj12 obj15 (1)
+drive obj5 obj15 obj3 (1)
+unload obj5 obj14 obj3 (1)
+load obj8 obj14 obj3 (1)
+fly obj8 obj3 obj0 (1)
+unload obj8 obj14 obj0 (1)
+drive obj5 obj3 obj7 (1)
+load obj5 obj13 obj7 (1)
+drive obj5 obj7 obj3 (1)
+unload obj5 obj13 obj3 (1)
+fly obj8 obj0 obj3 (1)
+load obj8 obj13 obj3 (1)
+fly obj8 obj3 obj0 (1)
+unload obj8 obj13 obj0 (1)
+[t=0.0048894s, 1244 KB] Plan length: 29 step(s).
+[t=0.0048894s, 1244 KB] Plan cost: 29
+[t=0.0048894s, 1244 KB] Expanded 77 state(s).
+[t=0.0048894s, 1244 KB] Reopened 0 state(s).
+[t=0.0048894s, 1244 KB] Evaluated 78 state(s).
+[t=0.0048894s, 1244 KB] Evaluations: 156
+[t=0.0048894s, 1244 KB] Generated 690 state(s).
+[t=0.0048894s, 1244 KB] Dead ends: 0 state(s).
+[t=0.0048894s, 1244 KB] Number of registered states: 78
+[t=0.0048894s, 1244 KB] Int hash set load factor: 78/128 = 0.609375
+[t=0.0048894s, 1244 KB] Int hash set resizes: 7
+[t=0.0048894s, 1244 KB] Search time: 0.0019615s
+[t=0.0048894s, 1244 KB] Total time: 0.0048894s
 Solution found.
 search exit code: 0
 

@@ -859,12 +859,12 @@ def test_train_init_and_goal_policy_logistics():
 									exclude_self_goal_nlm=True,
 									lr_goal_nlm = 1e-3,
 									entropy_coeff_goal_policy = 0.2,
-									entropy_annealing_coeffs_goal_policy = (10000, 0),
+									entropy_annealing_coeffs_goal_policy = (5000, 0),
 									epsilon_goal_policy=0.1)
 
 	# Train the goal generation policy
 	generator.train_generative_policies(training_iterations = 100000, 
-					        			max_atoms_init_state=15, max_actions_init_state=1.0, max_actions_goal_state=5.0)
+					        			max_atoms_init_state=(10,20), max_actions_init_state=1.0, max_actions_goal_state=5.0)
 
 
 """
@@ -893,8 +893,9 @@ def test_load_models_and_generate_problems_logistics():
 	consistency_validator = ConsistencyValidatorLogistics(parser.types, parser.predicates)
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_0/init_policy_its-25000.ckpt"
-	goal_policy_path = "saved_models/both_policies_0/goal_policy_its-25000.ckpt"
+	its=10000
+	init_policy_path = f"saved_models/both_policies_1/init_policy_its-{its}.ckpt"
+	goal_policy_path = f"saved_models/both_policies_1/goal_policy_its-{its}.ckpt"
 	
 	# The goal_nlm_layers need to account for arity 4, as one action has 4 parameters
 	# We also need to have some predicates of arity 3 in the last layer or, else, there will be no predicates to compute the action of arity 4
