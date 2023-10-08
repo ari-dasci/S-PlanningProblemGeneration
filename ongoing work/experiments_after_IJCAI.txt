@@ -1740,7 +1740,7 @@
    > Entrenamiento (its=17000
       - Tiempo (casa): 10d aprox.
       - r_diff (goal_policy)= 100 (muy alta!!! aunque después baja a 70)
-      - r_eventual=-0.02 (muy alta!!! Genera problemas inconsistentes!!)
+      - r_eventual=-0.02
       - init_policy_entropy=0.68, goal_policy_entropy=0.2
       - term_cond_prob init_policy converge a 0 y la goal_policy alrededor de 1e-3
       - num_objs:
@@ -1825,7 +1825,63 @@
    <diversity reward without inconsistent problems>
 
    > Ejecutándose en Casa
-   > logs: init_policy/version_22
+   > logs: init_policy/version_0
+
+   > Entrenamiento (its=10000)
+      - Tiempo (casa): 5d
+      - r_diff (goal_policy)= 50 (media para problemas entre 10 y 20 átomos)
+      - r_eventual=-0.03
+      - init_policy_entropy=0.7, goal_policy_entropy=0.15
+      - term_cond_prob init_policy converge a 0 y la goal_policy alrededor de 1e-3
+      - num_objs:
+         - city: 2.04
+         - airport: 5.06
+         - location: 1
+         - airplane: 1.6
+         - truck: 2.2
+         - package: 5.9
+
+   > Problemas (its=10000)
+      - max_atoms = 15
+         - diff = [49.6 37.6 43.7]
+         - diversidad media
+            - Todos los problemas con 2 ciudades
+            - Por el resto, problemas muy variados
+
+      - max_atoms = 20
+         - diff = [100.7  80.7  85.6]
+         - Problemas con 2 ciudades
+
+      - max_atoms = 30
+         - diff = [192.8 139.4 142.4]
+         - Problemas con 2 ciudades, menos uno con tres ciudades
+
+      - max_atoms = 40
+         - diff = [206.6 165.9 203.7]
+         - Problemas con 2 ciudades, menos uno con tres ciudades
+
+   >>> Análisis
+      - Se obtienen peores resultados que entrenando en problemas de solo 15 átomos
+      - En vez de generarse problemas con más ciudades (y generalizar mejor a problemas más grandes),
+        se generan problemas con menos ciudades
+      - Hipótesis de por qué no se generan problemas con más ciudades:
+         - Las generative policies aprenden a generar problemas con solo dos ciudades porque los problemas pequeños
+           (ej.: 10 átomos) son más difíciles con solo dos ciudades. Además, quizás a la NLM le cuesta "trabajar"
+           con el input del max_num_atoms (quizás debería añadir una "counting reduction" a la NLM?)
+         - También puede pasar que incluso los problemas grandes son difíciles con solo dos ciudades (realmente hace
+           falta generar problemas con más de dos ciudades?)
+
+>  <logistics>
+   <max_atoms_init_state=(15,20)>, max_actions_init_state=1, max_actions_goal_state=5.0
+   init_policy_entropy_coeffs: 0.1, None
+   goal_policy_entropy_coeffs: 0.2, (5000, 0)
+   diversity_rescale_factor=50
+   use feature_weights for diversity_reward
+   <nlm receives problem max size as input>
+   diversity reward without inconsistent problems
+
+   > Ejecutándose en Casa
+   > logs: init_policy/version_1
 
 
 
@@ -1916,13 +1972,19 @@ nlm does NOT receive problem max size as input
 
    - Experimentos training on problems of different size
       - max_atoms=(10,20)
+         - Funciona peor que entrenando en problemas con solo max_atoms=15
+
+      - max_atoms=(15,20)
          - RUNNING
+         - Estoy haciendo este experimento porque quiero ver que entrenar en problemas de distintos tamaños, como mínimo,
+           no empeore los resultados respecto a entrenar solo en problemas del mismo tamaño (no empeore la generalización
+           ni se generen problemas con menos ciudades)
 
 
 
 
 
-   - Probar a usar ReLU y batchnorm
+   - Probar a usar ReLU y batchnorm - No
 
    - Una vez tenga el mejor modelo, ver si entrenar en problemas de distintos tamaños (ej.: 10-20 max-atoms)
      ayuda en algo o no
