@@ -1,11 +1,17 @@
 ### Add planner files
 !src/fast-downward/*
 
+src/.vscode/*
+src/.conda/*
+
+# Ignore saved models
+src/saved_models/*
+
 # Ignore lightning logs
-src/lightning_logs
 src/lightning_logs/*
 
 # Ignore planner files
+src/temp_problems/*
 src/temp_problem.pddl
 src/sas_plan
 

@@ -1879,9 +1879,53 @@
    use feature_weights for diversity_reward
    <nlm receives problem max size as input>
    diversity reward without inconsistent problems
+   <minibatch_size=20>
 
    > Ejecutándose en Casa
-   > logs: init_policy/version_1
+   > logs: init_policy/version_1, 2, 3, 4, 5
+
+   > Entrenamiento (its=10000)
+      - Tiempo (casa): 7d
+      - r_diff (goal_policy)= 40 (media para problemas entre 15 y 20 átomos)
+         >>> Las gráficas de dificultad son muy inestables!
+      - r_eventual=-0.01
+      - init_policy_entropy=0.7, goal_policy_entropy=0.3
+      - term_cond_prob init_policy converge a 0 y la goal_policy alrededor de 1e-3
+      - num_objs:
+         - city: 2.04
+         - airport: 4.6
+         - location: 1.5
+         - airplane: 1.9
+         - truck: 2.3
+         - package: 7
+
+   > Problemas (its=7500) (num its con mayor difficulty)
+      - max_atoms = 15
+         - diff = [44.8 37.2 39.8]
+         - diversidad media
+            - Todos los problemas con 2 ciudades, uno con 3 ciudades
+            - Por el resto, problemas bastante variados 
+      
+      - max_atoms = 20
+         - diff = [74.6 61.7 67.9]
+         - diversidad media-baja
+            - Todos los problemas con 2 ciudades
+
+      - max_atoms = 30
+         - diff = [188.3 147.5 155.2]
+         - Todos los problemas con 2 ciudades, uno con 3 ciudades
+
+      - max_atoms = 40
+         - diff = [376.7 268.8 334.7]
+         - Todos los problemas con 2 ciudades, dos con 3 ciudades 
+
+   >>> Análisis
+      Peores resultados que entrenando solo en problemas de tamaño 15!
+      El número de ciudades no aumenta con el tamaño de los problemas.
+      Posibles razones:
+         >>> menor minibatch_size
+         - la NLM no se comporta bien con el tamaño del problema como input
+         - Entrenar en problemas de 20 átomos no es suficiente
 
 
 
@@ -1975,17 +2019,15 @@ nlm does NOT receive problem max size as input
          - Funciona peor que entrenando en problemas con solo max_atoms=15
 
       - max_atoms=(15,20)
-         - RUNNING
-         - Estoy haciendo este experimento porque quiero ver que entrenar en problemas de distintos tamaños, como mínimo,
-           no empeore los resultados respecto a entrenar solo en problemas del mismo tamaño (no empeore la generalización
-           ni se generen problemas con menos ciudades)
+         - Los resultados son peores que entrenando en problemas con solo max_atoms=15!!!
 
+      >>> Analysis
+         - Entrenar en problemas de distintos tamaños no ayuda. Posibles razones:
+            - Reducir minibatch_size a 10 (debido a GPU memory) hace que el entrenamiento sea inestable
+            - Es necesario entrenar en problemas aún más grandes, como de 30 átomos para que "merezca la pena" generar problemas con más de dos ciudades
+            - La NLM no se comporta bien con inputs enteros
+            - La NLM no sabe contar? (no hay reduce operation para contar)
 
+----- TODO
 
-
-
-   - Probar a usar ReLU y batchnorm - No
-
-   - Una vez tenga el mejor modelo, ver si entrenar en problemas de distintos tamaños (ej.: 10-20 max-atoms)
-     ayuda en algo o no
-      - Quizás ayude a que escale el número de ciudades según el problem size
+   - Probar a añadir a la NLM "counting quantifiers" (para que aprenda a contar el <porcentaje> número de átomos y objetos de cada tipo)

@@ -1104,7 +1104,7 @@ class Generator():
 					# Train on a single problem size -> problem_size=0
 					curr_state_tensors = curr_state.atoms_nlm_encoding(device=self.device, max_arity=init_nlm_max_pred_arity, 
 															allowed_virtual_objects=self._allowed_virtual_objects,
-															problem_size=list_max_atoms_init_state[i]*0.01,
+															problem_size=0,
 															perc_actions_executed=perc_actions_executed,
 															dict_num_objs_each_type=dict_num_objs_each_type,
 															dict_num_atoms_each_type=dict_num_atoms_each_type)	
@@ -1345,7 +1345,7 @@ class Generator():
 					# Train on different problem sizes -> problem_size=list_max_actions_goal_state[i]*0.01
 					# Train on a single problem size -> problem_size=0
 					curr_goal_and_init_state_tensors = problems[i].initial_state.atoms_nlm_encoding_with_goal_state(curr_goal_state, self.device,
-																	goal_nlm_max_pred_arity, True, list_max_actions_goal_state[i]*0.01,
+																	goal_nlm_max_pred_arity, True, 0,
 																	perc_actions_executed,
 																	dict_num_objs_each_type=dict_num_objs_each_type, 
 																	dict_num_atoms_each_type_init_state=dict_num_atoms_each_type_init_state,
@@ -1629,7 +1629,7 @@ class Generator():
 	                        For example, if max_atoms_init_state=15 and max_actions_goal_state=2, then we execute a maximum of 30 actions to generate
 				            problem goals.
 	"""
-	def train_generative_policies(self, training_iterations, start_it=0, epochs_per_train_it=1, trajectories_per_train_it=25, minibatch_size=25,
+	def train_generative_policies(self, training_iterations, start_it=0, epochs_per_train_it=1, trajectories_per_train_it=25, minibatch_size=50,
 								  its_per_model_checkpoint=10, checkpoint_folder="saved_models/both_policies", logs_name="both_policies",
 								  max_atoms_init_state=15, max_actions_init_state=1.0, max_actions_goal_state=2.0):
 		# Obtain folder name to save the model checkpoints in
@@ -1982,7 +1982,7 @@ class Generator():
 		# Train on a single problem size -> problem_size=0
 		init_state_tensors = init_state.atoms_nlm_encoding(device=self.device, max_arity=init_nlm_max_pred_arity,
 														   allowed_virtual_objects=self._allowed_virtual_objects,
-														   problem_size=max_atoms_init_state*0.01,
+														   problem_size=0,
 														   perc_actions_executed=perc_actions_executed,
 														   dict_num_objs_each_type=dict_num_objs_each_type,
 														   dict_num_atoms_each_type=dict_num_atoms_each_type)
@@ -2027,7 +2027,7 @@ class Generator():
 		# Train on different problem sizes -> problem_size=max_actions_goal_state*0.01
 		# Train on a single problem size -> problem_size=0
 		init_and_goal_state_tensors = problem_state.initial_state.atoms_nlm_encoding_with_goal_state(goal_state, self.device, goal_nlm_max_pred_arity, 
-																									 True, max_actions_goal_state*0.01, perc_actions_executed,
+																									 True, 0, perc_actions_executed,
 																									 dict_num_objs_each_type=dict_num_objs_each_type, 
 																									 dict_num_atoms_each_type_init_state=dict_num_atoms_each_type_init_state,
                                            															 dict_num_atoms_each_type_goal_state=dict_num_atoms_each_type_goal_state)
