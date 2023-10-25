@@ -1927,6 +1927,62 @@
          - la NLM no se comporta bien con el tamaño del problema como input
          - Entrenar en problemas de 20 átomos no es suficiente
 
+------------- Blocksworld
+
+>  <blocksworld>
+   max_atoms_init_state=15, max_actions_init_state=1, <max_actions_goal_state=3.0>
+   init_policy_entropy_coeffs: 0.1, None
+   goal_policy_entropy_coeffs: 0.2, (5000, 0)
+   diversity_rescale_factor=50
+   use feature_weights for diversity_reward
+   nlm does NOT receive problem max size as input
+   diversity reward without inconsistent problems
+
+   > Ejecutándose en Casa
+   > logs: init_policy/1
+
+   > Entrenamiento (its=10000)
+      - Tiempo (casa): 4d
+      - r_diff (goal_policy)= 600
+      - r_eventual=-0.02
+      - init_policy_entropy=0.5, goal_policy_entropy=0.1
+      - term_cond_prob init_policy converge a 0.04 y la goal_policy a 0.02
+      - 11 bloques
+      - num_atoms:
+         - handempty: 0.5
+         - holding: 0.5
+         - ontable: 5.2 (num towers)
+         - clear: 5.2
+         - on: 4.8
+
+   > Problemas (its=10000)
+      - max_atoms = 15
+         - diff = [376.3 437. 484.] (mucha variabilidad, dificultad alta)
+         - diversidad media-alta
+            - Problemas con distinto número de bloques
+            - Problemas con distinto número de torres
+            - A veces se generan problems idénticos
+
+      - max_atoms = 20
+         - diff = [763.4 1445.9 1433.6]
+         - Se tiende a generar muchos problemas con una única torre de bloques,
+           mientras que otros tienen muchas torres pequeñas
+
+      - max_atoms = 30
+         - diff = [10293.62 155489.84 4426.78]
+
+      - max_atoms = 40
+         - diff = [1965.22 292455.7 7396.78]
+
+   >>> Análisis
+      - Se generan problemas muy difíciles y la dificultad escala muy bien con el tamaño del problema!!!
+      - No obstante, a veces se generan problemas repetidos
+         - Quizás sea necesario aumentar la diversidad (policy_entropy o diversity_scale_factor)
+
+      - En resumen, los mismos hiperparámetros de logistics funcionan bien para blocksworld!
+
+------------ Sokoban
+
 
 
 

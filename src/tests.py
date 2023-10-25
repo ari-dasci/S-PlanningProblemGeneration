@@ -1085,7 +1085,7 @@ def test_train_init_and_goal_policy_blocksworld():
 
 	generator = Generator(parser, planner, goal_predicates, consistency_validator=consistency_validator,
 									allowed_virtual_objects=virtual_objects,
-									diversity_rescale_factor=10,
+									diversity_rescale_factor=50,
 									device='cuda', max_objs_cache_reduce_masks=15,
 
 									use_initial_state_policy=True,
@@ -1095,7 +1095,7 @@ def test_train_init_and_goal_policy_blocksworld():
 									res_connections_initial_state_nlm=False,
 									exclude_self_inital_state_nlm=True,
 									lr_initial_state_nlm = 1e-3,
-									entropy_coeff_init_state_policy = 0,
+									entropy_coeff_init_state_policy = 0.1,
 									entropy_annealing_coeffs_init_state_policy = None,
 									epsilon_init_state_policy=0.1,
 
@@ -1106,13 +1106,13 @@ def test_train_init_and_goal_policy_blocksworld():
 									res_connections_goal_nlm=False,
 									exclude_self_goal_nlm=True,
 									lr_goal_nlm = 1e-3,
-									entropy_coeff_goal_policy = 0,
-									entropy_annealing_coeffs_goal_policy = None,
+									entropy_coeff_goal_policy = 0.2,
+									entropy_annealing_coeffs_goal_policy = (5000, 0),
 									epsilon_goal_policy=0.1)
 
 	# Train the goal generation policy
 	generator.train_generative_policies(training_iterations = 100000, 
-					        					 max_atoms_init_state=15, max_actions_init_state=1.0, max_actions_goal_state=2.0)	
+					        			max_atoms_init_state=15, max_actions_init_state=1.0, max_actions_goal_state=3.0)	
 	
 
 """
@@ -1141,8 +1141,8 @@ def test_load_models_and_generate_problems_blocksworld():
 	virtual_objects = None # No need to supply virtual objects (the method automatically detects 'block' as the only possible virtual object)
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_272/init_policy_its-1600.ckpt"
-	goal_policy_path = "saved_models/both_policies_272/goal_policy_its-1600.ckpt"
+	init_policy_path = "saved_models/both_policies_0/init_policy_its-10000.ckpt"
+	goal_policy_path = "saved_models/both_policies_0/goal_policy_its-10000.ckpt"
 
 	# The goal_nlm_layers need to account for arity 4, as one action has 4 parameters
 	# We also need to have some predicates of arity 3 in the last layer or, else, there will be no predicates to compute the action of arity 4
@@ -1180,10 +1180,10 @@ def test_load_models_and_generate_problems_blocksworld():
 	print(f">> Init model {init_policy_path} and goal model {goal_policy_path} loaded")
 
 	# Generate the set of problems with the trained initial policy
-	num_problems = 10
+	num_problems = 50
 
-	generator.generate_problems(num_problems, max_atoms_init_state=15, max_actions_init_state=1,
-								 max_actions_goal_state=2, verbose=True)	
+	generator.generate_problems(num_problems, max_atoms_init_state=40, max_actions_init_state=1.0,
+								max_actions_goal_state=3.0, verbose=True)	
 
 
 def test_load_models_and_resume_training_blocksworld():
@@ -1621,7 +1621,7 @@ if __name__ == "__main__":
 	#test_load_models_and_generate_problems()
 
 	#test_generate_random_problems_logistics()
-	test_train_init_and_goal_policy_logistics()
+	#test_train_init_and_goal_policy_logistics()
 	#test_load_models_and_generate_problems_logistics()	
 	#test_load_models_and_resume_training_logistics()
 
