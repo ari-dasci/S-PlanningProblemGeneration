@@ -1375,7 +1375,7 @@ def test_train_init_and_goal_policy_sokoban():
 
 	generator = Generator(parser, planner, goal_predicates, initial_state_info, consistency_validator=consistency_validator,
 									allowed_virtual_objects=virtual_objects,
-									diversity_rescale_factor=10,
+									diversity_rescale_factor=100,
 									device='cuda', max_objs_cache_reduce_masks=25,
 
 									use_initial_state_policy=True,
@@ -1385,7 +1385,7 @@ def test_train_init_and_goal_policy_sokoban():
 									res_connections_initial_state_nlm=False,
 									exclude_self_inital_state_nlm=True,
 									lr_initial_state_nlm = 1e-3,
-									entropy_coeff_init_state_policy = 0,
+									entropy_coeff_init_state_policy = 0.1,
 									entropy_annealing_coeffs_init_state_policy = None,
 									epsilon_init_state_policy=0.1,
 
@@ -1396,13 +1396,14 @@ def test_train_init_and_goal_policy_sokoban():
 									res_connections_goal_nlm=False,
 									exclude_self_goal_nlm=True,
 									lr_goal_nlm = 1e-3,
-									entropy_coeff_goal_policy = 0,
-									entropy_annealing_coeffs_goal_policy = None,
+									entropy_coeff_goal_policy = 0.2,
+									entropy_annealing_coeffs_goal_policy = (5000,0),
 									epsilon_goal_policy=0.1)
 
 	# Train the goal generation policy
 	generator.train_generative_policies(training_iterations = 100000, minibatch_size=50,
 					        			max_atoms_init_state=40+15, max_actions_init_state=1.0, max_actions_goal_state=1.0)
+	# Note: max_actions_goal_state is equal to max_atoms_init_state, 40+15 in this case
 
 
 def test_load_models_and_generate_problems_sokoban():
@@ -1443,6 +1444,58 @@ def test_load_models_and_generate_problems_sokoban():
 									('connected-up', (20, 15)), ('connected-up', (21, 16)), ('connected-up', (22, 17)), ('connected-up', (23, 18)), ('connected-up', (24, 19)),
 									})
 
+	"""
+	# Initial state for a 6x6 map
+	0  1  2  3  4  5
+	6  7  8  9  10 11
+	12 13 14 15 16 17
+	18 19 20 21 22 23
+	24 25 26 27 28 29
+	30 31 32 33 34 35
+	atoms = {
+			('connected-right', (0, 1)), ('connected-right', (1, 2)), ('connected-right', (2, 3)), ('connected-right', (3, 4)), ('connected-right', (4, 5)),
+			('connected-right', (6, 7)), ('connected-right', (7, 8)), ('connected-right', (8, 9)), ('connected-right', (9, 10)), ('connected-right', (10, 11)),
+			('connected-right', (12, 13)), ('connected-right', (13, 14)), ('connected-right', (14, 15)), ('connected-right', (15, 16)), ('connected-right', (16, 17)),
+			('connected-right', (18, 19)), ('connected-right', (19, 20)), ('connected-right', (20, 21)), ('connected-right', (21, 22)), ('connected-right', (22, 23)),
+			('connected-right', (24, 25)), ('connected-right', (25, 26)), ('connected-right', (26, 27)), ('connected-right', (27, 28)), ('connected-right', (28, 29)),
+			('connected-right', (30, 31)), ('connected-right', (31, 32)), ('connected-right', (32, 33)), ('connected-right', (33, 34)), ('connected-right', (34, 35)),
+
+			('connected-up', (6, 0)), ('connected-up', (7, 1)), ('connected-up', (8, 2)), ('connected-up', (9, 3)), ('connected-up', (10, 4)), ('connected-up', (11, 5)),
+			('connected-up', (12, 6)), ('connected-up', (13, 7)), ('connected-up', (14, 8)), ('connected-up', (15, 9)), ('connected-up', (16, 10)), ('connected-up', (17, 11)),
+			('connected-up', (18, 12)), ('connected-up', (19, 13)), ('connected-up', (20, 14)), ('connected-up', (21, 15)), ('connected-up', (22, 16)), ('connected-up', (23, 17)),
+			('connected-up', (24, 18)), ('connected-up', (25, 19)), ('connected-up', (26, 20)), ('connected-up', (27, 21)), ('connected-up', (28, 22)), ('connected-up', (29, 23)),
+			('connected-up', (30, 24)), ('connected-up', (31, 25)), ('connected-up', (32, 26)), ('connected-up', (33, 27)), ('connected-up', (34, 28)), ('connected-up', (35, 29))
+			}	
+	"""
+	"""
+	# Initial state for a 7x7 map
+	0  1  2  3  4  5  6
+	7  8  9  10 11 12 13
+	14 15 16 17 18 19 20
+	21 22 23 24 25 26 27
+	28 29 30 31 32 33 34
+	35 36 37 38 39 40 41
+	42 43 44 45 46 47 48
+
+	atoms = {
+			('connected-right', (0, 1)), ('connected-right', (1, 2)), ('connected-right', (2, 3)), ('connected-right', (3, 4)), ('connected-right', (4, 5)), ('connected-right', (5, 6)),
+			('connected-right', (7, 8)), ('connected-right', (8, 9)), ('connected-right', (9, 10)), ('connected-right', (10, 11)), ('connected-right', (11, 12)), ('connected-right', (12, 13)),
+			('connected-right', (14, 15)), ('connected-right', (15, 16)), ('connected-right', (16, 17)), ('connected-right', (17, 18)), ('connected-right', (18, 19)), ('connected-right', (19, 20)),
+			('connected-right', (21, 22)), ('connected-right', (22, 23)), ('connected-right', (23, 24)), ('connected-right', (24, 25)), ('connected-right', (25, 26)), ('connected-right', (26, 27)),
+			('connected-right', (28, 29)), ('connected-right', (29, 30)), ('connected-right', (30, 31)), ('connected-right', (31, 32)), ('connected-right', (32, 33)), ('connected-right', (33, 34)),
+			('connected-right', (35, 36)), ('connected-right', (36, 37)), ('connected-right', (37, 38)), ('connected-right', (38, 39)), ('connected-right', (39, 40)), ('connected-right', (40, 41)),
+			('connected-right', (42, 43)), ('connected-right', (43, 44)), ('connected-right', (44, 45)), ('connected-right', (45, 46)), ('connected-right', (46, 47)), ('connected-right', (47, 48)),
+
+			('connected-up', (7, 0)), ('connected-up', (8, 1)), ('connected-up', (9, 2)), ('connected-up', (10, 3)), ('connected-up', (11, 4)), ('connected-up', (12, 5)), ('connected-up', (13, 6)),
+			('connected-up', (14, 7)), ('connected-up', (15, 8)), ('connected-up', (16, 9)), ('connected-up', (17, 10)), ('connected-up', (18, 11)), ('connected-up', (19, 12)), ('connected-up', (20, 13)),
+			('connected-up', (21, 14)), ('connected-up', (22, 15)), ('connected-up', (23, 16)), ('connected-up', (24, 17)), ('connected-up', (25, 18)), ('connected-up', (26, 19)), ('connected-up', (27, 20)),
+			('connected-up', (28, 21)), ('connected-up', (29, 22)), ('connected-up', (30, 23)), ('connected-up', (31, 24)), ('connected-up', (32, 25)), ('connected-up', (33, 26)), ('connected-up', (34, 27)),
+			('connected-up', (35, 28)), ('connected-up', (36, 29)), ('connected-up', (37, 30)), ('connected-up', (38, 31)), ('connected-up', (39, 32)), ('connected-up', (40, 33)), ('connected-up', (41, 34)),
+			('connected-up', (42, 35)), ('connected-up', (43, 36)), ('connected-up', (44, 37)), ('connected-up', (45, 38)), ('connected-up', (46, 39)), ('connected-up', (47, 40)), ('connected-up', (48, 41))
+	}
+	"""
+
+
 	# Goal predicates
 	goal_predicates = {('at-box', ('loc',))}
 
@@ -1453,8 +1506,8 @@ def test_load_models_and_generate_problems_sokoban():
 	virtual_objects = [] # No virtual objects can be added (all the objects are already present from the start)
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_275/init_policy_its-1800.ckpt"
-	goal_policy_path = "saved_models/both_policies_275/goal_policy_its-1800.ckpt"
+	init_policy_path = "saved_models/both_policies_0/init_policy_its-7500.ckpt"
+	goal_policy_path = "saved_models/both_policies_0/goal_policy_its-7500.ckpt"
 
 	# The goal_nlm_layers need to account for arity 4, as one action has 4 parameters
 	# We also need to have some predicates of arity 3 in the last layer or, else, there will be no predicates to compute the action of arity 4
@@ -1492,7 +1545,7 @@ def test_load_models_and_generate_problems_sokoban():
 	print(f">> Init model {init_policy_path} and goal model {goal_policy_path} loaded")
 
 	# Generate the set of problems with the trained initial policy
-	num_problems = 10
+	num_problems = 20
 
 	generator.generate_problems(num_problems, max_atoms_init_state=40+15, max_actions_init_state=1,
 								 max_actions_goal_state=1, verbose=True)	
@@ -1565,7 +1618,7 @@ def test_load_models_and_resume_training_sokoban():
 
 	generator = Generator(parser, planner, goal_predicates, initial_state_info, consistency_validator=consistency_validator,
 									allowed_virtual_objects=virtual_objects,
-									diversity_rescale_factor=10,
+									diversity_rescale_factor=50,
 									device='cuda', max_objs_cache_reduce_masks=25,
 
 									use_initial_state_policy=True,
@@ -1631,7 +1684,7 @@ if __name__ == "__main__":
 	#test_load_models_and_resume_training_blocksworld()
 
 	#test_generate_random_problems_sokoban()
-	#test_train_init_and_goal_policy_sokoban()
+	test_train_init_and_goal_policy_sokoban()
 	#test_load_models_and_generate_problems_sokoban()
 	#test_load_models_and_resume_training_sokoban()
 

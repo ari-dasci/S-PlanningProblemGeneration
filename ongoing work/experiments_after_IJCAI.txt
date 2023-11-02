@@ -1983,11 +1983,57 @@
 
 ------------ Sokoban
 
+>  <sokoban>
+   <max_atoms_init_state=40+15>, max_actions_init_state=1, <max_actions_goal_state=1.0>
+   init_policy_entropy_coeffs: 0.1, None
+   goal_policy_entropy_coeffs: 0.2, (5000, 0)
+   diversity_rescale_factor=50
+   use feature_weights for diversity_reward
+   nlm does NOT receive problem max size as input
+   diversity reward without inconsistent problems
+
+   > Ejecutándose en Casa
+   > logs: init_policy/1
+
+   > Entrenamiento (its=8000)
+      - Tiempo (casa): 8d
+         - El entrenamiento se ralentiza muchísimo debido a la gran dificultad de los problemas
+      - r_diff (goal_policy)= 4.5e+6
+      - r_eventual=-0.02
+      - init_policy_entropy=0.45, goal_policy_entropy=0.15
+      - term_cond_prob init_policy 0.1, goal_policy 0.02
+      - num_atoms:
+         - at-box 5.5
+         - at-wall 2
+         > No se llega al número máximo de átomos extra (15)
+
+   > Problemas (its=7500)
+      - Tamaño 5x5, max_atoms=40+15
+         - diff = [4.76e6 4.72e6 2.16e6]
+         - diversidad muy baja
+            - Muchos problemas son completamente idénticos (cerca del 40%)
+
+   > Análisis
+      - La dificultad es extremadamente alta (1000 veces la de los instance generators) pero la diversidad es muy baja
+      - Es necesario aumentar la diversidad
+
+>  <sokoban>
+   max_atoms_init_state=40+15, max_actions_init_state=1, max_actions_goal_state=1.0
+   init_policy_entropy_coeffs: 0.1, None
+   goal_policy_entropy_coeffs: 0.2, (5000, 0)
+   <diversity_rescale_factor=100>
+   use feature_weights for diversity_reward
+   nlm does NOT receive problem max size as input
+   diversity reward without inconsistent problems
+
+   > Ejecutándose en Casa
+   > logs: init_policy/2
+
+   
 
 
 
-
------ Mejor modelo hasta la fecha (logistics)
+----- Mejor modelo hasta la fecha (logistics y blocksworld)
 
 max_atoms_init_state=15, max_actions_init_state=1, max_actions_goal_state=5.0
 <init_policy_entropy_coeffs: 0.1, None>

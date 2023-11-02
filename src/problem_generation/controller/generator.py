@@ -10,6 +10,7 @@ import numpy as np
 import math
 import torch
 import pytorch_lightning as pl
+from pytorch_lightning import seed_everything
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from joblib import Parallel, delayed
 import itertools
@@ -1209,7 +1210,7 @@ class Generator():
 	"""
 	def _obtain_init_state_trajectories_random(self, num_trajectories, list_max_actions_init_state, verbose=False, seed=None):
 		# Choose a seed
-		random.seed(seed)
+		seed_everything(seed, workers=True)
 
 		domain_predicates = self._parser.predicates
 		trajectories = [[] for _ in range(num_trajectories)]
@@ -1444,7 +1445,7 @@ class Generator():
 	def _obtain_goal_trajectories_random(self, problems, phase, list_max_actions_goal_state, calculate_difficulty=True,
 	 									 verbose=False, seed=None):
 		# Choose a seed
-		random.seed(seed)
+		seed_everything(seed, workers=True)
 
 		num_trajectories = len(problems)
 	
@@ -1796,9 +1797,11 @@ class Generator():
 	@max_actions_goal_state The maximum number of actions we can execute from the initial state to arrive at a goal state. If we reach this number,
 							the goal generation phase ends.
 	@problem_name The name of the generated problem, which appears in the PDDL encoding.
+	@seed Seed for reproducibility.
 	@verbose If True, print information about the problem generation process.
 	"""
-	def generate_problem(self, max_atoms_init_state, max_actions_init_state, max_actions_goal_state, problem_name = "problem", verbose=True):
+	def generate_problem(self, max_atoms_init_state, max_actions_init_state, max_actions_goal_state, problem_name = "problem", seed=None, verbose=True):
+		seed_everything(seed, workers=True)
 
 		if verbose:
 			print(f"\n\n---------- Problem {problem_name} ----------\n\n")
@@ -1876,6 +1879,8 @@ class Generator():
 	@problems_name Name used to save each generated PDDL problem (they are saved to the path @problem_path with the name @problems_name).
 				   We append an index to the end of each problem name (to differentiate between them).
 	@metrics_file_path Path (including name) of the file where we store the metrics (for now, only difficulty) of the problems generated.
+	@seed Seed for reproducibility. Each problem is generated according to a different seed, obtained deterministically from this parameter.
+		  If None, we obtain it from the current time.
 	@verbose If True, print information about the problem generation process.
 	"""
 	def generate_problems(self, num_problems_to_generate,
@@ -1883,6 +1888,7 @@ class Generator():
 								problems_path = '../data/problems/problems_both_generative_policies/',
 								problems_name = 'bw_both_generative_policies',
 								metrics_file_path = '../data/problems/problems_both_generative_policies/problems_both_generative_policies_metrics.txt',
+								seed=None,
 								verbose=True):
 		
 		if verbose:
@@ -1906,6 +1912,10 @@ class Generator():
 		f_metrics = open(metrics_file_path, 'a+')
 		f_metrics.write("\n-------------------\n")
 
+		# Seeds for reproducibility
+		# We use a different seed for each problem generated
+		curr_seed = seed if seed is not None else int(time.time())
+
 		# Store the difficulty of each problem, in order to calculate the mean across all generated problems
 		# Also stored the time it took to generate each problem -> Note: verbose should be set to False
 		list_problem_diffs = []
@@ -1916,7 +1926,8 @@ class Generator():
 			curr_problem_name = problems_name + '_' + str(ind)
 
 			# Generate problem
-			new_problem, new_problem_difficulties, generation_time = self.generate_problem(max_atoms_init_state, max_actions_init_state, max_actions_goal_state, curr_problem_name, verbose)
+			new_problem, new_problem_difficulties, generation_time = self.generate_problem(max_atoms_init_state, max_actions_init_state, max_actions_goal_state, curr_problem_name, curr_seed, verbose)
+			curr_seed += 1
 			list_problem_diffs.append(new_problem_difficulties)
 			list_generation_times.append(generation_time)
 
