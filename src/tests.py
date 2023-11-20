@@ -1252,7 +1252,7 @@ def test_load_models_and_resume_training_blocksworld():
 	# Train the goal generation policy
 	# +1 because we need to start with the next iteration
 	generator.train_generative_policies(training_iterations = 100000, start_it=curr_it+1,
-					        					 max_atoms_init_state=15, max_actions_init_state=1.0, max_actions_goal_state=2.0)
+					        			max_atoms_init_state=15, max_actions_init_state=1.0, max_actions_goal_state=2.0)
 
 
 # ------------------ Sokoban
@@ -1375,7 +1375,7 @@ def test_train_init_and_goal_policy_sokoban():
 
 	generator = Generator(parser, planner, goal_predicates, initial_state_info, consistency_validator=consistency_validator,
 									allowed_virtual_objects=virtual_objects,
-									diversity_rescale_factor=100,
+									diversity_rescale_factor=50,
 									device='cuda', max_objs_cache_reduce_masks=25,
 
 									use_initial_state_policy=True,
@@ -1385,7 +1385,7 @@ def test_train_init_and_goal_policy_sokoban():
 									res_connections_initial_state_nlm=False,
 									exclude_self_inital_state_nlm=True,
 									lr_initial_state_nlm = 1e-3,
-									entropy_coeff_init_state_policy = 0.1,
+									entropy_coeff_init_state_policy = 0.2,
 									entropy_annealing_coeffs_init_state_policy = None,
 									epsilon_init_state_policy=0.1,
 
@@ -1506,8 +1506,8 @@ def test_load_models_and_generate_problems_sokoban():
 	virtual_objects = [] # No virtual objects can be added (all the objects are already present from the start)
 
 	# Create the generator and load the trained models
-	init_policy_path = "saved_models/both_policies_0/init_policy_its-7500.ckpt"
-	goal_policy_path = "saved_models/both_policies_0/goal_policy_its-7500.ckpt"
+	init_policy_path = "saved_models/both_policies_2/init_policy_its-30000.ckpt"
+	goal_policy_path = "saved_models/both_policies_2/goal_policy_its-30000.ckpt"
 
 	# The goal_nlm_layers need to account for arity 4, as one action has 4 parameters
 	# We also need to have some predicates of arity 3 in the last layer or, else, there will be no predicates to compute the action of arity 4
@@ -1599,9 +1599,9 @@ def test_load_models_and_resume_training_sokoban():
 	virtual_objects = [] # No virtual objects can be added (all the objects are already present from the start)
 
 	# Create the generator and load the trained models
-	curr_it = 1230 # It of the loaded model, used to resume training
-	init_policy_path = "saved_models/both_policies_269/init_policy_its-{}.ckpt".format(curr_it)
-	goal_policy_path = "saved_models/both_policies_269/goal_policy_its-{}.ckpt".format(curr_it)
+	curr_it = 3960 # It of the loaded model, used to resume training
+	init_policy_path = "saved_models/both_policies_1/init_policy_its-{}.ckpt".format(curr_it)
+	goal_policy_path = "saved_models/both_policies_1/goal_policy_its-{}.ckpt".format(curr_it)
 
 	# The goal_nlm_layers need to account for arity 4, as one action has 4 parameters
 	# We also need to have some predicates of arity 3 in the last layer or, else, there will be no predicates to compute the action of arity 4
@@ -1618,7 +1618,7 @@ def test_load_models_and_resume_training_sokoban():
 
 	generator = Generator(parser, planner, goal_predicates, initial_state_info, consistency_validator=consistency_validator,
 									allowed_virtual_objects=virtual_objects,
-									diversity_rescale_factor=50,
+									diversity_rescale_factor=100,
 									device='cuda', max_objs_cache_reduce_masks=25,
 
 									use_initial_state_policy=True,
@@ -1640,7 +1640,7 @@ def test_load_models_and_resume_training_sokoban():
 	print(f">> Init model {init_policy_path} and goal model {goal_policy_path} loaded")
 
 	# Train the goal generation policy
-	generator.train_generative_policies(training_iterations = 100000, minibatch_size=50,
+	generator.train_generative_policies(training_iterations = 100000, start_it=curr_it+1,
 					        			max_atoms_init_state=40+15, max_actions_init_state=1.0, max_actions_goal_state=1.0)	
 
 

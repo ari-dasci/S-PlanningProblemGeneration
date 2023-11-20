@@ -1632,7 +1632,8 @@ class Generator():
 	"""
 	def train_generative_policies(self, training_iterations, start_it=0, epochs_per_train_it=1, trajectories_per_train_it=25, minibatch_size=50,
 								  its_per_model_checkpoint=10, checkpoint_folder="saved_models/both_policies", logs_name="both_policies",
-								  max_atoms_init_state=15, max_actions_init_state=1.0, max_actions_goal_state=2.0):
+								  max_atoms_init_state=15, max_actions_init_state=1.0, max_actions_goal_state=2.0,
+								  gradient_clip_val=0.1):
 		# Obtain folder name to save the model checkpoints in
 		folders = glob.glob(checkpoint_folder + r'_*')
 		folder_inds = [f.split('_')[-1] for f in folders]
@@ -1705,10 +1706,10 @@ class Generator():
 				# Train on GPU or CPU, according to self.device
 				if self.device.type == 'cuda':
 					trainer_init_policy = pl.Trainer(max_epochs=epochs_per_train_it, logger=logger_init_policy, accelerator='gpu',
-													devices=1, enable_checkpointing=False) # We need to reset the trainer, so we create a new one
+													devices=1, enable_checkpointing=False, gradient_clip_val=gradient_clip_val) # We need to reset the trainer, so we create a new one
 				else:
 					trainer_init_policy = pl.Trainer(max_epochs=epochs_per_train_it, logger=logger_init_policy, accelerator='cpu',
-													enable_checkpointing=False)
+													enable_checkpointing=False, gradient_clip_val=gradient_clip_val)
 							
 				trainer_init_policy.fit(self._initial_state_policy, trajectory_dataloader_init_policy)
 				self._initial_state_policy.curr_log_iteration += 1
@@ -1757,10 +1758,12 @@ class Generator():
 
 					if self.device.type == 'cuda':
 						trainer_goal_policy = pl.Trainer(max_epochs=goal_policy_train_epochs, logger=logger_goal_policy,
-															accelerator='gpu', devices=1, enable_checkpointing=False)
+															accelerator='gpu', devices=1, enable_checkpointing=False,
+															gradient_clip_val=gradient_clip_val)
 					else:
 						trainer_goal_policy = pl.Trainer(max_epochs=goal_policy_train_epochs, logger=logger_goal_policy,
-															accelerator='cpu', enable_checkpointing=False)
+															accelerator='cpu', enable_checkpointing=False,
+															gradient_clip_val=gradient_clip_val)
 
 					trainer_goal_policy.fit(self._goal_policy, trajectory_dataloader_goal_policy)
 					self._goal_policy.curr_log_iteration += 1

@@ -2027,9 +2027,56 @@
    diversity reward without inconsistent problems
 
    > Ejecutándose en Casa
-   > logs: init_policy/2
+   > logs: init_policy/2, 3
 
-   
+   > Entrenamiento (its=35000)
+      - Tiempo (casa): 15d
+      - r_diff (goal_policy) muy inestable, con muchos picos. Alcanza 2.5e+4, aunque está alrededor de 1e+4 en las últimas iteraciones.
+      - r_eventual=-0.02
+      - init_policy_entropy=0.92, goal_policy_entropy=0.07
+      - term_cond_prob init_policy 0.09, goal_policy 0.01
+      - num_atoms:
+         - at-box 3.5
+         - at-wall 2
+         > No se llega al número máximo de átomos extra (15)
+         > Gran varianza en el número de objetos
+
+   > Problemas (its=30000)
+      - Tamaño 5x5, max_atoms=40+15
+         - diff = [4232.65 3468.8  7601.45]
+            - Todos los problemas tienen dificultad muy baja (menos de 10) menos uno,
+              que tiene dificultad [84595, 69310, 151965]
+
+         - diversidad
+            - Diversidad muy alta
+            - Número de átomos en los problemas:
+               - at-box: [4,8,2,1,5,8,1,6,6,1,8,8,6,1,6,5,8,4,7,1]
+               - at-wall: [0,0,12,0,9,6,0,8,8,0,6,6,0,0,8,9,6,10,7,1]
+                  - Los problemas que tienen el mismo número de cajas y paredes no son idénticos
+                    (estos objetos aparecen en distintas posiciones en cada problema)
+
+   > Análisis
+      - La diversidad es mucho más alta que usando diversity_rescale_factor=50
+      - Pero ahora solo un pequeño porcentaje de problemas son difíciles (el resto son muy fáciles)
+      - Además, las gráficas de loss tienen muchos picos <<(parece que el entrenamiento es inestable)>>
+      > Creo que debo bajar la diversity_rescale_factor y debo hacer el entrenamiento más estable
+
+>  <sokoban>
+   max_atoms_init_state=40+15, max_actions_init_state=1, max_actions_goal_state=1.0
+   <init_policy_entropy_coeffs: 0.2, None>
+   goal_policy_entropy_coeffs: 0.2, (5000, 0)
+   <diversity_rescale_factor=50>
+   use feature_weights for diversity_reward
+   nlm does NOT receive problem max size as input
+   diversity reward without inconsistent problems
+   <gradient-clipping=0.1> 
+  
+
+
+
+   <Ver si el gradient clipping hace que no haya tantos picos en el entrenamiento y que sea más estable>
+      - Si no, probar a usar gradient-clipping=0.01
+
 
 
 
@@ -2044,6 +2091,10 @@ nlm does NOT receive problem max size as input
 <diversity reward without inconsistent problems>
 
 --------
+
+
+
+
 
 
 -------- Siguientes experimentos
