@@ -1,0 +1,66 @@
+#!/bin/bash
+#-*- mode:sh -*-
+SCRDIR=$(dirname $(readlink -ef $0))
+. $SCRDIR/fdutil.sh
+
+################################################################
+#### default options
+
+################################################################
+#### main
+
+tc=$HOME/.fd-cache/translate/
+pc=$HOME/.fd-cache/preprocess/
+mkdir -p $pc $tc
+
+plan(){
+    echo $(whoami)@$(hostname)
+    OPTIONS=${OPTIONS:-"--search astar(lmcut())"}
+    md5=$(cat domain.pddl problem.pddl | md5sum | cut -d' ' -f1)
+    echo "md5 : $md5"
+    (
+        flock 9
+        if [ -f $pc/$md5 ]
+        then
+            echo "reusing the preprocess output : $pc/$md5"
+            ln -s $pc/$md5 output.sasp
+        else
+            if [ -f $tc/$md5 ]
+            then
+                echo "reusing the translation output : $tc/$md5"
+                ln -s $tc/$md5 output.sas
+            else
+                $fdscript --translate --log-level info domain.pddl problem.pddl > output.sas
+                cp output.sas $tc/$md5
+            fi
+            
+            $fdscript --preprocess --log-level info output.sas > output.sasp
+            cp output.sasp $pc/$md5
+            ls
+        fi
+    ) 9>$pc/$md5.lock
+    
+    $fdscript --search --validate \
+        --plan-file $probdir/$probname.plan --log-level info output.sasp \
+        $OPTIONS
+}
+
+finalize (){
+    :
+}
+
+negatively-proven (){
+    grep "Completely explored state space" $log &> /dev/null
+}
+
+report-results (){
+    awk "/Plan cost:/{print $2}" $log | sort | head -n 1
+}
+
+plan-found (){
+    ls $probdir/$probname.plan*
+}
+
+################################################################
+
+. $SCRDIR/common.sh

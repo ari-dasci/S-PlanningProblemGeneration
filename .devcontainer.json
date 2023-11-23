@@ -1,5 +1,10 @@
 {
     "name": "NeSIG_container",
-    "dockerFile": "Dockerfile",
-    "runArgs": ["-p", "6006:6060"],
+    "build": {
+        "dockerfile": "Dockerfile",
+        "args": {
+          "BUILDKIT_INLINE_CACHE": "0"
+        }
+      },
+    "runArgs": ["--gpus", "all", "-p", "6006:6060"],
 }

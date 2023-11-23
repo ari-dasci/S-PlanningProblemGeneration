@@ -1,0 +1,42 @@
+#!/bin/bash
+#-*- mode:sh -*-
+SCRDIR=$(dirname $(readlink -ef $0))
+
+################################################################
+#### default options
+
+bin=$SCRDIR/ff-larger
+
+################################################################
+#### main
+
+# Run the planner; exit status will be the status of the entire script
+plan(){
+    
+    echo $(whoami)@$(hostname)
+    $bin -i 3 $OPTIONS \
+        -f problem.pddl -o domain.pddl
+}
+
+# Copy the plan files
+finalize (){
+    grep "^\(step\)\?\s*[0-9]\+: \(.*\)" $log | cut -d: -f 2 | sed -e "s/^ \(.*\)/(\1)/g" > plan
+    [[ $(cat plan | wc -l) -gt 0 ]] && cp plan $probdir/$probname.plan
+}
+
+# When plan was not found, check if the entire problem space is searched
+negatively-proven (){
+    grep "problem proven unsolvable" $log || \
+        grep "No plan will solve it" $log
+}
+
+# Print the costs of plans found, if any
+report-results (){
+    local cost=$(cat plan | wc -l)
+    [[ -e plan && $cost -gt 0 ]] && echo "Plan cost: " $cost
+}
+
+################################################################
+
+# required
+. $SCRDIR/common.sh

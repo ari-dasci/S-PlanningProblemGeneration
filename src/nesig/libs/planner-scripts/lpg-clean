@@ -1,0 +1,42 @@
+#!/bin/bash
+#-*- mode:sh -*-
+SCRDIR=$(dirname $(readlink -ef $0))
+
+################################################################
+#### default options
+
+bin=$SCRDIR/lpg
+# lpg-td-1.0
+
+################################################################
+#### main
+
+plan(){
+    echo $(whoami)@$(hostname)
+    $bin $OPTIONS -f problem.pddl -o domain.pddl -speed -out problem
+}
+
+finalize (){
+    awk '/^[0-9]+:.*/{ y=match($0,/\(.*\)/); print substr($0,RSTART,RLENGTH)}' problem.SOL > plan
+    [[ $(cat plan | wc -l) -gt 0 ]] && cp plan $probdir/$probname.plan
+}
+
+negatively-proven (){
+    grep "unsolvable" $log || \
+        grep "No plan will solve it" $log
+}
+
+report-results (){
+    local cost=$(cat plan | wc -l)
+    [[ -e plan && $cost -gt 0 ]] && echo "Plan cost: " $cost
+}
+
+plan-found (){
+    local cost=$(cat plan | wc -l)
+    [[ -e plan && $cost -gt 0 ]]
+}
+
+
+################################################################
+
+. $SCRDIR/common.sh

@@ -1,0 +1,21 @@
+(define (problem logistics-typed-cost-prob)
+      (:domain logistics-typed-cost)
+      (:objects t1 - truck
+                a b c - place)
+      (:init (at t1 a)
+             (connected a b)
+             (connected b c)
+             (= (total-cost) 0)
+             (= (distance a a) 0)
+             (= (distance a b) 5)
+             (= (distance a c) 5)
+             ;;
+             (= (distance b a) 5)
+             (= (distance b b) 0)
+             (= (distance b c) 5)
+             ;;
+             (= (distance c a) 5)
+             (= (distance c b) 5)
+             (= (distance c c) 0))
+      (:goal (at t1 c))
+      (:metric minimize (total-cost)))

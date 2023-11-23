@@ -1,0 +1,57 @@
+#!/bin/bash
+#-*- mode:sh -*-
+SCRDIR=$(dirname $(readlink -ef $0))
+
+################################################################
+#### default options
+
+bin=$SCRDIR/probe14
+
+################################################################
+#### main
+
+plan(){
+    echo $(whoami)@$(hostname)
+    # Usage: ./probe -d <domain file> -i <instance file> -o <output file> [-axvp|-g:1]
+
+    # Mandatory parameters:
+    # -d            Domain specification in PDDL 2.1
+    # -i            Instance specification in PDDL 2.1
+    # -o            Filename to write solutions
+
+    # Optional parameters: 
+    # -a            Anytime Search Mode ON (default is OFF)
+    # -x            Disjunctive Facts Mode ON (default is OFF)
+    # -v            Verbose Mode ON (default is OFF)
+    # -p            Generate Precedence Graph, DOT format (default is OFF)
+    # -g <number>   Debugging - Stop execution when some process step completes:
+    #       1                   PDDL parsing, ADL -> STRIPS, and preprocessing finishes
+
+    # ./probe -d $1 -i $2 -o $3 # -a
+    pwd
+    $bin -i problem.pddl -d domain.pddl -o plan -v $OPTIONS
+    # plan is actually the template name
+    cat *.stats
+}
+
+finalize (){
+    [[ $(cat plan.1 | wc -l) -gt 0 ]] && cp plan.1 $probdir/$probname.plan
+}
+
+negatively-proven (){
+    grep "Planning task not solvable" $log
+}
+
+report-results (){
+    local cost=$(cat plan.1 | wc -l)
+    [[ -e plan.1 && $cost -gt 0 ]] && echo "Plan cost: " $cost
+}
+
+plan-found (){
+    local cost=$(cat plan.1 | wc -l)
+    [[ -e plan.1 && $cost -gt 0 ]]
+}
+
+################################################################
+
+. $SCRDIR/common.sh

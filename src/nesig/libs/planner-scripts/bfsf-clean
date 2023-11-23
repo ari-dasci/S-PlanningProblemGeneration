@@ -1,0 +1,40 @@
+#!/bin/bash
+#-*- mode:sh -*-
+SCRDIR=$(dirname $(readlink -ef $0))
+
+################################################################
+#### default options
+
+bin=$SCRDIR/bfsf
+
+################################################################
+#### main
+
+plan(){
+    echo $(whoami)@$(hostname)
+    $bin $OPTIONS --problem problem.pddl --domain domain.pddl --output $probdir/$probname.plan
+}
+
+finalize (){
+    ls
+    cat $log
+    cat $probdir/$probname.plan
+    cat execution.details
+}
+
+negatively-proven (){
+    grep "Plan found with cost: NOTFOUND" $log
+}
+
+report-results (){
+    local cost=$(awk '/Plan found with cost:/{print $5}' execution.details)
+    [ -z $cost ] || echo "Plan cost: " $cost
+}
+
+plan-found (){
+    grep -q "Plan found with cost" execution.details
+}
+
+################################################################
+
+. $SCRDIR/common.sh

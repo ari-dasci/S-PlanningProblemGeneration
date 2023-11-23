@@ -1,0 +1,41 @@
+#!/bin/bash
+#-*- mode:sh -*-
+SCRDIR=$(dirname $(readlink -ef $0))
+. $SCRDIR/fdutil.sh
+
+################################################################
+#### default options
+
+################################################################
+#### main
+
+plan(){
+    echo $(whoami)@$(hostname)
+    OPTIONS=${OPTIONS:-"--search astar(lmcut())"}
+
+    time $fdscript --translate --log-level info domain.pddl problem.pddl
+    time $fdscript --preprocess --log-level info output.sas
+    time $fdscript --search --validate $OPTIONS \
+        --plan-file $probdir/$probname.plan --log-level info output \
+        
+}
+
+finalize (){
+    :
+}
+
+negatively-proven (){
+    grep "Completely explored state space" $log &> /dev/null
+}
+
+report-results (){
+    awk "/Plan cost:/{print $2}" $log | sort | head -n 1
+}
+
+plan-found (){
+    ls $probdir/$probname.plan*
+}
+
+################################################################
+
+. $SCRDIR/common.sh

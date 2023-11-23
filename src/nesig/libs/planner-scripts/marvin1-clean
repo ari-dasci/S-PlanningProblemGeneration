@@ -1,0 +1,57 @@
+#!/bin/bash
+#-*- mode:sh -*-
+SCRDIR=$(dirname $(readlink -ef $0))
+
+################################################################
+#### default options
+
+bin=$SCRDIR/marvin1
+
+################################################################
+#### main
+
+plan(){
+    echo $(whoami)@$(hostname)
+    $bin $OPTIONS domain.pddl problem.pddl
+}
+
+finalize (){
+    # ++++++
+    # Goal predicates not in initial fact layer
+    # Number of actions found = 90
+    # Search beginning
+    #  ....b (9) ......b (8) ...b (7) .b (6) ..b (5) ..b (4) .b (3) .b (2) .b (1) .All goals achieved!
+    # ;;;; Solution Found
+    # ; Time 0.00
+    # ; ParsingTime 0.00
+    # ; NrActions 
+    # ; MakeSpan 8
+    # ; MetricValue
+    # 0: (lift hoist0 crate1 pallet0 depot0) [1]
+    # 1: (load hoist0 crate1 truck1 depot0) [1]
+    # 2: (drive truck1 depot0 distributor0) [1]
+    # 2: (lift hoist1 crate0 pallet1 distributor0) [1]
+    # 3: (load hoist1 crate0 truck1 distributor0) [1]
+    # 4: (unload hoist1 crate1 truck1 distributor0) [1]
+    # 5: (drive truck1 distributor0 distributor1) [1]
+    # 5: (drop hoist1 crate1 pallet1 distributor0) [1]
+    # 6: (unload hoist2 crate0 truck1 distributor1) [1]
+    # 7: (drop hoist2 crate0 pallet2 distributor1) [1]
+    grep "^[0-9]\+: ([^)]*) \[[0-9]*\]" $log | cut -d " " -f 2- | sed -e "s/\[[0-9]\+\]//g" > plan
+    [[ $(cat plan | wc -l) -gt 0 ]] && cp plan $probdir/$probname.plan
+}
+
+negatively-proven (){
+    grep "Could not find plan by exhaustive search" $log
+}
+
+report-results (){
+    grep "MakeSpan" $log
+}
+
+plan-found (){
+    local cost=$(cat plan | wc -l)
+    [[ -e plan && $cost -gt 0 ]]
+}
+
+. $SCRDIR/common.sh

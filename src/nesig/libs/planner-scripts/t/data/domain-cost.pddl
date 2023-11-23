@@ -1,0 +1,15 @@
+(define (domain logistics-typed-cost)
+      (:requirements :strips :action-costs)
+      (:types truck place)
+      (:predicates (at ?t - truck ?a - place) (connected ?x ?y - place))
+      (:functions (total-cost) (distance ?x ?y - place))
+      (:action move-fixed
+	       :parameters (?t - truck ?x ?y - place)
+	       :precondition (and (at ?t ?x) (connected ?x ?y))
+	       :effect (and (not (at ?t ?x)) (at ?t ?y)
+                            (increase (total-cost) 10)))
+      (:action move-function
+	       :parameters (?t - truck ?x ?y - place)
+	       :precondition (and (at ?t ?x) (connected ?x ?y))
+	       :effect (and (not (at ?t ?x)) (at ?t ?y)
+                            (increase (total-cost) (distance ?x ?y)))))

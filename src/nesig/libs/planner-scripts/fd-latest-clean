@@ -1,0 +1,40 @@
+#!/bin/bash
+#-*- mode:sh -*-
+SCRDIR=$(dirname $(readlink -ef $0))
+. $SCRDIR/fdutil.sh
+
+################################################################
+#### default options
+
+################################################################
+#### main
+
+plan(){
+    echo $(whoami)@$(hostname)
+    if (echo $OPTIONS | grep -q "alias")
+    then
+        $fdscript $OPTIONS --plan-file $probdir/$probname.plan --log-level info domain.pddl problem.pddl
+    else
+        $fdscript --plan-file $probdir/$probname.plan --log-level info domain.pddl problem.pddl $OPTIONS
+    fi
+}
+
+finalize (){
+    :
+}
+
+negatively-proven (){
+    grep "Completely explored state space" $log &> /dev/null
+}
+
+report-results (){
+    awk "/Plan cost:/{print $2}" $log | sort | head -n 1
+}
+
+plan-found (){
+    ls $probdir/$probname.plan*
+}
+
+################################################################
+
+. $SCRDIR/common.sh

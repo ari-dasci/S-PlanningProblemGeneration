@@ -1,0 +1,68 @@
+#!/bin/bash
+#-*- mode:sh -*-
+
+################################################################
+#### default options
+
+[[ -z $name ]] && {
+    echo "No IPC planner name specified!"
+    exit 1
+}
+
+find-planner-upward (){
+    echo "finding $1/$name ..."
+    if [[ -d $1/$name ]]
+    then
+        planner_dir=$1/$name
+    else
+        if [[ $1 == / ]]
+        then
+            echo "Failed to find $name !"
+            exit 1
+        else
+            find-planner-upward $(readlink -ef $1/..)
+        fi
+    fi
+}
+
+find-planner-upward $(dirname $(readlink -ef $0))
+
+################################################################
+#### main
+
+# Run the planner; exit status will be the status of the entire script
+plan(){
+    echo $(whoami)@$(hostname)
+    ln -s -t . $planner_dir/*
+    finished_flag=$(basename $(mktemp --tmpdir=. __tmp__XXXXXXXXX))
+    ( ./plan domain.pddl problem.pddl soln ; touch $finished_flag ) &
+    planpid=$!
+    
+    grep -q "$finished_flag\|soln\(\.[0-9]\+\)\?\>" <(inotifywait -e close_write -m .)
+}
+
+# Copy the plan files
+finalize (){
+    ( ls soln* | grep "soln\(\.[0-9]\+\)\?\>" ) && \
+        cp $(ls soln* | grep "soln\(\.[0-9]\+\)\?\>" | tail -n 1) $probdir/$probname.plan
+    rm soln*
+}
+
+# When plan was not found, check if the entire problem space is searched
+negatively-proven (){
+    false
+}
+
+# Print the costs of plans found, if any
+report-results (){
+    echo "IPC planners do not support printing the cost"
+}
+
+plan-found (){
+    [[ -e $probdir/$probname.plan ]]
+}
+
+################################################################
+
+# required
+. $SCRDIR/common.sh

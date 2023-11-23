@@ -1,0 +1,46 @@
+#!/bin/bash
+#-*- mode:sh -*-
+SCRDIR=$(dirname $(readlink -ef $0))
+
+################################################################
+#### default options
+
+# bin=$SCRDIR/mff-original
+bin=$SCRDIR/mff-myself
+
+################################################################
+#### main
+
+plan(){
+    echo $(whoami)@$(hostname)
+    if grep "metric" problem.pddl
+    then
+        $bin $OPTIONS -f problem.pddl -o domain.pddl
+    else
+        $bin -s 0 $OPTIONS -f problem.pddl -o domain.pddl
+    fi
+}
+
+finalize (){
+    grep "^\(step\)\?\s*[0-9]\+: \(.*\)" $log | cut -d: -f 2 | sed -e "s/^ \(.*\)/(\1)/g" > plan
+    [[ $(cat plan | wc -l) -gt 0 ]] && cp plan $probdir/$probname.plan
+}
+
+negatively-proven (){
+    grep "problem proven unsolvable" $log || \
+        grep "No plan will solve it" $log
+}
+
+report-results (){
+    local cost=$(cat plan | wc -l)
+    [[ -e plan && $cost -gt 0 ]] && echo "Plan cost: " $cost
+}
+
+plan-found (){
+    local cost=$(cat plan | wc -l)
+    [[ -e plan && $cost -gt 0 ]]
+}
+
+################################################################
+
+. $SCRDIR/common.sh

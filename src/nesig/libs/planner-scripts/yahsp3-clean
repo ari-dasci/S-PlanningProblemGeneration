@@ -1,0 +1,40 @@
+#!/bin/bash
+#-*- mode:sh -*-
+SCRDIR=$(dirname $(readlink -ef $0))
+
+################################################################
+#### default options
+
+bin="$SCRDIR/cpt_yahsp3_64 -y 1"
+
+################################################################
+#### main
+
+plan(){
+    echo $(whoami)@$(hostname)
+    $bin -v 3 $OPTIONS \
+        -f problem.pddl -o domain.pddl --out soln
+}
+
+finalize (){
+    ( ls soln* | grep "soln\(\.[0-9]\+\)\?\>" ) && \
+        cat $(ls soln* | grep "soln\(\.[0-9]\+\)\?\>" | tail -n 1) | grep -o "(.*)" >  $probdir/$probname.plan
+}
+
+negatively-proven (){
+    grep "problem proven unsolvable" $log || \
+        grep "No plan will solve it" $log
+}
+
+report-results (){
+    local cost=$(grep Length $log | cut -d" " -f3)
+    [[ $cost -gt 0 ]] && echo "Plan cost: " $cost
+}
+
+plan-found (){
+    ( ls soln* | grep "soln\(\.[0-9]\+\)\?\>" ) && [[ $(grep Length $log | cut -d" " -f3) -gt 0 ]]
+}
+
+################################################################
+
+. $SCRDIR/common.sh
