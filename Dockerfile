@@ -2,7 +2,7 @@
 FROM ubuntu:22.04
 
 # Install necessary packages and dependencies
-RUN apt-get update && apt-get install -y wget
+RUN apt-get update && apt-get install -y wget nano git cmake
 
 # Install CUDA 12.3
 RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-ubuntu2204.pin &&\
@@ -32,5 +32,15 @@ ENV PATH /opt/conda/envs/nesig/bin:$PATH
 # Install TensorBoard and lifted-pddl
 RUN python -m pip install tensorboard lifted-pddl==1.2.2
 
+# Clone NeSIG repository, including submodules
+# RUN git clone -b refactoring --recurse-submodules https://github.com/ari-dasci/S-PlanningProblemGeneration.git nesig
+
+# Compile fast-downward
+# RUN cd nesig/src/libs && python fast-downward/build.py release
+# RUN mv fast-downward downward # FD needs to be in a directory called 'downward' for planner-scripts to work
+
+# Solve perl locale issue
+echo "export LC_ALL=C" > ~/.bashrc
+ 
 # Expose the port for TensorBoard
 EXPOSE 6006
