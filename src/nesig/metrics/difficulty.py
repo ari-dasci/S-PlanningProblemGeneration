@@ -146,10 +146,3 @@ class PlannerEvaluator(DifficultyEvaluator):
         silentremove(negative_path)
 
         return num_expanded_nodes
-
-
-    """
-    Equivalent to get_difficulty_state(), but it receives the problem in the form of a path to a PDDL file.
-    It loads the file, makes sure it's PDDL and then calls the planner.
-    """
-    def get_difficulty_file(self, problem_path : Path) -> List[float]:
