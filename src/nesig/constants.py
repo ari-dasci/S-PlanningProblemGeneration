@@ -9,3 +9,7 @@ from pathlib import Path
 
 # NOTE, when calling the different scripts, we must first change the working directory to the parent folder
 # of the repository (in this case, S-planningproblemgeneration)
+
+# All relative file paths assume that the working directory is the parent folder of the repository
+
+PLANNER_SCRIPTS_PATH = Path('src/libs/planner-scripts')
