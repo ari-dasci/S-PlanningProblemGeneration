@@ -13,3 +13,10 @@ from pathlib import Path
 # All relative file paths assume that the working directory is the parent folder of the repository
 
 PLANNER_SCRIPTS_PATH = Path('src/libs/planner-scripts')
+
+# Planner args
+LAMA_FIRST_ARG = '--heuristic hlm,hff=lm_ff_syn(lm_rhw(reasonable_orders=true,lm_cost_type=one),cost_type=one) --search lazy_greedy([hff,hlm],preferred=[hff,hlm],cost_type=one,reopen_closed=false)'
+LAZY_GREEDY_FF_ARG = '--evaluator h=ff(transform=adapt_costs(one)) --search lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)'
+LAZY_GREEDY_ADD_ARG = '--evaluator h=add(transform=adapt_costs(one)) --search lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)'
+TRAIN_PLANNER_ARGS = [LAMA_FIRST_ARG]
+TEST_PLANNER_ARGS = [LAMA_FIRST_ARG, LAZY_GREEDY_FF_ARG, LAZY_GREEDY_ADD_ARG]
