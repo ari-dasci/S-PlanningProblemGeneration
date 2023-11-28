@@ -24,7 +24,7 @@ class PDDLState():
         - atoms: set with the atoms in the domain. Each atom is a tuple containing the predicate name and a tuple with the indexes
                  of the objects (in self._objects) it is instantiated on. Example: {('ontable', (0,)), ('on', (1,0))} -> obj0 is on the table and obj1 on top of it
     """
-    def __init__(self, types, type_hierarchy : Dict, predicates, objects=[] : List[str], atoms=set() : Set[Tuple[str, Tuple]]):
+    def __init__(self, types, type_hierarchy : Dict, predicates, objects : List[str] = [] , atoms : Set[Tuple[str, Tuple]] = set()):
         # Domain data
 
         # Sanity checks
@@ -93,6 +93,17 @@ class PDDLState():
         self._pred_names_to_indices_dict = dict(zip(pred_names, pred_indices)) # 'on' : 0, 'clear' : 1
         self._indices_to_pred_names_dict = dict(zip(pred_indices, pred_names)) # 0 : 'on', 1 : 'clear'
 
+        # Number of predicates of each arity -> keys: int corresponding to the arity, values: int representing the number of preds of such arity
+        self._num_preds_each_arity = dict()
+        
+        for p in self._predicates:
+            p_arity = len(p[1])
+            
+            if p_arity in self._num_preds_each_arity:
+                self._num_preds_each_arity[p_arity] += 1
+            else:
+                self._num_preds_each_arity[p_arity] = 1
+
         # Dictionary to convert from pred names to indices, reusing indexes for predicates of different arity
         # Example: ['ontable', 'on'] -> 0, 0 (we reuse index 0 because ontable and on have different arity)
         self._pred_names_to_indices_dict_each_arity = dict()
@@ -112,17 +123,6 @@ class PDDLState():
             self._arity_and_ind_to_predicate_dict[(p_arity, p_ind)] = p
             
             ind_list[p_arity] += 1 # Add 1 to the index, so that next predicate of the same arity gets a different associated index
-
-        # Number of predicates of each arity -> keys: int corresponding to the arity, values: int representing the number of preds of such arity
-        self._num_preds_each_arity = dict()
-        
-        for p in self._predicates:
-            p_arity = len(p[1])
-            
-            if p_arity in self._num_preds_each_arity:
-                self._num_preds_each_arity[p_arity] += 1
-            else:
-                self._num_preds_each_arity[p_arity] = 1
 
     def __copy__(self):
         new_copy = RelationalState(deepcopy(self._types), deepcopy(self._type_hierarchy), deepcopy(self._predicates), deepcopy(self._objects),
@@ -230,7 +230,7 @@ class PDDLState():
         
         return max(existing_arities)
 
-       """
+    """
     Returns the predicate associated with @pred_name
     """
     def get_predicate_from_name(self, pred_name):
