@@ -53,6 +53,12 @@ class PlannerEvaluator(DifficultyEvaluator):
         - memory_limit: Memory limit for the planner, in KB. -1 means no limit.
         - max_workers: Maximum number of processes for concurrent planner calls.
     """
+    # TODO
+    # See if I can limit the number of expanded nodes instead of memory/time
+    # This is useful for two things:
+    # 1) We can safely run several planners in parallel without exhausting the memory or spending too much solving time
+    # 2) Limiting the number of nodes can increase diversity, by preventing the model from generating problems that are too difficult
+    #    disregarding diversity (above a certain threshold, all problems are equally difficult, so the model can focus on diversity instead)
     def __init__(self, domain_path : Path, plan_args : List[str],
                  time_limit=-1 : int, memory_limit=-1 : int,
                  max_workers=1 : int):
@@ -62,7 +68,6 @@ class PlannerEvaluator(DifficultyEvaluator):
         self.memory_limit = memory_limit
         self.max_workers = max_workers
 
-    # Getter for the number of plan args
     @property
     def num_plan_args(self) -> int:
         return len(self.plan_args)

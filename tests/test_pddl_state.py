@@ -1,3 +1,5 @@
+# This script must be run as a Python module: python -m tests.test_pddl_state
+
 import unittest
 import torch
 from torch import tensor as t

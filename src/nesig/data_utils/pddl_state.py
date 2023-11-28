@@ -32,8 +32,8 @@ class PDDLState():
             raise ValueError("Types must be a set/list/tuple of strings")
         
         type_hierarchy_tuple = tuple(type_hierarchy.items())[0] # Obtain the first item in type_hierarchy for sanity checks
-        if type(type_hierarchy) != dict or type(type_hierarchy_tuple[0]) != str or type(type_hierarchy_tuple[1]) != set:
-            raise ValueError("Type hierarchy must be a dictionary where keys are strings and values sets of strings")
+        if type(type_hierarchy) != dict or type(type_hierarchy_tuple[0]) != str or type(type_hierarchy_tuple[1]) not in (set,list,tuple):
+            raise ValueError("Type hierarchy must be a dictionary where keys are strings and values sets/lists/tuples of strings")
 
         dict_keys = type_hierarchy.keys()
         dict_vals = [v for l in type_hierarchy.values() for v in l]
@@ -64,7 +64,8 @@ class PDDLState():
         # A dictionary containing, for each type in self._types, all the types which inherit from it
         # Note: it does not only contain the children types, but also the grandchildren types, etc. (all the types which recursively
         # inherit from it)
-        self._type_hierarchy = type_hierarchy
+        # For those methods that rely on type order, we sort the values for each key and store them as an ordered tuple of types
+        self._type_hierarchy = {k:tuple(sorted(type_hierarchy[k])) for k in type_hierarchy.keys()}
 
         # Predicates
         # We sort them for those methods that rely on predicate order
@@ -124,6 +125,7 @@ class PDDLState():
             
             ind_list[p_arity] += 1 # Add 1 to the index, so that next predicate of the same arity gets a different associated index
 
+    # We always do a deep copy
     def __copy__(self):
         new_copy = RelationalState(deepcopy(self._types), deepcopy(self._type_hierarchy), deepcopy(self._predicates), deepcopy(self._objects),
                                    deepcopy(self._atoms))
@@ -137,7 +139,7 @@ class PDDLState():
 
     @property
     def types(self):
-        return self._types
+        return deepcopy(self._types)
 
     @property
     def type_hierarchy(self):
@@ -145,7 +147,7 @@ class PDDLState():
 
     @property
     def predicates(self):
-        return self._predicates
+        return deepcopy(self._predicates)
 
     @property
     def objects(self): # Note: without virtual objects
@@ -335,8 +337,8 @@ class PDDLState():
     @type_hierarchy.setter
     def type_hierarchy(self, value):
         type_hierarchy_tuple = tuple(value.items())[0] # Obtain the first item in type_hierarchy for sanity checks
-        if type(value) != dict or type(type_hierarchy_tuple[0]) != str or type(type_hierarchy_tuple[1]) != set:
-            raise ValueError("Type hierarchy must be a dictionary where keys are strings and values sets of strings")
+        if type(value) != dict or type(type_hierarchy_tuple[0]) != str or type(type_hierarchy_tuple[1]) not in (set,list,tuple):
+            raise ValueError("Type hierarchy must be a dictionary where keys are strings and values sets/lists/tuples of strings")
 
         dict_keys = value.keys()
         dict_vals = [v for l in value.values() for v in l]
@@ -344,7 +346,7 @@ class PDDLState():
             if t not in dict_keys or t not in dict_vals:
                raise ValueError("Every type must be in the dictionary as both a key and value (or more)") 
 
-        self._type_hierarchy = value
+        self._type_hierarchy = {k:tuple(sorted(value[k])) for k in value.keys()}
 
     @predicates.setter
     def predicates(self, value):
