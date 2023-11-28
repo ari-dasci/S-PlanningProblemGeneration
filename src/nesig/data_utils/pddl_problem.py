@@ -96,4 +96,69 @@ class PDDLProblem():
     def __deepcopy__(self, memo):
         return self.__copy__()
 
+    # --- Initial state generation methods ---
+
+    """
+	This method must be called once the initial state has been generated, before starting the generation of the goal state.
+	The initial goal state is a copy of the initial state.
+	"""
+	def end_initial_state_generation_phase(self):
+		if self.is_initial_state_generated:
+			raise Exception("The initial state generation phase has already concluded")
+		
+		self.is_initial_state_generated = True
+		self.goal_state = self.initial_state # Calls deepcopy()
+
+    # Methods for applying actions to init state
+
+
+
+
+    # --- Goal generation methods ---
+
+	"""
+	Obtains a tuple with the (positive) atoms of the goal, according to self.goal_predicates.
+	Before calling this method, the goal state should have already been generated.
+	"""
+    def _get_atoms_in_problem_goal(self):
+        if not self.is_goal_state_generated:
+            raise Exception("The goal state generation phase needs to finish before generating the goal")
+
+        goal_atoms = self._goal_state.atoms
+		goal_objects = self._goal_state.objects # List with the type of each object in goal_state
+
+		goal_atoms_filtered = []
+
+		for atom in goal_atoms:
+			for pred in self.goal_predicates:
+				if atom[0] == pred[0]:
+					types_correct = True
+
+					for obj_ind, param_type in zip(atom[1], pred[1]):
+						types_correct = types_correct and (goal_objects[obj_ind] in self._parser.type_hierarchy[param_type])
+					
+					if types_correct:
+						goal_atoms_filtered.append(atom)
+
+					break
+		
+		return tuple(goal_atoms_filtered)
+
+    """
+	This method must be called once the goal state has been generated, before obtaining the PDDL problem associated with this instance
+	of PDDLState. When this method is called, we generate the problem goal from self.goal_state, using self.goal_predicates.
+	"""
+	def end_goal_state_generation_phase(self):
+		if not self.is_initial_state_generated:
+			raise Exception("The initial state generation phase has not concluded yet")
+
+		if self.is_goal_state_generated:
+			raise Exception("The goal state generation phase has already concluded")
+		
+        # Just in case, we make sure that the goal and initial states contain the same objects
+        assert self._initial_state.objects == self._goal_state.objects, "The initial and goal states do not contain the same objects!"
+
+		self.is_goal_state_generated = True
+        self.goal = self._get_atoms_in_problem_goal()
+
     

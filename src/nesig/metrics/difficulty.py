@@ -30,9 +30,9 @@ for each problem.
 class DifficultyEvaluator():
 
     """
-    Returns the difficulty for a given PDDL problem.
+    Returns the difficulty for a list of PDDL problems.
     """
-    def get_difficulty(self, problem_list : List[PDDLProblem]) -> Union[List[float], List[List[float]]]:
+    def get_difficulty(self, problem_list : List[Union[PDDLProblem,Path]]) -> Union[List[float], List[List[float]]]:
         raise NotImplementedError()
 
 
@@ -74,19 +74,25 @@ class PlannerEvaluator(DifficultyEvaluator):
 
     """
     Calculates the difficulty for a list of problems, as the number of nodes expanded by the planner.
+    The problems can be given either as intances of PDDLProblem or as paths to PDDL problem files.
     The options used are given by self.plan_args.
     It returns a list of difficulties for each problem, so that diff[i][j] is the difficulty of the
     i-th problem with the j-th planner argument.
     """
-    def get_difficulty(self, problem_list : List[PDDLProblem]) -> List[List[float]]:
-        assert type(problem_list) == list, "This method receives a list of PDDLProblem objects"
+    def get_difficulty(self, problem_list : List[Union[PDDLProblem,Path]]) -> List[List[float]]:
+        assert type(problem_list) in (list,tuple), "This method receives a list of PDDLProblem objects/paths to PDDL files"
 
         # Use ProcessPoolExecutor to run the commands in parallel
         with ProcessPoolExecutor(max_workers=self.max_workers) as executor:
             futures = []
 
             for problem in problem_list:
-                curr_pddl_desc = problem.dump_to_pddl()
+                if isinstance(problem, Path):
+                    with open(problem, 'r') as problem_file:
+                        curr_pddl_desc = problem_file.read()
+                else:
+                    curr_pddl_desc = problem.dump_to_pddl()
+                              
                 futures.append([executor.submit(self._get_difficulty_one_problem_one_arg, curr_pddl_desc, planner_arg) \
                                 for planner_arg in self.plan_args])
             
