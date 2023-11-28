@@ -98,6 +98,12 @@ class PlannerEvaluator(DifficultyEvaluator):
     for different planner arguments.
     """
     def _get_difficulty_one_problem_one_arg(self, pddl_description : str, planner_arg : str) -> float:
+        """
+        Example limit.sh calls:
+            - From command line: ./planner-scripts/limit.sh -t -1 -m -1 -- "planner-scripts/fd-latest-clean -o '--search astar(lmcut())'" -- ../../../data/problems/test_problems/bw_two_action_plan.pddl ../../../data/domains/blocks-domain.pddl
+
+        """
+         
         with tempfile.NamedTemporaryFile(suffix='.pddl', mode='w+') as tmp_file:
             # Save the problem to disk
             tmp_file.write(pddl_description)

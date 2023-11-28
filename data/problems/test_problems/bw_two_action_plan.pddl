@@ -13,6 +13,7 @@
 	(clear o2)
 	(clear o3)
 	(clear o4)
+	(handempty)
 )
 
 (:goal 

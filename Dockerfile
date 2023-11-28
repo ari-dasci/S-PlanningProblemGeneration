@@ -36,8 +36,8 @@ RUN python -m pip install tensorboard lifted-pddl neural-logic-machine PDDL-Prov
 # RUN git clone -b refactoring --recurse-submodules https://github.com/ari-dasci/S-PlanningProblemGeneration.git nesig
 
 # Compile fast-downward
-# RUN cd nesig/src/libs && python fast-downward/build.py release
-# RUN mv fast-downward downward # FD needs to be in a directory called 'downward' for planner-scripts to work
+# Note: FD must be in a directory called "downward" for planner-scripts to work
+# RUN cd nesig/src/libs && python downward/build.py release
 
 # Solve perl locale issue
 RUN echo "export LC_ALL=C" > ~/.bashrc
