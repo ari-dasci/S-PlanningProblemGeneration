@@ -127,7 +127,7 @@ class PDDLState():
 
     # We always do a deep copy
     def __copy__(self):
-        new_copy = RelationalState(deepcopy(self._types), deepcopy(self._type_hierarchy), deepcopy(self._predicates), deepcopy(self._objects),
+        new_copy = PDDLState(deepcopy(self._types), deepcopy(self._type_hierarchy), deepcopy(self._predicates), deepcopy(self._objects),
                                    deepcopy(self._atoms))
 
         return new_copy
