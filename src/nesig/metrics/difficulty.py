@@ -12,7 +12,7 @@ import tempfile
 import os
 import re
 
-from nesig.learner.problem import PDDLProblem
+from nesig.learner.pddl_problem import PDDLProblem
 from nesig.constants import PLANNER_SCRIPTS_PATH
 
 # Auxiliary function that only removes a file if it exists (otherwise it does nothing)
