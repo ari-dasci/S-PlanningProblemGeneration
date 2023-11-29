@@ -4,7 +4,7 @@
 > consistency.py
 
 This file implements basic functionality for testing the continous and eventual consistency of a PDDL problem.
-For each domain, a class inheriting from ConsistencyValidator must be created, implementing the particular consistency rules for that domain.
+For each domain, a class inheriting from ConsistencyEvaluator must be created, implementing the particular consistency rules for that domain.
 """
 
 from typing import List, Tuple, Dict, Union
@@ -14,7 +14,7 @@ import functools
 from pddl_prover import *
 from src.nesig.data_utils.pddl_state import PDDLState
 
-class ConsistencyValidator(ABC):
+class ConsistencyEvaluator(ABC):
 
     """
     Constructor. It creates constants for the domain types and predicates for the domain predicates.
