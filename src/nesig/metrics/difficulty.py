@@ -7,6 +7,7 @@ Functionality for obtaining the difficulty metric of a PDDL problem.
 from typing import List, Optional, Union
 from pathlib import Path
 from concurrent.futures import ProcessPoolExecutor, wait
+from abc import ABC, abstractmethod
 import subprocess
 import tempfile
 import os
@@ -27,11 +28,12 @@ must inherit from.
 Given a list of totally-generated problems, it returns a float/list of floats representing the difficulty
 for each problem.
 """
-class DifficultyEvaluator():
+class DifficultyEvaluator(ABC):
 
     """
     Returns the difficulty for a list of PDDL problems.
     """
+    @abstractmethod
     def get_difficulty(self, problem_list : List[Union[PDDLProblem,Path]]) -> Union[List[float], List[List[float]]]:
         raise NotImplementedError()
 
