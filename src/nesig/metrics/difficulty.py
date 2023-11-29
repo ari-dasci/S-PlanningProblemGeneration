@@ -12,8 +12,8 @@ import tempfile
 import os
 import re
 
-from nesig.learner.pddl_problem import PDDLProblem
-from nesig.constants import PLANNER_SCRIPTS_PATH
+from src.nesig.data_utils.pddl_problem import PDDLProblem
+from src.nesig.constants import PLANNER_SCRIPTS_PATH
 
 # Auxiliary function that only removes a file if it exists (otherwise it does nothing)
 def silentremove(path):
@@ -59,9 +59,10 @@ class PlannerEvaluator(DifficultyEvaluator):
     # 1) We can safely run several planners in parallel without exhausting the memory or spending too much solving time
     # 2) Limiting the number of nodes can increase diversity, by preventing the model from generating problems that are too difficult
     #    disregarding diversity (above a certain threshold, all problems are equally difficult, so the model can focus on diversity instead)
+    # See FD discord message ...I would like to know if there exists some rough,easy equivalence between...
     def __init__(self, domain_path : Path, plan_args : List[str],
-                 time_limit=-1 : int, memory_limit=-1 : int,
-                 max_workers=1 : int):
+                 time_limit : int = -1, memory_limit : int = -1,
+                 max_workers : int = 1):
         self.domain_path = domain_path
         self.plan_args = plan_args
         self.time_limit = time_limit
@@ -90,14 +91,17 @@ class PlannerEvaluator(DifficultyEvaluator):
                 if isinstance(problem, Path):
                     with open(problem, 'r') as problem_file:
                         curr_pddl_desc = problem_file.read()
-                else:
+                elif isinstance(problem, PDDLProblem):
                     curr_pddl_desc = problem.dump_to_pddl()
+                else:
+                    raise Exception(f"Found object of type {type(problem)} in problem_list")
                               
                 futures.append([executor.submit(self._get_difficulty_one_problem_one_arg, curr_pddl_desc, planner_arg) \
                                 for planner_arg in self.plan_args])
             
             # Wait for all futures to complete and collect results
-            wait(futures)
+            for fs in futures:
+                wait(fs)
 
             difficulty = [[future.result() for future in problem_futures] for problem_futures in futures]
 
@@ -121,6 +125,7 @@ class PlannerEvaluator(DifficultyEvaluator):
             tmp_file.flush()
 
             # Output file names
+            problem_path = Path(tmp_file.name)
             err_path = problem_path.with_suffix('.err')
             log_path = problem_path.with_suffix('.log')
             plan_path = problem_path.with_suffix('.plan')
@@ -129,9 +134,16 @@ class PlannerEvaluator(DifficultyEvaluator):
             # Call the planner
             limit_sh_path = Path(PLANNER_SCRIPTS_PATH, 'limit.sh')
             fd_path = Path(PLANNER_SCRIPTS_PATH, 'fd-latest-clean')
-            planner_call = f"{limit_sh_path} -t {self.time_limit} -m {self.memory_limit} -- {fd_path} -o '{planner_arg}' -- {tmp_file.name} {self.domain_path}"
+            planner_call = f"""{limit_sh_path} -t {self.time_limit} -m {self.memory_limit} -- "{fd_path} -o '{planner_arg}'" -- {problem_path} {self.domain_path}"""
 
-            subprocess.run(planner_call, shell=True)
+            """result = subprocess.run(planner_call, shell=True, capture_output=True, text=True)
+            print(result.stdout.strip())
+            print("HERE")
+            import sys
+            sys.exit()"""
+
+            # We redirect stdout and stderr so that they are not printed to the console
+            result = subprocess.run(planner_call, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             with open(err_path, 'r') as err_file:
                 err_output = err_file.read()
@@ -150,13 +162,13 @@ class PlannerEvaluator(DifficultyEvaluator):
 
                         # Unsolvable problem -> we raise an exception
                         if 'Search stopped without finding a solution' in planner_output:
-                            raise Exception(f"> Unsolvable problem: {tmp_file.name}")
+                            raise Exception(f"> Unsolvable problem: {problem_path}")
 
                         num_expanded_nodes = int(re.search(r"Expanded ([0-9]+) state\(s\)\.", planner_output).group(1))
                         num_expanded_nodes += 1 # Add 1 in case the planner has expanded 0 nodes (in such case, we obtain NaN when we perform the logarithm)
 
         # Delete planner files
-        silentremove(tmp_file.name)
+        silentremove(problem_path)
         silentremove(err_path)
         silentremove(log_path)
         silentremove(plan_path)
