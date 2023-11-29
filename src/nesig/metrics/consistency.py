@@ -1,10 +1,11 @@
-# TODO
-# Apart from the consistency rules, we need to check things such as that there are not repeated atoms,
-# that atoms are instantiated on objects of the correct type, and that it has no repeated parameters
-
-# NOTE: the PDDLState that the consistency validator receives should NOT be modified, as it is passed by reference
-
 # TODO: since we do not use predicates_required now, we need to add eventual consistency rules to check that all required predicates are added
+
+"""
+> consistency.py
+
+This file implements basic functionality for testing the continous and eventual consistency of a PDDL problem.
+For each domain, a class inheriting from ConsistencyValidator must be created, implementing the particular consistency rules for that domain.
+"""
 
 from typing import List, Tuple, Dict, Union
 from abc import ABC, abstractmethod
@@ -76,6 +77,9 @@ class ConsistencyValidator(ABC):
     def preprocess_and_check_continuous_consistency(self, curr_state : PDDLState, new_atom : Tuple[str,Tuple[int]], obj_types : Tuple[str]):
         # <Check that the atom is valid>
         # Otherwise, we raise an exception
+        state_objs = curr_state.object_inds
+        state_obj_types = curr_state.object_types
+        state_atoms = curr_state.atoms 
 
         # It is of a valid predicate type
         assert new_atom[0] in self.domain_predicate_names, f"New atom has a wrong predicate type {new_atom[0]}"
@@ -97,7 +101,7 @@ class ConsistencyValidator(ABC):
             assert all_types_correct, "New atom is instantiated on objects of incorrect type"
 
         # <Check that the atom to add (@action) is not already present in the current state>
-        if new_atom in curr_state.atoms:
+        if new_atom in state_atoms:
             return False
         
         # <Check that the atom contains no repeated parameters>
@@ -105,9 +109,6 @@ class ConsistencyValidator(ABC):
             return False
 
         # <build knowledge base>
-        state_objs = curr_state.object_inds
-        state_obj_types = curr_state.object_types
-        state_atoms = curr_state.atoms 
 
         # Objects are the same as in @curr_state, but instead of integers are constants
         kb_objects = set([Constant(o) for o in state_objs])
@@ -199,7 +200,8 @@ class ConsistencyValidator(ABC):
                    instantiated on
     @atom_obj_types A list with the type (as a string) of each object the new atom is instantiated on
 
-    <Note>: The new atom to add can be instantiated on both "normal" objects (i.e., those present at @curr_state)
+    <Note1>: @curr_state must NOT be modified, as it is passed by reference
+    <Note2>: The new atom to add can be instantiated on both "normal" objects (i.e., those present at @curr_state)
             and virtual objects (i.e., those that are NOT present at @curr_state but will be added alongside the new
             atom).
             In order to check if an object is virtual, use either self._evaluate(self.virtual(obj_constant)) (declarative
@@ -217,6 +219,8 @@ class ConsistencyValidator(ABC):
     It returns whether the totally-generated initial state @curr_state is eventual-consistent or not.
 
     @curr_state An instance of RelationalState, representing the totally-generated initial state
+
+    <Note>: @curr_state must NOT be modified, as it is passed by reference
     """
     @abstractmethod
     def check_eventual_consistency(self, curr_state):
