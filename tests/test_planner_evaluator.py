@@ -20,19 +20,19 @@ class TestPlannerEvaluator(unittest.TestCase):
         planner = PlannerEvaluator(self.domain_path, self.plan_args, max_workers=self.max_workers)
         problem_path = Path('data/problems/test_problems/bw_solved_goal.pddl')
         difficulty = planner.get_difficulty([problem_path])
-        self.assertEqual(difficulty, [[1, 1, 1]])
+        self.assertEqual(difficulty, [[0, 0, 0]])
 
     def test_one_action_plan_problem(self):
         planner = PlannerEvaluator(self.domain_path, self.plan_args, max_workers=self.max_workers)
         problem_path = Path('data/problems/test_problems/bw_one_action_plan.pddl')
         difficulty = planner.get_difficulty([problem_path])
-        self.assertEqual(difficulty, [[3, 3, 3]])
+        self.assertEqual(difficulty, [[2, 2, 2]])
 
     def test_two_action_plan_problem(self):
         planner = PlannerEvaluator(self.domain_path, self.plan_args, max_workers=self.max_workers)
         problem_path = Path('data/problems/test_problems/bw_two_action_plan.pddl')
         difficulty = planner.get_difficulty([problem_path])
-        self.assertEqual(difficulty, [[4, 4, 4]])
+        self.assertEqual(difficulty, [[3, 3, 3]])
 
     def test_unsolvable_problem(self):
         planner = PlannerEvaluator(self.domain_path, self.plan_args, max_workers=self.max_workers)
@@ -62,7 +62,7 @@ class TestPlannerEvaluator(unittest.TestCase):
             Path('data/problems/test_problems/bw_two_action_plan.pddl'),
             Path('data/problems/test_problems/bw_hard.pddl')]
         difficulty = planner.get_difficulty(problem_paths)
-        self.assertEqual(difficulty, [[1, 1, 1], [3, 3, 3], [4, 4, 4], [-1, -1, -1]])
+        self.assertEqual(difficulty, [[0, 0, 0], [2, 2, 2], [3, 3, 3], [-1, -1, -1]])
 
 if __name__ == '__main__':
     unittest.main()

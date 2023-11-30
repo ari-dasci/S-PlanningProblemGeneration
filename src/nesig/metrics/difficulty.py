@@ -165,9 +165,13 @@ class PlannerEvaluator(DifficultyEvaluator):
                         # Unsolvable problem -> we raise an exception
                         if 'Search stopped without finding a solution' in planner_output:
                             raise Exception(f"> Unsolvable problem: {problem_path}")
-
-                        num_expanded_nodes = int(re.search(r"Expanded ([0-9]+) state\(s\)\.", planner_output).group(1))
-                        num_expanded_nodes += 1 # Add 1 in case the planner has expanded 0 nodes (in such case, we obtain NaN when we perform the logarithm)
+                        # Problem solved -> we return the number of expanded nodes
+                        elif 'Solution found.' in planner_output:
+                            num_expanded_nodes = int(re.search(r"Expanded ([0-9]+) state\(s\)\.", planner_output).group(1))
+                            # I think adding +1 should be done outside this class
+                            # num_expanded_nodes += 1 # Add 1 in case the planner has expanded 0 nodes (in such case, we obtain NaN when we perform the logarithm)
+                        else:
+                            raise Exception(f"> Unexpected planner output: {planner_output}")
 
         # Delete planner files
         silentremove(problem_path)

@@ -58,7 +58,7 @@ class PDDLState():
         # We sort the types for those methods that rely on type order
         # Note: self._types must contain all the types, across all possible levels of hierarchy
         # Example: in logistics -> {'package', 'object', 'airport', 'truck', 'vehicle', 'city', 'airplane', 'thing', 'location'}
-        self._types = tuple(sorted(types)) # A list of types, e.g., ["plane", "car"]
+        self._types = tuple(sorted(types)) # A list of types, e.g., ("plane", "car")
 
         # Type hierarchy
         # A dictionary containing, for each type in self._types, all the types which inherit from it
@@ -127,7 +127,7 @@ class PDDLState():
 
     # We always do a deep copy
     def __copy__(self):
-        new_copy = PDDLState(deepcopy(self._types), deepcopy(self._type_hierarchy), deepcopy(self._predicates), deepcopy(self._objects),
+        new_copy = PDDLState(self._types, deepcopy(self._type_hierarchy), self._predicates, deepcopy(self._objects),
                                    deepcopy(self._atoms))
 
         return new_copy
@@ -139,7 +139,7 @@ class PDDLState():
 
     @property
     def types(self):
-        return deepcopy(self._types)
+        return self._types # We don't do a deepcopy since it is a tuple of strings, which are immutable
 
     @property
     def type_hierarchy(self):
@@ -147,7 +147,7 @@ class PDDLState():
 
     @property
     def predicates(self):
-        return deepcopy(self._predicates)
+        return self._predicates # We don't do a deepcopy since it is immutable
 
     @property
     def objects(self): # Note: without virtual objects

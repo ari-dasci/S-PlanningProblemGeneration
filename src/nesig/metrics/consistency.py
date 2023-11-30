@@ -14,6 +14,10 @@ import functools
 from pddl_prover import *
 from src.nesig.data_utils.pddl_state import PDDLState
 
+"""
+Abstract class from which consistency evaluators for particular domains must inherit from.
+It is used to evaluate the continuous and eventual consistency of a PDDL problem.
+"""
 class ConsistencyEvaluator(ABC):
 
     """
@@ -74,7 +78,7 @@ class ConsistencyEvaluator(ABC):
     @new_atom The next atom to add (e.g,. ('on', (1, 0)) )
     @obj_types List/tuple with the type of each object in the atom (@action[1]) -> In blocksworld there is only one type, so we do not need to check it 
     """
-    def preprocess_and_check_continuous_consistency(self, curr_state : PDDLState, new_atom : Tuple[str,Tuple[int]], obj_types : Tuple[str]):
+    def preprocess_and_check_continuous_consistency(self, curr_state : PDDLState, new_atom : Tuple[str,Tuple[int]], obj_types : Tuple[str]) -> bool:
         # <Check that the atom is valid>
         # Otherwise, we raise an exception
         state_objs = curr_state.object_inds
@@ -157,7 +161,7 @@ class ConsistencyEvaluator(ABC):
 
     @curr_state The state for which to evaluate the eventual consistency rules
     """
-    def preprocess_and_check_eventual_consistency(self, curr_state : PDDLState):
+    def preprocess_and_check_eventual_consistency(self, curr_state : PDDLState) -> bool:
         state_objs = curr_state.object_inds # Represent the objects as a list of indexes, instead of ['block', 'block'...]
         state_obj_types = curr_state.object_types
         state_atoms = curr_state.atoms
@@ -210,8 +214,8 @@ class ConsistencyEvaluator(ABC):
     """
     @abstractmethod
     def check_continuous_consistency(self, curr_state : PDDLState, atom_pred : str, atom_obj_consts : Tuple[Constant],
-                                     atom_obj_inds : Tuple[int], atom_obj_types : Tuple[str]):
-        pass
+                                     atom_obj_inds : Tuple[int], atom_obj_types : Tuple[str]) -> bool:
+        raise NotImplementedError()
 
 
     """
@@ -223,5 +227,5 @@ class ConsistencyEvaluator(ABC):
     <Note>: @curr_state must NOT be modified, as it is passed by reference
     """
     @abstractmethod
-    def check_eventual_consistency(self, curr_state):
-        pass
+    def check_eventual_consistency(self, curr_state) -> bool:
+        raise NotImplementedError()
