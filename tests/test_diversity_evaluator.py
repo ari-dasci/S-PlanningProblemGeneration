@@ -44,5 +44,54 @@ class TestConsistencyEvaluator(unittest.TestCase):
         for p in problem_list:
             self.assertEqual(p, problem_1)
 
+    def test_diversity_symmetry(self):
+        """
+        If there are only two problems, their diversities must be the same since d(1,2) = d(2,1).
+        """
+        s1 = PDDLState(self.types, self.type_hierarchy, self.predicates,
+                       objects = ['city', 'airport', 'truck', 'package'],
+                       atoms = {('in-city', (1,0), ('at', (2,1)), ('in', (3,2)))})
+        s2 = PDDLState(self.types, self.type_hierarchy, self.predicates,
+                       objects = ['city', 'airport', 'truck', 'package'],
+                       atoms = {('in-city', (1,0), ('at', (2,1)), ('at', (3,1)))})    
+        p1 = PDDLProblem(self.parser, init_state_info = s1)
+        p2 = PDDLProblem(self.parser, init_state_info = s2)
+        p1.end_initial_state_generation_phase()
+        p2.end_initial_state_generation_phase()
+
+        diversity_evaluator1 = InitStateDiversityEvaluator(use_weighted_average=False)
+        diversity_evaluator2 = InitStateDiversityEvaluator(use_weighted_average=True)
+
+        self.assertEqual(diversity_evaluator1.get_diversity([p1, p2])[0], diversity_evaluator1.get_diversity([p1, p2])[1])
+        self.assertEqual(diversity_evaluator2.get_diversity([p1, p2])[0], diversity_evaluator2.get_diversity([p1, p2])[1])
+
+    def test_diversity_different_problems(self):
+        s1 = PDDLState(self.types, self.type_hierarchy, self.predicates,
+                       objects = ['city', 'airport', 'truck', 'package'],
+                       atoms = {('in-city', (1,0)), ('at', (2,1)), ('in', (3,2))})
+        s2 = PDDLState(self.types, self.type_hierarchy, self.predicates,
+                       objects = ['city', 'airport', 'truck', 'package'],
+                       atoms = {('in-city', (1,0)), ('at', (2,1)), ('at', (3,1))})
+        s3 = PDDLState(self.types, self.type_hierarchy, self.predicates,
+                       objects = ['city', 'airport', 'truck', 'package', 'city', 'airport', 'location'],
+                       atoms = {('in-city', (1,0)), ('at', (2,1)), ('at', (3,1)), ('in-city', (5,4)), ('in-city', (6,4))})
+        p1 = PDDLProblem(self.parser, init_state_info = s1)
+        p2 = PDDLProblem(self.parser, init_state_info = s2)
+        p3 = PDDLProblem(self.parser, init_state_info = s3)
+        p1.end_initial_state_generation_phase()
+        p2.end_initial_state_generation_phase()
+        p3.end_initial_state_generation_phase()
+
+        diversity_evaluator1 = InitStateDiversityEvaluator(use_weighted_average=False)
+        diversity_evaluator2 = InitStateDiversityEvaluator(use_weighted_average=True)
+
+        # p3 is the most diverse problem
+        diversity_list1 = diversity_evaluator1.get_diversity([p1, p2, p3])
+        diversity_list2 = diversity_evaluator2.get_diversity([p1, p2, p3])
+        self.assertGreater(diversity_list1[2], diversity_list1[0])
+        self.assertGreater(diversity_list1[2], diversity_list1[1])
+        self.assertGreater(diversity_list2[2], diversity_list2[0])
+        self.assertGreater(diversity_list2[2], diversity_list2[1])
+
 if __name__ == '__main__':
     unittest.main()
