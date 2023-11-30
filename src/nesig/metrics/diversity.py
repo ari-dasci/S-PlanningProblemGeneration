@@ -218,6 +218,9 @@ class InitStateDiversityEvaluator(DiversityEvaluator):
         distance_matrix = self._calculate_distances(feature_matrix_norm, feature_weights)
 
         # For each problem, calculate its diversity as the average distance between it and the rest of problems
-        diversity_scores = [np.mean(distance_matrix[i,:]) for i in range(len(problem_list))]
+        # diversity_scores = [np.mean(distance_matrix[i,:]) for i in range(len(problem_list))]
+        # We don't use the formula above because it also includes the distance between a problem and itself, which is always 0
+        # np.delete() removes the i-th element from the array
+        diversity_scores = [np.mean(np.delete(distance_matrix[i,:], i)) for i in range(len(problem_list))]
 
         return diversity_scores
