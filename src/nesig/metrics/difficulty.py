@@ -22,39 +22,27 @@ def silentremove(path):
         os.remove(path)
 
 
-"""
-Abstract class from which particular difficulty evaluators (e.g., planner-based, ML-based)
-must inherit from.
-Given a list of totally-generated problems, it returns a float/list of floats representing the difficulty
-for each problem.
-"""
 class DifficultyEvaluator(ABC):
+    """
+    Abstract class from which particular difficulty evaluators (e.g., planner-based, ML-based)
+    must inherit from.
+    Given a list of totally-generated problems, it returns a float/list of floats representing the difficulty
+    for each problem.
+    """
 
-    """
-    Returns the difficulty for a list of PDDL problems.
-    """
     @abstractmethod
     def get_difficulty(self, problem_list : List[Union[PDDLProblem,Path]]) -> Union[List[float], List[List[float]]]:
+        """
+        Returns the difficulty for a list of PDDL problems.
+        """
         raise NotImplementedError()
 
 
-"""
-Obtains the difficulty by solving the problem with a planner. We use FastDownward.
-"""
 class PlannerEvaluator(DifficultyEvaluator):
+    """
+    Obtains the difficulty by solving the problem with a planner. We use FastDownward.
+    """
 
-    """
-    The constructor receives the information needed for calling the planner.
-    Parameters:
-        - domain_path: Path to the PDDL domain file.
-        - plan_args: List of arguments to be passed to the planner (e.g., ['--search astar(lmcut())']).
-                     We obtain the difficulty by calling the planner with each of the arguments.
-                     Therefore, the length of the difficulty list returned by get_difficulty() is equal
-                     to the length of plan_args.
-        - time_limit: Time limit for the planner, in seconds. -1 means no limit.
-        - memory_limit: Memory limit for the planner, in KB. -1 means no limit.
-        - max_workers: Maximum number of processes for concurrent planner calls.
-    """
     # TODO
     # See if I can limit the number of expanded nodes instead of memory/time
     # This is useful for two things:
@@ -64,7 +52,19 @@ class PlannerEvaluator(DifficultyEvaluator):
     # See FD discord message ...I would like to know if there exists some rough,easy equivalence between...
     def __init__(self, domain_path : Path, plan_args : List[str],
                  time_limit : int = -1, memory_limit : int = -1,
-                 max_workers : int = 1):
+                 max_workers : int = 1):     
+        """
+        The constructor receives the information needed for calling the planner.
+        Parameters:
+            - domain_path: Path to the PDDL domain file.
+            - plan_args: List of arguments to be passed to the planner (e.g., ['--search astar(lmcut())']).
+                        We obtain the difficulty by calling the planner with each of the arguments.
+                        Therefore, the length of the difficulty list returned by get_difficulty() is equal
+                        to the length of plan_args.
+            - time_limit: Time limit for the planner, in seconds. -1 means no limit.
+            - memory_limit: Memory limit for the planner, in KB. -1 means no limit.
+            - max_workers: Maximum number of processes for concurrent planner calls.
+        """
         self.domain_path = domain_path
         self.plan_args = plan_args
         self.time_limit = time_limit
@@ -75,14 +75,14 @@ class PlannerEvaluator(DifficultyEvaluator):
     def num_plan_args(self) -> int:
         return len(self.plan_args)
 
-    """
-    Calculates the difficulty for a list of problems, as the number of nodes expanded by the planner.
-    The problems can be given either as intances of PDDLProblem or as paths to PDDL problem files.
-    The options used are given by self.plan_args.
-    It returns a list of difficulties for each problem, so that diff[i][j] is the difficulty of the
-    i-th problem with the j-th planner argument.
-    """
     def get_difficulty(self, problem_list : List[Union[PDDLProblem,Path]]) -> List[List[float]]:
+        """
+        Calculates the difficulty for a list of problems, as the number of nodes expanded by the planner.
+        The problems can be given either as intances of PDDLProblem or as paths to PDDL problem files.
+        The options used are given by self.plan_args.
+        It returns a list of difficulties for each problem, so that diff[i][j] is the difficulty of the
+        i-th problem with the j-th planner argument.
+        """
         assert type(problem_list) in (list,tuple), "This method receives a list of PDDLProblem objects/paths to PDDL files"
 
         # Use ProcessPoolExecutor to run the commands in parallel
@@ -109,12 +109,13 @@ class PlannerEvaluator(DifficultyEvaluator):
 
         return difficulty
 
-    """
-    It gets the difficulty of a single problem using a single planner argument. It is called by the other methods in parallel.
-    Note: every limit.sh call needs to use a distinct problem name. That's why we save to disk several times the same problem with different names 
-    for different planner arguments.
-    """
     def _get_difficulty_one_problem_one_arg(self, pddl_description : str, planner_arg : str) -> float:
+        """
+        It gets the difficulty of a single problem using a single planner argument. It is called by the other methods in parallel.
+        Note: every limit.sh call needs to use a distinct problem name. That's why we save to disk several times the same problem with different names 
+        for different planner arguments.
+        """
+
         """
         Example limit.sh calls:
             - From command line: ./planner-scripts/limit.sh -t -1 -m -1 -- "planner-scripts/fd-latest-clean -o '--search astar(lmcut())'" -- ../../../data/problems/test_problems/bw_two_action_plan.pddl ../../../data/domains/blocks-domain.pddl
@@ -137,12 +138,6 @@ class PlannerEvaluator(DifficultyEvaluator):
             limit_sh_path = Path(PLANNER_SCRIPTS_PATH, 'limit.sh')
             fd_path = Path(PLANNER_SCRIPTS_PATH, 'fd-latest-clean')
             planner_call = f"""{limit_sh_path} -t {self.time_limit} -m {self.memory_limit} -- "{fd_path} -o '{planner_arg}'" -- {problem_path} {self.domain_path}"""
-
-            """result = subprocess.run(planner_call, shell=True, capture_output=True, text=True)
-            print(result.stdout.strip())
-            print("HERE")
-            import sys
-            sys.exit()"""
 
             # We redirect stdout and stderr so that they are not printed to the console
             result = subprocess.run(planner_call, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

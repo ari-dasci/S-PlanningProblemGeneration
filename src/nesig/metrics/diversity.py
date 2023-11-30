@@ -15,53 +15,55 @@ from src.nesig.data_utils.pddl_problem import PDDLProblem
 # Also create automatic method to calculate the diversity of a set of problems
 # using the planning-features-based method
 
-
-"""
-Abstract class from which particular diversity evaluators (e.g., based on the number of objects and atoms, based on more complex features, etc.)
-must inherit from.
-Given a list of problems, it returns a float representing the diversity of each problem when compared to the rest.
-If a problem is very similar to the other problems in the set, its diversity value will be low.
-If it is very different from the rest of the problems, its diversity value will be high.
-"""
 class DiversityEvaluator(ABC):
+    """
+    Abstract class from which particular diversity evaluators (e.g., based on the number of objects and atoms, based on more complex features, etc.)
+    must inherit from.
+    Given a list of problems, it returns a float representing the diversity of each problem when compared to the rest.
+    If a problem is very similar to the other problems in the set, its diversity value will be low.
+    If it is very different from the rest of the problems, its diversity value will be high.
+    """
 
-    """
-    Returns the diversity for a list of PDDL problems.
-    """
     @abstractmethod
     def get_diversity(self, problem_list : List[Union[PDDLProblem,Path]]) -> List[float]:
+        """
+        Returns the diversity for a list of PDDL problems.
+        """
         raise NotImplementedError()
     
 
-"""
-Calculates the diversity of a set of problems based only on their initial state.
-To do so, it computes a series of features for each problem, and calculates diversity as the mean distance
-of each problem with the rest, based on these features.
-The features are:
-    - Percentage of objects of each type in the state
-    - Percentage of atoms of each predicate type in the state
-    - Mean and std of the number of objects of type j each object of type i "relates", i.e., appears on the same
-      atom with, according to atoms of predicate type k -> l[obj_type_i][pred_type_k][obj_type_j]
-      Example: in some logistics state, each city has an average of 1.2 locations and an std of 0.5 locations.
-               This would correspond to l[city][in-city][location]
-<Note>: The features used do NOT depend on the size of the initial state (that's why we use percentage of objects/atoms instead of absolute numbers).
-        We do this so that we can fairly compare the diversity among problems of different sizes.
-"""
-class InitStateDiversityEvaluator(DiversityEvaluator):
 
+class InitStateDiversityEvaluator(DiversityEvaluator):
     """
-    Parameters:
-        - use_weighted_average: If True, when calculating the distance between problems we make sure that each one of the four
-                                feature sublists (perc_objects, perc_atoms, mean_rel, std_rel) contributes equally to the distance.
-                                This is important when the number of features in each of the four sublists is very different because,
-                                if we don't use a weighted average, the sublist with more features will dominate the distance calculation.
+    Calculates the diversity of a set of problems based only on their initial state.
+    To do so, it computes a series of features for each problem, and calculates diversity as the mean distance
+    of each problem with the rest, based on these features.
+    The features are:
+        - Percentage of objects of each type in the state
+        - Percentage of atoms of each predicate type in the state
+        - Mean and std of the number of objects of type j each object of type i "relates", i.e., appears on the same
+        atom with, according to atoms of predicate type k -> l[obj_type_i][pred_type_k][obj_type_j]
+        Example: in some logistics state, each city has an average of 1.2 locations and an std of 0.5 locations.
+                This would correspond to l[city][in-city][location]
+    <Note>: The features used do NOT depend on the size of the initial state (that's why we use percentage of objects/atoms instead of absolute numbers).
+            We do this so that we can fairly compare the diversity among problems of different sizes.
     """
+
     def __init__(self, use_weighted_average=True):
+        """
+        Parameters:
+            - use_weighted_average: If True, when calculating the distance between problems we make sure that each one of the four
+                                    feature sublists (perc_objects, perc_atoms, mean_rel, std_rel) contributes equally to the distance.
+                                    This is important when the number of features in each of the four sublists is very different because,
+                                    if we don't use a weighted average, the sublist with more features will dominate the distance calculation.
+        """
         self.use_weighted_average = use_weighted_average
 
-    # <Note>: we must NOT modify init_state, since it is the initial state of a PDDLProblem
-    # It returns both the state features and the feature weights (if self.use_weighted_average is True), used to calculate the distance
     def _get_state_features(self, init_state):
+        """
+        <Note>: we must NOT modify init_state, since it is the initial state of a PDDLProblem
+        It returns both the state features and the feature weights (if self.use_weighted_average is True), used to calculate the distance    
+        """
         types = init_state.types
         predicates = init_state.predicates
         pred_names = init_state.predicate_names
@@ -194,13 +196,13 @@ class InitStateDiversityEvaluator(DiversityEvaluator):
         
         return feature_matrix_norm
 
-    """
-    Returns the diversity for a list of PDDL problems.
-    Before calling this method, the initial state must be completely generated for each problem in the list.
-    <Note>: we assume that all the problems are consistent. Consistency must be checked BEFORE calling this method.
-            Otherwise, we will calculate the diversity also for inconsistent problems, which is not what we want.
-    """
     def get_diversity(self, problem_list : List[PDDLProblem]) -> List[float]:
+        """
+        Returns the diversity for a list of PDDL problems.
+        Before calling this method, the initial state must be completely generated for each problem in the list.
+        <Note>: we assume that all the problems are consistent. Consistency must be checked BEFORE calling this method.
+                Otherwise, we will calculate the diversity also for inconsistent problems, which is not what we want.
+        """
         for i, problem in enumerate(problem_list):
             assert problem.is_initial_state_generated, f'The initial state of problem {i} has not been completely generated yet'
 

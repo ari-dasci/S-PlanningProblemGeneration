@@ -14,20 +14,20 @@ import functools
 from pddl_prover import *
 from src.nesig.data_utils.pddl_state import PDDLState
 
-"""
-Abstract class from which consistency evaluators for particular domains must inherit from.
-It is used to evaluate the continuous and eventual consistency of a PDDL problem.
-"""
 class ConsistencyEvaluator(ABC):
+    """
+    Abstract class from which consistency evaluators for particular domains must inherit from.
+    It is used to evaluate the continuous and eventual consistency of a PDDL problem.
+    """
 
-    """
-    Constructor. It creates constants for the domain types and predicates for the domain predicates.
-    Parameters:
-        - types: List/tuple with the existing types in the domain
-        - type_hierarchy: Dictionary with the type hierarchy of the domain types
-        - predicates: List/tuple with the existing predicates in the domain
-    """
     def __init__(self, types : List[str], type_hierarchy : Dict, predicates : List[Tuple[str, List[str]]]):
+        """
+        Constructor. It creates constants for the domain types and predicates for the domain predicates.
+        Parameters:
+            - types: List/tuple with the existing types in the domain
+            - type_hierarchy: Dictionary with the type hierarchy of the domain types
+            - predicates: List/tuple with the existing predicates in the domain
+        """
         self.domain_types = tuple(types)
         self.domain_type_hierarchy = type_hierarchy
         self.domain_predicates = tuple(predicates)
@@ -58,27 +58,27 @@ class ConsistencyEvaluator(ABC):
         """
         self._knowledge_base = None
 
-    """
-    Evaluates the formula or count object @formula on the knowledge base of the class (self._knowledge_base)
-    """
     def _evaluate(self, formula):
+        """
+        Evaluates the formula or count object @formula on the knowledge base of the class (self._knowledge_base)
+        """
         return formula.evaluate(self._knowledge_base)
     
-    """
-    << Method called internally from NeSIG >>
-    Checks if the continuous consistency rules are met at the next_state, obtained by adding @new_atom to @curr_state.
-    This method first checks that the atom is valid, it is not already in the state and it does not contain repeated parameters.
-    Then, it initializes the knowledge base with the state information and calls self.check_continuous_consistency(). 
-
-    <Note>: this method assumes that curr_state meets all the continuous consistency rules.
-    <Note2>: this method assumes that new objects (those present in @new_atom but not in @curr_state) will be added AFTER this method
-             to the state @curr_state -> Don't call this method after having already added the new objects to the state!!!
-    
-    @curr_state An instance of PDDLState
-    @new_atom The next atom to add (e.g,. ('on', (1, 0)) )
-    @obj_types List/tuple with the type of each object in the atom (@action[1]) -> In blocksworld there is only one type, so we do not need to check it 
-    """
     def preprocess_and_check_continuous_consistency(self, curr_state : PDDLState, new_atom : Tuple[str,Tuple[int]], obj_types : Tuple[str]) -> bool:
+        """
+        << Method called internally from NeSIG >>
+        Checks if the continuous consistency rules are met at the next_state, obtained by adding @new_atom to @curr_state.
+        This method first checks that the atom is valid, it is not already in the state and it does not contain repeated parameters.
+        Then, it initializes the knowledge base with the state information and calls self.check_continuous_consistency(). 
+
+        <Note>: this method assumes that curr_state meets all the continuous consistency rules.
+        <Note2>: this method assumes that new objects (those present in @new_atom but not in @curr_state) will be added AFTER this method
+                to the state @curr_state -> Don't call this method after having already added the new objects to the state!!!
+        
+        @curr_state An instance of PDDLState
+        @new_atom The next atom to add (e.g,. ('on', (1, 0)) )
+        @obj_types List/tuple with the type of each object in the atom (@action[1]) -> In blocksworld there is only one type, so we do not need to check it 
+        """      
         # <Check that the atom is valid>
         # Otherwise, we raise an exception
         state_objs = curr_state.object_inds
@@ -151,17 +151,17 @@ class ConsistencyEvaluator(ABC):
 
         return is_atom_consistent    
     
-    """
-    << Method called internally from NeSIG >>
-    Checks if the eventual consistency rules are met at the current state, corresponding to a totally generated initial state.
-    <Note>: we also need to check for the continuous consistency rules which may have been skipped due to not adding a given predicate type
-            to the state. For example, if we haven't added an atom of type (handempty) or (holding _) to the state, then we have never
-            checked the continuous consistency rule that says "every block X on top needs an atom of type (clear X)" -> This is why
-            we check them here.
-
-    @curr_state The state for which to evaluate the eventual consistency rules
-    """
     def preprocess_and_check_eventual_consistency(self, curr_state : PDDLState) -> bool:
+        """
+        << Method called internally from NeSIG >>
+        Checks if the eventual consistency rules are met at the current state, corresponding to a totally generated initial state.
+        <Note>: we also need to check for the continuous consistency rules which may have been skipped due to not adding a given predicate type
+                to the state. For example, if we haven't added an atom of type (handempty) or (holding _) to the state, then we have never
+                checked the continuous consistency rule that says "every block X on top needs an atom of type (clear X)" -> This is why
+                we check them here.
+
+        @curr_state The state for which to evaluate the eventual consistency rules
+        """     
         state_objs = curr_state.object_inds # Represent the objects as a list of indexes, instead of ['block', 'block'...]
         state_obj_types = curr_state.object_types
         state_atoms = curr_state.atoms
@@ -192,40 +192,39 @@ class ConsistencyEvaluator(ABC):
 
         return is_state_consistent
     
-    """
-    Abstract method overriden by the user that contains the continuous consistency rules for a particular domain.
-    It returns whether the state resulting from adding the atom (@atom_pred, @atom_obj_inds) to the current state
-    @curr_state is continuous-consistent or not.
-
-    @curr_state An instance of PDDLState, representing the current state the atom will be added to
-    @atom_pred The predicate type (as a string) of the atom to add to @curr_state
-    @atom_obj_consts A tuple containing the objects (each one as an instance of Constant) the new atom is intantiated on
-    @atom_obj_inds A tuple containing the objects (each one as an integer representing its index) the new atom is
-                   instantiated on
-    @atom_obj_types A list with the type (as a string) of each object the new atom is instantiated on
-
-    <Note1>: @curr_state must NOT be modified, as it is passed by reference
-    <Note2>: The new atom to add can be instantiated on both "normal" objects (i.e., those present at @curr_state)
-            and virtual objects (i.e., those that are NOT present at @curr_state but will be added alongside the new
-            atom).
-            In order to check if an object is virtual, use either self._evaluate(self.virtual(obj_constant)) (declarative
-            form) or curr_state.is_virtual(obj_ind) (imperative form), where "obj_constant" is an instance of Constant
-            representing the object and "obj_ind" is an integer representing the index of the object.
-    """
     @abstractmethod
     def check_continuous_consistency(self, curr_state : PDDLState, atom_pred : str, atom_obj_consts : Tuple[Constant],
                                      atom_obj_inds : Tuple[int], atom_obj_types : Tuple[str]) -> bool:
+        """
+        Abstract method overriden by the user that contains the continuous consistency rules for a particular domain.
+        It returns whether the state resulting from adding the atom (@atom_pred, @atom_obj_inds) to the current state
+        @curr_state is continuous-consistent or not.
+
+        @curr_state An instance of PDDLState, representing the current state the atom will be added to
+        @atom_pred The predicate type (as a string) of the atom to add to @curr_state
+        @atom_obj_consts A tuple containing the objects (each one as an instance of Constant) the new atom is intantiated on
+        @atom_obj_inds A tuple containing the objects (each one as an integer representing its index) the new atom is
+                    instantiated on
+        @atom_obj_types A list with the type (as a string) of each object the new atom is instantiated on
+
+        <Note1>: @curr_state must NOT be modified, as it is passed by reference
+        <Note2>: The new atom to add can be instantiated on both "normal" objects (i.e., those present at @curr_state)
+                and virtual objects (i.e., those that are NOT present at @curr_state but will be added alongside the new
+                atom).
+                In order to check if an object is virtual, use either self._evaluate(self.virtual(obj_constant)) (declarative
+                form) or curr_state.is_virtual(obj_ind) (imperative form), where "obj_constant" is an instance of Constant
+                representing the object and "obj_ind" is an integer representing the index of the object.
+        """    
         raise NotImplementedError()
 
-
-    """
-    Abstract method overriden by the user that contains the eventual consistency rules for a particular domain.
-    It returns whether the totally-generated initial state @curr_state is eventual-consistent or not.
-
-    @curr_state An instance of RelationalState, representing the totally-generated initial state
-
-    <Note>: @curr_state must NOT be modified, as it is passed by reference
-    """
     @abstractmethod
     def check_eventual_consistency(self, curr_state) -> bool:
+        """
+        Abstract method overriden by the user that contains the eventual consistency rules for a particular domain.
+        It returns whether the totally-generated initial state @curr_state is eventual-consistent or not.
+
+        @curr_state An instance of RelationalState, representing the totally-generated initial state
+
+        <Note>: @curr_state must NOT be modified, as it is passed by reference
+        """
         raise NotImplementedError()

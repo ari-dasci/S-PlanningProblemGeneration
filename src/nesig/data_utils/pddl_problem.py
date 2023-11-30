@@ -11,37 +11,37 @@ from copy import deepcopy
 
 from .pddl_state import PDDLState
 
-"""
-Data structure representing a PDDL problem of a particular domain.
-The problem can either be totally-generated or incomplete.
-It provides methods for obtaining information about the problem and manipulating
-it (e.g., obtaining the list of atoms that can be added to the init state or the list
-of applicable actions in the current goal state). 
-"""
 class PDDLProblem():
+    """
+    Data structure representing a PDDL problem of a particular domain.
+    The problem can either be totally-generated or incomplete.
+    It provides methods for obtaining information about the problem and manipulating
+    it (e.g., obtaining the list of atoms that can be added to the init state or the list
+    of applicable actions in the current goal state). 
+    """
     
-    """
-    The constructor receives the information needed for initializing a PDDLProblem.
-    Parameters:
-        - parser: Instance of Parser class, from lifted_pddl package. It is used to obtain the information
-                  about the PDDL domain, obtain the applicable actions at a given state, etc.
-                  We assume the parser has already been initialized with the domain information by doing parser.parse_domain(domain_path)
-        - goal_predicates: List of predicates (name and parameter types) which will be considered for the goal.
-                           Only the atoms of the goal_state which match one of the goal_predicates will form part of the goal.
-                           In order for a goal atom to be added to the goal, it needs to match both the name of the predicate
-                           and the type of each object it is instantiated on must inherit from the corresponding param type
-                           in the goal predicate.
-                           Example: if goal_predicates contains ['at',['vehicle','location']], then we will only consider for the goal
-                           those atoms of type "at" which correspond to vehicles (and locations), but not to packages (and locations).
-                           If None, all the atoms of the goal_state will be part of the goal.
-        - init_state_info: PDDLState used to create the initial state of the generation process.
-                           If None, we assume an empty initial state.
-        - allowed_virtual_objects: List of virtual objects that can be added to the initial state.
-                                   If None, we assume all the objects can be added.
-    """
     def __init__(self, parser, goal_predicates : Optional[List[Tuple[str,Tuple[str]]]] = None,
                  init_state_info : Optional[PDDLState] = None,
-                 allowed_virtual_objects : Optional[List[str]] = None):
+                 allowed_virtual_objects : Optional[List[str]] = None):       
+        """
+        The constructor receives the information needed for initializing a PDDLProblem.
+        Parameters:
+            - parser: Instance of Parser class, from lifted_pddl package. It is used to obtain the information
+                    about the PDDL domain, obtain the applicable actions at a given state, etc.
+                    We assume the parser has already been initialized with the domain information by doing parser.parse_domain(domain_path)
+            - goal_predicates: List of predicates (name and parameter types) which will be considered for the goal.
+                            Only the atoms of the goal_state which match one of the goal_predicates will form part of the goal.
+                            In order for a goal atom to be added to the goal, it needs to match both the name of the predicate
+                            and the type of each object it is instantiated on must inherit from the corresponding param type
+                            in the goal predicate.
+                            Example: if goal_predicates contains ['at',['vehicle','location']], then we will only consider for the goal
+                            those atoms of type "at" which correspond to vehicles (and locations), but not to packages (and locations).
+                            If None, all the atoms of the goal_state will be part of the goal.
+            - init_state_info: PDDLState used to create the initial state of the generation process.
+                            If None, we assume an empty initial state.
+            - allowed_virtual_objects: List of virtual objects that can be added to the initial state.
+                                    If None, we assume all the objects can be added.
+        """
         self.parser = deepcopy(parser) # We use deepcopy because some methods modify the parser internal state
         self.types = parser.types
         self.type_hierarchy = parser.type_hierarchy
@@ -103,28 +103,27 @@ class PDDLProblem():
 
     # --- Initial state generation methods ---
 
-    """
-    This method must be called once the initial state has been generated, before starting the generation of the goal state.
-    The initial goal state is a copy of the initial state.
-    """
     def end_initial_state_generation_phase(self):
+        """
+        This method must be called once the initial state has been generated, before starting the generation of the goal state.
+        The initial goal state is a copy of the initial state.
+        """
         if self.is_initial_state_generated:
             raise Exception("The initial state generation phase has already concluded")
         
         self.is_initial_state_generated = True
         self.goal_state = self.initial_state # Calls deepcopy()
 
-    """
-    Obtains a list with all the actions that can be applied to the initial state, i.e.,
-    all the atoms which can be added to the initial state while satisfying continuous consistency.
-    If consistency_validator is None, we assume that all the atoms are consistent.
-    Each element in the list corresponds to an atom in the following way: [('on', (1, 0)), ('on', (1, 2)), ('handempty', ())]
-
-    Object indexes (e.g., (1,0)) can index both objects in the state and virtual objects. In other words,
-    they index positions in the list [initial_state.objects + initial_state.virtual_objs_with_type].
-    """
     def get_continuous_consistent_init_state_actions(self, consistency_validator = None):
-        
+        """
+        Obtains a list with all the actions that can be applied to the initial state, i.e.,
+        all the atoms which can be added to the initial state while satisfying continuous consistency.
+        If consistency_validator is None, we assume that all the atoms are consistent.
+        Each element in the list corresponds to an atom in the following way: [('on', (1, 0)), ('on', (1, 2)), ('handempty', ())]
+
+        Object indexes (e.g., (1,0)) can index both objects in the state and virtual objects. In other words,
+        they index positions in the list [initial_state.objects + initial_state.virtual_objs_with_type].
+        """    
         def is_atom_consistent(atom, obj_types):
             # Note: we pass by reference the initial state to the consistency validator for performance reasons
             return consistency_validator.check_continuous_consistency(self._initial_state, atom, obj_types) \
@@ -173,18 +172,18 @@ class PDDLProblem():
 
         return possible_actions
 
-    """
-    Applies an action, consisting of (possibly) adding objects and an atom, to the initial state.
-    It also assigns the next state to self._initial_state.
-    <Note>: we assume that the action is consistent.
-
-    @new_objs The objects to add to the state (e.g., ['block', 'circle'])
-    @new_atom The atom to add to the state (e.g., ('on', (1,2)))
-    Note: The atom indices ((1,2)) can refer to new objects not present in the current state but which are added as part of the next
-          state. Example: current state has only one block, new_objs=['block'] and new_atom= ('on', (0,1)).
-    @obj_types The type of each object in @new_atom[1], whether it is in the state or corresponds to a virtual object (an object in @new_objs)
-    """
     def apply_action_to_initial_state(self, new_objs, new_atom, obj_types):
+        """
+        Applies an action, consisting of (possibly) adding objects and an atom, to the initial state.
+        It also assigns the next state to self._initial_state.
+        <Note>: we assume that the action is consistent.
+
+        @new_objs The objects to add to the state (e.g., ['block', 'circle'])
+        @new_atom The atom to add to the state (e.g., ('on', (1,2)))
+        Note: The atom indices ((1,2)) can refer to new objects not present in the current state but which are added as part of the next
+            state. Example: current state has only one block, new_objs=['block'] and new_atom= ('on', (0,1)).
+        @obj_types The type of each object in @new_atom[1], whether it is in the state or corresponds to a virtual object (an object in @new_objs)
+        """
         # Encode new_atom as a tuple (just in case)
         new_atom = (new_atom[0], tuple(new_atom[1]))
         
@@ -199,9 +198,11 @@ class PDDLProblem():
     
     # --- Goal generation methods ---
 
-    # Auxiliary method that uses the parser to obtain the applicable actions at the current goal state
-    # This method may return actions with repeated arguments (e.g., stack('a', 'a'))
     def _get_applicable_ground_actions_parser(self):
+        """
+        Auxiliary method that uses the parser to obtain the applicable actions at the current goal state
+        This method may return actions with repeated arguments (e.g., stack('a', 'a'))
+        """
         # Make sure we are in the goal generation phase
         if not self.is_initial_state_generated:
             raise Exception("The initial state generation phase has not finished yet")
@@ -217,12 +218,12 @@ class PDDLProblem():
 
         return all_applicable_actions
 
-    """
-    Return if a lifted action is applicable, i.e., if any of its possible instantiations on the state objects is applicable at the goal state.
-
-    @action_name String representing the action name.
-    """
     def is_lifted_action_applicable(self, action_name):
+        """
+        Return if a lifted action is applicable, i.e., if any of its possible instantiations on the state objects is applicable at the goal state.
+
+        @action_name String representing the action name.
+        """
         # Obtain all ground applicable actions
         all_applicable_actions = self._get_applicable_ground_actions_parser()
         
@@ -235,12 +236,14 @@ class PDDLProblem():
         # If there are still some valid param substitutions left, then the lifted action is applicable
         return len(applicable_param_assigns) > 0
 
-    # Returns all the lifted (domain) actions that are applicable at the current state.
-    # They are returned as a list of strings with the names of the actions that are applicable.
-    # A lifted action is applicable if any instantiation (grounding) is applicable, i.e., the preconditions are met AND there are no repeated
-    # objects (for example, stack(A, A) is not applicable)
-    # Note: works with predicates of arity 0
     def applicable_lifted_actions(self):
+        """
+        Returns all the lifted (domain) actions that are applicable at the current state.
+        They are returned as a list of strings with the names of the actions that are applicable.
+        A lifted action is applicable if any instantiation (grounding) is applicable, i.e., the preconditions are met AND there are no repeated
+        objects (for example, stack(A, A) is not applicable)
+        Note: works with predicates of arity 0   
+        """
         # Obtain all ground applicable actions
         all_applicable_actions = self._get_applicable_ground_actions_parser()
         
@@ -250,12 +253,12 @@ class PDDLProblem():
 
         return applicable_action_names
 
-    """
-    Returns all the ground (domain) actions that are applicable at the current goal state.
-    We assume actions cannot have repeated parameters (e.g.: stack A A)
-    They are returned as a list where each element represents a ground action, e.g., ('stack', (1, 2))
-    """
     def applicable_ground_actions(self):
+        """
+        Returns all the ground (domain) actions that are applicable at the current goal state.
+        We assume actions cannot have repeated parameters (e.g.: stack A A)
+        They are returned as a list where each element represents a ground action, e.g., ('stack', (1, 2))
+        """
         # Obtain all ground applicable actions
         all_applicable_actions = self._get_applicable_ground_actions_parser()
 
@@ -267,13 +270,13 @@ class PDDLProblem():
 
         return applicable_actions_as_list	
 
-    """
-    Checks if a ground action is applicable at the current state (self._goal_state) or not.
-    We also check if the action is instantiated on objects of the correct type.
-    @action_name Name of the action (e.g., "pick-up")
-    @action_objs The instantiated parameters of the action, as a list/tuple of indexes corresponding to objects in @state (e.g., [0,1])
-    """
     def is_ground_action_applicable(self, action_name, action_objs):
+        """
+        Checks if a ground action is applicable at the current state (self._goal_state) or not.
+        We also check if the action is instantiated on objects of the correct type.
+        @action_name Name of the action (e.g., "pick-up")
+        @action_objs The instantiated parameters of the action, as a list/tuple of indexes corresponding to objects in @state (e.g., [0,1])
+        """
         # Make sure we are in the goal generation phase
         if not self.is_initial_state_generated:
             raise Exception("The initial state generation phase has not finished yet")
@@ -289,18 +292,18 @@ class PDDLProblem():
 
         return is_applicable	
 
-    """
-    Applies a domain (ground) action to the goal state in order to obtain the next goal state.
-    It assigns the next state to self._goal_state.
-    <Note>: we assume that the action is applicable. This can be checked with is_ground_action_applicable(),
-            before calling this method.
-
-    @action_name Name of the action (e.g., "pick-up")
-    @action_objs The instantiated parameters of the action, as a tuple/list of indexes corresponding to objects in @state (e.g., (0,1))
-    @check_action_applicability If True, we check if the action passed as argument can be applied at the current goal state, i.e., if its
-                                preconditions are met. If False, we assume the action is applicable and return an action_reward of 0.
-    """
     def apply_action_to_goal_state(self, action_name, action_objs):
+        """
+        Applies a domain (ground) action to the goal state in order to obtain the next goal state.
+        It assigns the next state to self._goal_state.
+        <Note>: we assume that the action is applicable. This can be checked with is_ground_action_applicable(),
+                before calling this method.
+
+        @action_name Name of the action (e.g., "pick-up")
+        @action_objs The instantiated parameters of the action, as a tuple/list of indexes corresponding to objects in @state (e.g., (0,1))
+        @check_action_applicability If True, we check if the action passed as argument can be applied at the current goal state, i.e., if its
+                                    preconditions are met. If False, we assume the action is applicable and return an action_reward of 0.
+        """
         # Make sure we are in the goal generation phase
         if not self.is_initial_state_generated:
             raise Exception("The initial state generation phase has not finished yet")
@@ -314,11 +317,11 @@ class PDDLProblem():
         # Get next goal state
         self._goal_state.atoms = self.parser.get_next_state(action_name, tuple(action_objs), check_action_applicability=False) # We assume the action is applicable
         
-    """
-    Obtains a tuple with the (positive) atoms of the goal, according to self.goal_predicates.
-    Before calling this method, the goal state should have already been generated.
-    """
     def _get_atoms_in_problem_goal(self):
+        """
+        Obtains a tuple with the (positive) atoms of the goal, according to self.goal_predicates.
+        Before calling this method, the goal state should have already been generated.
+        """
         if not self.is_goal_state_generated:
             raise Exception("The goal state generation phase needs to finish before generating the goal")
 
@@ -342,11 +345,11 @@ class PDDLProblem():
         
         return tuple(goal_atoms_filtered)
 
-    """
-    This method must be called once the goal state has been generated, before obtaining the PDDL problem associated with this instance
-    of PDDLState. When this method is called, we generate the problem goal from self.goal_state, using self.goal_predicates.
-    """
     def end_goal_state_generation_phase(self):
+        """
+        This method must be called once the goal state has been generated, before obtaining the PDDL problem associated with this instance
+        of PDDLState. When this method is called, we generate the problem goal from self.goal_state, using self.goal_predicates.
+        """
         if not self.is_initial_state_generated:
             raise Exception("The initial state generation phase has not concluded yet")
 
@@ -359,13 +362,13 @@ class PDDLProblem():
         self.is_goal_state_generated = True
         self.goal = self._get_atoms_in_problem_goal()
 
-    """
-    Encodes in PDDL format the problem represented by this instance of ProblemState. It returns the problem as a string (str).
-    Both initial and goal state generation phases must have concluded.
-
-    @problem_name If not None, the name of the problem generated
-    """
     def dump_to_pddl(self, problem_name=None):
+        """
+        Encodes in PDDL format the problem represented by this instance of ProblemState. It returns the problem as a string (str).
+        Both initial and goal state generation phases must have concluded.
+
+        @problem_name If not None, the name of the problem generated
+        """
         if not self.is_initial_state_generated:
             raise Exception("The initial state generation phase has not concluded yet")
 

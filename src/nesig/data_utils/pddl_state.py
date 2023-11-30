@@ -195,13 +195,13 @@ class PDDLState():
     def indices_to_pred_names_dict(self):
         return deepcopy(self._indices_to_pred_names_dict)
 
-    """
-    Just like pred_names_to_indices_dict, but now we can assign the same index
-    to predicates of different arity.
-    E.g.: ontable -> 1, on -> 1 (as 'on' and 'ontable' have different arity)
-    """
     @property
     def pred_names_to_indices_dict_each_arity(self):
+        """
+        Just like pred_names_to_indices_dict, but now we can assign the same index
+        to predicates of different arity.
+        E.g.: ontable -> 1, on -> 1 (as 'on' and 'ontable' have different arity)
+        """
         return deepcopy(self._pred_names_to_indices_dict_each_arity)
     
     @property
@@ -222,71 +222,71 @@ class PDDLState():
     def num_preds_each_arity(self):
         return deepcopy(self._num_preds_each_arity)
     
-    """
-    Return the higher arity among all the existing predicates.
-    E.g.: handempty, ontable, on -> max_arity = 2 (for the predicate 'on')
-    """
     @property
     def max_predicate_arity(self):
+        """
+        Return the higher arity among all the existing predicates.
+        E.g.: handempty, ontable, on -> max_arity = 2 (for the predicate 'on')
+        """
         existing_arities = self._num_preds_each_arity.keys()
         
         return max(existing_arities)
 
-    """
-    Returns the predicate associated with @pred_name
-    """
     def get_predicate_from_name(self, pred_name):
+        """
+        Returns the predicate associated with @pred_name
+        """
         pred_index = self.predicate_names.index(pred_name)
 
         return self._predicates[pred_index]
 
-    """
-    Returns the arity of the predicate whose name is @pred_name
-    """
     def get_predicate_arity(self, pred_name):
+        """
+        Returns the arity of the predicate whose name is @pred_name
+        """
         pred_index = self.predicate_names.index(pred_name)
 
         return len(self._predicates[pred_index][1]) # Return the arity
 
-    """
-    Returns whether @obj_ind is virtual, i.e., it does not exist in the state (self).
-    """
     def is_virtual(self, obj_ind):
+        """
+        Returns whether @obj_ind is virtual, i.e., it does not exist in the state (self).
+        """
         return obj_ind >= len(self._objects)
 
-    """
-    Given a predicate arity and its index, this function returns the predicate ('pred_name', (obj_types_list))
-    """
     def get_predicate_by_arity_and_ind(self, arity, index):
+        """
+        Given a predicate arity and its index, this function returns the predicate ('pred_name', (obj_types_list))
+        """
         return self._arity_and_ind_to_predicate_dict[(arity, index)]
 
-    """
-    Returns a list with the number of predicates of each arity, from r=0 to r=max_arity.
-    Example: max_arity=3 -> [1,3,1,0] for blocksworld
-
-    @max_arity If not -1, we assume that is the max arity of the predicates. This parameter is used when the max_pred
-               (breadth) of the NLM is higher than the max_predicate_arity of the state.
-    """
     def num_preds_each_arity_for_nlm(self, max_arity = -1):
+        """
+        Returns a list with the number of predicates of each arity, from r=0 to r=max_arity.
+        Example: max_arity=3 -> [1,3,1,0] for blocksworld
+
+        @max_arity If not -1, we assume that is the max arity of the predicates. This parameter is used when the max_pred
+                (breadth) of the NLM is higher than the max_predicate_arity of the state.
+        """
         max_predicate_arity = max_arity if max_arity != -1 else self.max_predicate_arity
 
         num_preds_each_arity_for_nlm = [self._num_preds_each_arity[r] if r in self._num_preds_each_arity else 0 for r in range(max_predicate_arity+1)]
 
         return num_preds_each_arity_for_nlm
 
-    """
-    Method used for NeSIG.
-    Returns the list of virtual objects of the state. They are returned as a list with their types, e.g., ['truck','truck','city']
-    Virtual objects are not part of the state. Instead, they are used to indicate that an atom is instantiated on non-existing/new objects.
-    Therefore, we need to have enough virtual objects for instantiating all predicates on them.
-    Example: 'on' predicate is instantiated on two objects of type 'block', so we need to have two virtual objects of type 'block'
-             in order to allow an atom of the form ('on', (virtual_block_1, virtual_block_2)). Since no other predicate in blocksworld
-             is intantiated on more than two objects of type 'block', having two virtual objects of type 'block' is enough.
-
-    @allowed_virtual_objects List of object types which can be added as virtual objects.
-                             If None, all object types can be added as virtual objects.
-    """
     def virtual_objs_with_type(self, allowed_virtual_objects=None):
+        """
+        Method used for NeSIG.
+        Returns the list of virtual objects of the state. They are returned as a list with their types, e.g., ['truck','truck','city']
+        Virtual objects are not part of the state. Instead, they are used to indicate that an atom is instantiated on non-existing/new objects.
+        Therefore, we need to have enough virtual objects for instantiating all predicates on them.
+        Example: 'on' predicate is instantiated on two objects of type 'block', so we need to have two virtual objects of type 'block'
+                in order to allow an atom of the form ('on', (virtual_block_1, virtual_block_2)). Since no other predicate in blocksworld
+                is intantiated on more than two objects of type 'block', having two virtual objects of type 'block' is enough.
+
+        @allowed_virtual_objects List of object types which can be added as virtual objects.
+                                If None, all object types can be added as virtual objects.
+        """
         # If no object type can be added as virtual object, then return no virtual objects
         if allowed_virtual_objects is not None and len(allowed_virtual_objects) == 0:
             return list()
@@ -452,28 +452,28 @@ class PDDLState():
 
     # -- Methods for encoding PDDL states --
 
-    """
-    Returns the state atoms in the encoding the NLM uses, as a list of tensors corresponding to predicates of different arities.
-
-    @max_arity If not -1, we assume that is the max arity of the predicates. This parameter is used to encode the relational
-               state for a NLM which uses a higher max arity (for the inner layers) than the max arity of the relational
-               state.
-    @add_virtual_objs If True, we add virtual objects.
-                      If @add_object_types is True, we add n virtual objects for each object type, where n
-                      is the maximum number of objects of such type which appear in the same predicate.
-                      E.g., 'block' -> two because in on(block, block) there are two objects of type block.
-                      If @add_object_types is False, we add n virtual objects in total, where n is the maximum
-                      predicate arity (e.g., 2 in blocksworld).
-    @allowed_virtual_objects Only used if add_virtual_objs = True. Determines which object types can be added as virtual objects.
-    @add_object_types Used to differentiate between objects of different type.
-                         If True, we add additional unary predicates which encode the object type of each object
-                         in the domain. These predicates are added after the unary predicates of the domain in the NLM tensor.
-                         Additionally, we add an unary predicate which encodes if an object is virtual or not.
-    @extra_nullary_predicates A list of numbers representing extra nullary predicates to add to the NLM encoding.
-                              For example, we may want to add information about the problem size or number of actions executed.
-    """
     def atoms_nlm_encoding(self, device, max_arity = -1, add_virtual_objs = True, allowed_virtual_objects = None,
                            add_object_types=True, extra_nullary_predicates : Optional[List[float]] = None) -> List[torch.Tensor]:      
+        """
+        Returns the state atoms in the encoding the NLM uses, as a list of tensors corresponding to predicates of different arities.
+
+        @max_arity If not -1, we assume that is the max arity of the predicates. This parameter is used to encode the relational
+                state for a NLM which uses a higher max arity (for the inner layers) than the max arity of the relational
+                state.
+        @add_virtual_objs If True, we add virtual objects.
+                        If @add_object_types is True, we add n virtual objects for each object type, where n
+                        is the maximum number of objects of such type which appear in the same predicate.
+                        E.g., 'block' -> two because in on(block, block) there are two objects of type block.
+                        If @add_object_types is False, we add n virtual objects in total, where n is the maximum
+                        predicate arity (e.g., 2 in blocksworld).
+        @allowed_virtual_objects Only used if add_virtual_objs = True. Determines which object types can be added as virtual objects.
+        @add_object_types Used to differentiate between objects of different type.
+                            If True, we add additional unary predicates which encode the object type of each object
+                            in the domain. These predicates are added after the unary predicates of the domain in the NLM tensor.
+                            Additionally, we add an unary predicate which encodes if an object is virtual or not.
+        @extra_nullary_predicates A list of numbers representing extra nullary predicates to add to the NLM encoding.
+                                For example, we may want to add information about the problem size or number of actions executed.
+        """      
         atoms_list = []
         
         # Calculate NLM breadth
@@ -557,22 +557,20 @@ class PDDLState():
 
         return atoms_list
         
-     
-    """
-    This method works the same as atoms_nlm_encoding() but encodes the atoms of this state (self) AND the atoms of another state
-    @goal_state. Both states (self and @goal_state) must have the same objects and the same predicate types.
-
-    The resulting NLM encoding of the atoms of both states will simply correspond to the nlm encoding of the atoms of this
-    state (self) concatenated with the nlm encoding of the atoms of @goal_state (we stack the atom encodings of both states).
-
-    This method is used by NeSIG for the goal generation policy, to obtain a NLM encoding of the partially-generated problem (s_i, s_gc).
-    To do this, this object (self) must correspond to the initial state (s_i) and @goal_state to the current goal state (s_gc).
-    <Note>: unlike atoms_nlm_encoding(), we do not add an extra unary predicate to represent if an object is virtual or not,
-            since there are no virtual objects.
-    """
     def atoms_nlm_encoding_with_goal_state(self, goal_state, device, max_arity = -1, add_object_types=True, 
                                            extra_nullary_predicates : Optional[List[float]] = None) -> List[torch.Tensor]:
-    
+        """
+        This method works the same as atoms_nlm_encoding() but encodes the atoms of this state (self) AND the atoms of another state
+        @goal_state. Both states (self and @goal_state) must have the same objects and the same predicate types.
+
+        The resulting NLM encoding of the atoms of both states will simply correspond to the nlm encoding of the atoms of this
+        state (self) concatenated with the nlm encoding of the atoms of @goal_state (we stack the atom encodings of both states).
+
+        This method is used by NeSIG for the goal generation policy, to obtain a NLM encoding of the partially-generated problem (s_i, s_gc).
+        To do this, this object (self) must correspond to the initial state (s_i) and @goal_state to the current goal state (s_gc).
+        <Note>: unlike atoms_nlm_encoding(), we do not add an extra unary predicate to represent if an object is virtual or not,
+                since there are no virtual objects.
+        """  
         # Check if the predicate types and number of objects are the same in both states (self and goal_state)
         if self.predicates != goal_state.predicates:
             raise ValueError("The initial and goal states contain different predicates")
