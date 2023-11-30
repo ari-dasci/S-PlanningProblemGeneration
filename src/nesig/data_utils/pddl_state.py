@@ -125,6 +125,16 @@ class PDDLState():
             
             ind_list[p_arity] += 1 # Add 1 to the index, so that next predicate of the same arity gets a different associated index
 
+    def __eq__(self, other):
+        """
+        Equality operator (==)
+        Two objects are equal if they are instances of the same class and all their attributes are the same.
+        """
+        if not isinstance(other, PDDLState):
+            return False
+
+        return self.__dict__ == other.__dict__
+
     # We always do a deep copy
     def __copy__(self):
         new_copy = PDDLState(self._types, deepcopy(self._type_hierarchy), self._predicates, deepcopy(self._objects),

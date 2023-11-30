@@ -4,8 +4,10 @@ import unittest
 import torch
 import os
 from torch import tensor as t
+from copy import copy, deepcopy
 
 from src.nesig.data_utils.pddl_problem import PDDLProblem
+from src.nesig.data_utils.pddl_state import PDDLState
 from lifted_pddl import Parser
 
 class TestPDDLProblem(unittest.TestCase):
@@ -16,6 +18,26 @@ class TestPDDLProblem(unittest.TestCase):
 
         self.problem = PDDLProblem(self.parser, [('on', ('block', 'block'))], None, ['block'])
 
+    def test_eq(self):
+        """
+        Test __eq__ method.
+        """
+        state = PDDLState(self.parser.types, self.parser.type_hierarchy, self.parser.predicates, ['block', 'block'], {('on', (1, 0))})
+
+        p1 = PDDLProblem(self.parser, [('on', ('block', 'block'))], state, ['block'])
+        p2 = PDDLProblem(self.parser, [('on', ('block', 'block'))], state, ['block'])
+        p3 = PDDLProblem(self.parser, [('ontable', ('block',))], state, ['block'])
+
+        self.assertEqual(p1, p2)
+        self.assertNotEqual(p1, p3)
+
+    def test_copy(self):
+        """
+        Test if copy() and deepcopy() works as expected.
+        """
+        self.assertEqual(self.problem, copy(self.problem))
+        self.assertEqual(self.problem, deepcopy(self.problem))
+    
     def test_get_init_state_actions(self):
         init_state_actions = sorted(self.problem.get_continuous_consistent_init_state_actions())
         expected_init_state_actions = sorted([('ontable', (0,)), ('ontable', (1,)), ('on', (0, 0)), ('on', (0, 1)), ('on', (1, 0)), ('on', (1, 1)), ('clear', (0,)), ('clear', (1,)), ('holding', (0,)), ('holding', (1,)), ('handempty', ())])

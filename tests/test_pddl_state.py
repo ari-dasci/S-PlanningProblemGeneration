@@ -3,6 +3,8 @@
 import unittest
 import torch
 from torch import tensor as t
+from copy import copy, deepcopy
+
 from src.nesig.data_utils.pddl_state import PDDLState
 
 class TestPDDLState(unittest.TestCase):
@@ -17,6 +19,24 @@ class TestPDDLState(unittest.TestCase):
 
         self.atoms_goal = {('ontable', (1,)), ('on', (0, 1))}
         self.goal_state = PDDLState(self.types, self.type_hierarchy, self.predicates, self.objects, self.atoms_goal)
+
+    def test_eq(self):
+        """
+        Test __eq__ method.
+        """
+        s1 = PDDLState(self.types, self.type_hierarchy, self.predicates, self.objects, self.atoms)
+        s2 = PDDLState(self.types, self.type_hierarchy, self.predicates, self.objects, self.atoms)
+        s3 = PDDLState(self.types, self.type_hierarchy, self.predicates, self.objects, self.atoms_goal)
+
+        self.assertEqual(s1, s2)
+        self.assertNotEqual(s1, s3)
+
+    def test_copy(self):
+        """
+        Test if copy() and deepcopy() works as expected.
+        """
+        self.assertEqual(self.state, copy(self.state))
+        self.assertEqual(self.state, deepcopy(self.state))
 
     def _compare_tensor_list(self, a, b):
         self.assertEqual(len(a), len(b))

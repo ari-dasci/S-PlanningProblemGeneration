@@ -83,10 +83,28 @@ class PDDLProblem():
     def goal(self, value):
         self._goal = value
 
+    def __eq__(self, other):
+        """
+        Equality operator (==)
+        Two objects are equal if they are instances of the same class and all their attributes are the same.
+        """
+        if not isinstance(other, PDDLProblem):
+            return False
+
+        # Check all attributes (self...) except parser
+        attributes_to_compare = ('types', 'type_hierarchy', 'predicates', 'goal_predicates', 'allowed_virtual_objects', \
+                                 '_initial_state', '_goal_state', '_goal', 'is_initial_state_generated', 'is_goal_state_generated')
+
+        for att in attributes_to_compare:
+            if getattr(self, att) != getattr(other, att):
+                return False
+
+        return True
+
     # We always do a deep copy
     def __copy__(self):
         # Deepcopy of parser is made inside __init__
-        new_copy = PDDLProblem(self.parser, deepcopy(self.predicates), None)
+        new_copy = PDDLProblem(self.parser, deepcopy(self.goal_predicates), None, deepcopy(self.allowed_virtual_objects))
 
         # Copy current init_state and goal information
         new_copy.initial_state = self.initial_state
