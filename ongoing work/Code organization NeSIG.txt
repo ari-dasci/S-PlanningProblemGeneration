@@ -1,0 +1,76 @@
+Implementar la parte de entrenamiento (RL, logs, etc.) lo último
+
+De cara a organizar el código, tengo que ver si puedo separar la generación de problemas del entrenamiento de la policy.
+	Creo que sí. Puedo hacer que al generarse los problemas se obtenga información intermedia (recompensa, trayectorias, etc.)
+	además de los problemas y el resto de cosas es independiente la generación de problemas del entrenamiento de la policy.
+
+1) Ver si hago un único generador que reciba una policy (random policy o directed policy) o 2) hago dos generadores (random y directed),
+donde el directed generator tiene una policy como parámetrolist_num_objs_with_virtuals
+	Hacer 1) si soy capaz de implementar la misma funcionalidad de generar problemas tanto para directed como random, donde lo único que cambia
+	es cómo se escoge la acción -> solo cambia un método que recibe las acciones disponibles y escoge una de ellas. Todo lo demás es igual,
+	obtener acciones disponibles, evaluar consistencia, etc.
+	Si cambian muchas más cosas, escoger 2)
+
+--------------
+
+>>> Isues:
+	- How to obtain the training dataset
+		<The problem generator not only returns the problems, but also the trajectory and intermediate information associated with each problem.>
+		A trajectory is made of (s,a,r) tuples (actually, I will use a class inheriting from Dataset)
+			State (s) -> obtained from PDDLProblem. It is a tuple containing the PDDLProblem/PDDLState and inner state representation of the NN used (NLM).
+			Action (a) -> obtained from the policy (select_actions() returns both a sampled action a and its probability p). It is a tuple containing the action and its probability.
+			Reward (r) -> obtained with the Evaluators (Consistency, Diversity and Difficulty). It is a tuple containing the consistency, diversity and difficulty.
+
+		For performance reasons, select_actions() also returns the state encoding used by the model (e.g., NLM), so that it does not need to be recomputed in the future.
+
+
+- policy.py -> Responsibilities: everything related to the policy (select actions and train the policy)
+	- random_policy -> selects actions at random, no training
+	- directed_policy -> selects actions with a NN, it is trained
+		- actor_critic_policy -> it can both select an action (with the actor) but also estimate the value V(s) of a state with the critic
+								 (this is needed by _calculate_state_values_trajectory() method)
+			<IT IS INDEPENDENT OF THE NN USED (NLM OR OTHER)> -> It uses a Wrapper (e.g., NLMWrapper) for interfacing with the particular NN used
+
+			directed_policy will reuse almost everything from generative_policy but will change logging. 
+
+			Lightning module. Has functionality for selecting actions and training the policy (training_step, calculate entropy, etc.)
+
+			> select_actions() should receive the PDDLProblem instead of the tensor_list. Then, it will use NLM Wrapper for interfacing with the NLM.
+				- One possible action is the termination condition
+				>>> It returns both the action and the probability associated (this is needed for training with PPO)
+				<NOTE>: It should also return the state representation employed by the model (NLM) (list_state_tensors, list_num_objs_with_virtuals and list_mask_tensors)
+						This way, we don't need to recompute these operations (change from PDDLState to tensor_list) when training the policy 
+
+			We should decouple NLM and the policy as much as possible (so that in the future we can change NLM for another model)
+
+- data_module.py -> Responsibilities: dataset for training the policy
+	Use dictionary instead of list
+
+- nlm_wrapper.py -> transform from the encoding of the NLM (tensors) to that used by the policy and generator (PDDLState)
+	- _get_mask_tensors... methods
+	- get_objs_to_add_and_atom_with_correct_indexes
+
+	generative_policy -> nlm_wrapper -> NLM
+
+
+- problem_generator.py -> Responsibilities: generate problems, generate trajectories and obtain information about them (e.g., rewards)
+	_obtain_trajectories (init state and goal) (directed and random)
+	generate_problem(s)
+
+	Whenever it has to select the next action, it calls the policy (either random or directed), given as a parameter.
+	It returns the generated problems but also the trajectories with the intermediate states and information like rewards, states, etc.
+	During training, this intermediate information is used for training the policy. During test, it is used to evaluate the properties
+	of the problems generated (consistency, diversity, difficulty)
+
+- train.py -> Responsibilities: receive user parameters (use argparse) and train the policy, which will be saved to disk to be later used
+	It uses problem_generator.py to obtain trajectories and generate the dataset (which is associated with the trajectories)
+	<<The problem generator returns metrics/rewards/properties of the trajectories generated, which form the dataset>>
+	<<Then, train.py processes this information in order to obtain the final dataset to train the policy>>
+
+	PPOTrainer (inherits from an abstract trainer) -> trains the policy with PPO
+		_train_generative_policies
+		_sum_rewards_trajectory
+		_calculate_state_values_trajectory (calculate V(s) and add to trajectories)
+		_normalize_rewards_init_policy and goal_policy
+		_obtain_trajectories_and_preprocess_for_PPO
+	
