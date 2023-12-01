@@ -132,11 +132,10 @@ class PDDLProblem():
         self.is_initial_state_generated = True
         self.goal_state = self.initial_state # Calls deepcopy()
 
-    def get_continuous_consistent_init_state_actions(self, consistency_validator = None):
+    def get_continuous_consistent_init_state_actions(self, consistency_validator):
         """
         Obtains a list with all the actions that can be applied to the initial state, i.e.,
         all the atoms which can be added to the initial state while satisfying continuous consistency.
-        If consistency_validator is None, we assume that all the atoms are consistent.
         Each element in the list corresponds to an atom in the following way: [('on', (1, 0)), ('on', (1, 2)), ('handempty', ())]
 
         Object indexes (e.g., (1,0)) can index both objects in the state and virtual objects. In other words,
@@ -144,8 +143,7 @@ class PDDLProblem():
         """    
         def is_atom_consistent(atom, obj_types):
             # Note: we pass by reference the initial state to the consistency validator for performance reasons
-            return consistency_validator.check_continuous_consistency(self._initial_state, atom, obj_types) \
-                   if consistency_validator is not None else True
+            return consistency_validator.preprocess_and_check_continuous_consistency(self._initial_state, atom, obj_types)
         
         # Obtain the list of objects, virtual objects and both
         objs_no_virtuals = self._initial_state.objects
@@ -190,17 +188,17 @@ class PDDLProblem():
 
         return possible_actions
 
-    def apply_action_to_initial_state(self, new_objs, new_atom, obj_types):
+    def apply_action_to_initial_state(self, new_atom : Tuple[str, Tuple[int]], obj_types : Tuple[str]):
         """
         Applies an action, consisting of (possibly) adding objects and an atom, to the initial state.
         It also assigns the next state to self._initial_state.
         <Note>: we assume that the action is consistent.
 
-        @new_objs The objects to add to the state (e.g., ['block', 'circle'])
-        @new_atom The atom to add to the state (e.g., ('on', (1,2)))
-        Note: The atom indices ((1,2)) can refer to new objects not present in the current state but which are added as part of the next
-            state. Example: current state has only one block, new_objs=['block'] and new_atom= ('on', (0,1)).
-        @obj_types The type of each object in @new_atom[1], whether it is in the state or corresponds to a virtual object (an object in @new_objs)
+        @new_atom The new atom to add to the state (e.g., ('on', (1,2)))
+                  <Note>: The atom indices ((1,2)) can refer to new objects not present in the current state but which are added as part of the next
+                  state. Example: current state has only one block, new_objs=['block'] and new_atom= ('on', (0,1)).
+        @obj_types The type of each object in @new_atom[1], whether it is in the state or is a virtual object.
+                   This argument is needed for virtual objects, since otherwise we would not know their type.
         """
         # Encode new_atom as a tuple (just in case)
         new_atom = (new_atom[0], tuple(new_atom[1]))
@@ -209,8 +207,10 @@ class PDDLProblem():
         if self.is_initial_state_generated:
             raise Exception("The initial state generation phase has already finished")
 
-        # Check action consistency
-        self._initial_state.add_objects(new_objs)
+        # Obtain virtual objects
+        virtual_objs = [t for obj, t in zip(new_atom[1], obj_types) if self._initial_state.is_virtual(obj)]
+
+        self._initial_state.add_objects(virtual_objs)
         self._initial_state.add_atom(new_atom)
 
     
@@ -288,12 +288,10 @@ class PDDLProblem():
 
         return applicable_actions_as_list	
 
-    def is_ground_action_applicable(self, action_name, action_objs):
+    def is_ground_action_applicable(self, ground_action : Tuple[str, Tuple[int]]):
         """
-        Checks if a ground action is applicable at the current state (self._goal_state) or not.
+        Checks if a ground action (e.g., ('stack', (1,2)) ) is applicable at the current state (self._goal_state) or not.
         We also check if the action is instantiated on objects of the correct type.
-        @action_name Name of the action (e.g., "pick-up")
-        @action_objs The instantiated parameters of the action, as a list/tuple of indexes corresponding to objects in @state (e.g., [0,1])
         """
         # Make sure we are in the goal generation phase
         if not self.is_initial_state_generated:
@@ -306,21 +304,16 @@ class PDDLProblem():
         self.parser.goals = set() # No need for goals to obtain applicable actions
     
         # Check applicability (including if action_objs are of the correct type)
-        is_applicable = self.parser.is_action_applicable(action_name, tuple(action_objs))
+        is_applicable = self.parser.is_action_applicable(ground_action[0], tuple(ground_action[1]))
 
         return is_applicable	
 
-    def apply_action_to_goal_state(self, action_name, action_objs):
+    def apply_action_to_goal_state(self, ground_action : Tuple[str, Tuple[int]]):
         """
-        Applies a domain (ground) action to the goal state in order to obtain the next goal state.
+        Applies a ground action (e.g., ('stack', (1,2)) ) to the goal state in order to obtain the next goal state.
         It assigns the next state to self._goal_state.
         <Note>: we assume that the action is applicable. This can be checked with is_ground_action_applicable(),
                 before calling this method.
-
-        @action_name Name of the action (e.g., "pick-up")
-        @action_objs The instantiated parameters of the action, as a tuple/list of indexes corresponding to objects in @state (e.g., (0,1))
-        @check_action_applicability If True, we check if the action passed as argument can be applied at the current goal state, i.e., if its
-                                    preconditions are met. If False, we assume the action is applicable and return an action_reward of 0.
         """
         # Make sure we are in the goal generation phase
         if not self.is_initial_state_generated:
@@ -333,7 +326,7 @@ class PDDLProblem():
         self.parser.goals = set() # No need for goals to obtain applicable actions
 
         # Get next goal state
-        self._goal_state.atoms = self.parser.get_next_state(action_name, tuple(action_objs), check_action_applicability=False) # We assume the action is applicable
+        self._goal_state.atoms = self.parser.get_next_state(ground_action[0], tuple(ground_action[1]), check_action_applicability=False) # We assume the action is applicable
         
     def _get_atoms_in_problem_goal(self):
         """
