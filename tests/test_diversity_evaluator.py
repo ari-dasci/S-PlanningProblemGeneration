@@ -8,8 +8,8 @@ from copy import deepcopy
 
 from lifted_pddl import Parser
 from src.nesig.metrics.diversity import InitStateDiversityEvaluator
-from src.nesig.data_utils.pddl_state import PDDLState
-from src.nesig.data_utils.pddl_problem import PDDLProblem
+from src.nesig.symbolic.pddl_state import PDDLState
+from src.nesig.symbolic.pddl_problem import PDDLProblem
 
 class TestConsistencyEvaluator(unittest.TestCase):
     def setUp(self):

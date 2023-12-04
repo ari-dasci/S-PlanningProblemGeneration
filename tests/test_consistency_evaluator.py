@@ -8,7 +8,7 @@ from pathlib import Path
 from src.nesig.metrics.consistency_evaluators.blocksworld_consistency import ConsistencyEvaluatorBlocksworld
 from src.nesig.metrics.consistency_evaluators.logistics_consistency import ConsistencyEvaluatorLogistics
 from src.nesig.metrics.consistency_evaluators.sokoban_consistency import ConsistencyEvaluatorSokoban
-from src.nesig.data_utils.pddl_state import PDDLState
+from src.nesig.symbolic.pddl_state import PDDLState
 from lifted_pddl import Parser
 
 class TestConsistencyEvaluator(unittest.TestCase):

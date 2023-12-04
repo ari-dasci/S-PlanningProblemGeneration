@@ -6,8 +6,8 @@ import os
 from torch import tensor as t
 from copy import copy, deepcopy
 
-from src.nesig.data_utils.pddl_problem import PDDLProblem
-from src.nesig.data_utils.pddl_state import PDDLState
+from src.nesig.symbolic.pddl_problem import PDDLProblem
+from src.nesig.symbolic.pddl_state import PDDLState
 from src.nesig.metrics.consistency_evaluators.dummy_consistency import DummyConsistencyEvaluator
 from lifted_pddl import Parser
 

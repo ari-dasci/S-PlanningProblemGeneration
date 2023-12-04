@@ -13,7 +13,7 @@ import tempfile
 import os
 import re
 
-from src.nesig.data_utils.pddl_problem import PDDLProblem
+from src.nesig.symbolic.pddl_problem import PDDLProblem
 from src.nesig.constants import PLANNER_SCRIPTS_PATH
 
 # Auxiliary function that only removes a file if it exists (otherwise it does nothing)

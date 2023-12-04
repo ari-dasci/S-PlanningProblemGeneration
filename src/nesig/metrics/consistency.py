@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 import functools
 
 from pddl_prover import *
-from src.nesig.data_utils.pddl_state import PDDLState
+from src.nesig.symbolic.pddl_state import PDDLState
 
 class ConsistencyEvaluator(ABC):
     """

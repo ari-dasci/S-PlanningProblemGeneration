@@ -5,7 +5,7 @@ import torch
 from torch import tensor as t
 from copy import copy, deepcopy
 
-from src.nesig.data_utils.pddl_state import PDDLState
+from src.nesig.symbolic.pddl_state import PDDLState
 
 class TestPDDLState(unittest.TestCase):
     def setUp(self):

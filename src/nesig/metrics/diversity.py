@@ -9,7 +9,7 @@ from pathlib import Path
 from abc import ABC, abstractmethod
 import numpy as np
 
-from src.nesig.data_utils.pddl_problem import PDDLProblem
+from src.nesig.symbolic.pddl_problem import PDDLProblem
 
 # TODO
 # Also create automatic method to calculate the diversity of a set of problems

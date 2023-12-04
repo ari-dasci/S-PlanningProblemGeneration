@@ -24,7 +24,7 @@ donde el directed generator tiene una policy como parámetrolist_num_objs_with_v
 		For performance reasons, select_actions() also returns the state encoding used by the model (e.g., NLM), so that it does not need to be recomputed in the future.
 
 
-- policy.py -> Responsibilities: everything related to the policy (select actions and train the policy)
+- generative_policy.py -> Responsibilities: everything related to the policy (select actions and train the policy)
 	- random_policy -> selects actions at random, no training
 	- directed_policy -> selects actions with a NN, it is trained
 		- actor_critic_policy -> it can both select an action (with the actor) but also estimate the value V(s) of a state with the critic
@@ -43,7 +43,7 @@ donde el directed generator tiene una policy como parámetrolist_num_objs_with_v
 
 			We should decouple NLM and the policy as much as possible (so that in the future we can change NLM for another model)
 
-- data_module.py -> Responsibilities: dataset for training the policy
+- data_utils.py -> Responsibilities: dataset for training the policy
 	Use dictionary instead of list
 
 - nlm_wrapper.py -> transform from the encoding of the NLM (tensors) to that used by the policy and generator (PDDLState)

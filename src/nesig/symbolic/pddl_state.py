@@ -12,19 +12,20 @@ from typing import List, Set, Tuple, Dict, Optional, Union
 from copy import deepcopy
 
 class PDDLState():
-    """
-    The constructor receives the information about the domain and, possibly, also a PDDL state. Parameters.
-        - types: set of types (represented as str) in the domain. Example: {'truck', 'airplane', 'vehicle'}
-        - type_hierarchy: a dictionary containing, for each type in self._types, all the types which inherit from it
-                          Note: it does not only contain the children types, but also the grandchildren types, etc. (all the types which recursively
-                          inherit from it). Example: {'object' : {'object', 'person', 'teacher'}}
-        - predicates: predicates in the domain. Each predicate is a tuple containing the predicate name and the type
-                      of each of its arguments. Example: {('handempty', tuple()), ('on', ('block', 'block'))}                 
-        - objects: list with the type of each object in the domain. Example: ('truck', 'truck', 'airplane', 'city')
-        - atoms: set with the atoms in the domain. Each atom is a tuple containing the predicate name and a tuple with the indexes
-                 of the objects (in self._objects) it is instantiated on. Example: {('ontable', (0,)), ('on', (1,0))} -> obj0 is on the table and obj1 on top of it
-    """
+
     def __init__(self, types, type_hierarchy : Dict, predicates, objects : List[str] = [] , atoms : Set[Tuple[str, Tuple]] = set()):
+        """
+        The constructor receives the information about the domain and, possibly, also a PDDL state. Parameters.
+            - types: set of types (represented as str) in the domain. Example: {'truck', 'airplane', 'vehicle'}
+            - type_hierarchy: a dictionary containing, for each type in self._types, all the types which inherit from it
+                            Note: it does not only contain the children types, but also the grandchildren types, etc. (all the types which recursively
+                            inherit from it). Example: {'object' : {'object', 'person', 'teacher'}}
+            - predicates: predicates in the domain. Each predicate is a tuple containing the predicate name and the type
+                        of each of its arguments. Example: {('handempty', tuple()), ('on', ('block', 'block'))}                 
+            - objects: list with the type of each object in the domain. Example: ('truck', 'truck', 'airplane', 'city')
+            - atoms: set with the atoms in the domain. Each atom is a tuple containing the predicate name and a tuple with the indexes
+                    of the objects (in self._objects) it is instantiated on. Example: {('ontable', (0,)), ('on', (1,0))} -> obj0 is on the table and obj1 on top of it
+        """
         # Domain data
 
         # Sanity checks
