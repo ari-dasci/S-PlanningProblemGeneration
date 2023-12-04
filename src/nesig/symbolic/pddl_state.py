@@ -285,7 +285,7 @@ class PDDLState():
 
         return num_preds_each_arity_for_nlm
 
-    def virtual_objs_with_type(self, allowed_virtual_objects=None):
+    def virtual_objects(self, allowed_virtual_objects=None):
         """
         Method used for NeSIG.
         Returns the list of virtual objects of the state. They are returned as a list with their types, e.g., ['truck','truck','city']
@@ -333,8 +333,17 @@ class PDDLState():
 
         return virtual_objs_with_type
 
+    def objects_with_virtuals(self, allowed_virtual_objects=None):
+        """
+        Returns the list of objects of the state, including virtual objects, i.e., [self.objects + self.virtual_objects]
+        """
+        return self.objects + self.virtual_objects(allowed_virtual_objects)
+
     def num_virtual_objects(self, allowed_virtual_objects):
-        return len(self.virtual_objs_with_type(allowed_virtual_objects))
+        return len(self.virtual_objects(allowed_virtual_objects))
+    
+    def num_objects_with_virtuals(self, allowed_virtual_objects):
+        return len(self.objects_with_virtuals(allowed_virtual_objects))
 
     # -- Setters --
 
@@ -496,7 +505,7 @@ class PDDLState():
 
         # Add virtual objects
         if add_virtual_objs:
-            object_types.extend(self.virtual_objs_with_type(allowed_virtual_objects))
+            object_types.extend(self.virtual_objects(allowed_virtual_objects))
 
         # Calculate number of objects in the state (including virtuals if added)
         num_objs = len(object_types)

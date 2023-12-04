@@ -46,12 +46,12 @@ class TestPDDLProblem(unittest.TestCase):
         self.assertEqual(init_state_actions, expected_init_state_actions)
 
     def test_get_goal_state_actions(self):
-        self.problem.apply_action_to_initial_state(('ontable', (0,)), ('block',))
-        self.problem.apply_action_to_initial_state(('on', (1,0)), ('block','block'))
-        self.problem.apply_action_to_initial_state(('clear', (1,)), ('block',))
-        self.problem.apply_action_to_initial_state(('handempty', tuple()), tuple())
-        self.problem.apply_action_to_initial_state(('ontable', (2,)), ('block',))
-        self.problem.apply_action_to_initial_state(('clear', (2,)), ('block',))
+        self.problem.apply_action_to_initial_state(('ontable', (0,)))
+        self.problem.apply_action_to_initial_state(('on', (1,0)))
+        self.problem.apply_action_to_initial_state(('clear', (1,)))
+        self.problem.apply_action_to_initial_state(('handempty', tuple()))
+        self.problem.apply_action_to_initial_state(('ontable', (2,)))
+        self.problem.apply_action_to_initial_state(('clear', (2,)))
         self.problem.end_initial_state_generation_phase()
 
         lifted_actions = sorted(self.problem.applicable_lifted_actions())
@@ -62,12 +62,14 @@ class TestPDDLProblem(unittest.TestCase):
         self.assertEqual(ground_actions, expected_ground_actions)
 
     def test_problem_generation(self):
-        self.problem.apply_action_to_initial_state(('ontable', (0,)), ('block',))
-        self.problem.apply_action_to_initial_state(('on', (1,0)), ('block','block'))
-        self.problem.apply_action_to_initial_state(('clear', (1,)), ('block',))
-        self.problem.apply_action_to_initial_state(('handempty', tuple()), tuple())
-        self.problem.apply_action_to_initial_state(('ontable', (2,)), ('block',))
-        self.problem.apply_action_to_initial_state(('clear', (2,)), ('block',))
+        self.problem.apply_action_to_initial_state(('ontable', (0,)))
+        self.problem.apply_action_to_initial_state(('on', (1,0))) # Virtual objs can be assigned any index as long as it is not used by the state objs
+        self.problem.apply_action_to_initial_state(('clear', (1,)))
+        self.problem.apply_action_to_initial_state(('handempty', tuple()))
+        # (ontable, (2,)) and (ontable, (3,)) are actually equivalent, objs[2] and objs[3] are both virtual objects of type block
+        # apply_action_to_initial_state() will change the index 3 for 2 when adding the atom to the state
+        self.problem.apply_action_to_initial_state(('ontable', (3,))) 
+        self.problem.apply_action_to_initial_state(('clear', (2,)))
         self.problem.end_initial_state_generation_phase()
 
         # Check init state

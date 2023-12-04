@@ -39,7 +39,6 @@ class PDDLProblem():
                             If None, all the atoms of the goal_state will be part of the goal.
             - init_state_info: PDDLState used to create the initial state of the generation process.
                             If None, we assume an empty initial state.
-            - allowed_virtual_objects: List of virtual objects that can be added to the initial state.
                                     If None, we assume all the objects can be added.
         """
         self.parser = deepcopy(parser) # We use deepcopy because some methods modify the parser internal state
@@ -155,16 +154,14 @@ class PDDLProblem():
         Each element in the list corresponds to an atom in the following way: [('on', (1, 0)), ('on', (1, 2)), ('handempty', ())]
 
         Object indexes (e.g., (1,0)) can index both objects in the state and virtual objects. In other words,
-        they index positions in the list [initial_state.objects + initial_state.virtual_objs_with_type].
+        they index positions in the list [initial_state.objects + initial_state.virtual_objects].
         """    
         def is_atom_consistent(atom, obj_types):
             # Note: we pass by reference the initial state to the consistency validator for performance reasons
             return consistency_validator.preprocess_and_check_continuous_consistency(self._initial_state, atom, obj_types)
         
         # Obtain the list of objects, virtual objects and both
-        objs_no_virtuals = self._initial_state.objects
-        virtual_objs = self._initial_state.virtual_objs_with_type(self.allowed_virtual_objects)
-        objs_with_virtuals = objs_no_virtuals + virtual_objs
+        objs_with_virtuals = self._initial_state.objects_with_virtuals(self.allowed_virtual_objects)
 
         possible_actions = []
 
@@ -204,30 +201,58 @@ class PDDLProblem():
 
         return possible_actions
 
-    def apply_action_to_initial_state(self, new_atom : Tuple[str, Tuple[int]], obj_types : Tuple[str]):
+    def apply_action_to_initial_state(self, new_atom : Tuple[str, Tuple[int]]):
         """
         Applies an action, consisting of (possibly) adding objects and an atom, to the initial state.
         It also assigns the next state to self._initial_state.
+        In case new_atom indexes virtual objects, we may change these indexes so that they index objects in the state after
+        adding virtual objects. For example, if the state contains 5 objects and new_atom adds two virtual objects,
+        new_atom[1] must contain indexes from 0 to 6, so (pred, (100,101)) would be changed to (pred, (5,6)), for instance.
         <Note>: we assume that the action is consistent.
 
         @new_atom The new atom to add to the state (e.g., ('on', (1,2)))
-                  <Note>: The atom indices ((1,2)) can refer to new objects not present in the current state but which are added as part of the next
-                  state. Example: current state has only one block, new_objs=['block'] and new_atom= ('on', (0,1)).
-        @obj_types The type of each object in @new_atom[1], whether it is in the state or is a virtual object.
-                   This argument is needed for virtual objects, since otherwise we would not know their type.
-        """
-        # Encode new_atom as a tuple (just in case)
-        new_atom = (new_atom[0], tuple(new_atom[1]))
-        
+                  <Note>: The atom indices ((1,2)) can refer both to objects present in the state and virtual objects, i.e.,
+                  those that are not yet present at the state but will be added alongside new_atom.
+                  In other words, new_atom[1] can index positions in the list [initial_state.objects + initial_state.virtual_objects],
+                  which contains the type of each object (either virtual or not).
+        """    
         # Make sure we are in the initial state generation phase
         if self.is_initial_state_generated:
-            raise Exception("The initial state generation phase has already finished")
+            raise Exception("The initial state generation phase has already finished")  
+        
+        # Change obj indexes for virtual objects and obtain the objects to add to the state
+        objs_to_add = []
+        num_objs_without_virtuals = self._initial_state.num_objects
+        objs_with_virtuals = self._initial_state.objects_with_virtuals(self.allowed_virtual_objects)
 
-        # Obtain virtual objects
-        virtual_objs = [t for obj, t in zip(new_atom[1], obj_types) if self._initial_state.is_virtual(obj)]
+        ind_next_state_obj = num_objs_without_virtuals # Index associated with the next object to add to the state (Example: if there are 2 objs in the state, ind_next_state_obj = 2)
+        dict_old_inds_to_new_inds = dict() # This dictionary is used to transform the obj inds of atom_to_add
+                                           # Example: (on 3 1) -> (on 2 1), (on 3 3) -> (on 2 2)
+        virtual_obj_indexes_used = set() # Contains the indexes corresponding to virtual objects that we have already processed (so that we don't process them again)
+                                         # For example, for the atom (on 1 1) (on a state with a single object) we only need to add an object of type "block", and not two
 
-        self._initial_state.add_objects(virtual_objs)
-        self._initial_state.add_atom(new_atom)
+        for obj_ind in new_atom[1]:
+            if obj_ind >= num_objs_without_virtuals and obj_ind not in virtual_obj_indexes_used:
+                # Add an object of type given by the corresponding virtual object in rel_state
+                objs_to_add.append(objs_with_virtuals[obj_ind])
+
+                # Change atom index corresponding to virtual object
+                dict_old_inds_to_new_inds[obj_ind] = ind_next_state_obj
+                ind_next_state_obj += 1
+
+                virtual_obj_indexes_used.add(obj_ind)
+
+        # Change virtual obj indexes according to the values stored in the dict
+        new_obj_inds = list(new_atom[1])
+
+        for param_position, obj_ind in enumerate(new_obj_inds):
+            if obj_ind in dict_old_inds_to_new_inds: # If the index is not in the dictionary, it does not need to be changed
+                new_obj_inds[param_position] = dict_old_inds_to_new_inds[obj_ind]
+
+        atom_new_inds = (new_atom[0], tuple(new_obj_inds))
+
+        self._initial_state.add_objects(objs_to_add)
+        self._initial_state.add_atom(atom_new_inds)
 
     
     # --- Goal generation methods ---

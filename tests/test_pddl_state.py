@@ -47,11 +47,11 @@ class TestPDDLState(unittest.TestCase):
                 self.assertTrue(torch.equal(a[i], b[i]))
 
     def test_virtual_objs_with_type(self):
-        result_all_virtuals = self.state.virtual_objs_with_type()
+        result_all_virtuals = self.state.virtual_objects()
         expected_result_all_virtuals = ['block', 'block', 'circle', 'object']
         self.assertEqual(result_all_virtuals, expected_result_all_virtuals)
 
-        result_some_virtuals = self.state.virtual_objs_with_type(('block', 'circle'))
+        result_some_virtuals = self.state.virtual_objects(('block', 'circle'))
         expected_result_some_virtuals = ['block', 'block', 'circle']
         self.assertEqual(result_some_virtuals, expected_result_some_virtuals)
 
