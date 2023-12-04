@@ -74,3 +74,27 @@ donde el directed generator tiene una policy como parámetrolist_num_objs_with_v
 		_normalize_rewards_init_policy and goal_policy
 		_obtain_trajectories_and_preprocess_for_PPO
 	
+
+------------ Ver si separar init y goal en policies o en NLM wrapper
+
+>> Dentro de policy, definir lo que ModelWrapper debe devolver y adaptar dentro del Wrapper la codificación de la NLM a esto
+
+> policy_entropy puedo hacer que no dependa de la codificación de la NLM (si recibe para cada sample las probabilidades de las lifted y ground actions)
+
+> La policy devuelve en ambos casos (init y goal) una acción, action prob. y representación interna del estado. La representación de la acción y estado
+  dependen del modelo (NLM) y de init vs goal (en init, aparte del átomo necesitamos saber el tipo de cada objeto)
+
+> Ver cómo se haría la transformación de los samples de problem generator (r,s,a) a un Lightning dataset/datamodule
+	- Una vez se vaya a entrenar el modelo por una época de PPO
+
+> El Wrapper de la goal policy necesita conocer self._dummy_rel_state_actions para poder pasar de la codificación de la NLM (tensor index)
+  a la acción correcta
+	- Se le pasa por el constructor
+
+> Los métodos _get_mask_tensors_... hacen masking a todo el output de la NLM y después "unmasking" de aquellas acciones consistentes
+>>> EL MÉTODO SELECT_ACTIONS DE LA GENERATIVEPOLICY PUEDE RECIBIR LA LISTA DE ACCIONES VÁLIDAS (SEAN ÁTOMOS O DOMAIN ACTIONS)
+
+----
+
+>>> Implementar policy INDEPENDIENTE de goal e init state generation. Hacer un NLM Wrapper para init policy y otro para goal policy, ya que son
+    distintos.

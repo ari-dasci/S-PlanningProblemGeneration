@@ -55,6 +55,10 @@ class PDDLProblem():
         self._goal_state = None
         self._goal = None # The goal is a subset of the goal state. Only totally-generated problems have a non-None goal
 
+        # Increased by one for each apply_action_to_goal_state call
+        # We don't need this for the init state generation phase since the number of actions is simply the number of atoms
+        self._num_goal_actions_executed = 0 
+
         self.is_initial_state_generated = False
         self.is_goal_state_generated = False
 
@@ -69,6 +73,14 @@ class PDDLProblem():
     @property
     def goal(self):
         return deepcopy(self._goal)
+
+    @property
+    def num_init_state_actions_executed(self):
+        return self._initial_state.num_atoms
+    
+    @property
+    def num_goal_actions_executed(self):
+        return self._num_goal_actions_executed
 
     # We do the deepcopy for the getters but not the setters
     @initial_state.setter
@@ -87,13 +99,15 @@ class PDDLProblem():
         """
         Equality operator (==)
         Two objects are equal if they are instances of the same class and all their attributes are the same.
+        We also compare the number of goal actions executed.
         """
         if not isinstance(other, PDDLProblem):
             return False
 
         # Check all attributes (self...) except parser
         attributes_to_compare = ('types', 'type_hierarchy', 'predicates', 'goal_predicates', 'allowed_virtual_objects', \
-                                 '_initial_state', '_goal_state', '_goal', 'is_initial_state_generated', 'is_goal_state_generated')
+                                 '_initial_state', '_goal_state', '_goal', '_num_goal_actions_executed',
+                                 'is_initial_state_generated', 'is_goal_state_generated')
 
         for att in attributes_to_compare:
             if getattr(self, att) != getattr(other, att):
@@ -110,6 +124,8 @@ class PDDLProblem():
         new_copy.initial_state = self.initial_state
         new_copy.goal_state = self.goal_state
         new_copy.goal = self.goal
+
+        new_copy._num_goal_actions_executed = self._num_goal_actions_executed
 
         new_copy.is_initial_state_generated = self.is_initial_state_generated
         new_copy.is_goal_state_generated = self.is_goal_state_generated
@@ -328,6 +344,8 @@ class PDDLProblem():
         # Get next goal state
         self._goal_state.atoms = self.parser.get_next_state(ground_action[0], tuple(ground_action[1]), check_action_applicability=False) # We assume the action is applicable
         
+        self._num_goal_actions_executed += 1
+
     def _get_atoms_in_problem_goal(self):
         """
         Obtains a tuple with the (positive) atoms of the goal, according to self.goal_predicates.

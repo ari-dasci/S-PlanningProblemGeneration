@@ -75,8 +75,11 @@ class TestPDDLProblem(unittest.TestCase):
         expected_init_atoms = sorted({('ontable', (0,)), ('on', (1,0)), ('clear', (1,)), ('handempty', tuple()), ('ontable', (2,)), ('clear', (2,))})
         init_objs = self.problem.initial_state.objects
         expected_init_objs = ['block','block','block']
+        num_init_state_actions = self.problem.num_init_state_actions_executed
+        expected_num_init_state_actions = 6
         self.assertEqual(init_atoms, expected_init_atoms)
         self.assertEqual(init_objs, expected_init_objs)
+        self.assertEqual(num_init_state_actions, expected_num_init_state_actions)
 
         ground_actions_to_apply = [('pick-up', (2,)), ('stack', (2, 1))]
         for action in ground_actions_to_apply:
@@ -93,6 +96,10 @@ class TestPDDLProblem(unittest.TestCase):
         goal = sorted(self.problem.goal)
         expected_goal = sorted({('on', (1, 0)), ('on', (2, 1))})
         self.assertEqual(goal, expected_goal)
+
+        num_goal_actions = self.problem.num_goal_actions_executed
+        expected_num_goal_actions = 2
+        self.assertEqual(num_goal_actions, expected_num_goal_actions)
 
         #print(self.problem.dump_to_pddl('test_problem'))
 

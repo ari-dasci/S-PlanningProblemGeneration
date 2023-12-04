@@ -41,3 +41,5 @@ class ProblemGenerator():
     
         # TODO
         # See how to split functionality between init and goal policies
+        # Pass PDDLProblem to both policies
+        # - See if PDDLProblem should have a counter of number of goal actions executed
