@@ -66,7 +66,60 @@ class ProblemGenerator():
         self.allowed_virtual_objects = allowed_virtual_objects
         self.difficulty_evaluator = difficulty_evaluator
         self.diversity_evaluator = diversity_evaluator
-    
+
+    def _generate_init_state_trajectories(self, num_problems, list_max_init_state_actions):
+        """
+        Auxiliary method that initializes the PDDL problems and generates their initial states.
+        Some problems may have an eventual-inconsistent initial state.
+
+        It returns a three-element tuple:
+            - The list of PDDLProblems (with their initial state completely generated)
+            - The associated trajectories
+            - A list of booleans indicating whether each problem has an eventual-consistent initial state
+        """
+        # <Initialize problems>
+        problems = [PDDLProblem(self.parser, self.goal_predicates, self.init_state_info, self.allowed_virtual_objects) for _ in range(num_problems)]
+        trajectories = [[] for _ in range(num_problems)]
+        is_eventual_consistent = [False] * num_problems
+        is_init_state_generated = [False] * num_problems
+
+        # <Initial state generation phase>
+        while False in is_init_state_generated: # Check if there are still problems for which the init state has not been generated yet
+            curr_samples = [dict() for _ in range(num_problems)]
+            
+            # Obtain the problems for which the init state has not been generated yet
+            incomplete_problems_and_inds = [(i, problems[i]) for i in range(num_problems) if not is_init_state_generated[i]]
+            incomplete_inds, incomplete_problems = zip(*incomplete_problems_and_inds)
+
+            # For each of those problems, obtain the list of consistent actions (atoms)
+            consistent_actions_list = [problem.get_continuous_consistent_init_state_actions(self.consistency_evaluator) \
+                                    for problem in incomplete_problems]
+
+            # Pass the problems and the list of consistent actions to the init state policy, which will select the next action to apply for each problem
+            chosen_actions, action_probs, internal_states = self.init_state_policy.select_actions(incomplete_problems, consistent_actions_list)      
+
+            # Apply the selected actions to the corresponding problems
+            consistency_rewards = []
+
+            for i, action in enumerate(chosen_actions):
+                or_ind = incomplete_inds[i] # Original index, in the complete list of (generated and incomplete) problems
+
+                if action != TERM_ACTION:
+                    incomplete_problems[i].apply_action_to_initial_state(action)
+
+                if action == TERM_ACTION or incomplete_problems[i].num_init_state_actions_executed >= list_max_init_state_actions[or_ind]:
+                    incomplete_problems[i].end_initial_state_generation_phase()
+                    is_init_state_generated[or_ind] = True
+                    is_eventual_consistent[or_ind], r_consistency = self.consistency_evaluator.preprocess_and_check_eventual_consistency(incomplete_problems[i])  
+
+            # Add the generated samples to the corresponding trajectories
+
+        # Calculate diversity rewards and add to each problem (along with a difficulty reward of 0)
+
+
+        return problems, trajectories, is_eventual_consistent
+
+
     def generate_problems(self, num_problems:int, list_max_init_state_actions:Union[Tuple[int],int],
                           list_max_goal_actions:Union[Tuple[int],int]) -> \
                           Tuple[List[PDDLProblem], List[List[Tuple]], List[Tuple[int,int]]]:
@@ -78,15 +131,19 @@ class ProblemGenerator():
 
         It returns a three-element tuple:
             - A list of the generated problems, as instances of PDDLProblem.
-            - A list of the problem trajectories. Each trajectory is a list containing the (s,a,r) samples, where each sample
+            - A list of problem trajectories [traj_1, traj_2, ...]. Each trajectory is a list containing the (s,a,r) samples, where each sample
               is a dictionary with the following keys:
                 - 'state': PDDLState object, representing the state s
                 - 'internal_state': state representation used by the ML model of the policy (e.g., a list of tensors in the case of the NLM)
                 - 'chosen_action': the action executed, either an atom or a domain action
                 - 'action_prob': probability of the chosen action, according to the policy
-                - 'consistency_reward': 
-                - 'difficulty_reward':
-                - 'diversity_reward':
+                - 'consistency_reward': eventual consistency reward of the sample. It is 0 for every sample except the last sample of the
+                                        initial state generation phase if it is eventually consistent.
+                - 'difficulty_reward': difficulty reward of the sample. It is 0 for every sample except the last sample of the goal generation
+                                       phase. Inconsistent trajectories have a difficulty reward of 0.
+                - 'diversity_reward': diversity reward of the sample. It is computed once all trajectories have been generated. Inconsistent
+                                      trajectories have a diversity reward of 0. The diversity reward of a trajectory is assigned to all its
+                                      samples.
             - For each problem, a tuple (num_init_state_actions, num_goal_actions), which indicates the number of init state and goal actions
               in the associated trajectory
         """
@@ -98,39 +155,7 @@ class ProblemGenerator():
         assert len(list_max_init_state_actions) == num_problems, 'list_max_init_state_actions must be a list/tuple of length num_problems or a single value'
         assert len(list_max_goal_actions) == num_problems, 'list_max_goal_actions must be a list/tuple of length num_problems or a single value'
 
-        # <Initialize problems>
-        problems = [PDDLProblem(self.parser, self.goal_predicates, self.init_state_info, self.allowed_virtual_objects) for _ in range(num_problems)]
-        trajectories = []
-        is_eventual_consistent = [False] * num_problems
-        is_init_state_generated = [False] * num_problems
-        is_goal_generated = [False] * num_problems
-
         # <Initial state generation phase>
-
-        while False in is_init_state_generated: # Check if there are still problems for which the init state has not been generated yet
-            # Obtain the problems for which the init state has not been generated yet
-            incomplete_problems_and_inds = [(i, problems[i]) for i in range(num_problems) if not is_init_state_generated[i]]
-            incomplete_inds, incomplete_problems = zip(*incomplete_problems_and_inds)
-
-            # For each of those problems, obtain the list of consistent actions (atoms)
-            consistent_actions_list = [problem.get_continuous_consistent_init_state_actions(self.consistency_evaluator) \
-                                    for problem in incomplete_problems]
-
-            # Pass the problems and the list of consistent actions to the init state policy, which will select the next action to apply for each problem
-            chosen_actions, _, _ = self.init_state_policy.select_actions(incomplete_problems, consistent_actions_list)
-
-            # Apply the selected actions to the corresponding problems
-            for i, action in enumerate(chosen_actions):
-                or_ind = incomplete_inds[i] # Original index, in the complete list of (generated and incomplete) problems
-
-                if action != TERM_ACTION:
-                    incomplete_problems[i].apply_action_to_initial_state(action)
-
-                if action == TERM_ACTION or incomplete_problems[i].num_init_state_actions_executed >= list_max_init_state_actions[or_ind]:
-                    incomplete_problems[i].end_initial_state_generation_phase()
-                    is_init_state_generated[or_ind] = True
-                    is_eventual_consistent[or_ind], r_consistency = self.consistency_evaluator.preprocess_and_check_eventual_consistency(incomplete_problems[i])
-
         
 
 
