@@ -5,8 +5,9 @@ Functionality for generating PDDL problems for a given domain. The problems can 
 policy.
 """
 
-from typing import List, Tuple, Optional, Union
+from typing import List, Tuple, Optional, Union, Dict
 from pathlib import Path
+from copy import deepcopy
 from lifted_pddl import Parser
 
 from src.nesig.metrics.consistency import ConsistencyEvaluator
@@ -73,9 +74,9 @@ class ProblemGenerator():
         Some problems may have an eventual-inconsistent initial state.
 
         It returns a three-element tuple:
-            - The list of PDDLProblems (with their initial state completely generated)
-            - The associated trajectories
+            - The list of PDDLProblems (with their initial state completely generated)       
             - A list of booleans indicating whether each problem has an eventual-consistent initial state
+            - The list of trajectories
         """
         # <Initialize problems>
         problems = [PDDLProblem(self.parser, self.goal_predicates, self.init_state_info, self.allowed_virtual_objects) for _ in range(num_problems)]
@@ -85,8 +86,6 @@ class ProblemGenerator():
 
         # <Initial state generation phase>
         while False in is_init_state_generated: # Check if there are still problems for which the init state has not been generated yet
-            curr_samples = [dict() for _ in range(num_problems)]
-            
             # Obtain the problems for which the init state has not been generated yet
             incomplete_problems_and_inds = [(i, problems[i]) for i in range(num_problems) if not is_init_state_generated[i]]
             incomplete_inds, incomplete_problems = zip(*incomplete_problems_and_inds)
@@ -99,30 +98,37 @@ class ProblemGenerator():
             chosen_actions, action_probs, internal_states = self.init_state_policy.select_actions(incomplete_problems, consistent_actions_list)      
 
             # Apply the selected actions to the corresponding problems
-            consistency_rewards = []
-
             for i, action in enumerate(chosen_actions):
                 or_ind = incomplete_inds[i] # Original index, in the complete list of (generated and incomplete) problems
+                old_problem = deepcopy(incomplete_problems[i]) # Problem before applying the action
 
                 if action != TERM_ACTION:
                     incomplete_problems[i].apply_action_to_initial_state(action)
 
+                # See if the initial state generation phase has concluded
                 if action == TERM_ACTION or incomplete_problems[i].num_init_state_actions_executed >= list_max_init_state_actions[or_ind]:
                     incomplete_problems[i].end_initial_state_generation_phase()
                     is_init_state_generated[or_ind] = True
                     is_eventual_consistent[or_ind], r_consistency = self.consistency_evaluator.preprocess_and_check_eventual_consistency(incomplete_problems[i])  
+                else:
+                    r_consistency = 0
 
-            # Add the generated samples to the corresponding trajectories
+                # Save sample information
+                curr_sample = dict([ ('state', old_problem), ('internal_state', internal_states[i]),
+                                     ('chosen_action', chosen_actions[i]), ('action_prob', action_probs[i]),
+                                     ('consistency_reward', r_consistency) ])
 
-        # Calculate diversity rewards and add to each problem (along with a difficulty reward of 0)
+                trajectories[or_ind].append(curr_sample)
 
+        return problems, is_eventual_consistent, trajectories
 
-        return problems, trajectories, is_eventual_consistent
-
+    # TODO
+    def _generate_goal_trajectories(self, problems, is_eventual_consistent, trajectories, list_max_goal_actions):
+        pass
 
     def generate_problems(self, num_problems:int, list_max_init_state_actions:Union[Tuple[int],int],
                           list_max_goal_actions:Union[Tuple[int],int]) -> \
-                          Tuple[List[PDDLProblem], List[List[Tuple]], List[Tuple[int,int]]]:
+                          Tuple[List[PDDLProblem], List[Dict], List[List[Dict]]]:
         """
         Generates num_problems PDDL problems for the corresponding domain in parallel.
         For the i-th problem, the maximum number of init state and goal actions is given by list_max_init_state_actions[i] and 
@@ -131,6 +137,13 @@ class ProblemGenerator():
 
         It returns a three-element tuple:
             - A list of the generated problems, as instances of PDDLProblem.
+            - A list of problem-level information, as a dictionary for each problem, with the following keys:
+                - 'num_init_state_actions': number of actions executed during the initial state generation phase.
+                - 'num_goal_actions': number of actions executed during the goal generation phase.
+                - 'consistency': True if the problem's initial state is eventual-consistent, False otherwise.
+                - 'difficulty': difficulty of the problem
+                - 'diversity': diversity of the problem
+                <Note>: consistency, difficulty and diversity are different from their respective rewards
             - A list of problem trajectories [traj_1, traj_2, ...]. Each trajectory is a list containing the (s,a,r) samples, where each sample
               is a dictionary with the following keys:
                 - 'state': PDDLState object, representing the state s
@@ -144,8 +157,6 @@ class ProblemGenerator():
                 - 'diversity_reward': diversity reward of the sample. It is computed once all trajectories have been generated. Inconsistent
                                       trajectories have a diversity reward of 0. The diversity reward of a trajectory is assigned to all its
                                       samples.
-            - For each problem, a tuple (num_init_state_actions, num_goal_actions), which indicates the number of init state and goal actions
-              in the associated trajectory
         """
         if type(list_max_init_state_actions) == int:
             list_max_init_state_actions = (list_max_init_state_actions,) * num_problems
@@ -156,11 +167,12 @@ class ProblemGenerator():
         assert len(list_max_goal_actions) == num_problems, 'list_max_goal_actions must be a list/tuple of length num_problems or a single value'
 
         # <Initial state generation phase>
-        
-
-
+        problems, is_eventual_consistent, trajectories = self._generate_init_state_trajectories(num_problems, list_max_init_state_actions)
 
         # <Goal generation phase>
+        problems, trajectories = self._generate_goal_trajectories(problems, is_eventual_consistent, trajectories, list_max_goal_actions)
+
+        # <Calculate difficulty and diversity>
 
 
         # <Save to disk>
