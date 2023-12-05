@@ -48,37 +48,45 @@ class TestConsistencyEvaluator(unittest.TestCase):
             self.assertEqual(str(e), 'New atom is instantiated on objects of incorrect type')
 
         # Atom already in state
-        self.assertFalse( consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('in', (4,2)), ('package', 'truck')) )
+        self.assertFalse( consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('in', (4,2)), ('package', 'truck'))[0] )
+        # The second element of the tuple is the consistency reward
+        self.assertEqual(-1, consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('in', (4,2)), ('package', 'truck'))[1] )
 
         # Atom with repeated objects
-        self.assertFalse( consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('at', (5,5)), ('package', 'location')) )
+        self.assertFalse( consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('at', (5,5)), ('package', 'location'))[0] )
+        self.assertEqual(-1, consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('at', (5,5)), ('package', 'location'))[1] )
 
     def test_blocksworld_consistency(self):
         parser = Parser()
         parser.parse_domain(self.bw_domain)
 
-        consistency_evaluator = ConsistencyEvaluatorBlocksworld(parser.types, parser.type_hierarchy, parser.predicates)
+        consistency_evaluator = ConsistencyEvaluatorBlocksworld(parser.types, parser.type_hierarchy, parser.predicates,
+                                                                penalization_continuous_consistency=-2.3, penalization_eventual_consistency=-5.4)
 
         pddl_state = PDDLState(parser.types, parser.type_hierarchy, parser.predicates)
         pddl_state.add_objects(['block', 'block', 'block'])
         pddl_state.add_atoms([('ontable', (0,)), ('ontable', (1,)), ('on', (2, 1)), ('clear', (2,)), ('handempty', tuple())])
 
         # Continuous consistency
-        self.assertTrue(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('clear', (0,)), ('block',)))
-        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('clear', (1,)), ('block',)))
-        self.assertTrue(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('on', (3,0)), ('block', 'block')))
-        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('on', (3,2)), ('block', 'block')))
-        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('on', (3,1)), ('block', 'block')))
-        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('holding', (3,)), ('block',)))
-        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('holding', (2,)), ('block',)))
-        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('handempty', tuple()), tuple()))
+        self.assertTrue(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('clear', (0,)), ('block',))[0])
+        self.assertEqual(0, consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('clear', (0,)), ('block',))[1])
+        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('clear', (1,)), ('block',))[0])
+        self.assertEqual(-2.3, consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('clear', (1,)), ('block',))[1])
+        self.assertTrue(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('on', (3,0)), ('block', 'block'))[0])
+        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('on', (3,2)), ('block', 'block'))[0])
+        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('on', (3,1)), ('block', 'block'))[0])
+        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('holding', (3,)), ('block',))[0])
+        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('holding', (2,)), ('block',))[0])
+        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('handempty', tuple()), tuple())[0])
 
         # Eventual consistency
-        self.assertFalse(consistency_evaluator.preprocess_and_check_eventual_consistency(pddl_state))
+        self.assertFalse(consistency_evaluator.preprocess_and_check_eventual_consistency(pddl_state)[0])
+        self.assertEqual(-5.4, consistency_evaluator.preprocess_and_check_eventual_consistency(pddl_state)[1])
         pddl_state.add_atom(('clear', (0,)))
-        self.assertTrue(consistency_evaluator.preprocess_and_check_eventual_consistency(pddl_state))
+        self.assertTrue(consistency_evaluator.preprocess_and_check_eventual_consistency(pddl_state)[0])
+        self.assertEqual(0, consistency_evaluator.preprocess_and_check_eventual_consistency(pddl_state)[1])
         empty_state = PDDLState(parser.types, parser.type_hierarchy, parser.predicates)
-        self.assertFalse(consistency_evaluator.preprocess_and_check_eventual_consistency(empty_state))
+        self.assertFalse(consistency_evaluator.preprocess_and_check_eventual_consistency(empty_state)[0])
 
     def test_logistics_consistency(self):
         parser = Parser()
@@ -91,22 +99,22 @@ class TestConsistencyEvaluator(unittest.TestCase):
         pddl_state.add_atoms([('in-city', (1,0)), ('at', (2,1)), ('at', (3,1)), ('at', (4,1))])  
 
         # Continuous consistency
-        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('in-city', (5,6)), ('location','city')))
-        self.assertTrue(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('in-city', (5,6)), ('airport','city')))
-        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('in-city', (1,6)), ('airport','city')))
-        self.assertTrue(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('at', (5,1)), ('truck','airport')))
-        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('at', (2,1)), ('truck','airport')))
-        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('at', (5,6)), ('truck','airport')))
-        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('in', (5,3)), ('package','airplane')))
+        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('in-city', (5,6)), ('location','city'))[0])
+        self.assertTrue(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('in-city', (5,6)), ('airport','city'))[0])
+        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('in-city', (1,6)), ('airport','city'))[0])
+        self.assertTrue(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('at', (5,1)), ('truck','airport'))[0])
+        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('at', (2,1)), ('truck','airport'))[0])
+        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('at', (5,6)), ('truck','airport'))[0])
+        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('in', (5,3)), ('package','airplane'))[0])
 
         # Eventual consistency
-        self.assertFalse(consistency_evaluator.preprocess_and_check_eventual_consistency(pddl_state))
+        self.assertFalse(consistency_evaluator.preprocess_and_check_eventual_consistency(pddl_state)[0])
         pddl_state.add_objects(['city', 'location', 'truck'])
         pddl_state.add_atoms([('in-city', (6,5)), ('at', (7,6))])
-        self.assertTrue(consistency_evaluator.preprocess_and_check_eventual_consistency(pddl_state))
+        self.assertTrue(consistency_evaluator.preprocess_and_check_eventual_consistency(pddl_state)[0])
 
         empty_state = PDDLState(parser.types, parser.type_hierarchy, parser.predicates)
-        self.assertFalse(consistency_evaluator.preprocess_and_check_eventual_consistency(empty_state))
+        self.assertFalse(consistency_evaluator.preprocess_and_check_eventual_consistency(empty_state)[0])
 
     def test_sokoban_consistency(self):
         parser = Parser()
@@ -121,31 +129,31 @@ class TestConsistencyEvaluator(unittest.TestCase):
         pddl_state.add_atoms([('connected-right', (0,1)), ('connected-right', (2,3)), ('connected-up', (0, 2)), ('connected-up', (1, 3)), ('at-wall', (0,))])
 
         # Continuous consistency
-        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('connected-right', (0,3)), ('loc','loc')))
-        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('connected-up', (1,2)), ('loc','loc')))
-        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('at-robot', (0,)), ('loc',)))       
-        self.assertTrue(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('at-robot', (1,)), ('loc',)))
-        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('at-robot', (4,)), ('loc',)))
-        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('at-wall', (0,)), ('loc',)))       
-        self.assertTrue(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('at-wall', (1,)), ('loc',)))
-        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('at-wall', (4,)), ('loc',)))
-        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('at-box', (0,)), ('loc',)))       
-        self.assertTrue(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('at-box', (1,)), ('loc',)))
-        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('at-box', (4,)), ('loc',)))
+        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('connected-right', (0,3)), ('loc','loc'))[0])
+        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('connected-up', (1,2)), ('loc','loc'))[0])
+        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('at-robot', (0,)), ('loc',))[0])       
+        self.assertTrue(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('at-robot', (1,)), ('loc',))[0])
+        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('at-robot', (4,)), ('loc',))[0])
+        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('at-wall', (0,)), ('loc',))[0])       
+        self.assertTrue(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('at-wall', (1,)), ('loc',))[0])
+        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('at-wall', (4,)), ('loc',))[0])
+        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('at-box', (0,)), ('loc',))[0])       
+        self.assertTrue(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('at-box', (1,)), ('loc',))[0])
+        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state, ('at-box', (4,)), ('loc',))[0])
 
         pddl_state_two_robots = PDDLState(parser.types, parser.type_hierarchy, parser.predicates, pddl_state.objects, pddl_state.atoms)
         pddl_state_two_robots.add_atom(('at-robot', (2,)))
-        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state_two_robots, ('at-robot', (1,)), ('loc',)))
+        self.assertFalse(consistency_evaluator.preprocess_and_check_continuous_consistency(pddl_state_two_robots, ('at-robot', (1,)), ('loc',))[0])
 
         # Eventual consistency
-        self.assertFalse(consistency_evaluator.preprocess_and_check_eventual_consistency(pddl_state))
+        self.assertFalse(consistency_evaluator.preprocess_and_check_eventual_consistency(pddl_state)[0])
         pddl_state.add_atom(('at-robot', (1,)))
-        self.assertFalse(consistency_evaluator.preprocess_and_check_eventual_consistency(pddl_state))
+        self.assertFalse(consistency_evaluator.preprocess_and_check_eventual_consistency(pddl_state)[0])
         pddl_state.add_atom(('at-box', (2,)))
-        self.assertTrue(consistency_evaluator.preprocess_and_check_eventual_consistency(pddl_state))
+        self.assertTrue(consistency_evaluator.preprocess_and_check_eventual_consistency(pddl_state)[0])
 
         empty_state = PDDLState(parser.types, parser.type_hierarchy, parser.predicates)
-        self.assertFalse(consistency_evaluator.preprocess_and_check_eventual_consistency(empty_state))
+        self.assertFalse(consistency_evaluator.preprocess_and_check_eventual_consistency(empty_state)[0])
 
 if __name__ == '__main__':
     unittest.main()

@@ -4,7 +4,7 @@
 Functionality for obtaining the diversity of a set of PDDL Problems.
 """
 
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Tuple
 from pathlib import Path
 from abc import ABC, abstractmethod
 import numpy as np
@@ -25,9 +25,10 @@ class DiversityEvaluator(ABC):
     """
 
     @abstractmethod
-    def get_diversity(self, problem_list : List[Union[PDDLProblem,Path]]) -> List[float]:
+    def get_diversity(self, problem_list : List[Union[PDDLProblem,Path]]) -> Tuple[List[float], List[float]]:
         """
-        Returns the diversity for a list of PDDL problems.
+        Returns the diversity (first element of the output tuple) and diversity reward (second element of the tuple)
+        for a list of PDDL problems.
         """
         raise NotImplementedError()
     
@@ -49,15 +50,17 @@ class InitStateDiversityEvaluator(DiversityEvaluator):
             We do this so that we can fairly compare the diversity among problems of different sizes.
     """
 
-    def __init__(self, use_weighted_average=True):
+    def __init__(self, use_weighted_average=True, r_diversity_weight:float=1.0):
         """
         Parameters:
             - use_weighted_average: If True, when calculating the distance between problems we make sure that each one of the four
                                     feature sublists (perc_objects, perc_atoms, mean_rel, std_rel) contributes equally to the distance.
                                     This is important when the number of features in each of the four sublists is very different because,
                                     if we don't use a weighted average, the sublist with more features will dominate the distance calculation.
+            - r_diversity_weight: Weight/coefficient for which we multiply the diversity reward.
         """
         self.use_weighted_average = use_weighted_average
+        self.r_diversity_weight = r_diversity_weight
 
     def _get_state_features(self, init_state):
         """
@@ -223,6 +226,9 @@ class InitStateDiversityEvaluator(DiversityEvaluator):
         # diversity_scores = [np.mean(distance_matrix[i,:]) for i in range(len(problem_list))]
         # We don't use the formula above because it also includes the distance between a problem and itself, which is always 0
         # np.delete() removes the i-th element from the array
-        diversity_scores = [np.mean(np.delete(distance_matrix[i,:], i)) for i in range(len(problem_list))]
+        diversity_scores = [float(np.mean(np.delete(distance_matrix[i,:], i))) for i in range(len(problem_list))]
 
-        return diversity_scores
+        # The diversity reward is the same as the diversity score, but multiplied by self.r_diversity_weight
+        diversity_rewards = [self.r_diversity_weight*score for score in diversity_scores]
+
+        return diversity_scores, diversity_rewards

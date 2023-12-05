@@ -20,14 +20,21 @@ class ConsistencyEvaluator(ABC):
     It is used to evaluate the continuous and eventual consistency of a PDDL problem.
     """
 
-    def __init__(self, types : List[str], type_hierarchy : Dict, predicates : List[Tuple[str, List[str]]]):
+    def __init__(self, types : List[str], type_hierarchy : Dict, predicates : List[Tuple[str, List[str]]],
+                 penalization_continuous_consistency:float=-1, penalization_eventual_consistency:float=-1):
         """
         Constructor. It creates constants for the domain types and predicates for the domain predicates.
         Parameters:
             - types: List/tuple with the existing types in the domain
             - type_hierarchy: Dictionary with the type hierarchy of the domain types
             - predicates: List/tuple with the existing predicates in the domain
+            - penalization_continuous_consistency: reward associated with a continuous-inconsistent (state,action) pair.
+                <Note>: it is not used right now as we only apply continuous-consistent actions.
+            - penalization_eventual_consistency: reward associated with an eventual-inconsistent state.
         """
+        self.penalization_continuous_consistency = penalization_continuous_consistency
+        self.penalization_eventual_consistency = penalization_eventual_consistency
+        
         self.domain_types = tuple(types)
         self.domain_type_hierarchy = type_hierarchy
         self.domain_predicates = tuple(predicates)
@@ -64,10 +71,13 @@ class ConsistencyEvaluator(ABC):
         """
         return formula.evaluate(self._knowledge_base)
     
-    def preprocess_and_check_continuous_consistency(self, curr_state : PDDLState, new_atom : Tuple[str,Tuple[int]], obj_types : Tuple[str]) -> bool:
+    def preprocess_and_check_continuous_consistency(self, curr_state : PDDLState, new_atom : Tuple[str,Tuple[int]], obj_types : Tuple[str])\
+                                                    -> Tuple[bool, float]:
         """
         << Method called internally from NeSIG >>
         Checks if the continuous consistency rules are met at the next_state, obtained by adding @new_atom to @curr_state.
+        It returns a tuple where the first element is a boolean indicating whether the state-action pair is continuous-consistent or not,
+        and the second element is the associated reward (0 if the pair is continuous-consistent, self.penalization_continuous_consistency otherwise).
         This method first checks that the atom is valid, it is not already in the state and it does not contain repeated parameters.
         Then, it initializes the knowledge base with the state information and calls self.check_continuous_consistency(). 
 
@@ -89,7 +99,7 @@ class ConsistencyEvaluator(ABC):
         assert new_atom[0] in self.domain_predicate_names, f"New atom has a wrong predicate type {new_atom[0]}"
 
         if new_atom[0] not in self.domain_predicate_names:
-            return False
+            return False, self.penalization_continuous_consistency
         
         # It is instantiated on a correct number of objects according to its arity
         atom_predicate = self.domain_predicates[ self.domain_predicate_names.index(new_atom[0]) ]
@@ -106,11 +116,11 @@ class ConsistencyEvaluator(ABC):
 
         # <Check that the atom to add (@action) is not already present in the current state>
         if new_atom in state_atoms:
-            return False
+            return False, self.penalization_continuous_consistency
         
         # <Check that the atom contains no repeated parameters>
         if len(new_atom[1]) != len(set(new_atom[1])):
-            return False
+            return False, self.penalization_continuous_consistency
 
         # <build knowledge base>
 
@@ -145,16 +155,19 @@ class ConsistencyEvaluator(ABC):
         new_atom_constants = tuple([Constant(obj_ind) for obj_ind in new_atom[1]])
 
         is_atom_consistent = self.check_continuous_consistency(curr_state, new_atom[0], new_atom_constants, new_atom[1], tuple(obj_types))
+        r_continuous_consistency = 0 if is_atom_consistent else self.penalization_continuous_consistency
 
         # Reset knowledge base
         self._knowledge_base = None
 
-        return is_atom_consistent    
+        return is_atom_consistent, r_continuous_consistency
     
-    def preprocess_and_check_eventual_consistency(self, curr_state : PDDLState) -> bool:
+    def preprocess_and_check_eventual_consistency(self, curr_state : PDDLState) -> Tuple[bool, float]:
         """
         << Method called internally from NeSIG >>
         Checks if the eventual consistency rules are met at the current state, corresponding to a totally generated initial state.
+        It returns a tuple where the first element is a boolean indicating whether the state pair is eventual-consistent or not,
+        and the second element is the associated reward (0 if the state is consistent, self.penalization_eventual_consistency otherwise).
         <Note>: we also need to check for the continuous consistency rules which may have been skipped due to not adding a given predicate type
                 to the state. For example, if we haven't added an atom of type (handempty) or (holding _) to the state, then we have never
                 checked the continuous consistency rule that says "every block X on top needs an atom of type (clear X)" -> This is why
@@ -186,11 +199,12 @@ class ConsistencyEvaluator(ABC):
         self._knowledge_base = (kb_objects, kb_atoms)
 
         is_state_consistent = self.check_eventual_consistency(curr_state)
+        r_eventual_consistency = 0 if is_state_consistent else self.penalization_eventual_consistency
 
         # Reset knowledge base
         self._knowledge_base = None	
 
-        return is_state_consistent
+        return is_state_consistent, r_eventual_consistency
     
     @abstractmethod
     def check_continuous_consistency(self, curr_state : PDDLState, atom_pred : str, atom_obj_consts : Tuple[Constant],

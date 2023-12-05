@@ -68,12 +68,27 @@ class ProblemGenerator():
         self.diversity_evaluator = diversity_evaluator
     
     def generate_problems(self, num_problems:int, list_max_init_state_actions:Union[Tuple[int],int],
-                          list_max_goal_actions:Union[Tuple[int],int]):
+                          list_max_goal_actions:Union[Tuple[int],int]) -> \
+                          Tuple[List[PDDLProblem], List[List[Tuple]], List[Tuple[int,int]]]:
         """
         Generates num_problems PDDL problems for the corresponding domain in parallel.
         For the i-th problem, the maximum number of init state and goal actions is given by list_max_init_state_actions[i] and 
         list_max_goal_actions[i], respectively. If instead of a list/tuple a single value is provided,
         we assume all the problems use the same maximum number of actions.
+
+        It returns a three-element tuple:
+            - A list of the generated problems, as instances of PDDLProblem.
+            - A list of the problem trajectories. Each trajectory is a list containing the (s,a,r) samples, where each sample
+              is a dictionary with the following keys:
+                - 'state': PDDLState object, representing the state s
+                - 'internal_state': state representation used by the ML model of the policy (e.g., a list of tensors in the case of the NLM)
+                - 'chosen_action': the action executed, either an atom or a domain action
+                - 'action_prob': probability of the chosen action, according to the policy
+                - 'consistency_reward': 
+                - 'difficulty_reward':
+                - 'diversity_reward':
+            - For each problem, a tuple (num_init_state_actions, num_goal_actions), which indicates the number of init state and goal actions
+              in the associated trajectory
         """
         if type(list_max_init_state_actions) == int:
             list_max_init_state_actions = (list_max_init_state_actions,) * num_problems
@@ -85,6 +100,7 @@ class ProblemGenerator():
 
         # <Initialize problems>
         problems = [PDDLProblem(self.parser, self.goal_predicates, self.init_state_info, self.allowed_virtual_objects) for _ in range(num_problems)]
+        trajectories = []
         is_eventual_consistent = [False] * num_problems
         is_init_state_generated = [False] * num_problems
         is_goal_generated = [False] * num_problems
@@ -113,7 +129,7 @@ class ProblemGenerator():
                 if action == TERM_ACTION or incomplete_problems[i].num_init_state_actions_executed >= list_max_init_state_actions[or_ind]:
                     incomplete_problems[i].end_initial_state_generation_phase()
                     is_init_state_generated[or_ind] = True
-                    is_eventual_consistent[or_ind] = self.consistency_evaluator.preprocess_and_check_eventual_consistency(incomplete_problems[i])
+                    is_eventual_consistent[or_ind], r_consistency = self.consistency_evaluator.preprocess_and_check_eventual_consistency(incomplete_problems[i])
 
         
 

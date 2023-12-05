@@ -158,7 +158,7 @@ class PDDLProblem():
         """    
         def is_atom_consistent(atom, obj_types):
             # Note: we pass by reference the initial state to the consistency validator for performance reasons
-            return consistency_validator.preprocess_and_check_continuous_consistency(self._initial_state, atom, obj_types)
+            return consistency_validator.preprocess_and_check_continuous_consistency(self._initial_state, atom, obj_types)[0] # [0] because the method returns a tuple (is_consistent, r_consistency)
         
         # Obtain the list of objects, virtual objects and both
         objs_with_virtuals = self._initial_state.objects_with_virtuals(self.allowed_virtual_objects)

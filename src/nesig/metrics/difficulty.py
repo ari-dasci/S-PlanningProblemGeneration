@@ -4,7 +4,7 @@
 Functionality for obtaining the difficulty metric of a PDDL problem.
 """
 
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Tuple
 from pathlib import Path
 from concurrent.futures import ProcessPoolExecutor, wait
 from abc import ABC, abstractmethod
@@ -12,6 +12,7 @@ import subprocess
 import tempfile
 import os
 import re
+import math
 
 from src.nesig.symbolic.pddl_problem import PDDLProblem
 from src.nesig.constants import PLANNER_SCRIPTS_PATH
@@ -26,12 +27,13 @@ class DifficultyEvaluator(ABC):
     """
     Abstract class from which particular difficulty evaluators (e.g., planner-based, ML-based)
     must inherit from.
-    Given a list of totally-generated problems, it returns a float/list of floats representing the difficulty
-    for each problem.
+    Given a list of totally-generated problems, it returns a two-element tuple:   
+        - For each problem, a float/list of floats representing each problem's difficulty.
+        - For each problem, a float representing its difficulty reward.
     """
 
     @abstractmethod
-    def get_difficulty(self, problem_list : List[Union[PDDLProblem,Path]]) -> Union[List[float], List[List[float]]]:
+    def get_difficulty(self, problem_list : List[Union[PDDLProblem,Path]]) -> Tuple[Union[List[float], List[List[float]]], List[float]]:
         """
         Returns the difficulty for a list of PDDL problems.
         """
@@ -52,7 +54,8 @@ class PlannerEvaluator(DifficultyEvaluator):
     # See FD discord message ...I would like to know if there exists some rough,easy equivalence between...
     def __init__(self, domain_path : Path, plan_args : List[str],
                  time_limit : int = -1, memory_limit : int = -1,
-                 max_workers : int = 1):     
+                 max_workers : int = 1, terminated_reward : float = 1e6,
+                 r_diff_weight : float = 1.0):     
         """
         The constructor receives the information needed for calling the planner.
         Parameters:
@@ -64,24 +67,32 @@ class PlannerEvaluator(DifficultyEvaluator):
             - time_limit: Time limit for the planner, in seconds. -1 means no limit.
             - memory_limit: Memory limit for the planner, in KB. -1 means no limit.
             - max_workers: Maximum number of processes for concurrent planner calls.
+            - terminated_reward: Difficulty of a problem that has been terminated (either by timeout or memory out).
+                                 This difficulty is NOT multiplied by r_diff_weight.
+            - r_diff_weight: Weight/coefficient for which we multiply the difficulty reward 
+                             (after performing the rest of the operations like math.log)
         """
         self.domain_path = domain_path
         self.plan_args = plan_args
         self.time_limit = time_limit
         self.memory_limit = memory_limit
         self.max_workers = max_workers
-
+        self.terminated_reward = terminated_reward
+        self.r_diff_weight = r_diff_weight
+        
     @property
     def num_plan_args(self) -> int:
         return len(self.plan_args)
 
-    def get_difficulty(self, problem_list : List[Union[PDDLProblem,Path]]) -> List[List[float]]:
+    def get_difficulty(self, problem_list : List[Union[PDDLProblem,Path]]) -> Tuple[List[List[float]], List[float]]:
         """
-        Calculates the difficulty for a list of problems, as the number of nodes expanded by the planner.
+        Calculates the difficulty and difficulty reward for a list of problems, as the number of nodes expanded by the planner.
         The problems can be given either as intances of PDDLProblem or as paths to PDDL problem files.
         The options used are given by self.plan_args.
-        It returns a list of difficulties for each problem, so that diff[i][j] is the difficulty of the
+        It returns a list of difficulties (and rewards) for each problem, so that diff[i][j] is the difficulty of the
         i-th problem with the j-th planner argument.
+        If for a given problem there was a timeout/memory out, its difficulty (for each planner) is -1 and its difficulty reward
+        is self.terminated_reward.
         """
         assert type(problem_list) in (list,tuple), "This method receives a list of PDDLProblem objects/paths to PDDL files"
 
@@ -107,7 +118,15 @@ class PlannerEvaluator(DifficultyEvaluator):
 
             difficulty = [[future.result() for future in problem_futures] for problem_futures in futures]
 
-        return difficulty
+        # Obtain the difficulty reward associated with each problem
+        # At the moment, this reward is simply the average of the logarithm of each planner difficulty (+1 to avoid log(0))
+        # In the future, we should use more elaborate methods such as normalizing the difficulty for each planner before
+        # calculating the log (we don't do this right now because we use a single planner during training)
+        diff_rewards = [self.r_diff_weight*sum([math.log(diff+1) for diff in problem_diffs])/len(problem_diffs) \
+                        if -1 not in problem_diffs else self.terminated_reward \
+                        for problem_diffs in difficulty]
+
+        return difficulty, diff_rewards
 
     def _get_difficulty_one_problem_one_arg(self, pddl_description : str, planner_arg : str) -> float:
         """

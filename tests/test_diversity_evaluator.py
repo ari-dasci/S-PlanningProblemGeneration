@@ -37,8 +37,8 @@ class TestConsistencyEvaluator(unittest.TestCase):
         diversity_evaluator2 = InitStateDiversityEvaluator(use_weighted_average=True)
 
         # The diversity of a set of identical problems is 0
-        self.assertEqual(diversity_evaluator1.get_diversity(problem_list), [0.,0.,0.,0.])
-        self.assertEqual(diversity_evaluator2.get_diversity(problem_list), [0.,0.,0.,0.])
+        self.assertEqual(diversity_evaluator1.get_diversity(problem_list), ([0.,0.,0.,0.],[0.,0.,0.,0.]))
+        self.assertEqual(diversity_evaluator2.get_diversity(problem_list), ([0.,0.,0.,0.],[0.,0.,0.,0.]))
 
         # Also check that diversity calculations do not modify the problems
         for p in problem_list:
@@ -59,11 +59,18 @@ class TestConsistencyEvaluator(unittest.TestCase):
         p1.end_initial_state_generation_phase()
         p2.end_initial_state_generation_phase()
 
-        diversity_evaluator1 = InitStateDiversityEvaluator(use_weighted_average=False)
+        diversity_evaluator1 = InitStateDiversityEvaluator(use_weighted_average=False, r_diversity_weight=0.7)
         diversity_evaluator2 = InitStateDiversityEvaluator(use_weighted_average=True)
 
-        self.assertEqual(diversity_evaluator1.get_diversity([p1, p2])[0], diversity_evaluator1.get_diversity([p1, p2])[1])
-        self.assertEqual(diversity_evaluator2.get_diversity([p1, p2])[0], diversity_evaluator2.get_diversity([p1, p2])[1])
+        # [0][0] -> diversity score of problem 0 ([1][0] would be its diversity <reward>)
+        self.assertEqual(diversity_evaluator1.get_diversity([p1, p2])[0][0], diversity_evaluator1.get_diversity([p1, p2])[0][1])
+        self.assertEqual(diversity_evaluator2.get_diversity([p1, p2])[0][0], diversity_evaluator2.get_diversity([p1, p2])[0][1])
+        self.assertEqual(diversity_evaluator1.get_diversity([p1, p2])[1][0], diversity_evaluator1.get_diversity([p1, p2])[1][1])
+        self.assertEqual(diversity_evaluator2.get_diversity([p1, p2])[1][0], diversity_evaluator2.get_diversity([p1, p2])[1][1])
+
+        # Check that diversity reward is 0.7 * diversity score
+        self.assertEqual(0.7*diversity_evaluator1.get_diversity([p1, p2])[0][0], diversity_evaluator1.get_diversity([p1, p2])[1][0])
+        self.assertEqual(0.7*diversity_evaluator1.get_diversity([p1, p2])[0][1], diversity_evaluator1.get_diversity([p1, p2])[1][1])
 
     def test_diversity_different_problems(self):
         s1 = PDDLState(self.types, self.type_hierarchy, self.predicates,
@@ -88,10 +95,16 @@ class TestConsistencyEvaluator(unittest.TestCase):
         # p3 is the most diverse problem
         diversity_list1 = diversity_evaluator1.get_diversity([p1, p2, p3])
         diversity_list2 = diversity_evaluator2.get_diversity([p1, p2, p3])
-        self.assertGreater(diversity_list1[2], diversity_list1[0])
-        self.assertGreater(diversity_list1[2], diversity_list1[1])
-        self.assertGreater(diversity_list2[2], diversity_list2[0])
-        self.assertGreater(diversity_list2[2], diversity_list2[1])
+        self.assertGreater(diversity_list1[0][2], diversity_list1[0][0])
+        self.assertGreater(diversity_list1[0][2], diversity_list1[0][1])
+        self.assertGreater(diversity_list2[0][2], diversity_list2[0][0])
+        self.assertGreater(diversity_list2[0][2], diversity_list2[0][1])
+
+        # Test the rewards now
+        self.assertGreater(diversity_list1[1][2], diversity_list1[1][0])
+        self.assertGreater(diversity_list1[1][2], diversity_list1[1][1])
+        self.assertGreater(diversity_list2[1][2], diversity_list2[1][0])
+        self.assertGreater(diversity_list2[1][2], diversity_list2[1][1])
 
 if __name__ == '__main__':
     unittest.main()
