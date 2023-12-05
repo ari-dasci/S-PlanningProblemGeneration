@@ -20,3 +20,6 @@ LAZY_GREEDY_FF_ARG = '--evaluator h=ff(transform=adapt_costs(one)) --search lazy
 LAZY_GREEDY_ADD_ARG = '--evaluator h=add(transform=adapt_costs(one)) --search lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)'
 TRAIN_PLANNER_ARGS = [LAMA_FIRST_ARG]
 TEST_PLANNER_ARGS = [LAMA_FIRST_ARG, LAZY_GREEDY_FF_ARG, LAZY_GREEDY_ADD_ARG]
+
+# Termination condition action, which signals the end of the (initial state or goal) generation phase
+TERM_ACTION = "END"

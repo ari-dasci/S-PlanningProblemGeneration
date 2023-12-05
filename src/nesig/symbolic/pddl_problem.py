@@ -206,8 +206,8 @@ class PDDLProblem():
         Applies an action, consisting of (possibly) adding objects and an atom, to the initial state.
         It also assigns the next state to self._initial_state.
         In case new_atom indexes virtual objects, we may change these indexes so that they index objects in the state after
-        adding virtual objects. For example, if the state contains 5 objects and new_atom adds two virtual objects,
-        new_atom[1] must contain indexes from 0 to 6, so (pred, (100,101)) would be changed to (pred, (5,6)), for instance.
+        adding virtual objects. For example, if the state contains 5 objects and new_atom adds one virtual object,
+        (pred, (6,)) would be changed to (pred, (5,)), for instance.
         <Note>: we assume that the action is consistent.
 
         @new_atom The new atom to add to the state (e.g., ('on', (1,2)))

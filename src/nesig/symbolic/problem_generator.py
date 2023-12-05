@@ -15,6 +15,7 @@ from src.nesig.metrics.diversity import DiversityEvaluator
 from src.nesig.symbolic.pddl_problem import PDDLProblem
 from src.nesig.learning.generative_policy import GenerativePolicy
 from src.nesig.symbolic.pddl_state import PDDLState
+from src.nesig.constants import TERM_ACTION
 
 class ProblemGenerator():
     """
@@ -66,13 +67,12 @@ class ProblemGenerator():
         self.difficulty_evaluator = difficulty_evaluator
         self.diversity_evaluator = diversity_evaluator
     
-    def generate_problems(self, num_problems:int, list_max_init_state_actions:Union[Tuple[Optional[int]],Optional[int]],
-                          list_max_goal_actions:Union[Tuple[Optional[int]],Optional[int]]):
+    def generate_problems(self, num_problems:int, list_max_init_state_actions:Union[Tuple[int],int],
+                          list_max_goal_actions:Union[Tuple[int],int]):
         """
         Generates num_problems PDDL problems for the corresponding domain in parallel.
         For the i-th problem, the maximum number of init state and goal actions is given by list_max_init_state_actions[i] and 
-        list_max_goal_actions[i], respectively. If these values are None, then there is no maximum number of actions 
-        (we keep generating until the termination condition is sampled). If instead of a list/tuple a single value is provided,
+        list_max_goal_actions[i], respectively. If instead of a list/tuple a single value is provided,
         we assume all the problems use the same maximum number of actions.
         """
         if type(list_max_init_state_actions) == int:
@@ -91,27 +91,33 @@ class ProblemGenerator():
 
         # <Initial state generation phase>
 
-        # Obtain the problems for which the init state has not been generated yet
-        incomplete_problems_and_inds = [(i, problems[i]) for i in range(num_problems) if not is_init_state_generated[i]]
-        incomplete_inds, incomplete_problems = zip(*incomplete_problems_and_inds)
+        while False in is_init_state_generated: # Check if there are still problems for which the init state has not been generated yet
+            # Obtain the problems for which the init state has not been generated yet
+            incomplete_problems_and_inds = [(i, problems[i]) for i in range(num_problems) if not is_init_state_generated[i]]
+            incomplete_inds, incomplete_problems = zip(*incomplete_problems_and_inds)
 
-        # For each of those problems, obtain the list of consistent actions (atoms)
-        consistent_actions_list = [problem.get_continuous_consistent_init_state_actions(self.consistency_evaluator) \
-                                   for problem in incomplete_problems]
+            # For each of those problems, obtain the list of consistent actions (atoms)
+            consistent_actions_list = [problem.get_continuous_consistent_init_state_actions(self.consistency_evaluator) \
+                                    for problem in incomplete_problems]
 
-        # Pass the problems and the list of consistent actions to the init state policy, which will select the next action to apply for each problem
-        chosen_actions, _, _ = self.init_state_policy.select_actions(incomplete_problems, consistent_actions_list)
+            # Pass the problems and the list of consistent actions to the init state policy, which will select the next action to apply for each problem
+            chosen_actions, _, _ = self.init_state_policy.select_actions(incomplete_problems, consistent_actions_list)
 
-        # Apply the selected actions to the corresponding problems
-        # Change action index
+            # Apply the selected actions to the corresponding problems
+            for i, action in enumerate(chosen_actions):
+                or_ind = incomplete_inds[i] # Original index, in the complete list of (generated and incomplete) problems
 
-        # If termination condition, check eventual consistency and stop generation for the problem
+                if action != TERM_ACTION:
+                    incomplete_problems[i].apply_action_to_initial_state(action)
 
-        # If all the init state problems have been generated, stop
+                if action == TERM_ACTION or incomplete_problems[i].num_init_state_actions_executed >= list_max_init_state_actions[or_ind]:
+                    incomplete_problems[i].end_initial_state_generation_phase()
+                    is_init_state_generated[or_ind] = True
+                    is_eventual_consistent[or_ind] = self.consistency_evaluator.preprocess_and_check_eventual_consistency(incomplete_problems[i])
+
+        
 
 
-        # TODO
-        # Change obj indexes of atoms when adding virtual objs
 
         # <Goal generation phase>
 
