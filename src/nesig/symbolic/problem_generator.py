@@ -84,7 +84,7 @@ class ProblemGenerator():
         is_eventual_consistent = [False] * num_problems
         is_init_state_generated = [False] * num_problems
 
-        # <Initial state generation phase>
+        # Apply actions until all initial states have been completely generated
         while False in is_init_state_generated: # Check if there are still problems for which the init state has not been generated yet
             # Obtain the problems for which the init state has not been generated yet
             incomplete_problems_and_inds = [(i, problems[i]) for i in range(num_problems) if not is_init_state_generated[i]]
@@ -116,15 +116,122 @@ class ProblemGenerator():
                 # Save sample information
                 curr_sample = dict([ ('state', old_problem), ('internal_state', internal_states[i]),
                                      ('chosen_action', chosen_actions[i]), ('action_prob', action_probs[i]),
-                                     ('consistency_reward', r_consistency) ])
+                                     ('consistency_reward', r_consistency), ('difficulty_reward', 0),
+                                     ('diversity_reward', 0) ])
 
                 trajectories[or_ind].append(curr_sample)
 
         return problems, is_eventual_consistent, trajectories
 
-    # TODO
     def _generate_goal_trajectories(self, problems, is_eventual_consistent, trajectories, list_max_goal_actions):
-        pass
+        """
+        Auxiliary method that receives a list of PDDLProblems (some of which may be eventual-inconsistent) and
+        generates their goals. If a problem is eventual-inconsistent, no goal is generated (it is left unchanged).
+
+        It returns a three-element tuple:
+            - The list of completely-generated PDDLProblems
+            - The list of trajectories
+        """
+        num_problems = len(problems)
+        # If a problem is inconsistent, we don't generate its goal
+        is_goal_generated = [not c for c in is_eventual_consistent]
+
+        # Apply actions until all goals have been completely generated
+        while False in is_goal_generated: # Check if there are still problems for which the goal has not been generated yet
+            # Obtain the problems for which the goal has not been generated yet
+            incomplete_problems_and_inds = [(i, problems[i]) for i in range(num_problems) if not is_goal_generated[i]]
+            incomplete_inds, incomplete_problems = zip(*incomplete_problems_and_inds)
+
+            # For each of those problems, obtain the list of applicable domain actions
+            applicable_actions_list = [problem.applicable_ground_actions() for problem in incomplete_problems]  
+
+            # Pass the problems and the list of applicable actions to the goal policy, which will select the next action to apply for each problem
+            chosen_actions, action_probs, internal_states = self.goal_policy.select_actions(incomplete_problems, applicable_actions_list)
+
+            # Apply the selected actions to the corresponding problems
+            for i, action in enumerate(chosen_actions):
+                or_ind = incomplete_inds[i] # Original index, in the complete list of (generated and incomplete) problems
+                old_problem = deepcopy(incomplete_problems[i]) # Problem before applying the action
+
+                if action != TERM_ACTION:
+                    incomplete_problems[i].apply_action_to_goal_state(action)
+
+                # See if the initial state generation phase has concluded
+                if action == TERM_ACTION or incomplete_problems[i].num_goal_actions_executed >= list_max_goal_actions[or_ind]:
+                    incomplete_problems[i].end_goal_state_generation_phase()
+                    is_goal_generated[or_ind] = True
+
+                # Save sample information
+                curr_sample = dict([ ('state', old_problem), ('internal_state', internal_states[i]),
+                                     ('chosen_action', chosen_actions[i]), ('action_prob', action_probs[i]),
+                                     ('consistency_reward', 0), ('difficulty_reward', 0),
+                                     ('diversity_reward', 0) ])
+
+                trajectories[or_ind].append(curr_sample)
+
+        return problems, trajectories
+
+    def _obtain_problem_difficulties_and_diversities(self, problems, is_eventual_consistent, trajectories) \
+          -> Tuple[List[Union[List[Optional[float]], Optional[float]]],  List[Optional[float]]]:
+        """
+        Auxiliary method that calculates the difficulty and diversity for each problem, including the associated rewards.
+        Then, for each problem, it assigns the difficulty reward to the last sample of the trajectory and the diversity reward
+        to the last sample of the initial state generation phase.
+        <Note>: we do this because, right now, the diversity only depends on the initial state but not on the goal
+                This will be changed in the future.
+
+        Eventual-inconsistent problems have a difficulty and diversity <reward> (stored in their corresponding trajectory) of 0.
+        
+        This method returns a tuple with two elements:
+            - A list containing, for each problem, its difficulties (not rewards).
+            - A list containing, for each problem, its diversity (not reward).
+         
+        Eventual-inconsistent problems also have a difficulty and diversity of 0.
+        If no difficulty/diversity evaluator is provided, the associated values are None and the associated rewards are 0.
+        """
+        # Obtain eventual-consistent problems, as we only calculate difficulty and diversity for them
+        num_problems = len(problems)
+        consistent_problems_and_inds = [(i, problems[i]) for i in range(num_problems) if is_eventual_consistent[i]]
+        consistent_inds, consistent_problems = zip(*consistent_problems_and_inds)
+
+        # Calculate problem difficulties
+        if self.difficulty_evaluator is not None:
+            consistent_problem_difficulties, consistent_problem_difficulty_rewards = self.difficulty_evaluator.get_difficulty(consistent_problems)
+            
+            problem_difficulties = [consistent_problem_difficulties[consistent_inds.index(i)] if i in consistent_inds else 0 \
+                                    for i in range(num_problems)]
+            problem_difficulty_rewards = [consistent_problem_difficulty_rewards[consistent_inds.index(i)] if i in consistent_inds else 0 \
+                                          for i in range(num_problems)]
+        else:
+            problem_difficulties = [None]*num_problems
+            problem_difficulty_rewards = [0]*num_problems
+
+        # Calculate problem diversities
+        if self.diversity_evaluator is not None:
+            consistent_problem_diversities, consistent_problem_diversity_rewards = self.diversity_evaluator.get_diversity(consistent_problems)
+            
+            problem_diversities = [consistent_problem_diversities[consistent_inds.index(i)] if i in consistent_inds else 0 \
+                                   for i in range(num_problems)]
+            problem_diversity_rewards = [consistent_problem_diversity_rewards[consistent_inds.index(i)] if i in consistent_inds else 0 \
+                                         for i in range(num_problems)]
+        else:
+            problem_diversities = [None]*num_problems
+            problem_diversity_rewards = [0]*num_problems
+
+        # Assign difficulty and diversity reward to each problem's trajectory
+        for i in range(num_problems):
+            if is_eventual_consistent[i]:
+                trajectories[i][-1]['difficulty_reward'] = problem_difficulty_rewards[i]
+                
+                # Assign diversity reward to the last sample of the initial state generation phase
+                ind_last_sample_init_phase = problems[i].num_init_state_actions_executed-1
+                trajectories[i][ind_last_sample_init_phase]['diversity_reward'] = problem_diversity_rewards[i]
+
+                # TODO
+                # See what I should do with the TERM condition (should it be taken into account for the number of init/goal actions?)
+
+
+        return problem_difficulties, problem_diversities
 
     def generate_problems(self, num_problems:int, list_max_init_state_actions:Union[Tuple[int],int],
                           list_max_goal_actions:Union[Tuple[int],int]) -> \
@@ -141,8 +248,8 @@ class ProblemGenerator():
                 - 'num_init_state_actions': number of actions executed during the initial state generation phase.
                 - 'num_goal_actions': number of actions executed during the goal generation phase.
                 - 'consistency': True if the problem's initial state is eventual-consistent, False otherwise.
-                - 'difficulty': difficulty of the problem
-                - 'diversity': diversity of the problem
+                - 'difficulty': difficulty of the problem. None if no difficulty evaluator was provided.
+                - 'diversity': diversity of the problem. None if no diversity evaluator was provided.
                 <Note>: consistency, difficulty and diversity are different from their respective rewards
             - A list of problem trajectories [traj_1, traj_2, ...]. Each trajectory is a list containing the (s,a,r) samples, where each sample
               is a dictionary with the following keys:
@@ -173,6 +280,7 @@ class ProblemGenerator():
         problems, trajectories = self._generate_goal_trajectories(problems, is_eventual_consistent, trajectories, list_max_goal_actions)
 
         # <Calculate difficulty and diversity>
+
 
 
         # <Save to disk>

@@ -40,8 +40,8 @@ class InitStateDiversityEvaluator(DiversityEvaluator):
     To do so, it computes a series of features for each problem, and calculates diversity as the mean distance
     of each problem with the rest, based on these features.
     The features are:
-        - Percentage of objects of each type in the state
-        - Percentage of atoms of each predicate type in the state
+        - Percentage of objects of each type in the initial state
+        - Percentage of atoms of each predicate type in the initial state
         - Mean and std of the number of objects of type j each object of type i "relates", i.e., appears on the same
         atom with, according to atoms of predicate type k -> l[obj_type_i][pred_type_k][obj_type_j]
         Example: in some logistics state, each city has an average of 1.2 locations and an std of 0.5 locations.
@@ -199,7 +199,7 @@ class InitStateDiversityEvaluator(DiversityEvaluator):
         
         return feature_matrix_norm
 
-    def get_diversity(self, problem_list : List[PDDLProblem]) -> List[float]:
+    def get_diversity(self, problem_list : List[PDDLProblem]) -> Tuple[List[float], List[float]]:
         """
         Returns the diversity for a list of PDDL problems.
         Before calling this method, the initial state must be completely generated for each problem in the list.

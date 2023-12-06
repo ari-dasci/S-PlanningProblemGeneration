@@ -73,6 +73,9 @@ class PDDLProblem():
     def goal(self):
         return deepcopy(self._goal)
 
+    # <Note>
+    # It's important to note that num_init_state_actions_executed and num_goal_actions_executed
+    # do NOT include the termination action "END" that is sometimes applied at the end of the initial state/goal generation phase
     @property
     def num_init_state_actions_executed(self):
         return self._initial_state.num_atoms
@@ -257,25 +260,38 @@ class PDDLProblem():
     
     # --- Goal generation methods ---
 
-    def _get_applicable_ground_actions_parser(self):
+    def _assign_goal_to_parser(self):
         """
-        Auxiliary method that uses the parser to obtain the applicable actions at the current goal state
-        This method may return actions with repeated arguments (e.g., stack('a', 'a'))
+        This auxiliary method assigns the goal state to the parser, so that the parser can obtain the applicable actions at the current goal state.
+        """
+        self.parser.object_names = [] # No need for object_names to obtain applicable actions
+        self.parser.object_types = self._goal_state.objects
+        self.parser.atoms = self._goal_state.atoms
+        self.parser.goals = set() # No need for goals to obtain applicable actions
+
+    def applicable_ground_actions(self):
+        """
+        Returns all the ground (domain) actions that are applicable at the current goal state.
+        We assume actions cannot have repeated parameters (e.g.: stack A A)
+        They are returned as a list where each element represents a ground action, e.g., ('stack', (1, 2))
         """
         # Make sure we are in the goal generation phase
         if not self.is_initial_state_generated:
             raise Exception("The initial state generation phase has not finished yet")
         
         # Assign the goal_state as the parser state
-        self.parser.object_names = [] # No need for object_names to obtain applicable actions
-        self.parser.object_types = self._goal_state.objects
-        self.parser.atoms = self._goal_state.atoms
-        self.parser.goals = set() # No need for goals to obtain applicable actions
+        self._assign_goal_to_parser()
 
         # Obtain all ground applicable actions
         all_applicable_actions = self.parser.get_applicable_actions()
+        
+        # Encode actions as a list of actions where each actions is in the form ('stack', (1, 2))
+        # Also delete actions with repeated arguments (e.g.: stack('a', 'a') is invalid)
+        applicable_actions_as_list = [(action_name, param_assign) for action_name in all_applicable_actions \
+                                      for param_assign in all_applicable_actions[action_name] \
+                                      if len(param_assign) == len(set(param_assign))]
 
-        return all_applicable_actions
+        return applicable_actions_as_list
 
     def is_lifted_action_applicable(self, action_name):
         """
@@ -284,16 +300,12 @@ class PDDLProblem():
         @action_name String representing the action name.
         """
         # Obtain all ground applicable actions
-        all_applicable_actions = self._get_applicable_ground_actions_parser()
+        all_applicable_actions = self.applicable_ground_actions()
         
-        # Select the actions corresponding to action_name and obtain the list of valid param substitutions
-        applicable_param_assigns = all_applicable_actions[action_name]
-
-        # Delete actions with repeated arguments (e.g.: stack('a', 'a') is invalid)
-        applicable_param_assigns = [param_assign for param_assign in applicable_param_assigns if len(param_assign) == len(set(param_assign))]
+        # Obtain actions associated with action_name
+        applicable_actions_with_name = [action for action in all_applicable_actions if action[0] == action_name]
         
-        # If there are still some valid param substitutions left, then the lifted action is applicable
-        return len(applicable_param_assigns) > 0
+        return len(applicable_actions_with_name) > 0
 
     def applicable_lifted_actions(self):
         """
@@ -301,33 +313,12 @@ class PDDLProblem():
         They are returned as a list of strings with the names of the actions that are applicable.
         A lifted action is applicable if any instantiation (grounding) is applicable, i.e., the preconditions are met AND there are no repeated
         objects (for example, stack(A, A) is not applicable)
-        Note: works with predicates of arity 0   
         """
-        # Obtain all ground applicable actions
-        all_applicable_actions = self._get_applicable_ground_actions_parser()
-        
-        # For each action_name, see if there exists at least one valid param substitution (with non-repeated param instantiations)
-        applicable_action_names = [action_name for action_name in all_applicable_actions.keys() \
-                                   if len([param_assign for param_assign in all_applicable_actions[action_name] if len(param_assign) == len(set(param_assign))]) > 0]
+        action_names = [action[0] for action in self.parser.actions]
+
+        applicable_action_names = [name for name in action_names if self.is_lifted_action_applicable(name)]
 
         return applicable_action_names
-
-    def applicable_ground_actions(self):
-        """
-        Returns all the ground (domain) actions that are applicable at the current goal state.
-        We assume actions cannot have repeated parameters (e.g.: stack A A)
-        They are returned as a list where each element represents a ground action, e.g., ('stack', (1, 2))
-        """
-        # Obtain all ground applicable actions
-        all_applicable_actions = self._get_applicable_ground_actions_parser()
-
-        # Encode actions as a list of actions where each actions is in the form ('stack', (1, 2))
-        # Delete actions with repeated arguments (e.g.: stack('a', 'a') is invalid)
-        applicable_actions_as_list = [(action_name, param_assign) for action_name in all_applicable_actions.keys() \
-                                      for param_assign in all_applicable_actions[action_name] \
-                                      if len(param_assign) == len(set(param_assign))]
-
-        return applicable_actions_as_list	
 
     def is_ground_action_applicable(self, ground_action : Tuple[str, Tuple[int]]):
         """
@@ -339,10 +330,7 @@ class PDDLProblem():
             raise Exception("The initial state generation phase has not finished yet")
         
         # Assign the goal_state as the parser state
-        self.parser.object_names = [] # No need for object_names to obtain applicable actions
-        self.parser.object_types = self._goal_state.objects
-        self.parser.atoms = self._goal_state.atoms
-        self.parser.goals = set() # No need for goals to obtain applicable actions
+        self._assign_goal_to_parser()
     
         # Check applicability (including if action_objs are of the correct type)
         is_applicable = self.parser.is_action_applicable(ground_action[0], tuple(ground_action[1]))
@@ -360,11 +348,12 @@ class PDDLProblem():
         if not self.is_initial_state_generated:
             raise Exception("The initial state generation phase has not finished yet")
         
+        # Make sure the goal generation phase has not finished
+        if self.is_goal_state_generated:
+            raise Exception("The goal generation phase has already finished")
+        
         # Assign the goal_state as the parser state
-        self.parser.object_names = [] # No need for object_names to obtain applicable actions
-        self.parser.object_types = self._goal_state.objects
-        self.parser.atoms = self._goal_state.atoms
-        self.parser.goals = set() # No need for goals to obtain applicable actions
+        self._assign_goal_to_parser()
 
         # Get next goal state
         self._goal_state.atoms = self.parser.get_next_state(ground_action[0], tuple(ground_action[1]), check_action_applicability=False) # We assume the action is applicable
