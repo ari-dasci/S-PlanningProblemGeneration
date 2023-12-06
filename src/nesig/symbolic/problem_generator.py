@@ -115,7 +115,7 @@ class ProblemGenerator():
 
                 # Save sample information
                 curr_sample = dict([ ('state', old_problem), ('internal_state', internal_states[i]),
-                                     ('chosen_action', chosen_actions[i]), ('action_prob', action_probs[i]),
+                                     ('chosen_action', action), ('action_prob', action_probs[i]),
                                      ('consistency_reward', r_consistency), ('difficulty_reward', 0),
                                      ('diversity_reward', 0) ])
 
@@ -163,7 +163,7 @@ class ProblemGenerator():
 
                 # Save sample information
                 curr_sample = dict([ ('state', old_problem), ('internal_state', internal_states[i]),
-                                     ('chosen_action', chosen_actions[i]), ('action_prob', action_probs[i]),
+                                     ('chosen_action', action), ('action_prob', action_probs[i]),
                                      ('consistency_reward', 0), ('difficulty_reward', 0),
                                      ('diversity_reward', 0) ])
 
@@ -171,8 +171,9 @@ class ProblemGenerator():
 
         return problems, trajectories
 
-    def _obtain_problem_difficulties_and_diversities(self, problems, is_eventual_consistent, trajectories) \
-          -> Tuple[List[Union[List[Optional[float]], Optional[float]]],  List[Optional[float]]]:
+    def _obtain_problem_difficulties_and_diversities(self, problems, is_eventual_consistent, trajectories,
+                                                     init_generation_phase_lengths:List[int]) \
+          -> Tuple[List[Union[List[Optional[float]], Optional[float]]],  List[Optional[float]],  List[List[Dict]]]:
         """
         Auxiliary method that calculates the difficulty and diversity for each problem, including the associated rewards.
         Then, for each problem, it assigns the difficulty reward to the last sample of the trajectory and the diversity reward
@@ -185,6 +186,7 @@ class ProblemGenerator():
         This method returns a tuple with two elements:
             - A list containing, for each problem, its difficulties (not rewards).
             - A list containing, for each problem, its diversity (not reward).
+            - The trajectories with the difficulty and diversity rewards.
          
         Eventual-inconsistent problems also have a difficulty and diversity of 0.
         If no difficulty/diversity evaluator is provided, the associated values are None and the associated rewards are 0.
@@ -220,18 +222,12 @@ class ProblemGenerator():
 
         # Assign difficulty and diversity reward to each problem's trajectory
         for i in range(num_problems):
-            if is_eventual_consistent[i]:
-                trajectories[i][-1]['difficulty_reward'] = problem_difficulty_rewards[i]
-                
-                # Assign diversity reward to the last sample of the initial state generation phase
-                ind_last_sample_init_phase = problems[i].num_init_state_actions_executed-1
-                trajectories[i][ind_last_sample_init_phase]['diversity_reward'] = problem_diversity_rewards[i]
+            trajectories[i][-1]['difficulty_reward'] = problem_difficulty_rewards[i]
+            
+            # Assign diversity reward to the last sample of the initial state generation phase
+            trajectories[i][init_generation_phase_lengths[i]-1]['diversity_reward'] = problem_diversity_rewards[i]
 
-                # TODO
-                # See what I should do with the TERM condition (should it be taken into account for the number of init/goal actions?)
-
-
-        return problem_difficulties, problem_diversities
+        return problem_difficulties, problem_diversities, trajectories
 
     def generate_problems(self, num_problems:int, list_max_init_state_actions:Union[Tuple[int],int],
                           list_max_goal_actions:Union[Tuple[int],int]) -> \
@@ -245,8 +241,8 @@ class ProblemGenerator():
         It returns a three-element tuple:
             - A list of the generated problems, as instances of PDDLProblem.
             - A list of problem-level information, as a dictionary for each problem, with the following keys:
-                - 'num_init_state_actions': number of actions executed during the initial state generation phase.
-                - 'num_goal_actions': number of actions executed during the goal generation phase.
+                - 'init_phase_length': number of actions executed during the initial state generation phase.
+                - 'goal_phase_length': number of actions executed during the goal generation phase.
                 - 'consistency': True if the problem's initial state is eventual-consistent, False otherwise.
                 - 'difficulty': difficulty of the problem. None if no difficulty evaluator was provided.
                 - 'diversity': diversity of the problem. None if no diversity evaluator was provided.
@@ -275,15 +271,30 @@ class ProblemGenerator():
 
         # <Initial state generation phase>
         problems, is_eventual_consistent, trajectories = self._generate_init_state_trajectories(num_problems, list_max_init_state_actions)
+        # Calculate the number of actions applied in each init state generation phase
+        # If TERM_ACTION is NOT applied, this number is equal to num_init_state_actions_executed,
+        # otherwise it is equal to num_init_state_actions_executed+1
+        init_generation_phase_lengths = [len(t) for t in trajectories]
 
         # <Goal generation phase>
+        # Note: trajectories is modified by this method
         problems, trajectories = self._generate_goal_trajectories(problems, is_eventual_consistent, trajectories, list_max_goal_actions)
+        # Calculate the length of the goal generation phase (which takes into account TERM_ACTION, if executed)
+        goal_generation_phase_lengths = [len(trajectories[i])-init_generation_phase_lengths[i] for i in range(num_problems)]
 
         # <Calculate difficulty and diversity>
+        # Note: trajectories is modified by this method
+        problem_difficulties, problem_diversities, trajectories = self._obtain_problem_difficulties_and_diversities(problems, is_eventual_consistent,
+                                                                    trajectories, init_generation_phase_lengths)
 
+        # <Obtain the problem-level information>
+        problem_info_list = [ {'init_phase_length':init_generation_phase_lengths[i],
+                               'goal_phase_length':goal_generation_phase_lengths[i],
+                               'consistency':is_eventual_consistent[i],
+                               'difficulty':problem_difficulties[i],
+                               'diversity':problem_diversities[i]} \
+                             for i in range(num_problems) ]
 
+        return problems, problem_info_list, trajectories
 
-        # <Save to disk>
-
-        #TODO
-        # Should I save to disk?
+        
