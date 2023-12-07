@@ -23,11 +23,22 @@ RUN wget https://repo.anaconda.com/archive/Anaconda3-2023.09-0-Linux-x86_64.sh \
 ENV PATH /opt/conda/bin:$PATH
 
 # Create a conda environment and install dependencies
-RUN conda create -n nesig python=3.11 pytorch=2.1 pytorch-cuda=12.1 pytorch-lightning=2.1 -c pytorch -c nvidia -c conda-forge
+# When executing this command we sometimes run out of memory
+# RUN conda create -n nesig python=3.11 pytorch=2.1 pytorch-cuda=12.1 pytorch-lightning=2.1 -c pytorch -c nvidia -c conda-forge
 
-# Activate the environment and install additional packages
+# Create the conda environment with Python only
+# (when we try to install all the packages at the same time, sometimes we run out of memory)
+RUN conda create -n nesig python=3.11 -y
 RUN echo "source activate nesig" > ~/.bashrc
 ENV PATH /opt/conda/envs/nesig/bin:$PATH
+
+# Install the conda packages, one by one
+# Pytorch with CUDA
+# RUN conda install -n nesig pytorch=2.1 pytorch-cuda=12.1 -c pytorch -c nvidia # Pytorch and CUDA
+# Pytorch with CPU-only
+RUN conda install -n nesig pytorch=2.1 cpuonly -c pytorch
+
+RUN conda install -n nesig pytorch-lightning=2.1 -c conda-forge -y # Lightning
 
 # Install TensorBoard and lifted-pddl
 RUN python -m pip install tensorboard lifted-pddl neural-logic-machine PDDL-Prover
