@@ -90,12 +90,12 @@ class ProblemGenerator():
             incomplete_problems_and_inds = [(i, problems[i]) for i in range(num_problems) if not is_init_state_generated[i]]
             incomplete_inds, incomplete_problems = zip(*incomplete_problems_and_inds)
 
-            # For each of those problems, obtain the list of consistent actions (atoms)
-            consistent_actions_list = [problem.get_continuous_consistent_init_state_actions(self.consistency_evaluator) \
+            # For each of those problems, obtain the list of consistent actions (atoms) (including TERM_ACTION)
+            consistent_actions_list = [problem.get_continuous_consistent_init_state_actions(self.consistency_evaluator) + [TERM_ACTION] \
                                     for problem in incomplete_problems]
 
             # Pass the problems and the list of consistent actions to the init state policy, which will select the next action to apply for each problem
-            chosen_actions, action_probs, internal_states = self.init_state_policy.select_actions(incomplete_problems, consistent_actions_list)      
+            chosen_actions, action_log_probs, internal_states = self.init_state_policy.select_actions(incomplete_problems, consistent_actions_list)      
 
             # Apply the selected actions to the corresponding problems
             for i, action in enumerate(chosen_actions):
@@ -114,8 +114,10 @@ class ProblemGenerator():
                     r_consistency = 0
 
                 # Save sample information
+                chosen_action_ind = consistent_actions_list[i].index(action)
                 curr_sample = dict([ ('state', old_problem), ('internal_state', internal_states[i]),
-                                     ('chosen_action', action), ('action_prob', action_probs[i]),
+                                     ('chosen_action', action), ('chosen_action_ind', chosen_action_ind),
+                                     ('action_log_prob', action_log_probs[i]),
                                      ('consistency_reward', r_consistency), ('difficulty_reward', 0),
                                      ('diversity_reward', 0) ])
 
@@ -142,11 +144,11 @@ class ProblemGenerator():
             incomplete_problems_and_inds = [(i, problems[i]) for i in range(num_problems) if not is_goal_generated[i]]
             incomplete_inds, incomplete_problems = zip(*incomplete_problems_and_inds)
 
-            # For each of those problems, obtain the list of applicable domain actions
-            applicable_actions_list = [problem.applicable_ground_actions() for problem in incomplete_problems]  
+            # For each of those problems, obtain the list of applicable domain actions (including TERM_ACTION)
+            applicable_actions_list = [problem.applicable_ground_actions() + [TERM_ACTION] for problem in incomplete_problems]  
 
             # Pass the problems and the list of applicable actions to the goal policy, which will select the next action to apply for each problem
-            chosen_actions, action_probs, internal_states = self.goal_policy.select_actions(incomplete_problems, applicable_actions_list)
+            chosen_actions, action_log_probs, internal_states = self.goal_policy.select_actions(incomplete_problems, applicable_actions_list)
 
             # Apply the selected actions to the corresponding problems
             for i, action in enumerate(chosen_actions):
@@ -162,8 +164,10 @@ class ProblemGenerator():
                     is_goal_generated[or_ind] = True
 
                 # Save sample information
+                chosen_action_ind = applicable_actions_list[i].index(action)
                 curr_sample = dict([ ('state', old_problem), ('internal_state', internal_states[i]),
-                                     ('chosen_action', action), ('action_prob', action_probs[i]),
+                                     ('chosen_action', action), ('chosen_action_ind', chosen_action_ind),
+                                     ('action_log_prob', action_log_probs[i]),
                                      ('consistency_reward', 0), ('difficulty_reward', 0),
                                      ('diversity_reward', 0) ])
 
@@ -251,8 +255,12 @@ class ProblemGenerator():
               is a dictionary with the following keys:
                 - 'state': PDDLState object, representing the state s
                 - 'internal_state': state representation used by the ML model of the policy (e.g., a list of tensors in the case of the NLM)
-                - 'chosen_action': the action executed, either an atom or a domain action
-                - 'action_prob': probability of the chosen action, according to the policy
+                - 'chosen_action': the action executed, either an atom or a domain action (or TERM_ACTION)
+                - 'chosen_action_ind': the index of the chosen action in the list of applicable actions
+                                       (corresponding to applicable_actions.index(chosen_action)).
+                                       This is useful for later obtaining the log probability of the chosen action
+                                       by doing log_probabilities[chosen_action_ind].
+                - 'action_log_prob': log probability of the chosen action, according to the policy
                 - 'consistency_reward': eventual consistency reward of the sample. It is 0 for every sample except the last sample of the
                                         initial state generation phase if it is eventually consistent.
                 - 'difficulty_reward': difficulty reward of the sample. It is 0 for every sample except the last sample of the goal generation

@@ -286,7 +286,7 @@ class PDDLProblem():
         all_applicable_actions = self.parser.get_applicable_actions()
         
         # Encode actions as a list of actions where each actions is in the form ('stack', (1, 2))
-        # Also delete actions with repeated arguments (e.g.: stack('a', 'a') is invalid)
+        # Also delete actions with repeated arguments (e.g.: ('stack', (1, 1)) is invalid)
         applicable_actions_as_list = [(action_name, param_assign) for action_name in all_applicable_actions \
                                       for param_assign in all_applicable_actions[action_name] \
                                       if len(param_assign) == len(set(param_assign))]
