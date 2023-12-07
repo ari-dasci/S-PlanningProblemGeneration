@@ -40,6 +40,19 @@ class DifficultyEvaluator(ABC):
         raise NotImplementedError()
 
 
+class DummyDifficultyEvaluator(DifficultyEvaluator):
+    """
+    Dummy difficulty evaluator that returns the same constant difficulty for every problem.
+    """
+    def __init__(self, constant_difficulty : float = 1.0):
+        self.constant_difficulty = constant_difficulty
+
+    def get_difficulty(self, problem_list : List[Union[PDDLProblem,Path]]) -> Tuple[List[float], List[float]]:
+        """
+        Returns a difficulty and difficulty reward of self.constant_difficulty for every problem.
+        """
+        return [1.0]*len(problem_list), [1.0]*len(problem_list)
+
 class PlannerEvaluator(DifficultyEvaluator):
     """
     Obtains the difficulty by solving the problem with a planner. We use FastDownward.
