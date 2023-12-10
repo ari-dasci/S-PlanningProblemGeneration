@@ -8,9 +8,7 @@ from torch import log
 from src.nesig.learning.generative_policy import RandomPolicy
 from src.nesig.constants import TERM_ACTION
 
-class TestConsistencyEvaluator(unittest.TestCase):
-    def setUp(self):
-        pass
+class TestRandomPolicy(unittest.TestCase):
 
     def assertEqualTensorList(self, l1, l2):
         self.assertEqual(len(l1), len(l2))

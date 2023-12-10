@@ -206,6 +206,9 @@ class InitStateDiversityEvaluator(DiversityEvaluator):
         <Note>: we assume that all the problems are consistent. Consistency must be checked BEFORE calling this method.
                 Otherwise, we will calculate the diversity also for inconsistent problems, which is not what we want.
         """
+        if len(problem_list) == 0:
+            return [], []
+        
         for i, problem in enumerate(problem_list):
             assert problem.is_initial_state_generated, f'The initial state of problem {i} has not been completely generated yet'
 

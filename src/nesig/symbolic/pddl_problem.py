@@ -163,7 +163,9 @@ class PDDLProblem():
             # Note: we pass by reference the initial state to the consistency validator for performance reasons
             return consistency_validator.preprocess_and_check_continuous_consistency(self._initial_state, atom, obj_types)[0] # [0] because the method returns a tuple (is_consistent, r_consistency)
         
-        # Obtain the list of objects, virtual objects and both
+        # Obtain the list of objects with and without virtuals
+        objs_without_virtuals = self._initial_state.objects
+        virtual_objs = self._initial_state.virtual_objects(self.allowed_virtual_objects)
         objs_with_virtuals = self._initial_state.objects_with_virtuals(self.allowed_virtual_objects)
 
         possible_actions = []
@@ -186,9 +188,48 @@ class PDDLProblem():
                 # [[0, 1, 2], [0, 1, 2]]
 
                 # We instantiate on objects whose type inherits from the corresponding predicate param types (pred_types)
+                
+                """
+                # Old
+                # In this version, indexes for virtual objs of the same type did not need to increase
+                # from left to right. For example, if objs 3 and 4 are both virtual objs of type 'block'
+                # ('on', (3,4)) and ('on', (4,3)) were both possible actions.
                 possible_instantiations = [ list(map(lambda y: y[0], \
                                             (filter(lambda x: x[1] in self.type_hierarchy[t], enumerate(objs_with_virtuals))))) \
                                             for t in pred_types ]
+                """
+
+                possible_instantiations = [ list(map(lambda y: y[0], \
+                                            (filter(lambda x: x[1] in self.type_hierarchy[t], enumerate(objs_without_virtuals))))) \
+                                            for t in pred_types ] 
+
+                # Add indexes for virtual objects
+                # Since virtual objects of the same time are equivalent, indexes for
+                # virtual objects must increase from left to right
+                # Example, given an atom pred_type instantiated on two virtual objects of the same type
+                # (pred_type, (5, 8)) is correct but (pred_type, (8, 5)) is not
+                # <Note>: this works correctly if virtual object indexes cannot be repeated in the same atom
+                # (e.g., (pred_type, (5, 5)) is not allowed by the consistency_validator
+
+                # Auxiliary function to obtain the n-th occurence of an element in a list lst
+                def nth_index(lst, element, n):
+                    indices = [i for i, x in enumerate(lst) if x == element]
+                    return indices[n]
+                
+                next_obj_ind = {t:0 for t in self.types}
+
+                for param_position, param_type in enumerate(pred_types):
+                    # Obtain the indexes of all the virtual objs that can be instantiated
+                    # on param_position
+                    virtual_obj_inds = [nth_index(virtual_objs, t, next_obj_ind[t]) \
+                                        for t in self.type_hierarchy[param_type] \
+                                        if t in virtual_objs]
+
+                    # For the next atom object, use a different virtual object
+                    for t in self.type_hierarchy[param_type]:
+                        next_obj_ind[t] += 1
+
+                    possible_instantiations[param_position].extend(virtual_obj_inds)
 
                 # [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2), (2, 0), (2, 1), (2, 2)]
                 possible_instantiations = list(itertools.product(*possible_instantiations)) # Do the cartesian product of the list of lists
@@ -256,7 +297,6 @@ class PDDLProblem():
 
         self._initial_state.add_objects(objs_to_add)
         self._initial_state.add_atom(atom_new_inds)
-
     
     # --- Goal generation methods ---
 

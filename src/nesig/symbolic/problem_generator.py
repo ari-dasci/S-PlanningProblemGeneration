@@ -110,7 +110,7 @@ class ProblemGenerator():
                 if action == TERM_ACTION or incomplete_problems[i].num_init_state_actions_executed >= list_max_init_state_actions[or_ind]:
                     incomplete_problems[i].end_initial_state_generation_phase()
                     is_init_state_generated[or_ind] = True
-                    is_eventual_consistent[or_ind], r_consistency = self.consistency_evaluator.preprocess_and_check_eventual_consistency(incomplete_problems[i])  
+                    is_eventual_consistent[or_ind], r_consistency = self.consistency_evaluator.preprocess_and_check_eventual_consistency(incomplete_problems[i]._initial_state)  
                 else:
                     r_consistency = 0
 
@@ -200,7 +200,8 @@ class ProblemGenerator():
         # Obtain eventual-consistent problems, as we only calculate difficulty and diversity for them
         num_problems = len(problems)
         consistent_problems_and_inds = [(i, problems[i]) for i in range(num_problems) if is_eventual_consistent[i]]
-        consistent_inds, consistent_problems = zip(*consistent_problems_and_inds)
+        consistent_inds, consistent_problems = zip(*consistent_problems_and_inds) \
+                                                if len(consistent_problems_and_inds) > 0 else (), ()
 
         # Calculate problem difficulties
         if self.difficulty_evaluator is not None:
@@ -255,7 +256,7 @@ class ProblemGenerator():
                 <Note>: consistency, difficulty and diversity are different from their respective rewards
             - A list of problem trajectories [traj_1, traj_2, ...]. Each trajectory is a list containing the (s,a,r) samples, where each sample
               is a dictionary with the following keys:
-                - 'state': PDDLState object, representing the state s
+                - 'state': PDDLProblem object, representing the state s
                 - 'internal_state': state representation used by the ML model of the policy (e.g., a list of tensors in the case of the NLM)
                 - 'chosen_action': the action executed, either an atom or a domain action (or TERM_ACTION)
                 - 'chosen_action_ind': the index of the chosen action in the list of applicable actions
@@ -271,6 +272,8 @@ class ProblemGenerator():
                                       trajectories have a diversity reward of 0. The diversity reward of a trajectory is assigned to all its
                                       samples.
         """
+        assert num_problems > 0, 'num_problems must be greater than 0'
+
         if type(list_max_init_state_actions) == int:
             list_max_init_state_actions = (list_max_init_state_actions,) * num_problems
         if type(list_max_goal_actions) == int:

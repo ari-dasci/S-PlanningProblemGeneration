@@ -107,6 +107,9 @@ class PlannerEvaluator(DifficultyEvaluator):
         If for a given problem there was a timeout/memory out, its difficulty (for each planner) is -1 and its difficulty reward
         is self.terminated_reward.
         """
+        if len(problem_list) == 0:
+            return [], []
+        
         assert type(problem_list) in (list,tuple), "This method receives a list of PDDLProblem objects/paths to PDDL files"
 
         # Use ProcessPoolExecutor to run the commands in parallel
