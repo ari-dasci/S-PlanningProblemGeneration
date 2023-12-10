@@ -91,6 +91,7 @@ class ProblemGenerator():
             incomplete_inds, incomplete_problems = zip(*incomplete_problems_and_inds)
 
             # For each of those problems, obtain the list of consistent actions (atoms) (including TERM_ACTION)
+            # Note: if there are no applicable actions, the policy should always select TERM_ACTION
             consistent_actions_list = [problem.get_continuous_consistent_init_state_actions(self.consistency_evaluator) + [TERM_ACTION] \
                                     for problem in incomplete_problems]
 
@@ -145,6 +146,7 @@ class ProblemGenerator():
             incomplete_inds, incomplete_problems = zip(*incomplete_problems_and_inds)
 
             # For each of those problems, obtain the list of applicable domain actions (including TERM_ACTION)
+            # Note: if there are no applicable actions, the policy should always select TERM_ACTION
             applicable_actions_list = [problem.applicable_ground_actions() + [TERM_ACTION] for problem in incomplete_problems]  
 
             # Pass the problems and the list of applicable actions to the goal policy, which will select the next action to apply for each problem

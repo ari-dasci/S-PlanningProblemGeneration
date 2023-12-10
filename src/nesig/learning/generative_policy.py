@@ -5,13 +5,13 @@ Policy for generating PDDL problems. Given a set of states s (in the initial sta
 it selects the next action to apply for each state (i.e., either the next atom to add or the domain action to execute).
 """
 
-# define the type Action as Tuple[str, Tuple[int]]
-Action = Tuple[str, Tuple[int]]
-
 from typing import List, Tuple, Optional, Union
 from abc import ABC, abstractmethod
 import torch
 import pytorch_lightning as pl
+
+# define the type Action as Tuple[str, Tuple[int]]
+Action = Tuple[str, Tuple[int, ...]]
 
 from src.nesig.symbolic.pddl_problem import PDDLProblem
 from src.nesig.constants import TERM_ACTION
@@ -74,10 +74,18 @@ class RandomPolicy(GenerativePolicy):
         all the actions in applicable actions.
         <Note>: actually, we return log_probs instead of probabilities.
         """
+        assert len(problems) == len(applicable_actions_list), "Number of problems and number of lists of applicable actions must be the same"
+        assert all([len(applicable_actions) > 0 for applicable_actions in applicable_actions_list]), \
+            "Each list of applicable actions must be non-empty"
+
         log_probs_list = []
 
         for applicable_actions in applicable_actions_list:
             num_app_actions = len(applicable_actions)
+
+            if num_app_actions == 1:
+                # If there is only one applicable action, we return a probability of 1 for that action
+                log_probs = torch.log(torch.tensor([1.0]))
 
             if TERM_ACTION in applicable_actions:
                 cum_prob_no_term_action = 1 - self.term_action_prob
@@ -107,3 +115,7 @@ class RandomPolicy(GenerativePolicy):
             log_prob_list.append(log_probs[action_idx])
 
         return action_list, log_prob_list, internal_state_list
+    
+    # Random policy does not need training
+    def training_step(self, train_batch, batch_idx=0): 
+        raise NotImplementedError
