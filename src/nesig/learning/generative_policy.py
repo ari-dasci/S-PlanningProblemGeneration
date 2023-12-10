@@ -87,7 +87,7 @@ class RandomPolicy(GenerativePolicy):
                 # If there is only one applicable action, we return a probability of 1 for that action
                 log_probs = torch.log(torch.tensor([1.0]))
 
-            if TERM_ACTION in applicable_actions:
+            elif TERM_ACTION in applicable_actions:
                 cum_prob_no_term_action = 1 - self.term_action_prob
                 prob_no_term = cum_prob_no_term_action / (num_app_actions-1)
                 log_probs = torch.log(torch.tensor([self.term_action_prob if action==TERM_ACTION \
