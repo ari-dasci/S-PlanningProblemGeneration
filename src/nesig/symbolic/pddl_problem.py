@@ -217,11 +217,12 @@ class PDDLProblem():
                     return indices[n]
                 
                 next_obj_ind = {t:0 for t in self.types}
+                num_objs_without_virtuals = len(objs_without_virtuals)
 
                 for param_position, param_type in enumerate(pred_types):
                     # Obtain the indexes of all the virtual objs that can be instantiated
                     # on param_position
-                    virtual_obj_inds = [nth_index(virtual_objs, t, next_obj_ind[t]) \
+                    virtual_obj_inds = [num_objs_without_virtuals + nth_index(virtual_objs, t, next_obj_ind[t]) \
                                         for t in self.type_hierarchy[param_type] \
                                         if t in virtual_objs]
 

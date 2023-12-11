@@ -101,8 +101,10 @@ class RandomPolicy(GenerativePolicy):
         return log_probs_list
     
     def select_actions(self, problems:List[PDDLProblem], applicable_actions_list:List[List[Action]]):
-        # We obtain the action probabilities using self.forward() and then we sample actions according
-        # to these probabilities
+        """
+        We obtain the action probabilities using self.forward() and then we sample actions according
+        to these probabilities.
+        """
         log_probs_list = self.forward(problems, applicable_actions_list)
 
         action_list = []

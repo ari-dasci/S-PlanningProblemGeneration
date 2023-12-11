@@ -112,6 +112,12 @@ class ConsistencyEvaluator(ABC):
             inheritance_comp_list = [o_t in self.domain_type_hierarchy[p_t] for o_t, p_t in zip(obj_types, atom_predicate[1])]
             all_types_correct = functools.reduce(lambda a, b: a and b, inheritance_comp_list)
 
+            # REMOVE
+            if not all_types_correct:
+                print("Atom:", new_atom)
+                print("Atom obj types:", obj_types)
+                print("Correct types:", atom_predicate[1])
+
             assert all_types_correct, "New atom is instantiated on objects of incorrect type"
 
         # <Check that the atom to add (@action) is not already present in the current state>

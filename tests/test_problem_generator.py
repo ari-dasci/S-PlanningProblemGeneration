@@ -63,14 +63,16 @@ class TestProblemGenerator(unittest.TestCase):
         self.assertEqual(problem_info_list[0]['difficulty'], 0)
         self.assertEqual(problem_info_list[0]['diversity'], 0)
 
-        # Make sure that we are later able to obtain the applied actions from
-        # the trajectory
-        trajectory_action = [step['state'].get_continuous_consistent_init_state_actions(self.consistency_evaluator)[step['chosen_action_ind']] \
-                                for step in trajectories[0]]
+        # Make sure that the action indexed by chosen_action_ind is correct
+        trajectory_actions_from_index = [step['state'].get_continuous_consistent_init_state_actions(self.consistency_evaluator)[step['chosen_action_ind']] \
+                                            for step in trajectories[0]]
+        trajectory_actions_from_name = [step['chosen_action'] for step in trajectories[0]]
 
-        print("Actions", trajectory_action)
+        #print("Actions", trajectory_actions_from_index)
+        self.assertEqual(trajectory_actions_from_index, trajectory_actions_from_name)
 
         # Print information
+        """
         print("Problem init state")
         print(problems[0].initial_state)
         print("\nProblem goal state")
@@ -81,12 +83,7 @@ class TestProblemGenerator(unittest.TestCase):
         print(problem_info_list[0])
         print("\nTrajectory")
         print(trajectories[0])
-
-        # TODO
-        # Actions in trajectories and the action applied to the state (added atom)
-        # may be different since we change the action indexes when adding to the state
-        # Should I remove actions with invalid index in get_continuous_consistent_init_state_actions?
-
+        """
 
 
 if __name__ == '__main__':

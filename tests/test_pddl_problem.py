@@ -9,6 +9,7 @@ from copy import copy, deepcopy
 from src.nesig.symbolic.pddl_problem import PDDLProblem
 from src.nesig.symbolic.pddl_state import PDDLState
 from src.nesig.metrics.consistency_evaluators.dummy_consistency import DummyConsistencyEvaluator
+from src.nesig.metrics.consistency_evaluators.blocksworld_consistency import ConsistencyEvaluatorBlocksworld
 from lifted_pddl import Parser
 
 class TestPDDLProblem(unittest.TestCase):
@@ -43,6 +44,22 @@ class TestPDDLProblem(unittest.TestCase):
     def test_get_init_state_actions(self):
         init_state_actions = sorted(self.problem.get_continuous_consistent_init_state_actions(self.consistency_evaluator))
         expected_init_state_actions = sorted([('ontable', (0,)), ('on', (0, 1)), ('clear', (0,)), ('holding', (0,)), ('handempty', ())])
+        self.assertEqual(init_state_actions, expected_init_state_actions)
+
+    def test_get_init_state_consistent_actions(self):
+        # We now use the "real" bw consistency evaluator
+        consistency_evaluator = ConsistencyEvaluatorBlocksworld(self.parser.types, self.parser.type_hierarchy, self.parser.predicates)
+
+        problem2 = deepcopy(self.problem)
+        problem2.apply_action_to_initial_state(('ontable', (0,)))
+        problem2.apply_action_to_initial_state(('ontable', (1,)))
+        problem2.apply_action_to_initial_state(('clear', (0,)))
+        problem2.apply_action_to_initial_state(('on', (2,1)))
+
+        init_state_actions = sorted(problem2.get_continuous_consistent_init_state_actions(consistency_evaluator))
+        expected_init_state_actions = sorted([('ontable', (3,)), ('clear', (2,)), ('on', (3,2)),
+                                              ('holding', (3,)), ('handempty', ())])
+        
         self.assertEqual(init_state_actions, expected_init_state_actions)
 
     def test_get_goal_state_actions(self):
