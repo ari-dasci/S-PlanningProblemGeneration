@@ -26,9 +26,9 @@ class ProblemGenerator():
 
     def __init__(self, parser:Parser, init_state_policy:GenerativePolicy, goal_policy:GenerativePolicy,
                  consistency_evaluator:ConsistencyEvaluator,
-                 goal_predicates:Optional[List[Tuple[str,Tuple[str]]]] = None, 
+                 goal_predicates:Optional[Tuple[Tuple[str,Tuple[str]]]] = None, 
                  init_state_info:Optional[PDDLState] = None,
-                 allowed_virtual_objects:Optional[List[str]] = None,
+                 allowed_virtual_objects:Optional[Tuple[str]] = None,
                  difficulty_evaluator=None, diversity_evaluator=None):
         """
         Constructor. The parameters are the following:
@@ -49,7 +49,7 @@ class ProblemGenerator():
                                If None, all the atoms of the goal_state will be part of the goal.
             - init_state_info: PDDLState used to create the initial state of the generation process.
                                If None, we assume an empty initial state.
-            - allowed_virtual_objects: List of virtual object types that can be added to the initial state during the generation process.
+            - allowed_virtual_objects: Tuple of virtual object types that can be added to the initial state during the generation process.
                                        If None, we assume all the objects can be added.
             - difficulty_evaluator: DifficultyEvaluator object, used to evaluate the difficulty of the problems. If None, we don't evaluate
                                     difficulty.
@@ -88,7 +88,8 @@ class ProblemGenerator():
         while False in is_init_state_generated: # Check if there are still problems for which the init state has not been generated yet
             # Obtain the problems for which the init state has not been generated yet
             incomplete_problems_and_inds = [(i, problems[i]) for i in range(num_problems) if not is_init_state_generated[i]]
-            incomplete_inds, incomplete_problems = zip(*incomplete_problems_and_inds)
+            incomplete_inds = [x[0] for x in incomplete_problems_and_inds]
+            incomplete_problems = [x[1] for x in incomplete_problems_and_inds]
 
             # For each of those problems, obtain the list of consistent actions (atoms) (including TERM_ACTION)
             # Note: if there are no applicable actions, the policy should always select TERM_ACTION
@@ -116,6 +117,8 @@ class ProblemGenerator():
 
                 # Save sample information
                 chosen_action_ind = consistent_actions_list[i].index(action)
+                assert action == consistent_actions_list[i][chosen_action_ind]
+
                 curr_sample = dict([ ('state', old_problem), ('internal_state', internal_states[i]),
                                      ('chosen_action', action), ('chosen_action_ind', chosen_action_ind),
                                      ('action_log_prob', action_log_probs[i]),
@@ -143,7 +146,8 @@ class ProblemGenerator():
         while False in is_goal_generated: # Check if there are still problems for which the goal has not been generated yet
             # Obtain the problems for which the goal has not been generated yet
             incomplete_problems_and_inds = [(i, problems[i]) for i in range(num_problems) if not is_goal_generated[i]]
-            incomplete_inds, incomplete_problems = zip(*incomplete_problems_and_inds)
+            incomplete_inds = [x[0] for x in incomplete_problems_and_inds]
+            incomplete_problems = [x[1] for x in incomplete_problems_and_inds]
 
             # For each of those problems, obtain the list of applicable domain actions (including TERM_ACTION)
             # Note: if there are no applicable actions, the policy should always select TERM_ACTION
@@ -167,6 +171,8 @@ class ProblemGenerator():
 
                 # Save sample information
                 chosen_action_ind = applicable_actions_list[i].index(action)
+                assert action == applicable_actions_list[i][chosen_action_ind]
+
                 curr_sample = dict([ ('state', old_problem), ('internal_state', internal_states[i]),
                                      ('chosen_action', action), ('chosen_action_ind', chosen_action_ind),
                                      ('action_log_prob', action_log_probs[i]),
@@ -200,8 +206,8 @@ class ProblemGenerator():
         # Obtain eventual-consistent problems, as we only calculate difficulty and diversity for them
         num_problems = len(problems)
         consistent_problems_and_inds = [(i, problems[i]) for i in range(num_problems) if is_eventual_consistent[i]]
-        consistent_inds, consistent_problems = zip(*consistent_problems_and_inds) \
-                                                if len(consistent_problems_and_inds) > 0 else (), ()
+        consistent_inds = [x[0] for x in consistent_problems_and_inds]
+        consistent_problems = [x[1] for x in consistent_problems_and_inds]
 
         # Calculate problem difficulties
         if self.difficulty_evaluator is not None:
@@ -218,7 +224,7 @@ class ProblemGenerator():
         # Calculate problem diversities
         if self.diversity_evaluator is not None:
             consistent_problem_diversities, consistent_problem_diversity_rewards = self.diversity_evaluator.get_diversity(consistent_problems)
-            
+
             problem_diversities = [consistent_problem_diversities[consistent_inds.index(i)] if i in consistent_inds else 0 \
                                    for i in range(num_problems)]
             problem_diversity_rewards = [consistent_problem_diversity_rewards[consistent_inds.index(i)] if i in consistent_inds else 0 \

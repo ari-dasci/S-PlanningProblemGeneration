@@ -51,6 +51,7 @@ class DummyDifficultyEvaluator(DifficultyEvaluator):
         """
         Returns a difficulty and difficulty reward of self.constant_difficulty for every problem.
         """
+
         return [self.constant_difficulty]*len(problem_list), [self.constant_difficulty]*len(problem_list)
 
 class PlannerEvaluator(DifficultyEvaluator):

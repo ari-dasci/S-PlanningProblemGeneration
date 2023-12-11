@@ -18,7 +18,7 @@ class TestPDDLProblem(unittest.TestCase):
         os.chdir(os.path.dirname(os.path.abspath(__file__)))
         self.parser.parse_domain('../data/domains/blocks-domain.pddl')
 
-        self.problem = PDDLProblem(self.parser, [('on', ('block', 'block'))], None, ['block'])
+        self.problem = PDDLProblem(self.parser, (('on', ('block', 'block')),), None, ('block',))
         self.consistency_evaluator = DummyConsistencyEvaluator(self.parser.types, self.parser.type_hierarchy, self.parser.predicates)
 
     def test_eq(self):
@@ -27,9 +27,9 @@ class TestPDDLProblem(unittest.TestCase):
         """
         state = PDDLState(self.parser.types, self.parser.type_hierarchy, self.parser.predicates, ['block', 'block'], {('on', (1, 0))})
 
-        p1 = PDDLProblem(self.parser, [('on', ('block', 'block'))], state, ['block'])
-        p2 = PDDLProblem(self.parser, [('on', ('block', 'block'))], state, ['block'])
-        p3 = PDDLProblem(self.parser, [('ontable', ('block',))], state, ['block'])
+        p1 = PDDLProblem(self.parser, (('on', ('block', 'block')),), state, ['block'])
+        p2 = PDDLProblem(self.parser, (('on', ('block', 'block')),), state, ['block'])
+        p3 = PDDLProblem(self.parser, (('ontable', ('block',)),), state, ['block'])
 
         self.assertEqual(p1, p2)
         self.assertNotEqual(p1, p3)

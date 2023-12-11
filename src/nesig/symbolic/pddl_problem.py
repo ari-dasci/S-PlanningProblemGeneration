@@ -20,9 +20,9 @@ class PDDLProblem():
     of applicable actions in the current goal state). 
     """
     
-    def __init__(self, parser, goal_predicates : Optional[List[Tuple[str,Tuple[str]]]] = None,
+    def __init__(self, parser, goal_predicates : Optional[Tuple[Tuple[str,Tuple[str]]]] = None,
                  init_state_info : Optional[PDDLState] = None,
-                 allowed_virtual_objects : Optional[List[str]] = None):       
+                 allowed_virtual_objects : Optional[Tuple[str]] = None):       
         """
         The constructor receives the information needed for initializing a PDDLProblem.
         Parameters:
@@ -41,18 +41,25 @@ class PDDLProblem():
                             If None, we assume an empty initial state.
                                     If None, we assume all the objects can be added.
         """
+        # We make sure goal_predicates is a tuple instead of a list, so that it can never be modified
+        assert goal_predicates is None or isinstance(goal_predicates, tuple), "goal_predicates must be either a tuple or None"
+        
         self.parser = deepcopy(parser) # We use deepcopy because some methods modify the parser internal state
-        self.types = parser.types
-        self.type_hierarchy = parser.type_hierarchy
-        self.predicates = parser.predicates
         self.goal_predicates = goal_predicates
         self.allowed_virtual_objects = allowed_virtual_objects
 
         # Get initial state from init_state_info
         self._initial_state = deepcopy(init_state_info) if init_state_info is not None \
-                              else PDDLState(self.types, self.type_hierarchy, self.predicates)
+                              else PDDLState(parser.types, parser.type_hierarchy, parser.predicates)
         self._goal_state = None
         self._goal = None # The goal is a subset of the goal state. Only totally-generated problems have a non-None goal
+
+        # We don't do self.types = parser.types because we need the type order of self.types to be the same as in
+        # self._initial_state. This is important for thos methods that rely on type and predicate order 
+        # (e.g., get_continuous_consistent_init_state_actions)
+        self.types = self._initial_state.types
+        self.type_hierarchy = self._initial_state.type_hierarchy
+        self.predicates = self._initial_state.predicates
 
         # Increased by one for each apply_action_to_goal_state call
         # We don't need this for the init state generation phase since the number of actions is simply the number of atoms
@@ -408,6 +415,10 @@ class PDDLProblem():
         """
         if not self.is_goal_state_generated:
             raise Exception("The goal state generation phase needs to finish before generating the goal")
+
+        # If goal_predicates is None, the goal is equal to the goal_state
+        if self.goal_predicates is None:
+            return tuple(self._goal_state.atoms)
 
         goal_atoms = self._goal_state.atoms
         goal_objects = self._goal_state.objects # List with the type of each object in goal_state

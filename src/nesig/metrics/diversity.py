@@ -208,6 +208,8 @@ class InitStateDiversityEvaluator(DiversityEvaluator):
         """
         if len(problem_list) == 0:
             return [], []
+        elif len(problem_list) == 1: # The distance (and, thus, diversity) between a problem and itself is always 0
+            return [0.0], [0.0]
         
         for i, problem in enumerate(problem_list):
             assert problem.is_initial_state_generated, f'The initial state of problem {i} has not been completely generated yet'

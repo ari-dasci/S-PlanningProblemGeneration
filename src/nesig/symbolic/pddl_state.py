@@ -285,7 +285,7 @@ class PDDLState():
 
         return num_preds_each_arity_for_nlm
 
-    def virtual_objects(self, allowed_virtual_objects=None):
+    def virtual_objects(self, allowed_virtual_objects:Optional[Tuple[str]]=None):
         """
         Method used for NeSIG.
         Returns the list of virtual objects of the state. They are returned as a list with their types, e.g., ['truck','truck','city']
@@ -295,9 +295,13 @@ class PDDLState():
                 in order to allow an atom of the form ('on', (virtual_block_1, virtual_block_2)). Since no other predicate in blocksworld
                 is intantiated on more than two objects of type 'block', having two virtual objects of type 'block' is enough.
 
-        @allowed_virtual_objects List of object types which can be added as virtual objects.
+        @allowed_virtual_objects Tuple of object types which can be added as virtual objects.
                                 If None, all object types can be added as virtual objects.
         """
+        assert allowed_virtual_objects is None or type(allowed_virtual_objects) == tuple, """allowed_virtual_objects must be None or a tuple. We do this to ensure
+                                                                                        the order of the objects is always the same and they are not modified
+                                                                                        at any point of the code."""     
+        
         # If no object type can be added as virtual object, then return no virtual objects
         if allowed_virtual_objects is not None and len(allowed_virtual_objects) == 0:
             return list()
