@@ -32,7 +32,6 @@ from src.nesig.metrics.diversity import InitStateDiversityEvaluator
 
 class TestProblemGenerator(unittest.TestCase):
     def setUp(self):
-        seed_everything(3, workers=True)
         # Initialize problem generator
         self.parser = Parser()
         os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -58,6 +57,7 @@ class TestProblemGenerator(unittest.TestCase):
         We stop problem generation when the number of actions in the problem is equal to max_num_actions.
         The initial state of the problem is not consistent.
         """
+        seed_everything(2, workers=True)
         init_policy = RandomPolicy(0.0)
         goal_policy = RandomPolicy(0.0)
 
@@ -110,6 +110,7 @@ class TestProblemGenerator(unittest.TestCase):
         We generate several problems, each with a different number of actions.
         We stop problem generation before the initial state is consistent.
         """
+        seed_everything(3, workers=True)
         init_policy = RandomPolicy(0.0)
         goal_policy = RandomPolicy(0.0)
 
@@ -175,6 +176,7 @@ class TestProblemGenerator(unittest.TestCase):
         """
         Use term_prob=1 for both the init and goal policies.
         """
+        seed_everything(4, workers=True)
         init_policy = RandomPolicy(1.0)
         goal_policy = RandomPolicy(1.0)
 
@@ -212,6 +214,7 @@ class TestProblemGenerator(unittest.TestCase):
         """
         We generate a consistent problem with both an init and non-empty goal state.
         """
+        seed_everything(5, workers=True)
         init_policy = RandomPolicy(0.0)
         goal_policy = RandomPolicy(0.0)
 
@@ -246,8 +249,6 @@ class TestProblemGenerator(unittest.TestCase):
         trajectory_actions_from_index_goal = [step['state'].applicable_ground_actions()[step['chosen_action_ind']] \
                                             for step in trajectories[0][10:]]
         trajectory_actions_from_index = trajectory_actions_from_index_init + trajectory_actions_from_index_goal     
-        print("trajectory_actions_from_index", trajectory_actions_from_index)
-        print("trajectory_actions_from_name", trajectory_actions_from_name)      
         self.assertEqual(trajectory_actions_from_index, trajectory_actions_from_name)
 
         self.assertEqual([step['consistency_reward'] for step in trajectories[0]], [0]*12)
@@ -268,21 +269,51 @@ class TestProblemGenerator(unittest.TestCase):
                                             for step in trajectories[1][:8]]
         trajectory_actions_from_index_goal = [step['state'].applicable_ground_actions()[step['chosen_action_ind']] \
                                             for step in trajectories[1][8:]]
-        trajectory_actions_from_index = trajectory_actions_from_index_init + trajectory_actions_from_index_goal     
-        print("trajectory_actions_from_index", trajectory_actions_from_index)
-        print("trajectory_actions_from_name", trajectory_actions_from_name)      
+        trajectory_actions_from_index = trajectory_actions_from_index_init + trajectory_actions_from_index_goal       
         self.assertEqual(trajectory_actions_from_index, trajectory_actions_from_name)
        
         self.assertEqual([step['consistency_reward'] for step in trajectories[1]], [0]*13)
         self.assertEqual(trajectories[1][-1]['difficulty_reward'], 1)
         self.assertGreater(trajectories[1][7]['diversity_reward'], 0) # Diversity reward is stored in the last step of the init phase
 
-        # TODO
-        # Resolver bug reproducibility seed_everything
-        # Resolver bug action_index no coincide con action_name -> almacenar en step la lista de acciones y ver si coinciden después
-        # Diversity 0 -> Done
-        # División por 0 en diversity
+    def test_consistent_problem_generation_no_goal_trajectory(self):
+        """
+        We generate problems with consistent init state but with goal trajectory length of 0.
+        """
+        seed_everything(6, workers=True)
+        init_policy = RandomPolicy(0.0)
+        goal_policy = RandomPolicy(1.0) # Always select TERM_ACTION
 
+        generator = ProblemGenerator(self.parser, init_policy, goal_policy, self.consistency_evaluator,
+                                     self.goal_predicates, None, self.allowed_virtual_objects,
+                                     self.difficulty_evaluator, self.diversity_evaluator)
+
+        are_problems_consistent = False
+        while not are_problems_consistent:
+            problems, problem_info_list, trajectories = generator.generate_problems(1, [7], [20])
+            are_problems_consistent = all([problem_info['consistency'] for problem_info in problem_info_list])
+
+        self.assertEqual(len(trajectories[0]), 8)
+        self.assertEqual(problem_info_list[0]['init_phase_length'], 7)
+        self.assertEqual(problem_info_list[0]['goal_phase_length'], 1)
+        self.assertEqual(problem_info_list[0]['consistency'], True)
+        self.assertEqual(problem_info_list[0]['difficulty'], 1)
+        self.assertEqual(problem_info_list[0]['diversity'], 0)
+
+        trajectory_actions_from_name = [step['chosen_action'] for step in trajectories[0]]
+        trajectory_actions_from_index_init = [step['state'].get_continuous_consistent_init_state_actions(self.consistency_evaluator)[step['chosen_action_ind']] \
+                                            for step in trajectories[0][:7]]
+        # We need to add TERM_ACTION, as it is not returned by the applicable_ground_actions method
+        trajectory_actions_from_index_goal = [(step['state'].applicable_ground_actions()+(TERM_ACTION,))[step['chosen_action_ind']] \
+                                            for step in trajectories[0][7:]]
+        trajectory_actions_from_index = trajectory_actions_from_index_init + trajectory_actions_from_index_goal     
+        self.assertEqual(trajectory_actions_from_index, trajectory_actions_from_name)
+        self.assertEqual(trajectories[0][-1]['chosen_action'], TERM_ACTION)
+
+        self.assertEqual([step['consistency_reward'] for step in trajectories[0]], [0]*8)
+        self.assertEqual([step['diversity_reward'] for step in trajectories[0]], [0]*8)
+        self.assertEqual(trajectories[0][-1]['difficulty_reward'], 1)
+        self.assertEqual(trajectories[0][-1]['state'].goal_state, trajectories[0][-1]['state'].initial_state) # The goal trajectory only contains TERM_ACTION
 
 
 if __name__ == '__main__':

@@ -159,7 +159,7 @@ class PDDLProblem():
 
     def get_continuous_consistent_init_state_actions(self, consistency_validator):
         """
-        Obtains a list with all the actions that can be applied to the initial state, i.e.,
+        Obtains a tuple with all the actions that can be applied to the initial state, i.e.,
         all the atoms which can be added to the initial state while satisfying continuous consistency.
         Each element in the list corresponds to an atom in the following way: [('on', (1, 0)), ('on', (1, 2)), ('handempty', ())]
 
@@ -251,6 +251,10 @@ class PDDLProblem():
 
                 possible_actions.extend(consistent_atoms)
 
+        # We sort them for those methods that rely on action order
+        # Also, we use a tuple, so that it is immutable
+        possible_actions = tuple(sorted(possible_actions))
+
         return possible_actions
 
     def apply_action_to_initial_state(self, new_atom : Tuple[str, Tuple[int]]):
@@ -335,11 +339,15 @@ class PDDLProblem():
         
         # Encode actions as a list of actions where each actions is in the form ('stack', (1, 2))
         # Also delete actions with repeated arguments (e.g.: ('stack', (1, 1)) is invalid)
-        applicable_actions_as_list = [(action_name, param_assign) for action_name in all_applicable_actions \
+        applicable_actions = [(action_name, param_assign) for action_name in all_applicable_actions \
                                       for param_assign in all_applicable_actions[action_name] \
                                       if len(param_assign) == len(set(param_assign))]
 
-        return applicable_actions_as_list
+        # Order them, for those methods that rely on action order
+        # Also use a tuple, so that it is immutable
+        applicable_actions = tuple(sorted(applicable_actions))
+
+        return applicable_actions
 
     def is_lifted_action_applicable(self, action_name):
         """
@@ -418,7 +426,7 @@ class PDDLProblem():
 
         # If goal_predicates is None, the goal is equal to the goal_state
         if self.goal_predicates is None:
-            return tuple(self._goal_state.atoms)
+            return tuple(sorted(self._goal_state.atoms))
 
         goal_atoms = self._goal_state.atoms
         goal_objects = self._goal_state.objects # List with the type of each object in goal_state
@@ -438,7 +446,7 @@ class PDDLProblem():
 
                     break
         
-        return tuple(goal_atoms_filtered)
+        return tuple(sorted(goal_atoms_filtered))
 
     def end_goal_state_generation_phase(self):
         """
@@ -484,10 +492,10 @@ class PDDLProblem():
         problem_objects = self._goal_state.objects
 
         # Init atoms
-        init_atoms = sorted(self._initial_state.atoms) # We print them to PDDL in order to make the problem file more readable
+        init_atoms = sorted(self._initial_state.atoms) # We #print them to PDDL in order to make the problem file more readable
 
         # Goal atoms (according to the predicates given by the user)
-        goal_atoms = sorted(self.goal)
+        goal_atoms = self.goal # It's already sorted
 
         # <<Encode this information in PDDL format>>
 

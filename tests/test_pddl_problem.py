@@ -122,5 +122,25 @@ class TestPDDLProblem(unittest.TestCase):
 
         #print(self.problem.dump_to_pddl('test_problem'))
 
+    def test_no_goal_predicates(self):
+        """
+        Test that when goal_predicats is None, the goal is equal to the goal_state.
+        """
+        problem = PDDLProblem(self.parser, None, None, ('block',))
+        problem.apply_action_to_initial_state(('ontable', (0,)))
+        problem.apply_action_to_initial_state(('on', (1,0))) # Virtual objs can be assigned any index as long as it is not used by the state objs
+        problem.apply_action_to_initial_state(('clear', (1,)))
+        problem.apply_action_to_initial_state(('handempty', tuple()))
+        problem.apply_action_to_initial_state(('ontable', (3,))) 
+        problem.apply_action_to_initial_state(('clear', (2,)))
+        problem.end_initial_state_generation_phase()
+
+        problem.apply_action_to_goal_state(('pick-up', (2,)))
+        problem.apply_action_to_goal_state(('stack', (2, 1)))
+        problem.end_goal_state_generation_phase()
+
+        self.assertEqual(problem.goal, tuple(sorted(problem.goal_state.atoms)))
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -38,12 +38,12 @@ class GenerativePolicy(ABC, pl.LightningModule):
     """
 
     @abstractmethod
-    def forward(self, problems:List[PDDLProblem], applicable_actions_list:List[List[Action]]) -> \
+    def forward(self, problems:List[PDDLProblem], applicable_actions_list:List[Tuple[Action]]) -> \
         List[torch.Tensor]:
         raise NotImplementedError
 
     @abstractmethod
-    def select_actions(self, problems:List[PDDLProblem], applicable_actions_list:List[List[Action]]) -> \
+    def select_actions(self, problems:List[PDDLProblem], applicable_actions_list:List[Tuple[Action]]) -> \
         Tuple[List[Action], List[torch.Tensor], List]:
         raise NotImplementedError
 
@@ -66,7 +66,7 @@ class RandomPolicy(GenerativePolicy):
         assert term_action_prob >= 0 and term_action_prob <= 1, "Probability of selecting TERM_ACTION must be between 0 and 1"
         self.term_action_prob = term_action_prob
 
-    def forward(self, problems:List[PDDLProblem], applicable_actions_list:List[List[Action]]):
+    def forward(self, problems:List[PDDLProblem], applicable_actions_list:List[Tuple[Action]]):
         """
         We return a uniform probability distribution over the applicable actions WITHOUT TERM_ACTION,
         whose probability is given by self.term_action_prob.
@@ -100,7 +100,7 @@ class RandomPolicy(GenerativePolicy):
 
         return log_probs_list
     
-    def select_actions(self, problems:List[PDDLProblem], applicable_actions_list:List[List[Action]]):
+    def select_actions(self, problems:List[PDDLProblem], applicable_actions_list:List[Tuple[Action]]):
         """
         We obtain the action probabilities using self.forward() and then we sample actions according
         to these probabilities.

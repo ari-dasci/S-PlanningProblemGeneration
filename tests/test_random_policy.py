@@ -22,9 +22,9 @@ class TestRandomPolicy(unittest.TestCase):
 
         # No term action in available actions
         problems = [None]*3 # Random policy does not use the problems
-        applicable_actions_list = [[('action_1',(1,0)), ('action_1',(3,2)), ('action_2',(1,0))],
-                                   [('action_1',(1,0)), ('action_3',(1,))],
-                                   [('action_4', tuple())]]
+        applicable_actions_list = [(('action_1',(1,0)), ('action_1',(3,2)), ('action_2',(1,0))),
+                                   (('action_1',(1,0)), ('action_3',(1,))),
+                                   (('action_4', tuple()),)]
 
         log_probs_list_0 = policy_0.forward(problems, applicable_actions_list)
         log_probs_list_3 = policy_3.forward(problems, applicable_actions_list)
@@ -39,9 +39,9 @@ class TestRandomPolicy(unittest.TestCase):
         self.assertEqualTensorList(log_probs_list_1, expected_res)
 
         # With term action
-        applicable_actions_list = [[('action_1',(1,0)), ('action_1',(3,2)), ('action_2',(1,0)), TERM_ACTION],
-                            [('action_1',(1,0)), ('action_3',(1,)), TERM_ACTION],
-                            [('action_4', tuple()), TERM_ACTION]]
+        applicable_actions_list = [(('action_1',(1,0)), ('action_1',(3,2)), ('action_2',(1,0)), TERM_ACTION),
+                            (('action_1',(1,0)), ('action_3',(1,)), TERM_ACTION),
+                            (('action_4', tuple()), TERM_ACTION)]
 
         log_probs_list_0 = policy_0.forward(problems, applicable_actions_list)
         log_probs_list_3 = policy_3.forward(problems, applicable_actions_list)
@@ -68,8 +68,8 @@ class TestRandomPolicy(unittest.TestCase):
 
         # No term action in available actions
         problems = [None]*2 # Random policy does not use the problems
-        applicable_actions_list = [[('action_1',(1,0))],
-                                   [('action_3',(1,))]]
+        applicable_actions_list = [(('action_1',(1,0)),),
+                                   (('action_3',(1,)),)]
 
         action_list0, log_prob_list0, internal_state_list0 = policy_0.select_actions(problems, applicable_actions_list)
         action_list3, log_prob_list3, internal_state_list3 = policy_3.select_actions(problems, applicable_actions_list)
@@ -94,8 +94,8 @@ class TestRandomPolicy(unittest.TestCase):
         # With term action and term_action_prob=0.0
         # TERM_ACTION must never be selected (unless TERM_ACTION is the only applicable action)
         problems = [None]*2 # Random policy does not use the problems
-        applicable_actions_list = [[TERM_ACTION],
-                                   [('action_3',(1,)), TERM_ACTION]]
+        applicable_actions_list = [(TERM_ACTION,),
+                                   (('action_3',(1,)), TERM_ACTION)]
         action_list, log_prob_list, internal_state_list = policy_0.select_actions(problems, applicable_actions_list)
 
         expected_action_list = [TERM_ACTION, ('action_3',(1,))]
@@ -109,10 +109,10 @@ class TestRandomPolicy(unittest.TestCase):
         # With term action and term_action_prob=1.0
         # TERM_ACTION must always be selected (unless TERM_ACTION is not in applicable actions)
         problems = [None]*4 # Random policy does not use the problems
-        applicable_actions_list = [[TERM_ACTION],
-                                   [('action_3',(1,)), TERM_ACTION],
-                                   [('action_3',(1,)), TERM_ACTION, ('action_4', tuple())],
-                                   [('action_8',(1,5,9))]]
+        applicable_actions_list = [(TERM_ACTION,),
+                                   (('action_3',(1,)), TERM_ACTION,),
+                                   (('action_3',(1,)), TERM_ACTION, ('action_4', tuple()),),
+                                   (('action_8',(1,5,9)),)]
         
         action_list, log_prob_list, internal_state_list = policy_1.select_actions(problems, applicable_actions_list)
 
