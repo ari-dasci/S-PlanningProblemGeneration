@@ -121,3 +121,55 @@ class RandomPolicy(GenerativePolicy):
     # Random policy does not need training
     def training_step(self, train_batch, batch_idx=0): 
         raise NotImplementedError
+    
+class ActorCriticPolicy(GenerativePolicy):
+    """
+    A policy that can both output action probabilities and state values V(s).
+    """
+
+    @abstractmethod
+    def calculate_state_values(self, problems:List[PDDLProblem]) -> List[torch.Tensor]:
+        """
+        This method returns the state value V(s) for each problem in the list.
+        It returns them as a list of torch Tensors, where the i-th tensor contains the state value V(s)
+        of problem i as a zero-dimensional torch.Tensor containing a single float.
+        """
+        raise NotImplementedError
+    
+class PPOPolicy(ActorCriticPolicy):
+    """
+    A policy that uses PPO to train the actor and critic networks.
+    """
+
+    def calculate_entropy(self, ):
+        pass
+
+    def reduce_entropy_coeff(self):
+        pass
+    
+    def forward(self, problems:List[PDDLProblem], applicable_actions_list:List[Tuple[Action]]) -> \
+        List[torch.Tensor]:
+        raise NotImplementedError
+    
+    def calculate_state_values(self, problems:List[PDDLProblem]) -> List[torch.Tensor]:
+        raise NotImplementedError
+    
+    def select_actions(self, problems:List[PDDLProblem], applicable_actions_list:List[Tuple[Action]]) -> \
+        Tuple[List[Action], List[torch.Tensor], List]:
+        raise NotImplementedError
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.parameters(), lr=self._lr)
+        return optimizer
+    
+    def on_train_end(self):
+        """
+        Anneal entropy after every trainer.fit() call.
+        """
+        super().on_train_end()
+        self.reduce_entropy_coeff()
+
+    def training_step(self, train_batch, batch_idx=0): 
+        raise NotImplementedError
+        # TODO
+        # Logging
