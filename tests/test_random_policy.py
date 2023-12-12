@@ -26,9 +26,9 @@ class TestRandomPolicy(unittest.TestCase):
                                    (('action_1',(1,0)), ('action_3',(1,))),
                                    (('action_4', tuple()),)]
 
-        log_probs_list_0 = policy_0.forward(problems, applicable_actions_list)
-        log_probs_list_3 = policy_3.forward(problems, applicable_actions_list)
-        log_probs_list_1 = policy_1.forward(problems, applicable_actions_list)
+        log_probs_list_0, internal_states_0 = policy_0.forward(problems, applicable_actions_list)
+        log_probs_list_3, internal_states_3 = policy_3.forward(problems, applicable_actions_list)
+        log_probs_list_1, internal_states_1 = policy_1.forward(problems, applicable_actions_list)
 
         expected_res = [log(t([1/3,1/3,1/3], dtype=torch.float32)),
                         log(t([0.5,0.5], dtype=torch.float32)),
@@ -37,15 +37,18 @@ class TestRandomPolicy(unittest.TestCase):
         self.assertEqualTensorList(log_probs_list_0, expected_res)
         self.assertEqualTensorList(log_probs_list_3, expected_res)
         self.assertEqualTensorList(log_probs_list_1, expected_res)
+        self.assertEqual(internal_states_0, [None]*3)
+        self.assertEqual(internal_states_3, [None]*3)
+        self.assertEqual(internal_states_1, [None]*3)
 
         # With term action
         applicable_actions_list = [(('action_1',(1,0)), ('action_1',(3,2)), ('action_2',(1,0)), TERM_ACTION),
                             (('action_1',(1,0)), ('action_3',(1,)), TERM_ACTION),
                             (('action_4', tuple()), TERM_ACTION)]
 
-        log_probs_list_0 = policy_0.forward(problems, applicable_actions_list)
-        log_probs_list_3 = policy_3.forward(problems, applicable_actions_list)
-        log_probs_list_1 = policy_1.forward(problems, applicable_actions_list)
+        log_probs_list_0, _ = policy_0.forward(problems, applicable_actions_list)
+        log_probs_list_3, _ = policy_3.forward(problems, applicable_actions_list)
+        log_probs_list_1, _ = policy_1.forward(problems, applicable_actions_list)
 
         expected_res_0 = [log(t([1/3,1/3,1/3,0], dtype=torch.float32)),
                           log(t([0.5,0.5,0], dtype=torch.float32)),
