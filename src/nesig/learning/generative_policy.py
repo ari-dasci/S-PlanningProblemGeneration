@@ -8,6 +8,7 @@ it selects the next action to apply for each state (i.e., either the next atom t
 from typing import List, Tuple, Optional, Union, Any
 from abc import ABC, abstractmethod
 import torch
+import math
 import pytorch_lightning as pl
 
 # define the type Action as Tuple[str, Tuple[int]]
@@ -182,8 +183,48 @@ class PPOPolicy(ActorCriticPolicy):
                                                                     dtype=torch.float32))
             self.final_entropy_coeff = entropy_final_val
 
-    def calculate_entropy(self, ):
-        pass
+    def calculate_entropy(self, action_log_probs:torch.Tensor, applicable_actions:List[Tuple[str, Tuple[int]]]):
+        """
+        We calculate the entropy of the probability distribution over the applicable actions.
+        It is equal to self.hparams.lifted_entropy_weight*lifted_entropy + (1-self.hparams.lifted_entropy_weight)*ground_entropy.
+        Ground entropy is calculated over all the ground actions/atoms.
+        Lifted entropy is calculated by first adding the probabilities of all the ground actions/atoms of the same action/predicate
+        type (e.g., on, ontable, holding, handempty, clear).
+        <Note>: this method calculates the entropy of a single sample at a time.
+        <Note2>: all the operations must be differentiable.
+        <Note3>: we normalize the lifted and ground entropies by the number of values of the random value (number of ground/lifted actions).
+                 Otherwise, entropy would be higher for predicates/actions with more values.
+        """
+        assert self.hparams.lifted_entropy_weight >= 0 and self.hparams.lifted_entropy_weight <= 1
+        assert action_log_probs.dim() == 1
+        assert len(action_log_probs) == len(applicable_actions)
+        num_actions = len(action_log_probs)
+
+        if len(action_log_probs) == 1:
+            # If there is only one applicable action, the entropy is 0
+            return torch.tensor(0.0, dtype=torch.float32, device=self.device)
+
+        # Transform from log_probs to probs by using exp
+        action_probs = torch.exp(action_log_probs)
+
+        # <Ground entropy>
+        ground_entropy = (torch.distributions.Categorical(probs = action_probs).entropy() / math.log(num_actions)).view(1)
+
+        # <lifted entropy>
+        action_name_probs = []
+        existing_action_names = set([action[0] for action in applicable_actions])
+
+        for action_name in existing_action_names:
+            inds = [i for i, action in enumerate(applicable_actions) if action[0]==action_name]
+            action_name_probs.append(torch.sum(action_probs[inds]))
+
+        action_name_probs_tensor = torch.stack(action_name_probs)
+        lifted_entropy = (torch.distributions.Categorical(probs = action_name_probs_tensor).entropy() / \
+                          math.log(len(existing_action_names))).view(1)
+        
+        # <Final entropy>
+        entropy = self.hparams.lifted_entropy_weight*lifted_entropy + (1-self.hparams.lifted_entropy_weight)*ground_entropy
+        return entropy
 
     def anneal_entropy_coeff(self):
         """

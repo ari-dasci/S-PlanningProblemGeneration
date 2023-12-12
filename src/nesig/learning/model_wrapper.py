@@ -13,6 +13,14 @@ import argparse
 
 from src.nesig.symbolic.pddl_problem import PDDLProblem
 
+"""
+NOTE:
+    - The step for converting from list of inner states to a single batch inner state is performed in the modelwrapper
+      and NOT in the datamodule
+"""
+
+
+
 class ModelWrapper(ABC, torch.nn.Module):
     
     def __init__(self, args:Union[argparse.Namespace, dict]):
