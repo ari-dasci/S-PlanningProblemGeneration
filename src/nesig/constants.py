@@ -23,3 +23,10 @@ TEST_PLANNER_ARGS = [LAMA_FIRST_ARG, LAZY_GREEDY_FF_ARG, LAZY_GREEDY_ADD_ARG]
 
 # Termination condition action, which signals the end of the (initial state or goal) generation phase
 TERM_ACTION = "END"
+
+# Dictionary that maps from modelwrapper names to the actual classes
+MODEL_WRAPPER_DICT = {
+    'ModelWrapper': src.nesig.learning.model_wrapper.ModelWrapper,
+    'NLMWrapperInitPhase': src.nesig.learning.model_wrapper.NLMWrapperInitPhase,
+    'NLMWrapperGoalPhase': src.nesig.learning.model_wrapper.NLMWrapperGoalPhase
+}

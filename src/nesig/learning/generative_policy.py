@@ -135,16 +135,30 @@ class ActorCriticPolicy(GenerativePolicy):
         of problem i as a zero-dimensional torch.Tensor containing a single float.
         """
         raise NotImplementedError
-    
+
+from src.nesig.learning.model_wrapper import ModelWrapper
+from src.nesig.constants import MODEL_WRAPPER_DICT
+import argparse
+
+
 class PPOPolicy(ActorCriticPolicy):
     """
     A policy that uses PPO to train the actor and critic networks.
     """
 
+    def __init__(self, args:argparse.Namespace, model_wrapper_class:str):
+        super().__init__()
+        self.save_hyperparameters(args)
+
+        self.model = MODEL_WRAPPER_DICT[model_wrapper_class](args)
+
     def calculate_entropy(self, ):
         pass
 
-    def reduce_entropy_coeff(self):
+    def anneal_entropy_coeff(self):
+        """
+        Must be called after each trainer.fit() in order to anneal the entropy coeffs.
+        """
         pass
     
     def forward(self, problems:List[PDDLProblem], applicable_actions_list:List[Tuple[Action]]) -> \
@@ -167,7 +181,7 @@ class PPOPolicy(ActorCriticPolicy):
         Anneal entropy after every trainer.fit() call.
         """
         super().on_train_end()
-        self.reduce_entropy_coeff()
+        self.anneal_entropy_coeff()
 
     def training_step(self, train_batch, batch_idx=0): 
         raise NotImplementedError
