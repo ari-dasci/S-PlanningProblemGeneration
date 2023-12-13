@@ -180,7 +180,7 @@ class PDDLProblem():
         Each element in the list corresponds to an atom in the following way: [('on', (1, 0)), ('on', (1, 2)), ('handempty', ())]
 
         Object indexes (e.g., (1,0)) can index both objects in the state and virtual objects. In other words,
-        they index positions in the list [initial_state.objects + initial_state.virtual_objects].
+        they index positions in the list [initial_state.objects_with_virtuals(self.allowed_virtual_objects)].
         """    
         def is_atom_consistent(atom, obj_types):
             # Note: we pass by reference the initial state to the consistency validator for performance reasons

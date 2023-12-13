@@ -521,17 +521,15 @@ class PDDLState():
         
         # Calculate NLM breadth
         nlm_breadth = max_arity if max_arity != -1 else self.max_predicate_arity
-        
+          
         # Obtain the type of each object in the domain
-        object_types = self._objects.copy()
-        num_objs_no_virtuals = len(object_types)
-
-        # Add virtual objects
         if add_virtual_objs:
-            object_types.extend(self.virtual_objects(allowed_virtual_objects))
+            object_types = self.objects_with_virtuals(allowed_virtual_objects)
+        else:
+            object_types = self.objects
 
-        # Calculate number of objects in the state (including virtuals if added)
-        num_objs = len(object_types)
+        num_objs_no_virtuals = self.num_objects
+        num_objs = len(object_types) # Equal to num_objs_no_virtuals if add_virtual_objs=False, otherwise it is greater
 
         # Store indexes corresponding to virtual objects
         virtual_objs_inds = range(num_objs_no_virtuals, num_objs)

@@ -7,11 +7,11 @@ Contains Pytorch and Lightning data structures (datasets, dataloaders, etc.)
 from typing import Union, List, Tuple, Optional, Any
 import torch
 
-def pad_nlm_state(X:List[Optional[torch.Tensor]], N:int) -> List[Optional[torch.Tensor]]:
+def pad_nlm_state(X:List[Optional[torch.Tensor]], N:int, pad_val:float=0) -> List[Optional[torch.Tensor]]:
     # We do not pad the nullary predicates X[0]
     # Each tensor is converted from shape [n*arity, P] to [N*arity, P]
     padded_tensors = [X[0].clone() if X[0] is not None else None] + \
-                     [torch.nn.functional.pad(x, pad=(0,0)+(0,N-x.shape[0])*(x.dim()-1), mode='constant', value=0) \
+                     [torch.nn.functional.pad(x, pad=(0,0)+(0,N-x.shape[0])*(x.dim()-1), mode='constant', value=pad_val) \
                                 if x is not None else None for x in X[1:]]
     return padded_tensors
 
