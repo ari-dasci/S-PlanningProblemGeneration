@@ -60,38 +60,25 @@ class ModelWrapper(ABC, torch.nn.Module):
         raise NotImplementedError
 
     @abstractmethod
-    def forward(self, problems:List[Union[PDDLProblem, Any]], applicable_actions_list:List[Tuple[Action]]) \
-        -> Tuple[List[torch.Tensor], List]:
+    def forward(self):
         """
-        Outputs the log probabilities for the actions in applicable_actions_list. It also outputs a list with the
+        For the actor policies, it outputs the log probabilities for the actions in applicable_actions_list. It also outputs a list with the
         internal state representation of the model for each problem.
+        For the critic policies, it outputs the state-value V(s) for each problem.
         """
         raise NotImplementedError
-
-
-class ModelWrapperActorCritic(ModelWrapper):
-    """
-    A model wrapper to be used in ActorCritic algorithms. The model needs to be able to predict both action log_probabilities
-    and state values V(s).
-    """
-
-    def calculate_state_values(self, problems:List[Union[PDDLProblem, Any]]) -> Tuple[List[torch.Tensor], List]:
-        """
-        Returns both the state-value V(s) for each problem (as a list of zero-dimensional tensors containing a single float) 
-        and the internal states.
-        """
-        raise NotImplementedError
-
-
 
 
 from neural_logic_machine import NLM
 from src.nesig.learning.data_utils import pad_nlm_state, stack_nlm_states
 
-class NLMWrapperActor(ModelWrapper):
+class NLMWrapper(ModelWrapper):
     """
-    Wrapper for the NLM to be used as an actor, i.e., to output action (log) probabilities.
-    This wrapper is valid for both the initial and goal generation phases.
+    Common NLM Wrapper for both actor (predicting action log-probs) and critic (predicting state-values V(s)).
+    Also, each NLM Wrapper works for both the initial and generation phases.
+    The wrapper knows whether it is in the init or goal generation phase by checking the is_initial_state_generated
+    attribute of the PDDLProblem objects. Also, dummy_pddl_state will contain either the predicates (for the init phase)
+    or the domain actions (for the goal phase).
     """
 
     def __init__(self, args:Union[argparse.Namespace, dict], **model_arguments):
@@ -103,11 +90,9 @@ class NLMWrapperActor(ModelWrapper):
         self.device = torch.device("cuda") if self.args['device']=='gpu' else torch.device("cpu")
 
         # Initialize NLM
-        hidden_features = [[self.args['hidden_features']]*(self.args['breadth']+1)]*(self.args['depth']-1)    
-        num_preds_each_arity = self.dummy_pddl_state.num_preds_each_arity
-        out_features = [num_preds_each_arity[ar] if ar in num_preds_each_arity else 0 \
-                        for ar in range(self.args['breadth']+1)] # For the actor NLM
-        out_features[0] += 1 # TERM_ACTION is associated with the last nullary predicate of the nlm output
+        hidden_features = [[self.args['hidden_features']]*(self.args['breadth']+1)]*(self.args['depth']-1)
+        # Equal to the number of preds/actions for each arity for the actor. Equal to a single nullary predicate for the critic    
+        out_features = self._get_nlm_out_features()
         
         self.model = NLM(hidden_features,
                         out_features,
@@ -116,6 +101,9 @@ class NLMWrapperActor(ModelWrapper):
                         self.args['exclude_self'],
                         self.args['use_batch_norm'],
                         self.args['activation'])
+
+    def _get_nlm_out_features(self):
+        raise NotImplementedError
 
     @staticmethod
     def add_model_specific_args(parser):
@@ -134,7 +122,101 @@ class NLMWrapperActor(ModelWrapper):
         parser.add_argument('--input-num-actions', default=True, type=eval)
         parser.add_argument('--input-num-objs', default=True, type=eval)
         parser.add_argument('--input-num-atoms', default=True, type=eval)
+
+    def stack_state_encodings(self, list_state_encodings:List[List[Optional[torch.Tensor]]], list_num_objs:List[int]) \
+        -> List[Optional[torch.Tensor]]:
+        # Calculate the maximum number of objects
+        max_num_objs = max(list_num_objs)
+
+        list_padded_state_encodings = [pad_nlm_state(tensor_list, max_num_objs) for tensor_list in list_state_encodings]
+        batch_state_encoding = stack_nlm_states(list_padded_state_encodings)   
+
+        return batch_state_encoding
+    
+    def _obtain_extra_nullary_predicates(self, problems:List[PDDLProblem], in_init_phase:bool) -> List[float]:
+        num_problems = len(problems)
+        extra_nullary_preds_list = [[] for _ in range(num_problems)]
+
+        if self.args['input_max_size']:
+            if in_init_phase:
+                extra_nullary_preds_list = [el+[p.max_actions_init_phase*0.01] for el,p in zip(extra_nullary_preds_list,problems)]
+            else:
+                extra_nullary_preds_list = [el+[p.max_actions_goal_phase*0.01] for el,p in zip(extra_nullary_preds_list,problems)]
+
+        if self.args['input_num_actions']:
+            if in_init_phase:
+                extra_nullary_preds_list = [el+[p.perc_init_state_actions_executed] for el,p in zip(extra_nullary_preds_list,problems)]
+            else:
+                extra_nullary_preds_list = [el+[p.perc_goal_actions_executed] for el,p in zip(extra_nullary_preds_list,problems)]
+
+        if self.args['input_num_objs']:
+            if in_init_phase:
+                extra_nullary_preds_list = [el+[n / p.max_actions_init_phase for n in p._initial_state.num_objects_each_type] \
+                                            for el,p in zip(extra_nullary_preds_list,problems)]
+            else:
+                extra_nullary_preds_list = [el+[n / p.max_actions_goal_phase for n in p._goal_state.num_objects_each_type] \
+                            for el,p in zip(extra_nullary_preds_list,problems)] # Actually, the objects of init and goal state are the same
+                
+        if self.args['input_num_atoms']:
+            if in_init_phase
+                extra_nullary_preds_list = [el+[n / p.max_actions_init_phase for n in p._initial_state.num_atoms_each_type] \
+                                            for el,p in zip(extra_nullary_preds_list,problems)]
+            else:
+                extra_nullary_preds_list = [el+[n / p.max_actions_goal_phase for n in p._goal_state.num_atoms_each_type] \
+                            for el,p in zip(extra_nullary_preds_list,problems)]
+                
+        return extra_nullary_preds_list
+
+    def obtain_internal_state_encodings(self, problems:List[PDDLProblem]) -> List:
+        # First we need to check whether we are in the init state or goal generation phases
+        # If self.is_initial_state_generated is False, we are in the init generation phase. If True, we are in the goal phase
+        # Make sure that all the problems are in the same phase
+        assert len(set([p.is_initial_state_generated for p in problems])) == 1, \
+            "Not all the problems are in the same phase (initial state or goal generation)!"
         
+        in_init_phase = not problems[0].is_initial_state_generated
+        
+        # Extra nullary predicates for each problem  
+        extra_nullary_preds_list = self._obtain_extra_nullary_predicates(problems, in_init_phase)
+            
+        # Obtain a list of tensors for each problem
+        num_problems = len(problems)
+        if in_init_phase:
+            list_state_encodings = [problems[i]._initial_state.atoms_nlm_encoding(self.device, self.args['breadth'],
+                                        add_virtual_objs=True, allowed_virtual_objects=problems[i].allowed_virtual_objects,
+                                        add_object_types=True, extra_nullary_predicates=extra_nullary_preds_list[i]) \
+                                    for i in range(num_problems)]
+        else: # We need to concatenate the init and goal states. Also, we don't add virtual objects
+            list_state_encodings = [problems[i]._initial_state.atoms_nlm_encoding_with_goal_state(problems[i]._goal_state,
+                                        self.device, self.args['breadth'], add_object_types=True, 
+                                        extra_nullary_predicates=extra_nullary_preds_list[i]) \
+                                    for i in range(num_problems)]    
+            
+        # We obtain the number of objects <without virtuals>
+        list_num_objs = [p._initial_state.num_objects for p in problems] # Num objects is the same for the init and goal states
+
+        # The internal state representation of a problem is a tuple made of its tensor list and num of objects
+        internal_state_list = [(s,n) for s,n in zip(list_state_encodings, list_num_objs)]
+
+        return internal_state_list
+
+
+class NLMWrapperActor(NLMWrapper):
+    """
+    Wrapper for the NLM to be used as an actor, i.e., to output action (log) probabilities.
+    This wrapper is valid for both the initial and goal generation phases.
+    """
+
+    def _get_nlm_out_features(self):
+        """
+        Obtains the number of NLM output predicates/actions for each arity.
+        """
+        num_preds_each_arity = self.dummy_pddl_state.num_preds_each_arity
+        out_features = [num_preds_each_arity[ar] if ar in num_preds_each_arity else 0 \
+                        for ar in range(self.args['breadth']+1)] # For the actor NLM
+        out_features[0] += 1 # TERM_ACTION is associated with the last nullary predicate of the nlm output
+
+        return out_features    
       
     # UNUSED
     def _mask_unapplicable_actions(self, nlm_output:List[Optional[torch.Tensor]], applicable_actions_list:List[Tuple[Action]], mask_val=-float("inf")) \
@@ -222,84 +304,6 @@ class NLMWrapperActor(ModelWrapper):
         applicable_actions_log_probs = [t-torch.logsumexp(t,dim=-1) for t in applicable_actions_nlm_output]
         return applicable_actions_log_probs
 
-    def stack_state_encodings(self, list_state_encodings:List[List[Optional[torch.Tensor]]], list_num_objs:List[int]) \
-        -> List[Optional[torch.Tensor]]:
-        # Calculate the maximum number of objects
-        max_num_objs = max(list_num_objs)
-
-        list_padded_state_encodings = [pad_nlm_state(tensor_list, max_num_objs) for tensor_list in list_state_encodings]
-        batch_state_encoding = stack_nlm_states(list_padded_state_encodings)   
-
-        return batch_state_encoding
-    
-    def _obtain_extra_nullary_predicates(self, problems:List[PDDLProblem], in_init_phase:bool) -> List[float]:
-        num_problems = len(problems)
-        extra_nullary_preds_list = [[] for _ in range(num_problems)]
-
-        if self.args['input_max_size']:
-            if in_init_phase:
-                extra_nullary_preds_list = [el+[p.max_actions_init_phase*0.01] for el,p in zip(extra_nullary_preds_list,problems)]
-            else:
-                extra_nullary_preds_list = [el+[p.max_actions_goal_phase*0.01] for el,p in zip(extra_nullary_preds_list,problems)]
-
-        if self.args['input_num_actions']:
-            if in_init_phase:
-                extra_nullary_preds_list = [el+[p.perc_init_state_actions_executed] for el,p in zip(extra_nullary_preds_list,problems)]
-            else:
-                extra_nullary_preds_list = [el+[p.perc_goal_actions_executed] for el,p in zip(extra_nullary_preds_list,problems)]
-
-        if self.args['input_num_objs']:
-            if in_init_phase:
-                extra_nullary_preds_list = [el+[n / p.max_actions_init_phase for n in p._initial_state.num_objects_each_type] \
-                                            for el,p in zip(extra_nullary_preds_list,problems)]
-            else:
-                extra_nullary_preds_list = [el+[n / p.max_actions_goal_phase for n in p._goal_state.num_objects_each_type] \
-                            for el,p in zip(extra_nullary_preds_list,problems)] # Actually, the objects of init and goal state are the same
-                
-        if self.args['input_num_atoms']:
-            if in_init_phase
-                extra_nullary_preds_list = [el+[n / p.max_actions_init_phase for n in p._initial_state.num_atoms_each_type] \
-                                            for el,p in zip(extra_nullary_preds_list,problems)]
-            else:
-                extra_nullary_preds_list = [el+[n / p.max_actions_goal_phase for n in p._goal_state.num_atoms_each_type] \
-                            for el,p in zip(extra_nullary_preds_list,problems)]
-                
-        return extra_nullary_preds_list
-
-    def obtain_internal_state_encodings(self, problems:List[PDDLProblem]) -> List:
-        # First we need to check whether we are in the init state or goal generation phases
-        # If self.is_initial_state_generated is False, we are in the init generation phase. If True, we are in the goal phase
-        # Make sure that all the problems are in the same phase
-        assert len(set([p.is_initial_state_generated for p in problems])) == 1, \
-            "Not all the problems are in the same phase (initial state or goal generation)!"
-        
-        in_init_phase = not problems[0].is_initial_state_generated
-        
-        # Extra nullary predicates for each problem  
-        extra_nullary_preds_list = self._obtain_extra_nullary_predicates(problems, in_init_phase)
-            
-        # Obtain a list of tensors for each problem
-        num_problems = len(problems)
-        if in_init_phase:
-            list_state_encodings = [problems[i]._initial_state.atoms_nlm_encoding(self.device, self.args['breadth'],
-                                        add_virtual_objs=True, allowed_virtual_objects=problems[i].allowed_virtual_objects,
-                                        add_object_types=True, extra_nullary_predicates=extra_nullary_preds_list[i]) \
-                                    for i in range(num_problems)]
-        else: # We need to concatenate the init and goal states. Also, we don't add virtual objects
-            list_state_encodings = [problems[i]._initial_state.atoms_nlm_encoding_with_goal_state(problems[i]._goal_state,
-                                        self.device, self.args['breadth'], add_object_types=True, 
-                                        extra_nullary_predicates=extra_nullary_preds_list[i]) \
-                                    for i in range(num_problems)]    
-            
-        # We obtain the number of objects <without virtuals>
-        list_num_objs = [p._initial_state.num_objects for p in problems] # Num objects is the same for the init and goal states
-
-        # The internal state representation of a problem is a tuple made of its tensor list and num of objects
-        internal_state_list = [(s,n) for s,n in zip(list_state_encodings, list_num_objs)]
-
-        return internal_state_list
-
-
     def forward(self, problems:List[Union[PDDLProblem, Tuple]], applicable_actions_list:List[Tuple[Action]]) \
         -> Tuple[List[torch.Tensor], List[Tuple]]:
         """
@@ -349,3 +353,50 @@ class NLMWrapperActor(ModelWrapper):
         # log_probabilities for applicable actions
         actions_log_probs_list = self._obtain_action_log_probs(...) # Not implemented
         """
+
+
+class NLMWrapperCritic(NLMWrapper):
+    """
+    Wrapper for the NLM to be used as a critic, i.e., to output state-values V(s).
+    This wrapper is valid for both the initial and goal generation phases.
+    """
+
+    def _get_nlm_out_features(self):
+        """
+        Obtains the number of NLM output predicates/actions for each arity.
+        The critic NLM only outputs a single nullary predicate.
+        """
+        out_features = [1] + [0]*self.args['breadth']
+        return out_features   
+    
+    def forward(self, problems:List[Union[PDDLProblem, Any]]) -> Tuple[List[torch.Tensor], List[Tuple]]:
+        """
+        Returns the state-values V(s) for the problems, along with the internal state representations.
+        State values are returns as a list of zero-dimensional tensors containing a single float.
+        We assume all the problems are represented as either a PDDLProblem or as a list of tuples (tensor_list, num_objs).
+        We cannot mix both representations.
+        """
+        num_problems = len(problems)
+        assert num_problems>0
+
+        # Check if we have already obtained the internal representation of the problems
+        if isinstance(problems[0], PDDLProblem):
+            internal_state_list = self.obtain_internal_state_encodings(problems)
+        elif isinstance(problems[0], tuple):
+            internal_state_list = problems
+        else:
+            raise Exception("problems must be either a list of PDDLProblem objects or a list of tuples (tensor_list, num_objs)")
+
+        list_state_encodings = [s[0] for s in internal_state_list]
+        list_num_objs = [s[1] for s in internal_state_list]
+        batch_state_encoding = self.stack_state_encodings(list_state_encodings, list_num_objs)
+
+        # NLM forward pass
+        nlm_output = self.model(batch_state_encoding, list_num_objs)
+
+        # V(s) is simply the first (and only) nullary predicate of the NLM output
+        state_values = [nlm_output[0][i,0] for i in range(num_problems)]
+
+        return state_values, internal_state_list
+    
+
