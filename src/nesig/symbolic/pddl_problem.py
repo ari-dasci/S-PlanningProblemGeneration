@@ -22,7 +22,9 @@ class PDDLProblem():
     
     def __init__(self, parser, goal_predicates : Optional[Tuple[Tuple[str,Tuple[str]]]] = None,
                  init_state_info : Optional[PDDLState] = None,
-                 allowed_virtual_objects : Optional[Tuple[str]] = None):       
+                 allowed_virtual_objects : Optional[Tuple[str]] = None,
+                 max_actions_init_phase: Optional[int] = None,
+                 max_actions_goal_phase: Optional[int] = None):       
         """
         The constructor receives the information needed for initializing a PDDLProblem.
         Parameters:
@@ -40,6 +42,8 @@ class PDDLProblem():
             - init_state_info: PDDLState used to create the initial state of the generation process.
                             If None, we assume an empty initial state.
                                     If None, we assume all the objects can be added.
+            - max_actions_init_phase and max_actions_goal_phase are used for calculating the percentage of actions executed
+              passed as extra inputs to the NLM. If None, we cannot calculate this percentage.
         """
         # We make sure goal_predicates is a tuple instead of a list, so that it can never be modified
         assert goal_predicates is None or isinstance(goal_predicates, tuple), "goal_predicates must be either a tuple or None"
@@ -47,6 +51,8 @@ class PDDLProblem():
         self.parser = deepcopy(parser) # We use deepcopy because some methods modify the parser internal state
         self.goal_predicates = goal_predicates
         self.allowed_virtual_objects = allowed_virtual_objects
+        self.max_actions_init_phase = max_actions_init_phase
+        self.max_actions_goal_phase = max_actions_goal_phase
 
         # Get initial state from init_state_info
         self._initial_state = deepcopy(init_state_info) if init_state_info is not None \
@@ -90,6 +96,16 @@ class PDDLProblem():
     @property
     def num_goal_actions_executed(self):
         return self._num_goal_actions_executed
+    
+    @property
+    def perc_init_state_actions_executed(self):
+        assert self.max_actions_init_phase is not None, "max_actions_init_phase must be defined to calculate the percentage of actions executed"
+        return self._initial_state.num_atoms / self.max_actions_init_phase
+    
+    @property
+    def perc_goal_actions_executed(self):
+        assert self.max_actions_goal_phase is not None, "max_actions_init_phase must be defined to calculate the percentage of actions executed"
+        return self._num_goal_actions_executed / self.max_actions_goal_phase
 
     # We do the deepcopy for the getters but not the setters
     @initial_state.setter

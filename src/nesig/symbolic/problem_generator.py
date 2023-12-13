@@ -68,7 +68,7 @@ class ProblemGenerator():
         self.difficulty_evaluator = difficulty_evaluator
         self.diversity_evaluator = diversity_evaluator
 
-    def _generate_init_state_trajectories(self, num_problems, list_max_init_state_actions):
+    def _generate_init_state_trajectories(self, num_problems, list_max_init_state_actions, list_max_goal_actions):
         """
         Auxiliary method that initializes the PDDL problems and generates their initial states.
         Some problems may have an eventual-inconsistent initial state.
@@ -79,7 +79,8 @@ class ProblemGenerator():
             - The list of trajectories
         """
         # <Initialize problems>
-        problems = [PDDLProblem(self.parser, self.goal_predicates, self.init_state_info, self.allowed_virtual_objects) for _ in range(num_problems)]
+        problems = [PDDLProblem(self.parser, self.goal_predicates, self.init_state_info, self.allowed_virtual_objects,
+                                list_max_init_state_actions[i], list_max_goal_actions[i]) for i in range(num_problems)]
         trajectories = [[] for _ in range(num_problems)]
         is_eventual_consistent = [False] * num_problems
         is_init_state_generated = [False] * num_problems
@@ -289,7 +290,8 @@ class ProblemGenerator():
         assert len(list_max_goal_actions) == num_problems, 'list_max_goal_actions must be a list/tuple of length num_problems or a single value'
 
         # <Initial state generation phase>
-        problems, is_eventual_consistent, trajectories = self._generate_init_state_trajectories(num_problems, list_max_init_state_actions)
+        problems, is_eventual_consistent, trajectories = self._generate_init_state_trajectories(num_problems, list_max_init_state_actions,
+                                                                                                list_max_goal_actions)
         # Calculate the number of actions applied in each init state generation phase
         # If TERM_ACTION is NOT applied, this number is equal to num_init_state_actions_executed,
         # otherwise it is equal to num_init_state_actions_executed+1

@@ -123,6 +123,12 @@ class TestProblemGenerator(unittest.TestCase):
         self.assertEqual(len(problems), 3)
         self.assertEqual(len(problem_info_list), 3)
         self.assertEqual(len(trajectories), 3)
+        self.assertEqual(problems[0].perc_init_state_actions_executed, 1.0)
+        self.assertEqual(problems[1].perc_init_state_actions_executed, 1.0)
+        self.assertEqual(problems[2].perc_init_state_actions_executed, 1.0)
+        self.assertEqual(problems[0].perc_goal_actions_executed, 0)
+        self.assertEqual(problems[1].perc_goal_actions_executed, 0)
+        self.assertEqual(problems[2].perc_goal_actions_executed, 0)
 
         # Problem 1
         self.assertEqual(len(trajectories[0]), 1)
@@ -189,6 +195,10 @@ class TestProblemGenerator(unittest.TestCase):
         self.assertEqual(len(problems), 2)
         self.assertEqual(len(problem_info_list), 2)
         self.assertEqual(len(trajectories), 2)
+        self.assertEqual(problems[0].perc_init_state_actions_executed, 0)
+        self.assertEqual(problems[1].perc_init_state_actions_executed, 0)
+        self.assertEqual(problems[0].perc_goal_actions_executed, 0)
+        self.assertEqual(problems[1].perc_goal_actions_executed, 0)
 
         # Problem 1
         self.assertEqual(len(trajectories[0]), 1)
@@ -230,6 +240,10 @@ class TestProblemGenerator(unittest.TestCase):
         self.assertEqual(len(problems), 2)
         self.assertEqual(len(problem_info_list), 2)
         self.assertEqual(len(trajectories), 2)
+        self.assertEqual(problems[0].perc_init_state_actions_executed, 1.0)
+        self.assertEqual(problems[1].perc_init_state_actions_executed, 1.0)
+        self.assertEqual(problems[0].perc_goal_actions_executed, 1.0)
+        self.assertEqual(problems[1].perc_goal_actions_executed, 1.0)
 
         # Diversity is symmetrical
         self.assertEqual(problem_info_list[0]['diversity'], problem_info_list[1]['diversity'])

@@ -349,6 +349,25 @@ class PDDLState():
     def num_objects_with_virtuals(self, allowed_virtual_objects):
         return len(self.objects_with_virtuals(allowed_virtual_objects))
 
+    @property
+    def num_objects_each_type(self):
+        """
+        Returns a list which contains, at each position i, the number of objects of type associated with index i.
+        <Note>: we do not use type hierarchy. We just count the number of objects of each type.
+        """
+        out = [self._objects.count(t) for t in self._types]
+        return out
+    
+    @property
+    def num_atoms_each_type(self):
+        """
+        Returns a list which contains, at each position i, the number of atoms of pred type associated with index i.
+        """
+        atom_names = [a[0] for a in self._atoms]
+        out = [atom_names.count(p) for p in self.predicate_names]
+        return out
+
+
     # -- Setters --
 
     @types.setter
@@ -521,7 +540,7 @@ class PDDLState():
             num_preds_each_arity = self._num_preds_each_arity.copy()
 
             # Add extra nullary predicates
-            if extra_nullary_predicates is not None:
+            if extra_nullary_predicates is not None and len(extra_nullary_predicates) > 0:
                 if 0 not in num_preds_each_arity:
                     num_preds_each_arity[0] = len(extra_nullary_predicates)
                 else:
@@ -558,7 +577,7 @@ class PDDLState():
                     atoms_list[pred_arity][ind] = 1.0
               
             # Add the extra nullary predicates
-            if extra_nullary_predicates is not None:
+            if extra_nullary_predicates is not None and len(extra_nullary_predicates) > 0:
                 # self._num_preds_each_arity contains the number of predicates BEFORE adding the extra nullary and unary predicates
                 shift = self._num_preds_each_arity[0] if 0 in self._num_preds_each_arity else 0
 
@@ -620,7 +639,7 @@ class PDDLState():
                     both_states_nlm_encoding.append(torch.cat( (init_state_nlm_encoding[r], goal_state_nlm_encoding[r]), dim=-1))
 
             # Add the extra nullary predicates
-            if extra_nullary_predicates is not None:
+            if extra_nullary_predicates is not None and len(extra_nullary_predicates) > 0:
                 new_tensor = torch.tensor(extra_nullary_predicates, dtype=torch.float32, device=device)
 
                 both_states_nlm_encoding[0] = new_tensor if both_states_nlm_encoding[0] is None else \

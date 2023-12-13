@@ -46,6 +46,10 @@ class TestPDDLState(unittest.TestCase):
             else:
                 self.assertTrue(torch.equal(a[i], b[i]))
 
+    def test_num_objs_and_atoms_each_type(self):
+        self.assertEqual(self.state.num_objects_each_type, [2,1,0])
+        self.assertEqual(self.state.num_atoms_each_type, [2,1])
+
     def test_virtual_objs_with_type(self):
         result_all_virtuals = self.state.virtual_objects()
         expected_result_all_virtuals = ['block', 'block', 'circle', 'object']

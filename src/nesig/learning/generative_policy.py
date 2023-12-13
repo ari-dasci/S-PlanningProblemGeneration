@@ -154,11 +154,12 @@ class PPOPolicy(ActorCriticPolicy):
     # See how to pass the model-specific parameters (different from init and goal models)
     # to the model_wrapper_class constructor
     # It can get them either from args or from a list of additional parameters
-    def __init__(self, args:argparse.Namespace, model_wrapper_class):
+    def __init__(self, args:argparse.Namespace, model_wrapper_class_actor, model_wrapper_class_critic):
         super().__init__()
         self.save_hyperparameters(args)
 
-        self.model = model_wrapper_class(args)
+        self.actor = model_wrapper_class_actor(args)
+        self.critic = model_wrapper_class_critic(args)
 
         # Create additional parameters that should be saved and loaded from checkpoints but NOT
         # modified by the optimizer
@@ -237,14 +238,14 @@ class PPOPolicy(ActorCriticPolicy):
         Tuple[List[torch.Tensor], List]:
         """
         Note: the list of problems can be given either as PDDLProblem instances or as the internal state representations
-        used by self.model. In the latter case, when doing self.model.forward() the model will not need to convert the
+        used by self.wrapper. In the latter case, when doing self.wrapper.forward() the model will not need to convert the
         problems to the internal state representation (i.e., we will avoid doing the same work twice).
         """
-        log_probs_list, internal_state_list = self.model(problems, applicable_actions_list)
+        log_probs_list, internal_state_list = self.actor(problems, applicable_actions_list)
         return log_probs_list, internal_state_list
     
     def calculate_state_values(self, problems:List[Union[PDDLProblem, Any]]) -> Tuple[List[torch.Tensor], List]:
-        state_value_list, internal_state_list = self.model.calculate_state_values(problems)
+        state_value_list, internal_state_list = self.critic.calculate_state_values(problems)
         return state_value_list, internal_state_list
 
     def configure_optimizers(self):
