@@ -6,6 +6,7 @@ Contains Pytorch and Lightning data structures (datasets, dataloaders, etc.)
 
 from typing import Union, List, Tuple, Optional, Any
 import torch
+from torch.utils.data import Dataset
 
 def pad_nlm_state(X:List[Optional[torch.Tensor]], N:int, pad_val:float=0) -> List[Optional[torch.Tensor]]:
     # We do not pad the nullary predicates X[0]
@@ -24,3 +25,54 @@ def stack_nlm_states(X:List[List[Optional[torch.Tensor]]]) -> List[Optional[torc
     batch_nlm_state = [torch.stack([x[r] for x in X], dim=0) if X[0][r] is not None else None \
                         for r in range(num_tensors)]
     return batch_nlm_state
+
+
+class CommonDataset(Dataset):
+    def __init__(self, sample_list : List[dict] = []):
+        assert isinstance(sample_list, list) and isinstance(sample_list[0], dict), \
+            "sample_list must be a list of samples, where each sample is a dictionary"
+        self._dataset = sample_list
+
+    def __len__(self):
+        return len(self._dataset)
+
+    def __getitem__(self, idx):
+        return self._dataset[idx]
+
+    def add_element(self, new_sample):
+        self._dataset.append(new_sample)
+
+    def del_element(self, idx):
+        if idx < 0 or idx >= len(self):
+            raise ValueError("Index out of range")
+
+        del self._dataset[idx]
+    
+def common_collate_fn(batch : List[dict]) -> dict:
+    """
+    Elements of each sample:
+        - state : PDDLProblem
+        - internal_state (representation depends on the model)
+        - chosen_action : Tuple
+        - chosen_action_ind : int
+        - action_log_prob : a zero-dimensional torch.Tensor
+        - consistency_reward : float
+        - difficulty_reward : float
+        - diversity_reward : float
+        
+        # TODO
+        # Add more elements (e.g., total_reward and norm_total_reward)
+    """
+    batch_dict = dict()
+
+    batch_dict['states'] = [sample['state'] for sample in batch]
+    batch_dict['internal_states'] = [sample['internal_state'] for sample in batch]
+    batch_dict['chosen_actions'] = [sample['chosen_action'] for sample in batch]
+    batch_dict['chosen_action_inds'] = [sample['chosen_action_ind'] for sample in batch]
+    batch_dict['action_log_probs'] = torch.stack([sample['action_log_prob'] for sample in batch])
+    batch_dict['consistency_rewards'] = [sample['consistency_reward'] for sample in batch]
+    batch_dict['difficulty_rewards'] = [sample['difficulty_reward'] for sample in batch]
+    batch_dict['diversity_rewards'] = [sample['diversity_reward'] for sample in batch]
+
+    return batch_dict
+    

@@ -52,7 +52,8 @@ class GenerativePolicy(ABC, pl.LightningModule):
     def training_step(self, train_batch, batch_idx=0): 
         raise NotImplementedError
 
-    def select_actions(self, problems:List[PDDLProblem], applicable_actions_list:List[Tuple[Action]]):
+    def select_actions(self, problems:List[PDDLProblem], applicable_actions_list:List[Tuple[Action]]) \
+        -> Tuple[List[Action], List[torch.Tensor], List[Any]]:
         """
         We obtain the action probabilities using self.forward() and then we sample actions according
         to these probabilities.
@@ -141,9 +142,8 @@ class ActorCriticPolicy(GenerativePolicy):
         """
         raise NotImplementedError
 
-from src.nesig.learning.model_wrapper import ModelWrapper
-import argparse
 
+import argparse
 
 class PPOPolicy(ActorCriticPolicy):
     """
@@ -154,12 +154,13 @@ class PPOPolicy(ActorCriticPolicy):
     # See how to pass the model-specific parameters (different from init and goal models)
     # to the model_wrapper_class constructor
     # It can get them either from args or from a list of additional parameters
-    def __init__(self, args:argparse.Namespace, model_wrapper_class_actor, model_wrapper_class_critic):
+    def __init__(self, args:argparse.Namespace, model_wrapper_class_actor, model_wrapper_class_critic,
+                 actor_arguments, critic_arguments):
         super().__init__()
         self.save_hyperparameters(args)
 
-        self.actor = model_wrapper_class_actor(args)
-        self.critic = model_wrapper_class_critic(args)
+        self.actor = model_wrapper_class_actor(args, actor_arguments)
+        self.critic = model_wrapper_class_critic(args, critic_arguments)
 
         # Create additional parameters that should be saved and loaded from checkpoints but NOT
         # modified by the optimizer
@@ -245,7 +246,10 @@ class PPOPolicy(ActorCriticPolicy):
         return log_probs_list, internal_state_list
     
     def calculate_state_values(self, problems:List[Union[PDDLProblem, Any]]) -> Tuple[List[torch.Tensor], List]:
-        state_value_list, internal_state_list = self.critic.calculate_state_values(problems)
+        """
+        As in forward(), the list of problems can be given either as PDDLProblem instances or as the internal state representations.
+        """
+        state_value_list, internal_state_list = self.critic(problems)
         return state_value_list, internal_state_list
 
     def configure_optimizers(self):
@@ -259,7 +263,7 @@ class PPOPolicy(ActorCriticPolicy):
         super().on_train_end()
         self.anneal_entropy_coeff()
 
-    def training_step(self, train_batch, batch_idx=0): 
-        raise NotImplementedError
+    def training_step(self, train_batch : dict, batch_idx=0): 
+        assert isinstance(train_batch, dict), "train_batch must be a dictionary"
         # TODO
         # PPO training and logging

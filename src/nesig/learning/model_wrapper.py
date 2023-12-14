@@ -30,7 +30,7 @@ class ModelWrapper(ABC, torch.nn.Module):
     ML model employed (e.g., list of tensors as used by the NLM).
     """
     
-    def __init__(self, args:Union[argparse.Namespace, dict], **model_arguments):
+    def __init__(self, args:Union[argparse.Namespace, dict], model_arguments:dict):
         super().__init__()
 
         # We store a copy of args as a dictionary
@@ -81,7 +81,7 @@ class NLMWrapper(ModelWrapper):
     or the domain actions (for the goal phase).
     """
 
-    def __init__(self, args:Union[argparse.Namespace, dict], **model_arguments):
+    def __init__(self, args:Union[argparse.Namespace, dict], model_arguments:dict):
         super().__init__(args)
 
         # If in the initial generation phase, this state will be PDDLState(obj_types, type_hierarchy, predicates)
