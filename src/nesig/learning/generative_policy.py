@@ -211,14 +211,20 @@ class PPOPolicy(ActorCriticPolicy):
         Lifted entropy is calculated by first adding the probabilities of all the ground actions/atoms of the same action/predicate
         type (e.g., on, ontable, holding, handempty, clear).
         <Note>: this method calculates the entropy of a single sample at a time.
-        <Note2>: all the operations are differentiable.
-        <Note3>: we normalize the lifted and ground entropies by the number of values of the random value (number of ground/lifted actions).
+        <Note2>: we ignore the termination condition when calculating the entropy.
+        <Note3>: all the operations are differentiable.
+        <Note4>: we normalize the lifted and ground entropies by the number of values of the random value (number of ground/lifted actions).
                  Otherwise, entropy would be higher for predicates/actions with more values.
         """
         assert self.hparams.lifted_entropy_weight >= 0 and self.hparams.lifted_entropy_weight <= 1
         assert action_log_probs.dim() == 1
         assert len(action_log_probs) == len(applicable_actions)
         num_actions = len(action_log_probs)
+
+        # Remove TERM_ACTION from applicable actions (if it is present)
+        applicable_actions = list(applicable_actions)
+        if TERM_ACTION in applicable_actions:
+            applicable_actions.remove(TERM_ACTION)
 
         if len(action_log_probs) == 1:
             # If there is only one applicable action, the entropy is 0
@@ -244,7 +250,7 @@ class PPOPolicy(ActorCriticPolicy):
         
         # <Final entropy>
         entropy = self.hparams.lifted_entropy_weight*lifted_entropy + (1-self.hparams.lifted_entropy_weight)*ground_entropy
-        return entropy
+        return entropy # zero-dimensional torch.Tensor containing a single float
 
     def anneal_entropy_coeff(self):
         """
@@ -284,19 +290,7 @@ class PPOPolicy(ActorCriticPolicy):
     def training_step(self, train_batch : dict, batch_idx=0): 
         assert isinstance(train_batch, dict), "train_batch must be a dictionary"
         # TODO
-        # Implement PPO training. See what needs to be in train_batch and add it in common_collate_fn().
-        # Leave logging for later
-
-        """
-        - Additional things:
-            - total_discounted_rewards R
-            - norm_total_discounted_rewards R'
-            - CALCULATE ADVANTAGE FOR EACH SAMPLE BEFORE CALLING THIS METHOD
-
-            - Train both actor and critic in each iteration
-                - To do this, I need to recalculate V(s) for each step in PPO training_step() (call critic in each step)
-                - Advantages should be fixed to avoid overfitting V(s) to R(s,a)
-        """
+        # Add logging
 
         # <Critic>
         state_value_list, _ = self.calculate_state_values(train_batch['internal_states']) # We pass internal state to avoid recomputing them from the PDDLProblems
@@ -306,11 +300,23 @@ class PPOPolicy(ActorCriticPolicy):
         critic_loss = torch.mean( (state_value_tensor - norm_return_tensor)**2 ) # Critic loss: (V(s) - R(s,.))^2
 
         # <Actor>
+        # First, we obtain the log_prob (using the current actor weights) for all the applicable actions of each sample
+        log_probs_list, _ = self.forward(train_batch['internal_states'], train_batch['applicable_actions_list']) # We pass internal state to avoid recomputing them from the PDDLProblems
+        # Second, we obtain the log_prob of the chosen action for each sample, and exponentiate it to obtain the probability
+        chosen_actions_probs_curr_policy = torch.exp(torch.stack([t[ind] for t,ind in zip(log_probs_list,train_batch['chosen_action_inds'])])) # Preserves gradients
+
+
+        # The value obtained with this other method should be the same!
         # We obtain, with the current actor weights, the log_prob of the chosen action for each batch sample
         # To do so, we pass as the applicable actions the chosen action of each sample
+        """
         chosen_actions_tuple = [tuple(a) for a in train_batch['chosen_actions']] # For each sample, the only applicable action is chosen_action
         log_probs_list, _ = self.forward(train_batch['internal_states'], chosen_actions_tuple) # We pass internal state to avoid recomputing them from the PDDLProblems
         chosen_actions_probs_curr_policy = torch.exp(torch.cat(log_probs_list)) # Preserves gradients, exp to convert from log_probs to probs
+        """
+
+
+
 
         # Calculate the probability ratios r_t
         # We use requires_grad=False because we should not backpropagate through the old policy action probs (they should remain fixed)
@@ -324,4 +330,14 @@ class PPOPolicy(ActorCriticPolicy):
 						       torch.clip(prob_ratio_tensor, 1-epsilon, 1+epsilon) * advantage_tensor) ) # minus sign is because we want to maximize the objective function
 
         # Calculate the entropy loss
-        policy_entropy = torch.stack([]) # This is differentiable
+        policy_entropy = torch.mean(torch.stack([self.calculate_entropy(lprobs, actions) for lprobs, actions \
+                                      in zip(log_probs_list, train_batch['applicable_actions_list'])])) # Preserves gradients
+        entropy_loss = -policy_entropy*self.curr_entropy_coeff # minus sign is because we want to maximize the objective function
+
+        # Calculate the actor loss
+        actor_loss = PPO_loss + entropy_loss
+
+        # < Total loss >
+        loss = actor_loss + critic_loss
+
+        return loss
