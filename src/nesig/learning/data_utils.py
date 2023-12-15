@@ -53,26 +53,31 @@ def common_collate_fn(batch : List[dict]) -> dict:
     Elements of each sample:
         - state : PDDLProblem
         - internal_state (representation depends on the model)
+        - applicable_actions: Tuple[Action]
         - chosen_action : Tuple
         - chosen_action_ind : int
         - action_log_prob : a zero-dimensional torch.Tensor
         - consistency_reward : float
         - difficulty_reward : float
         - diversity_reward : float
-        
-        # TODO
-        # Add more elements (e.g., total_reward and norm_total_reward)
+        - return : float
+        - norm_return : float
+        - advantage : float
     """
     batch_dict = dict()
 
     batch_dict['states'] = [sample['state'] for sample in batch]
     batch_dict['internal_states'] = [sample['internal_state'] for sample in batch]
+    batch_dict['applicable_actions_list'] = [sample['applicable_actions'] for sample in batch]
     batch_dict['chosen_actions'] = [sample['chosen_action'] for sample in batch]
     batch_dict['chosen_action_inds'] = [sample['chosen_action_ind'] for sample in batch]
-    batch_dict['action_log_probs'] = torch.stack([sample['action_log_prob'] for sample in batch])
+    batch_dict['action_log_probs'] = [sample['action_log_prob'] for sample in batch]
     batch_dict['consistency_rewards'] = [sample['consistency_reward'] for sample in batch]
     batch_dict['difficulty_rewards'] = [sample['difficulty_reward'] for sample in batch]
     batch_dict['diversity_rewards'] = [sample['diversity_reward'] for sample in batch]
+    batch_dict['returns'] = [sample['return'] for sample in batch] # discounted sum of rewards R
+    batch_dict['norm_returns'] = [sample['norm_return'] for sample in batch] # discounted sum of rewards R, normalized to have mean 0 and std 1
+    batch_dict['advantages'] = [sample['advantage'] for sample in batch] # A(s,a) = R(s,a) - V(s)
 
     return batch_dict
     

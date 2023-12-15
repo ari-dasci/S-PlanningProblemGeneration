@@ -78,7 +78,7 @@ class TestProblemGenerator(unittest.TestCase):
         self.assertEqual(problem_info_list[0]['difficulty'], 0)
         self.assertEqual(problem_info_list[0]['diversity'], 0)
 
-        # Make sure that the action indexed by chosen_action_ind is correct
+        # that the action indexed by chosen_action_ind is correct
         trajectory_actions_from_index = [step['state'].get_continuous_consistent_init_state_actions(self.consistency_evaluator)[step['chosen_action_ind']] \
                                             for step in trajectories[0]]
         trajectory_actions_from_name = [step['chosen_action'] for step in trajectories[0]]
@@ -89,6 +89,11 @@ class TestProblemGenerator(unittest.TestCase):
         self.assertEqual([step['consistency_reward'] for step in trajectories[0]], [0,-1])
         self.assertEqual([step['difficulty_reward'] for step in trajectories[0]], [0]*2)
         self.assertEqual([step['diversity_reward'] for step in trajectories[0]], [0]*2)
+
+        # Make sure that the list of applicable actions is correct
+        self.assertEqual( [step['applicable_actions'] for step in trajectories[0]],
+                          [step['state'].get_continuous_consistent_init_state_actions(self.consistency_evaluator) + (TERM_ACTION,) \
+                            for step in trajectories[0]])
 
 
         # Print information
@@ -146,6 +151,11 @@ class TestProblemGenerator(unittest.TestCase):
         self.assertEqual([step['difficulty_reward'] for step in trajectories[0]], [0])
         self.assertEqual([step['diversity_reward'] for step in trajectories[0]], [0])
 
+        # Make sure that the list of applicable actions is correct
+        self.assertEqual( [step['applicable_actions'] for step in trajectories[0]],
+                          [step['state'].get_continuous_consistent_init_state_actions(self.consistency_evaluator) + (TERM_ACTION,) \
+                            for step in trajectories[0]])
+
         # Problem 2
         self.assertEqual(len(trajectories[1]), 2)
         self.assertEqual(problem_info_list[1]['init_phase_length'], 2)
@@ -162,6 +172,11 @@ class TestProblemGenerator(unittest.TestCase):
         self.assertEqual([step['difficulty_reward'] for step in trajectories[1]], [0]*2)
         self.assertEqual([step['diversity_reward'] for step in trajectories[1]], [0]*2)
 
+        # Make sure that the list of applicable actions is correct
+        self.assertEqual( [step['applicable_actions'] for step in trajectories[1]],
+                          [step['state'].get_continuous_consistent_init_state_actions(self.consistency_evaluator) + (TERM_ACTION,) \
+                            for step in trajectories[1]])
+
         # Problem 3
         self.assertEqual(len(trajectories[2]), 3)
         self.assertEqual(problem_info_list[2]['init_phase_length'], 3)
@@ -177,6 +192,11 @@ class TestProblemGenerator(unittest.TestCase):
         self.assertEqual([step['consistency_reward'] for step in trajectories[2]], [0,0,-1])
         self.assertEqual([step['difficulty_reward'] for step in trajectories[2]], [0]*3)
         self.assertEqual([step['diversity_reward'] for step in trajectories[2]], [0]*3)
+
+        # Make sure that the list of applicable actions is correct
+        self.assertEqual( [step['applicable_actions'] for step in trajectories[2]],
+                    [step['state'].get_continuous_consistent_init_state_actions(self.consistency_evaluator) + (TERM_ACTION,) \
+                    for step in trajectories[2]])
 
     def test_term_prob_1(self):
         """
@@ -269,6 +289,14 @@ class TestProblemGenerator(unittest.TestCase):
         self.assertEqual(trajectories[0][-1]['difficulty_reward'], 1)
         self.assertGreater(trajectories[0][9]['diversity_reward'], 0) # Diversity reward is stored in the last step of the init phase
 
+        # Make sure that the list of applicable actions is correct
+        self.assertEqual( [step['applicable_actions'] for step in trajectories[0]],
+            [step['state'].get_continuous_consistent_init_state_actions(self.consistency_evaluator) + (TERM_ACTION,) \
+            if not step['state'].is_initial_state_generated else \
+            step['state'].applicable_ground_actions() + (TERM_ACTION,) \
+            for step in trajectories[0]])
+
+
         # Problem 2
         self.assertEqual(len(trajectories[1]), 13)
         self.assertEqual(problem_info_list[1]['init_phase_length'], 8)
@@ -289,6 +317,13 @@ class TestProblemGenerator(unittest.TestCase):
         self.assertEqual([step['consistency_reward'] for step in trajectories[1]], [0]*13)
         self.assertEqual(trajectories[1][-1]['difficulty_reward'], 1)
         self.assertGreater(trajectories[1][7]['diversity_reward'], 0) # Diversity reward is stored in the last step of the init phase
+
+        # Make sure that the list of applicable actions is correct
+        self.assertEqual( [step['applicable_actions'] for step in trajectories[1]],
+            [step['state'].get_continuous_consistent_init_state_actions(self.consistency_evaluator) + (TERM_ACTION,) \
+            if not step['state'].is_initial_state_generated else \
+            step['state'].applicable_ground_actions() + (TERM_ACTION,) \
+            for step in trajectories[1]])
 
     def test_consistent_problem_generation_no_goal_trajectory(self):
         """

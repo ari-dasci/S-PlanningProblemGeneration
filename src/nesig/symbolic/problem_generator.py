@@ -121,6 +121,7 @@ class ProblemGenerator():
                 assert action == consistent_actions_list[i][chosen_action_ind]
 
                 curr_sample = dict([ ('state', old_problem), ('internal_state', internal_states[i]),
+                                     ('applicable_actions', consistent_actions_list[i]),
                                      ('chosen_action', action), ('chosen_action_ind', chosen_action_ind),
                                      ('action_log_prob', action_log_probs[i]),
                                      ('consistency_reward', r_consistency), ('difficulty_reward', 0),
@@ -175,6 +176,7 @@ class ProblemGenerator():
                 assert action == applicable_actions_list[i][chosen_action_ind]
 
                 curr_sample = dict([ ('state', old_problem), ('internal_state', internal_states[i]),
+                                     ('applicable_actions', applicable_actions_list[i]),
                                      ('chosen_action', action), ('chosen_action_ind', chosen_action_ind),
                                      ('action_log_prob', action_log_probs[i]),
                                      ('consistency_reward', 0), ('difficulty_reward', 0),
@@ -265,6 +267,7 @@ class ProblemGenerator():
               is a dictionary with the following keys:
                 - 'state': PDDLProblem object, representing the state s
                 - 'internal_state': state representation used by the ML model of the policy (e.g., a list of tensors in the case of the NLM)
+                - 'applicable_actions': list of applicable actions (atoms or domain actions) at state s
                 - 'chosen_action': the action executed, either an atom or a domain action (or TERM_ACTION)
                 - 'chosen_action_ind': the index of the chosen action in the list of applicable actions
                                        (corresponding to applicable_actions.index(chosen_action)).
