@@ -67,8 +67,12 @@ class PDDLProblem():
         self.type_hierarchy = self._initial_state.type_hierarchy
         self.predicates = self._initial_state.predicates
 
-        # Increased by one for each apply_action_to_goal_state call
-        # We don't need this for the init state generation phase since the number of actions is simply the number of atoms
+        # Increased by one for each call to apply_action_to_initial_state and
+        # apply_action_to_goal_state
+        # _num_init_actions_executed is different to the number of atoms in the initial state
+        # only when init_state_info is not None, since in this case we start generation from a state
+        # with more than zero atoms
+        self._num_init_actions_executed = 0
         self._num_goal_actions_executed = 0 
 
         self.is_initial_state_generated = False
@@ -91,7 +95,7 @@ class PDDLProblem():
     # do NOT include the termination action "END" that is sometimes applied at the end of the initial state/goal generation phase
     @property
     def num_init_state_actions_executed(self):
-        return self._initial_state.num_atoms
+        return self._num_init_actions_executed
     
     @property
     def num_goal_actions_executed(self):
@@ -100,7 +104,7 @@ class PDDLProblem():
     @property
     def perc_init_state_actions_executed(self):
         assert self.max_actions_init_phase is not None, "max_actions_init_phase must be defined to calculate the percentage of actions executed"
-        return self._initial_state.num_atoms / self.max_actions_init_phase
+        return self._num_init_actions_executed / self.max_actions_init_phase
     
     @property
     def perc_goal_actions_executed(self):
@@ -325,6 +329,8 @@ class PDDLProblem():
 
         self._initial_state.add_objects(objs_to_add)
         self._initial_state.add_atom(atom_new_inds)
+
+        self._num_init_actions_executed += 1
     
     # --- Goal generation methods ---
 

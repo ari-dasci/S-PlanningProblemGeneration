@@ -16,14 +16,6 @@ import argparse
 from src.nesig.symbolic.pddl_problem import PDDLProblem
 from src.nesig.constants import TERM_ACTION
 
-"""
-NOTE:
-    - The step for converting from list of inner states to a single batch inner state is performed in the modelwrapper
-      and NOT in the datamodule
-"""
-
-
-
 class ModelWrapper(ABC, torch.nn.Module):
     """
     It adapts the inputs and outputs from the format used by generative_policy.py (and problem_generator.py) to the format used by the particular
@@ -82,7 +74,7 @@ class NLMWrapper(ModelWrapper):
     """
 
     def __init__(self, args:Union[argparse.Namespace, dict], model_arguments:dict):
-        super().__init__(args)
+        super().__init__(args, model_arguments)
 
         # If in the initial generation phase, this state will be PDDLState(obj_types, type_hierarchy, predicates)
         # If in the goal generation phase, it will be PDDLState(obj_types, type_hierarchy, actions)
@@ -97,7 +89,7 @@ class NLMWrapper(ModelWrapper):
         self.model = NLM(hidden_features,
                         out_features,
                         self.args['mlp_hidden_features'],
-                        self.args['args.residual'],
+                        self.args['residual'],
                         self.args['exclude_self'],
                         self.args['use_batch_norm'],
                         self.args['activation'])
@@ -139,32 +131,42 @@ class NLMWrapper(ModelWrapper):
 
         if self.args['input_max_size']:
             if in_init_phase:
-                extra_nullary_preds_list = [el+[p.max_actions_init_phase*0.01] for el,p in zip(extra_nullary_preds_list,problems)]
+                extra_nullary_preds_list = [el+[p.max_actions_init_phase*0.1] for el,p in zip(extra_nullary_preds_list,problems)]
             else:
-                extra_nullary_preds_list = [el+[p.max_actions_goal_phase*0.01] for el,p in zip(extra_nullary_preds_list,problems)]
+                extra_nullary_preds_list = [el+[p.max_actions_init_phase*0.1]+[p.max_actions_goal_phase*0.1] for el,p in zip(extra_nullary_preds_list,problems)]
+
+        # REMOVE
+        print(extra_nullary_preds_list)
 
         if self.args['input_num_actions']:
             if in_init_phase:
                 extra_nullary_preds_list = [el+[p.perc_init_state_actions_executed] for el,p in zip(extra_nullary_preds_list,problems)]
             else:
-                extra_nullary_preds_list = [el+[p.perc_goal_actions_executed] for el,p in zip(extra_nullary_preds_list,problems)]
+                extra_nullary_preds_list = [el+[p.perc_init_state_actions_executed]+[p.perc_goal_actions_executed] for el,p in zip(extra_nullary_preds_list,problems)]
+
+        print(extra_nullary_preds_list)
 
         if self.args['input_num_objs']:
             if in_init_phase:
                 extra_nullary_preds_list = [el+[n / p.max_actions_init_phase for n in p._initial_state.num_objects_each_type] \
                                             for el,p in zip(extra_nullary_preds_list,problems)]
             else:
-                extra_nullary_preds_list = [el+[n / p.max_actions_goal_phase for n in p._goal_state.num_objects_each_type] \
+                extra_nullary_preds_list = [el+[n / p.max_actions_init_phase for n in p._goal_state.num_objects_each_type] \
                             for el,p in zip(extra_nullary_preds_list,problems)] # Actually, the objects of init and goal state are the same
-                
+
+        print(extra_nullary_preds_list)
+
         if self.args['input_num_atoms']:
-            if in_init_phase
+            if in_init_phase:
                 extra_nullary_preds_list = [el+[n / p.max_actions_init_phase for n in p._initial_state.num_atoms_each_type] \
                                             for el,p in zip(extra_nullary_preds_list,problems)]
             else:
-                extra_nullary_preds_list = [el+[n / p.max_actions_goal_phase for n in p._goal_state.num_atoms_each_type] \
-                            for el,p in zip(extra_nullary_preds_list,problems)]
-                
+                extra_nullary_preds_list = [el+[n / p.max_actions_init_phase for n in p._initial_state.num_atoms_each_type] \
+                                              +[n / p.max_actions_init_phase for n in p._goal_state.num_atoms_each_type] \
+                            for el,p in zip(extra_nullary_preds_list,problems)] # I normalize both the number of atoms and objs by the max actions init phase
+
+        print(extra_nullary_preds_list)
+
         return extra_nullary_preds_list
 
     def obtain_internal_state_encodings(self, problems:List[PDDLProblem]) -> List:
