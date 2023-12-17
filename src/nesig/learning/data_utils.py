@@ -9,6 +9,11 @@ import torch
 from torch.utils.data import Dataset
 
 def pad_nlm_state(X:List[Optional[torch.Tensor]], N:int, pad_val:float=0) -> List[Optional[torch.Tensor]]:
+    # Make sure that N is larger or equal to the number of objects of the tensors
+    for r, t in enumerate(X[1:]):
+        if t is not None:
+            assert t.shape[0] <= N, f"Tensor of arity {r+1} has {t.shape[0]} objects, but N={N}"
+    
     # We do not pad the nullary predicates X[0]
     # Each tensor is converted from shape [n*arity, P] to [N*arity, P]
     padded_tensors = [X[0].clone() if X[0] is not None else None] + \

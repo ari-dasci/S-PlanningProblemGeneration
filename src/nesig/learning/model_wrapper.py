@@ -158,6 +158,10 @@ class NLMWrapper(ModelWrapper):
         return extra_nullary_preds_list
 
     def obtain_internal_state_encodings(self, problems:List[PDDLProblem]) -> List:
+        """
+        <Note>: the number of objects in the internal states DO include virtual objects if we are
+                if we are in the init phase and do NOT include virtual objects if we are in the goal phase.
+        """
         # First we need to check whether we are in the init state or goal generation phases
         # If self.is_initial_state_generated is False, we are in the init generation phase. If True, we are in the goal phase
         # Make sure that all the problems are in the same phase
@@ -172,6 +176,7 @@ class NLMWrapper(ModelWrapper):
         # Obtain a list of tensors for each problem
         num_problems = len(problems)
         if in_init_phase:
+            # We always add virtual objects
             list_state_encodings = [problems[i]._initial_state.atoms_nlm_encoding(self.device, self.args['breadth'],
                                         add_virtual_objs=True, allowed_virtual_objects=problems[i].allowed_virtual_objects,
                                         add_object_types=True, extra_nullary_predicates=extra_nullary_preds_list[i]) \
@@ -182,8 +187,12 @@ class NLMWrapper(ModelWrapper):
                                         extra_nullary_predicates=extra_nullary_preds_list[i]) \
                                     for i in range(num_problems)]    
             
-        # We obtain the number of objects <without virtuals>
-        list_num_objs = [p._initial_state.num_objects for p in problems] # Num objects is the same for the init and goal states
+        # We obtain the number of objects
+        # If we are in the init phase, we include virtual objects. In the goal phase, we don't
+        if in_init_phase:
+            list_num_objs = [p._initial_state.num_objects_with_virtuals(p.allowed_virtual_objects) for p in problems]
+        else:
+            list_num_objs = [p._goal_state.num_objects for p in problems] # The init and goal state contain the same objects (without virtuals)
 
         # The internal state representation of a problem is a tuple made of its tensor list and num of objects
         internal_state_list = [(s,n) for s,n in zip(list_state_encodings, list_num_objs)]

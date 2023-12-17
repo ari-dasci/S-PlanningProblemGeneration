@@ -19,6 +19,8 @@ from lifted_pddl import Parser
 from src.nesig.learning.model_wrapper import NLMWrapperActor, NLMWrapperCritic
 from src.nesig.symbolic.pddl_state import PDDLState
 from src.nesig.symbolic.pddl_problem import PDDLProblem
+from src.nesig.learning.data_utils import pad_nlm_state, stack_nlm_states
+
 class TestPDDLProblem(unittest.TestCase):
     def setUp(self):
         self.parser = Parser()
@@ -65,6 +67,14 @@ class TestPDDLProblem(unittest.TestCase):
         self.problem1_goal.goal_state = self.problem1_goal_state
         self.problem1_goal._num_goal_actions_executed = 1
 
+    def _compare_tensor_list(self, a, b):
+        self.assertEqual(len(a), len(b))
+        for i in range(len(a)):
+            if a[i] is None:
+                self.assertIsNone(b[i])
+            else:
+                self.assertTrue(torch.equal(a[i], b[i]))
+
     def test_out_features(self):
         self.assertEqual(self.nlm_actor_init._get_nlm_out_features(), [1,0,3,0]) # One extra nullary pred for term action
         self.assertEqual(self.nlm_actor_goal._get_nlm_out_features(), [1,0,0,4])
@@ -91,10 +101,63 @@ class TestPDDLProblem(unittest.TestCase):
                                                             0.0, 1/3]])
 
     def test_obtain_internal_state_encodings(self):
-        pass
+        internal_states_init = self.nlm_actor_init.obtain_internal_state_encodings([self.problem1, self.problem2])
+        internal_states_goal = self.nlm_actor_goal.obtain_internal_state_encodings([self.problem1_goal, self.problem2_goal])
+        internal_states_init_critic = self.nlm_critic_init.obtain_internal_state_encodings([self.problem1, self.problem2])
+        internal_states_goal_critic = self.nlm_critic_goal.obtain_internal_state_encodings([self.problem1_goal, self.problem2_goal])
+
+        # Actor and critic must return the same internal states
+        for s1, s2 in zip(internal_states_init, internal_states_init_critic):
+            self._compare_tensor_list(s1[0], s2[0])
+            self.assertEqual(s1[1], s2[1])
+
+        for s1, s2 in zip(internal_states_goal, internal_states_goal_critic):
+            self._compare_tensor_list(s1[0], s2[0])
+            self.assertEqual(s1[1], s2[1])
+
+        # Compare shapes of the tensor lists of the internal states
+        p1_t_shapes = [list(t.shape) if t is not None else None for t in internal_states_init[0][0]]
+        p2_t_shapes = [list(t.shape) if t is not None else None for t in internal_states_init[1][0]]
+        p1_goal_t_shapes = [list(t.shape) if t is not None else None for t in internal_states_goal[0][0]]
+        p2_goal_t_shapes = [list(t.shape) if t is not None else None for t in internal_states_goal[1][0]]
+        
+        self.assertEqual(p1_t_shapes, [[14], [13, 10], [13, 13, 3], None])
+        self.assertEqual(p2_t_shapes, [[14], [13, 10], [13, 13, 3], None])
+        self.assertEqual(p1_goal_t_shapes, [[19], [5, 9], [5, 5, 6], None])
+        self.assertEqual(p2_goal_t_shapes, [[19], [5, 9], [5, 5, 6], None])
+
+        # Make sure the number of objects is okay
+        self.assertEqual([s[1] for s in internal_states_init], [13,13])
+        self.assertEqual([s[1] for s in internal_states_goal], [5,5])
+
+    def test_pad_nlm_state(self):
+        t_list_init = self.nlm_actor_init.obtain_internal_state_encodings([self.problem1])[0][0]
+        t_list_goal = self.nlm_actor_goal.obtain_internal_state_encodings([self.problem1_goal])[0][0]
+
+        # No padding should leave the tensors unchanged
+        t_list_init_no_pad = pad_nlm_state(t_list_init, N=13, pad_val=17) # N=5 is the number of objects in the tensors
+        t_list_goal_no_pad = pad_nlm_state(t_list_goal, N=5)
+        self._compare_tensor_list(t_list_init, t_list_init_no_pad)
+        self._compare_tensor_list(t_list_goal, t_list_goal_no_pad)
+
+        # The unpadded positions should remain the same
+        t_list_init_pad = pad_nlm_state(t_list_init, N=15, pad_val=17)
+        t_list_goal_pad = pad_nlm_state(t_list_goal, N=10)
+
+        self.assertFalse(torch.equal(t_list_init[1], t_list_init_pad[1]))
+        self.assertTrue(torch.equal(t_list_init[1][:13,:], t_list_init_pad[1][:13,:]))
+        self.assertFalse(torch.equal(t_list_init[2], t_list_init_pad[2]))
+        self.assertTrue(torch.equal(t_list_init[2][:13,:13,:], t_list_init_pad[2][:13,:13,:]))
+
+        self.assertFalse(torch.equal(t_list_goal[1], t_list_goal_pad[1]))
+        self.assertTrue(torch.equal(t_list_goal[1][:5,:], t_list_goal_pad[1][:5,:]))
+        self.assertFalse(torch.equal(t_list_goal[2], t_list_goal_pad[2]))
+        self.assertTrue(torch.equal(t_list_goal[2][:5,:5,:], t_list_goal_pad[2][:5,:5,:]))  
+
 
     def test_stack_state_encodings(self):
         pass
+        # TODO
 
     def test_forward_internal_states(self):
         pass
