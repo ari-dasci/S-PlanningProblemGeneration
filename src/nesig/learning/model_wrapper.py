@@ -135,26 +135,16 @@ class NLMWrapper(ModelWrapper):
             else:
                 extra_nullary_preds_list = [el+[p.max_actions_init_phase*0.1]+[p.max_actions_goal_phase*0.1] for el,p in zip(extra_nullary_preds_list,problems)]
 
-        # REMOVE
-        print(extra_nullary_preds_list)
-
         if self.args['input_num_actions']:
             if in_init_phase:
                 extra_nullary_preds_list = [el+[p.perc_init_state_actions_executed] for el,p in zip(extra_nullary_preds_list,problems)]
             else:
                 extra_nullary_preds_list = [el+[p.perc_init_state_actions_executed]+[p.perc_goal_actions_executed] for el,p in zip(extra_nullary_preds_list,problems)]
 
-        print(extra_nullary_preds_list)
-
         if self.args['input_num_objs']:
-            if in_init_phase:
-                extra_nullary_preds_list = [el+[n / p.max_actions_init_phase for n in p._initial_state.num_objects_each_type] \
+            # The objects in the init and goal phase are the same
+            extra_nullary_preds_list = [el+[n / p.max_actions_init_phase for n in p._initial_state.num_objects_each_type] \
                                             for el,p in zip(extra_nullary_preds_list,problems)]
-            else:
-                extra_nullary_preds_list = [el+[n / p.max_actions_init_phase for n in p._goal_state.num_objects_each_type] \
-                            for el,p in zip(extra_nullary_preds_list,problems)] # Actually, the objects of init and goal state are the same
-
-        print(extra_nullary_preds_list)
 
         if self.args['input_num_atoms']:
             if in_init_phase:
@@ -164,8 +154,6 @@ class NLMWrapper(ModelWrapper):
                 extra_nullary_preds_list = [el+[n / p.max_actions_init_phase for n in p._initial_state.num_atoms_each_type] \
                                               +[n / p.max_actions_init_phase for n in p._goal_state.num_atoms_each_type] \
                             for el,p in zip(extra_nullary_preds_list,problems)] # I normalize both the number of atoms and objs by the max actions init phase
-
-        print(extra_nullary_preds_list)
 
         return extra_nullary_preds_list
 

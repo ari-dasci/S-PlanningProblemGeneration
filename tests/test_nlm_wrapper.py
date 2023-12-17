@@ -74,13 +74,21 @@ class TestPDDLProblem(unittest.TestCase):
     def test_obtain_extra_nullary_predicates(self):
         init_phase_extra_nullary_preds = self.nlm_actor_init._obtain_extra_nullary_predicates([self.problem1, self.problem2], in_init_phase=True)
         goal_phase_extra_nullary_preds = self.nlm_actor_goal._obtain_extra_nullary_predicates([self.problem1_goal, self.problem2_goal], in_init_phase=False)
-        init_phase_extra_nullary_preds_critic = self.nlm_actor_init._obtain_extra_nullary_predicates([self.problem1, self.problem2], in_init_phase=True)
-        #goal_phase_extra_nullary_preds_critic = self.nlm_actor_goal._obtain_extra_nullary_predicates([self.problem1_goal, self.problem2_goal], in_init_phase=False)
+        init_phase_extra_nullary_preds_critic = self.nlm_critic_init._obtain_extra_nullary_predicates([self.problem1, self.problem2], in_init_phase=True)
+        goal_phase_extra_nullary_preds_critic = self.nlm_critic_goal._obtain_extra_nullary_predicates([self.problem1_goal, self.problem2_goal], in_init_phase=False)
 
         self.assertEqual(init_phase_extra_nullary_preds, init_phase_extra_nullary_preds_critic)
-        #self.assertEqual(goal_phase_extra_nullary_preds, goal_phase_extra_nullary_preds_critic)
-
-        # TODO, check for goal state and add assertions
+        self.assertEqual(goal_phase_extra_nullary_preds, goal_phase_extra_nullary_preds_critic)
+        self.assertEqual(init_phase_extra_nullary_preds, [[1.0, 0.0, 0.1, 0.2, 0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.1, 0.0, 0.2],
+                                                          [6*0.1, 0.0, 1/6, 1/6,
+                                                           1/6, 1/6, 0.0, 0.0, 0.0, 1/6,
+                                                           0.0, 1/3, 0.0, 1/3]])
+        self.assertEqual(goal_phase_extra_nullary_preds, [[1.0, 1.0, 0.0, 0.1, 0.1, 0.2, 0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.1, 
+                                                           0.0, 0.2, 0.1, 0.0, 0.2], 
+                                                           [6*0.1, 1.5, 0.0, 0.0, 1/6,
+                                                            1/6, 1/6, 1/6, 0.0, 0.0, 0.0, 
+                                                            1/6, 0.0, 1/3, 0.0, 1/3, 1/3,
+                                                            0.0, 1/3]])
 
     def test_obtain_internal_state_encodings(self):
         pass
