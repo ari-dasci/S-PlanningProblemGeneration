@@ -115,7 +115,8 @@ class NLMWrapper(ModelWrapper):
         parser.add_argument('--input-num-objs', default=True, type=eval)
         parser.add_argument('--input-num-atoms', default=True, type=eval)
 
-    def stack_state_encodings(self, list_state_encodings:List[List[Optional[torch.Tensor]]], list_num_objs:List[int]) \
+    @staticmethod
+    def stack_state_encodings(list_state_encodings:List[List[Optional[torch.Tensor]]], list_num_objs:List[int]) \
         -> List[Optional[torch.Tensor]]:
         # Calculate the maximum number of objects
         max_num_objs = max(list_num_objs)

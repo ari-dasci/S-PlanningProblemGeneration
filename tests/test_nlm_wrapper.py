@@ -1,12 +1,4 @@
-"""
-TODO
-Things to test:
-    - Test that the Problem and internal state encoding are the same after performing the NLM forward pass
-      (the NLM does not modify its inputs)
-    - Test that all log_probabilities add up to one (after exp)
-"""
-
-# This script must be run as a Python module: python -m tests.test_pddl_problem
+# This script must be run as a Python module: python -m tests.test_nlm_wrapper
 
 import unittest
 import torch
@@ -21,7 +13,7 @@ from src.nesig.symbolic.pddl_state import PDDLState
 from src.nesig.symbolic.pddl_problem import PDDLProblem
 from src.nesig.learning.data_utils import pad_nlm_state, stack_nlm_states
 
-class TestPDDLProblem(unittest.TestCase):
+class TestNLMWrapper(unittest.TestCase):
     def setUp(self):
         self.parser = Parser()
         os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -145,22 +137,44 @@ class TestPDDLProblem(unittest.TestCase):
         t_list_goal_pad = pad_nlm_state(t_list_goal, N=10)
 
         self.assertFalse(torch.equal(t_list_init[1], t_list_init_pad[1]))
-        self.assertTrue(torch.equal(t_list_init[1][:13,:], t_list_init_pad[1][:13,:]))
+        self.assertTrue(torch.equal(t_list_init[1], t_list_init_pad[1][:13,:]))
         self.assertFalse(torch.equal(t_list_init[2], t_list_init_pad[2]))
-        self.assertTrue(torch.equal(t_list_init[2][:13,:13,:], t_list_init_pad[2][:13,:13,:]))
+        self.assertTrue(torch.equal(t_list_init[2], t_list_init_pad[2][:13,:13,:]))
 
         self.assertFalse(torch.equal(t_list_goal[1], t_list_goal_pad[1]))
-        self.assertTrue(torch.equal(t_list_goal[1][:5,:], t_list_goal_pad[1][:5,:]))
+        self.assertTrue(torch.equal(t_list_goal[1], t_list_goal_pad[1][:5,:]))
         self.assertFalse(torch.equal(t_list_goal[2], t_list_goal_pad[2]))
-        self.assertTrue(torch.equal(t_list_goal[2][:5,:5,:], t_list_goal_pad[2][:5,:5,:]))  
-
+        self.assertTrue(torch.equal(t_list_goal[2], t_list_goal_pad[2][:5,:5,:]))  
 
     def test_stack_state_encodings(self):
-        pass
-        # TODO
+        state_encodings = self.nlm_actor_init.obtain_internal_state_encodings([self.problem1, self.problem2])
+        tensor_lists = [s[0] for s in state_encodings]
+        num_objs = [s[1] for s in state_encodings]
+        batch_encoding = self.nlm_actor_init.stack_state_encodings(tensor_lists, num_objs)
 
-    def test_forward_internal_states(self):
+        batch_encoding_shapes = [list(t.shape) if t is not None else None for t in batch_encoding]
+        self.assertEqual(batch_encoding_shapes, [[2, 14], [2, 13, 10], [2, 13, 13, 3], None])
+
+        # Compare the subtensors of batch_encoding with the original tensor lists
+        batch_encoding_t1 = [t[0] if t is not None else None for t in batch_encoding]
+        batch_encoding_t2 = [t[1] if t is not None else None for t in batch_encoding]
+        self._compare_tensor_list(batch_encoding_t1, tensor_lists[0])
+        self._compare_tensor_list(batch_encoding_t2, tensor_lists[1])
+
+    def test_get_nlm_output_applicable_actions(self):
+        # TODO
+        # Test that the position of the NLM output tensors is correct
         pass
+
+    def test_log_softmax(self):
+        # All the probabilities must sum up to 1
+        pass
+
+    def test_forward(self):
+        # TODO
+        # Test both forward with a list of PDDL problems and a list of internal states
+        # Make sure problems are not modified when this method is called
+        # Test actor and critic
 
 if __name__ == '__main__':
     unittest.main()
