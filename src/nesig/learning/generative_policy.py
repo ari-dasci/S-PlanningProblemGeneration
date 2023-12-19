@@ -264,7 +264,7 @@ class PPOPolicy(ActorCriticPolicy):
             parser.add_argument(f'--{phase}-lifted-entropy-weight', default=0.5, type=float, help=("Weight of the lifted entropy in the entropy term of PPO, when compared to the ground entropy."
                                                                                             "It must be between 0 and 1, since ground_entropy_weight = 1 - lifted_entropy_weight."))
 
-    def calculate_entropy(self, action_log_probs:torch.Tensor, applicable_actions:List[Tuple[str, Tuple[int]]]) \
+    def calculate_entropy(self, _action_log_probs:torch.Tensor, applicable_actions:List[Tuple[str, Tuple[int]]]) \
         -> torch.Tensor:
         """
         We calculate the entropy of the probability distribution over the applicable actions.
@@ -273,28 +273,37 @@ class PPOPolicy(ActorCriticPolicy):
         Lifted entropy is calculated by first adding the probabilities of all the ground actions/atoms of the same action/predicate
         type (e.g., on, ontable, holding, handempty, clear).
         <Note>: this method calculates the entropy of a single sample at a time.
-        <Note2>: we ignore the termination condition when calculating the entropy.
-        <Note3>: all the operations are differentiable.
-        <Note4>: we normalize the lifted and ground entropies by the number of values of the random value (number of ground/lifted actions).
+        <Note2>: _action_log_probs, after torch.exp(), do not need to add up to one since we normalize them so that they add up to one.
+        <Note3>: we ignore the termination condition when calculating the entropy.
+        <Note4>: all the operations are differentiable.
+        <Note5>: we normalize the lifted and ground entropies by the number of values of the random value (number of ground/lifted actions).
                  Otherwise, entropy would be higher for predicates/actions with more values.
         """
         lifted_entropy_weight = self.get_hparam('lifted_entropy_weight')
         assert lifted_entropy_weight >= 0 and lifted_entropy_weight <= 1
-        assert action_log_probs.dim() == 1
+        assert _action_log_probs.dim() == 1
+        
+        # Remove TERM_ACTION from applicable actions (if it is present)
+        applicable_actions = list(applicable_actions) # We copy the list to avoid modifying the original list
+        if TERM_ACTION in applicable_actions:
+            ind = applicable_actions.index(TERM_ACTION)
+            del applicable_actions[ind]
+            action_log_probs = torch.cat([_action_log_probs[:ind], _action_log_probs[ind+1:]])
+        else:
+            action_log_probs = _action_log_probs
+
         assert len(action_log_probs) == len(applicable_actions)
         num_actions = len(action_log_probs)
 
-        # Remove TERM_ACTION from applicable actions (if it is present)
-        applicable_actions = list(applicable_actions)
-        if TERM_ACTION in applicable_actions:
-            applicable_actions.remove(TERM_ACTION)
-
-        if len(action_log_probs) == 1:
+        if num_actions <= 1: # action_log_probs may be empty if it only contained TERM_ACTION, which we removed
             # If there is only one applicable action, the entropy is 0
             return torch.tensor(0.0, dtype=torch.float32, device=self.device)
 
         # Transform from log_probs to probs by using exp
-        action_probs = torch.exp(action_log_probs)
+        action_probs_no_norm = torch.exp(action_log_probs)
+
+        # Normalize probs so that they add up to one
+        action_probs = action_probs_no_norm / torch.sum(action_probs_no_norm)
 
         # <Ground entropy>
         ground_entropy = torch.distributions.Categorical(probs = action_probs).entropy() / math.log(num_actions)
@@ -308,8 +317,11 @@ class PPOPolicy(ActorCriticPolicy):
             action_name_probs.append(torch.sum(action_probs[inds]))
 
         action_name_probs_tensor = torch.stack(action_name_probs)
+
+        # If there is only one lifted action, the lifted_entropy is 0.0
         lifted_entropy = torch.distributions.Categorical(probs = action_name_probs_tensor).entropy() / \
-                          math.log(len(existing_action_names))
+                         math.log(len(existing_action_names)) \
+                         if len(existing_action_names) > 1 else torch.tensor(0.0, dtype=torch.float32, device=self.device)
         
         # <Final entropy>
         entropy = lifted_entropy_weight*lifted_entropy + (1-lifted_entropy_weight)*ground_entropy
