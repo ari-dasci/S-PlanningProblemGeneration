@@ -165,6 +165,7 @@ class PPOPolicy(ActorCriticPolicy):
     """
     A policy that uses PPO to train the actor and critic networks.
     """
+    PHASES = ('init', 'goal')
 
     def __init__(self, phase, args:argparse.Namespace, model_wrapper_class_actor, model_wrapper_class_critic,
                  actor_arguments, critic_arguments):
@@ -175,7 +176,7 @@ class PPOPolicy(ActorCriticPolicy):
         super().__init__()
         self.save_hyperparameters(args)
 
-        assert phase in ['init', 'goal'], "phase must be either 'init' or 'goal'"
+        assert phase in self.PHASES, f"phase must be one of {self.PHASES}"
         self.phase = phase
         self.actor = model_wrapper_class_actor(args, actor_arguments)
         self.critic = model_wrapper_class_critic(args, critic_arguments)
@@ -243,23 +244,25 @@ class PPOPolicy(ActorCriticPolicy):
             raise argparse.ArgumentTypeError("Entropy coeffs must be either a single float or three floats separated by commas")
        
     @classmethod
-    def add_model_specific_args(cls, phase, parser):
+    def add_model_specific_args(cls, parser):
         """
-        All policy arguments have f"{phase}-" as a prefix (i.e., init- or goal-).
-        We do this to differentiate between the init and goal policy argments (which may differ in value).
+        We add the PPO arguments for the init and goal policies.
+        Both policies use the same arguments, but they can have different values (e.g., entropy coeffs).
+        For this reason, for each argument, we create two copies: one for the init policy (with the 'init-' prefix) and one for the goal policy (with the 'goal-' prefix).
         """
-        assert phase in ['init', 'goal'], "phase must be either 'init' or 'goal'"
         #parser.set_defaults(policy="ppo")
-        parser.add_argument(f'--{phase}-lr', default=1e-3, type=float, help="Learning rate used in PPO.")
-        parser.add_argument(f'--{phase}-epsilon', default=0.1, type=float, help="Epsilon parameter used in PPO. The larger it is, the larger policy updates can be.")
-        parser.add_argument(f'--{phase}-entropy-coeffs', type=cls.parse_entropy_coeffs, help=("Coefficients used for the PPO entropy term and annealing it."
-                                                                                      "the first element is the initial value of the entropy coeff,"
-                                                                                      "the second element its final value, and the third element the"
-                                                                                      "number of trainer.fit() calls to reach the final value"
-                                                                                      "Conversely, a single float value can be provided, in which case"
-                                                                                      "the entropy coeff will remain constant."))
-        parser.add_argument(f'--{phase}-lifted-entropy-weight', default=0.5, type=float, help=("Weight of the lifted entropy in the entropy term of PPO, when compared to the ground entropy."
-                                                                                           "It must be between 0 and 1, since ground_entropy_weight = 1 - lifted_entropy_weight."))
+
+        for phase in cls.PHASES:
+            parser.add_argument(f'--{phase}-lr', default=1e-3, type=float, help="Learning rate used in PPO.")
+            parser.add_argument(f'--{phase}-epsilon', default=0.1, type=float, help="Epsilon parameter used in PPO. The larger it is, the larger policy updates can be.")
+            parser.add_argument(f'--{phase}-entropy-coeffs', type=cls.parse_entropy_coeffs, help=("Coefficients used for the PPO entropy term and annealing it."
+                                                                                        "the first element is the initial value of the entropy coeff,"
+                                                                                        "the second element its final value, and the third element the"
+                                                                                        "number of trainer.fit() calls to reach the final value"
+                                                                                        "Conversely, a single float value can be provided, in which case"
+                                                                                        "the entropy coeff will remain constant."))
+            parser.add_argument(f'--{phase}-lifted-entropy-weight', default=0.5, type=float, help=("Weight of the lifted entropy in the entropy term of PPO, when compared to the ground entropy."
+                                                                                            "It must be between 0 and 1, since ground_entropy_weight = 1 - lifted_entropy_weight."))
 
     def calculate_entropy(self, action_log_probs:torch.Tensor, applicable_actions:List[Tuple[str, Tuple[int]]]) \
         -> torch.Tensor:
