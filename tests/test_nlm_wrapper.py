@@ -11,7 +11,8 @@ from lifted_pddl import Parser
 from src.nesig.learning.model_wrapper import NLMWrapperActor, NLMWrapperCritic
 from src.nesig.symbolic.pddl_state import PDDLState
 from src.nesig.symbolic.pddl_problem import PDDLProblem
-from src.nesig.learning.data_utils import pad_nlm_state, stack_nlm_states
+from src.nesig.learning.data_utils import pad_nlm_state
+from src.nesig.constants import TERM_ACTION
 
 class TestNLMWrapper(unittest.TestCase):
     def setUp(self):
@@ -162,19 +163,116 @@ class TestNLMWrapper(unittest.TestCase):
         self._compare_tensor_list(batch_encoding_t2, tensor_lists[1])
 
     def test_get_nlm_output_applicable_actions(self):
-        # TODO
-        # Test that the position of the NLM output tensors is correct
-        pass
+        # Create tensors with all zero except for the positions of the applicable actions
+        # Init state
+        encoding_states_init = [torch.zeros((2,14)), torch.zeros((2,13,10)), torch.zeros((2,13,13,3)), None]
+        applicable_actions_list = [(('in-city', (1,0)), ('at',(2,1)), ('in', (3,2))),
+                                   (('in-city', (5,8)), TERM_ACTION, ('in-city', (6,9)), ('at', (7,10)))]
+        applicable_actions_vals = [[1,20,3], [46,-8,6,7]]
+        pred_name_to_ind = self.dummy_init_state.pred_names_to_indices_dict_each_arity
+        
+        encoding_states_init[2][0,1,0,pred_name_to_ind['in-city']] = 1
+        encoding_states_init[2][0,2,1,pred_name_to_ind['at']] = 20
+        encoding_states_init[2][0,3,2,pred_name_to_ind['in']] = 3
+        encoding_states_init[2][1,5,8,pred_name_to_ind['in-city']] = 46
+        encoding_states_init[0][1,13] = -8 # TERM_ACTION corresponds to the last nullary predicate
+        encoding_states_init[2][1,6,9,pred_name_to_ind['in-city']] = 6
+        encoding_states_init[2][1,7,10,pred_name_to_ind['at']] = 7
 
+        nlm_output_actions_init = self.nlm_actor_init._get_nlm_output_applicable_actions(encoding_states_init, applicable_actions_list)
+        self.assertTrue(isinstance(nlm_output_actions_init[0], torch.Tensor))
+        self.assertTrue(isinstance(nlm_output_actions_init[1], torch.Tensor))
+        self.assertEqual(nlm_output_actions_init[0].shape, (3,))
+        self.assertEqual(nlm_output_actions_init[1].shape, (4,))
+        self.assertEqual(nlm_output_actions_init[0].tolist(), applicable_actions_vals[0])
+        self.assertEqual(nlm_output_actions_init[1].tolist(), applicable_actions_vals[1])
+
+        # Goal state
+        encoding_states_goal = [torch.zeros((2,19)), torch.zeros((2,5,9)), None, torch.zeros((2,5,5,5,6))]
+        applicable_actions_list = [(('drive', (2,1,0)), ('fly',(3,4,2)), TERM_ACTION),
+                                   (('load', (2,3,1)), ('unload', (4,3,2)))]
+        applicable_actions_vals = [[1,7,23], [3,8]]
+        action_name_to_ind = self.dummy_goal_state.pred_names_to_indices_dict_each_arity
+
+        encoding_states_goal[3][0,2,1,0,action_name_to_ind['drive']] = 1
+        encoding_states_goal[3][0,3,4,2,action_name_to_ind['fly']] = 7
+        encoding_states_goal[0][0,18] = 23
+        encoding_states_goal[3][1,2,3,1,action_name_to_ind['load']] = 3
+        encoding_states_goal[3][1,4,3,2,action_name_to_ind['unload']] = 8
+
+        nlm_output_actions_goal = self.nlm_actor_goal._get_nlm_output_applicable_actions(encoding_states_goal, applicable_actions_list)
+        
+        self.assertTrue(isinstance(nlm_output_actions_goal[0], torch.Tensor))
+        self.assertTrue(isinstance(nlm_output_actions_goal[1], torch.Tensor))
+        self.assertEqual(nlm_output_actions_goal[0].shape, (3,))
+        self.assertEqual(nlm_output_actions_goal[1].shape, (2,))
+        self.assertEqual(nlm_output_actions_goal[0].tolist(), applicable_actions_vals[0])
+        self.assertEqual(nlm_output_actions_goal[1].tolist(), applicable_actions_vals[1])
+        
     def test_log_softmax(self):
-        # All the probabilities must sum up to 1
-        pass
+        action_nlm_output = [torch.tensor([0.1, 0.2, 0.3, 0.4]), torch.tensor([5.0]), torch.tensor([-5,12.0])]
+        action_log_probs = self.nlm_actor_init._log_softmax(action_nlm_output)
+
+        for t in action_log_probs:
+            self.assertTrue(isinstance(t, torch.Tensor))
+
+        self.assertEqual(action_log_probs[0].shape, (4,))
+        self.assertEqual(action_log_probs[1].shape, (1,))
+        self.assertEqual(action_log_probs[2].shape, (2,))
+        self.assertGreater(action_log_probs[0][3], action_log_probs[0][2])
+        self.assertGreater(action_log_probs[2][1], action_log_probs[2][0])
+
+        # Probs must add up to 1
+        for t in action_log_probs:
+            self.assertAlmostEqual(torch.exp(t).sum().item(), 1.0)
 
     def test_forward(self):
-        # TODO
-        # Test both forward with a list of PDDL problems and a list of internal states
-        # Make sure problems are not modified when this method is called
-        # Test actor and critic
+        init_problem_list = [self.problem1, self.problem2]
+        init_problem_list_bk = deepcopy(init_problem_list)
+        applicable_actions_init = [(('in-city', (1,0)), ('at',(2,1)), ('in', (3,2))),
+                                   (('in-city', (5,8)), TERM_ACTION, ('in-city', (6,9)), ('at', (7,10)))]
+        goal_problem_list = [self.problem1_goal, self.problem2_goal]
+        goal_problem_list_bk = deepcopy(goal_problem_list)
+        applicable_actions_goal = [(('drive', (2,1,0)), ('fly',(3,4,2)), TERM_ACTION),
+                                   (('load', (2,3,1)), ('unload', (4,3,2)))]
+        
+        output_actor_init = self.nlm_actor_init(init_problem_list, applicable_actions_init)
+        output_actor_goal = self.nlm_actor_goal(goal_problem_list, applicable_actions_goal)
+        output_critic_init = self.nlm_critic_init(init_problem_list)
+        output_critic_goal = self.nlm_critic_goal(goal_problem_list)
+
+        # Check that problems are unmodified by the forward pass
+        self.assertEqual(init_problem_list, init_problem_list_bk)
+        self.assertEqual(goal_problem_list, goal_problem_list_bk)
+
+        self.assertAlmostEqual(torch.exp(output_actor_init[0][0]).sum().item(), 1.0, delta=1e-5)
+        self.assertAlmostEqual(torch.exp(output_actor_init[0][1]).sum().item(), 1.0, delta=1e-5)
+        self.assertAlmostEqual(torch.exp(output_actor_goal[0][0]).sum().item(), 1.0, delta=1e-5)
+        self.assertAlmostEqual(torch.exp(output_actor_goal[0][1]).sum().item(), 1.0, delta=1e-5)
+
+        for t1,t2 in zip(output_critic_init[0], output_critic_goal[0]):
+            self.assertTrue(isinstance(t1, torch.Tensor))
+            self.assertEqual(len(t1.shape), 0)
+            self.assertTrue(isinstance(t2, torch.Tensor))
+            self.assertEqual(len(t2.shape), 0)
+
+        # Check that forward pass with the internal state produces the same output as the forward pass with the problem
+        internal_states_actor_init = output_actor_init[1]
+        internal_states_actor_goal = output_actor_goal[1]
+        internal_states_critic_init = output_critic_init[1]
+        internal_states_critic_goal = output_critic_goal[1]
+
+        output_actor_init_from_internal_states = self.nlm_actor_init(internal_states_actor_init, applicable_actions_init)
+        output_actor_goal_from_internal_states = self.nlm_actor_goal(internal_states_actor_goal, applicable_actions_goal)
+        output_critic_init_from_internal_states = self.nlm_critic_init(internal_states_critic_init)
+        output_critic_goal_from_internal_states = self.nlm_critic_goal(internal_states_critic_goal)
+
+        self._compare_tensor_list(output_actor_init[0], output_actor_init_from_internal_states[0])
+        self._compare_tensor_list(output_actor_goal[0], output_actor_goal_from_internal_states[0])
+        self._compare_tensor_list(output_critic_init[0], output_critic_init_from_internal_states[0])
+        self._compare_tensor_list(output_critic_goal[0], output_critic_goal_from_internal_states[0])
+        
+
 
 if __name__ == '__main__':
     unittest.main()
