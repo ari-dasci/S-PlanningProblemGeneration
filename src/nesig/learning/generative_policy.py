@@ -184,22 +184,18 @@ class PPOPolicy(ActorCriticPolicy):
         # --entropy_coeffs is a three-element tuple where the first element is the initial value
         # of the entropy coeff, the second element its final value and the third element the number
         # of trainer.fit() calls to reach the final value
-        entropy_init_val, entropy_final_val, entropy_num_its = self.hparams.entropy_coeffs
-
-        assert entropy_init_val >= 0
-        self.register_buffer('curr_entropy_coeff', torch.tensor(entropy_init_val, dtype=torch.float32))
+        # Alternatively, it's a single float value, in which case the entropy coeff remains constant
+        entropy_coeffs = self.hparams.entropy_coeffs
 
         # No entropy annealing (entropy coeff remains constant)
-        if entropy_final_val is None or entropy_num_its is None:
-            self.register_buffer('entropy_reduction_val', torch.tensor(0.0, dtype=torch.float32))
-            self.final_entropy_coeff = entropy_init_val
-        else:
-            assert entropy_init_val >= entropy_final_val, "Initial entropy coeff must be greater than or equal to final entropy coeff"
-            assert entropy_final_val >= 0
-            assert entropy_num_its >= 0
-            self.register_buffer('entropy_reduction_val', torch.tensor((entropy_init_val - entropy_final_val) / entropy_num_its, 
-                                                                    dtype=torch.float32))
-            self.final_entropy_coeff = entropy_final_val
+        if type(entropy_coeffs) == float:
+            self.register_buffer('curr_entropy_coeff', torch.tensor(entropy_coeffs, dtype=torch.float32))
+            self.final_entropy_coeff = entropy_coeffs # The final entropy coeff is equal to the initial one
+        else: # Entropy annealing
+            self.register_buffer('curr_entropy_coeff', torch.tensor(entropy_coeffs[0], dtype=torch.float32))
+            self.register_buffer('entropy_reduction_val', torch.tensor((entropy_coeffs[0] - entropy_coeffs[1]) / entropy_coeffs[2], 
+                                                                    dtype=torch.float32)) # (init_coeff - final_coeff) / num_iterations
+            self.final_entropy_coeff = entropy_coeffs[1]
 
     @staticmethod
     def parse_entropy_coeffs(value):

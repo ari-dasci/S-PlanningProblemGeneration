@@ -36,7 +36,7 @@ class TestPPOPolicy(unittest.TestCase):
         parser = argparse.ArgumentParser()
         parser.add_argument('--device', type=str, choices=['cpu', 'gpu'])
         NLMWrapper.add_model_specific_args(parser)
-        args = parser.parse_args(['--device','cpu','--input-max-size'])
+        args = parser.parse_args(['--device','cpu'])
 
 
     def test_forward(self):
