@@ -14,7 +14,7 @@ import argparse
 from lifted_pddl import Parser
 
 from src.nesig.learning.generative_policy import PPOPolicy
-from src.nesig.learning.model_wrapper import NLMWrapper
+from src.nesig.learning.model_wrapper import NLMWrapper, NLMWrapperActor, NLMWrapperCritic
 from src.nesig.constants import TERM_ACTION
 from src.nesig.symbolic.pddl_state import PDDLState
 
@@ -35,12 +35,38 @@ class TestPPOPolicy(unittest.TestCase):
 
         parser = argparse.ArgumentParser()
         parser.add_argument('--device', type=str, choices=['cpu', 'gpu'])
+        PPOPolicy.add_model_specific_args('init', parser) # Add init and goal arguments
+        PPOPolicy.add_model_specific_args('goal', parser)
         NLMWrapper.add_model_specific_args(parser)
-        args = parser.parse_args(['--device','cpu'])
+        args = parser.parse_args(['--device','cpu', '--init-entropy-coeffs', '0.2, 0.1, 100', '--goal-entropy-coeffs', '0.2, 0.1, 100'])
 
+        self.init_policy = PPOPolicy('init', args, NLMWrapperActor, NLMWrapperCritic, {'dummy_pddl_state':self.dummy_init_state},
+                                     {'dummy_pddl_state':self.dummy_init_state})
+        self.goal_policy = PPOPolicy('goal', args, NLMWrapperActor, NLMWrapperCritic, {'dummy_pddl_state':self.dummy_goal_state},
+                                     {'dummy_pddl_state':self.dummy_goal_state})
 
-    def test_forward(self):
-        pass
+    def test_entropy_coeffs(self):
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--device', type=str, choices=['cpu', 'gpu'])
+        PPOPolicy.add_model_specific_args('init', parser)
+        PPOPolicy.add_model_specific_args('goal', parser)
+        NLMWrapper.add_model_specific_args(parser)
+        args = parser.parse_args(['--device','cpu', '--init-entropy-coeffs', '0.57', '--goal-entropy-coeffs', '0.78'])
+
+        self.policy_no_entropy_annealing = PPOPolicy('init', args, NLMWrapperActor, NLMWrapperCritic, {'dummy_pddl_state':self.dummy_init_state},
+                                                    {'dummy_pddl_state':self.dummy_init_state})
+        
+        # No entropy annealing
+        self.assertEqual(self.policy_no_entropy_annealing.get_hparam('entropy_coeffs'), 0.57)
+        self.assertEqual(self.policy_no_entropy_annealing.curr_entropy_coeff, torch.tensor(0.57, dtype=torch.float32))
+        self.assertEqual(self.policy_no_entropy_annealing.entropy_reduction_val, torch.tensor(0, dtype=torch.float32))
+        self.assertEqual(self.policy_no_entropy_annealing.final_entropy_coeff, 0.57)
+
+        # With entropy annealing
+        self.assertEqual(self.init_policy.get_hparam('entropy_coeffs'), (0.2,0.1,100))
+        self.assertEqual(self.init_policy.curr_entropy_coeff, torch.tensor(0.2, dtype=torch.float32))
+        self.assertEqual(self.init_policy.entropy_reduction_val, torch.tensor(0.1/100, dtype=torch.float32))
+        self.assertEqual(self.init_policy.final_entropy_coeff, 0.1)
 
     def test_load_and_save(self):
         pass

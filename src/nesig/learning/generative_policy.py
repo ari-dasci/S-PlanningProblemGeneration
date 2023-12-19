@@ -137,7 +137,7 @@ class RandomPolicy(GenerativePolicy):
     
     @staticmethod
     def add_model_specific_args(parser):
-        parser.set_defaults(policy="random")
+        #parser.set_defaults(policy="random")
         parser.add_argument('--term-action-prob', default=0.0, type=float)
 
     # Random policy does not need training
@@ -166,15 +166,17 @@ class PPOPolicy(ActorCriticPolicy):
     A policy that uses PPO to train the actor and critic networks.
     """
 
-    # TODO
-    # See how to pass the model-specific parameters (different from init and goal models)
-    # to the model_wrapper_class constructor
-    # It can get them either from args or from a list of additional parameters
-    def __init__(self, args:argparse.Namespace, model_wrapper_class_actor, model_wrapper_class_critic,
+    def __init__(self, phase, args:argparse.Namespace, model_wrapper_class_actor, model_wrapper_class_critic,
                  actor_arguments, critic_arguments):
+        """
+        phase argument is 'init' for the initial state generation policy and 'goal' for the goal generation policy.
+        We need this argument so that the init and goal policies can have different hyperparameter values (e.g., different entropy coeffs).
+        """
         super().__init__()
         self.save_hyperparameters(args)
 
+        assert phase in ['init', 'goal'], "phase must be either 'init' or 'goal'"
+        self.phase = phase
         self.actor = model_wrapper_class_actor(args, actor_arguments)
         self.critic = model_wrapper_class_critic(args, critic_arguments)
 
@@ -185,17 +187,27 @@ class PPOPolicy(ActorCriticPolicy):
         # of the entropy coeff, the second element its final value and the third element the number
         # of trainer.fit() calls to reach the final value
         # Alternatively, it's a single float value, in which case the entropy coeff remains constant
-        entropy_coeffs = self.hparams.entropy_coeffs
+        entropy_coeffs = self.get_hparam('entropy_coeffs')
 
         # No entropy annealing (entropy coeff remains constant)
         if type(entropy_coeffs) == float:
             self.register_buffer('curr_entropy_coeff', torch.tensor(entropy_coeffs, dtype=torch.float32))
+            self.register_buffer('entropy_reduction_val', torch.tensor(0.0, dtype=torch.float32))
             self.final_entropy_coeff = entropy_coeffs # The final entropy coeff is equal to the initial one
         else: # Entropy annealing
             self.register_buffer('curr_entropy_coeff', torch.tensor(entropy_coeffs[0], dtype=torch.float32))
             self.register_buffer('entropy_reduction_val', torch.tensor((entropy_coeffs[0] - entropy_coeffs[1]) / entropy_coeffs[2], 
                                                                     dtype=torch.float32)) # (init_coeff - final_coeff) / num_iterations
             self.final_entropy_coeff = entropy_coeffs[1]
+
+    def get_hparam(self, name):
+        """
+        Use this method to access the hyperparameters instead of self.hparams.
+        This method is used to access the hyperparameters corresponding to the init or goal policy, depending on
+        self.phase. 
+        """
+        complete_name = f'{self.phase}_{name}'
+        return self.hparams[complete_name]
 
     @staticmethod
     def parse_entropy_coeffs(value):
@@ -229,17 +241,25 @@ class PPOPolicy(ActorCriticPolicy):
                 raise argparse.ArgumentTypeError("Entropy coeffs must be either a single float or three floats separated by commas")
         except ValueError:
             raise argparse.ArgumentTypeError("Entropy coeffs must be either a single float or three floats separated by commas")
-
+       
     @classmethod
-    def add_model_specific_args(cls, parser):
-        parser.set_defaults(policy="ppo")
-        parser.add_argument('--epsilon', default=0.1, type=float, help="Epsilon parameter used in PPO. The larger it is, the larger policy updates can be.")
-        parser.add_argument('--entropy-coeffs', type=cls.parse_entropy_coeffs, help=("Coefficients used for the PPO entropy term and annealing it."
+    def add_model_specific_args(cls, phase, parser):
+        """
+        All policy arguments have f"{phase}-" as a prefix (i.e., init- or goal-).
+        We do this to differentiate between the init and goal policy argments (which may differ in value).
+        """
+        assert phase in ['init', 'goal'], "phase must be either 'init' or 'goal'"
+        #parser.set_defaults(policy="ppo")
+        parser.add_argument(f'--{phase}-lr', default=1e-3, type=float, help="Learning rate used in PPO.")
+        parser.add_argument(f'--{phase}-epsilon', default=0.1, type=float, help="Epsilon parameter used in PPO. The larger it is, the larger policy updates can be.")
+        parser.add_argument(f'--{phase}-entropy-coeffs', type=cls.parse_entropy_coeffs, help=("Coefficients used for the PPO entropy term and annealing it."
                                                                                       "the first element is the initial value of the entropy coeff,"
                                                                                       "the second element its final value, and the third element the"
                                                                                       "number of trainer.fit() calls to reach the final value"
                                                                                       "Conversely, a single float value can be provided, in which case"
                                                                                       "the entropy coeff will remain constant."))
+        parser.add_argument(f'--{phase}-lifted-entropy-weight', default=0.5, type=float, help=("Weight of the lifted entropy in the entropy term of PPO, when compared to the ground entropy."
+                                                                                           "It must be between 0 and 1, since ground_entropy_weight = 1 - lifted_entropy_weight."))
 
     def calculate_entropy(self, action_log_probs:torch.Tensor, applicable_actions:List[Tuple[str, Tuple[int]]]) \
         -> torch.Tensor:
@@ -255,7 +275,8 @@ class PPOPolicy(ActorCriticPolicy):
         <Note4>: we normalize the lifted and ground entropies by the number of values of the random value (number of ground/lifted actions).
                  Otherwise, entropy would be higher for predicates/actions with more values.
         """
-        assert self.hparams.lifted_entropy_weight >= 0 and self.hparams.lifted_entropy_weight <= 1
+        lifted_entropy_weight = self.get_hparam('lifted_entropy_weight')
+        assert lifted_entropy_weight >= 0 and lifted_entropy_weight <= 1
         assert action_log_probs.dim() == 1
         assert len(action_log_probs) == len(applicable_actions)
         num_actions = len(action_log_probs)
@@ -288,7 +309,7 @@ class PPOPolicy(ActorCriticPolicy):
                           math.log(len(existing_action_names))
         
         # <Final entropy>
-        entropy = self.hparams.lifted_entropy_weight*lifted_entropy + (1-self.hparams.lifted_entropy_weight)*ground_entropy
+        entropy = lifted_entropy_weight*lifted_entropy + (1-lifted_entropy_weight)*ground_entropy
         return entropy # zero-dimensional torch.Tensor containing a single float
 
     def anneal_entropy_coeff(self):
@@ -316,7 +337,7 @@ class PPOPolicy(ActorCriticPolicy):
         return state_value_list, internal_state_list
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.get_hparam('lr'))
         return optimizer
     
     def on_train_end(self):
@@ -363,7 +384,7 @@ class PPOPolicy(ActorCriticPolicy):
         prob_ratio_tensor = chosen_actions_probs_curr_policy / chosen_actions_probs_old_policy
         
         # Calculate the PPO loss
-        epsilon = self.hparams.epsilon
+        epsilon = self.get_hparam('epsilon')
         advantage_tensor = torch.tensor(train_batch['advantages'], requires_grad=False, device=self.device) # requires_grad=False because we should not backpropagate through the advantages
         PPO_loss = torch.mean( -torch.min(prob_ratio_tensor * advantage_tensor, \
 						       torch.clip(prob_ratio_tensor, 1-epsilon, 1+epsilon) * advantage_tensor) ) # minus sign is because we want to maximize the objective function

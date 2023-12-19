@@ -99,7 +99,10 @@ class NLMWrapper(ModelWrapper):
 
     @staticmethod
     def add_model_specific_args(parser):
-        parser.set_defaults(model="NLM")
+        """
+        Right now, we assume that all the 4 NLMs (for the actor and critic and for the init and goal policies) share the same hyperparameters.
+        """
+        #parser.set_defaults(model="NLM")
         parser.add_argument('--breadth', default=3,type=int, help="Maximum arity of predicates in the NLM.")
         parser.add_argument('--depth', default=5,type=int, help="Number of NLM layers.")
         parser.add_argument('--hidden-features', default=8,type=int, help=("Number of predicates for each arity output by all the NLM layers except the final one." 
