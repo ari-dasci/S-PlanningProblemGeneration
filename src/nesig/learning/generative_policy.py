@@ -161,14 +161,15 @@ class ActorCriticPolicy(GenerativePolicy):
         raise NotImplementedError
 
 
+from src.nesig.constants import MODEL_WRAPPERS
+
 class PPOPolicy(ActorCriticPolicy):
     """
     A policy that uses PPO to train the actor and critic networks.
     """
     PHASES = ('init', 'goal')
 
-    def __init__(self, phase, args:argparse.Namespace, model_wrapper_class_actor, model_wrapper_class_critic,
-                 actor_arguments, critic_arguments):
+    def __init__(self, phase, args:argparse.Namespace, actor_arguments, critic_arguments):
         """
         phase argument is 'init' for the initial state generation policy and 'goal' for the goal generation policy.
         We need this argument so that the init and goal policies can have different hyperparameter values (e.g., different entropy coeffs).
@@ -178,8 +179,8 @@ class PPOPolicy(ActorCriticPolicy):
 
         assert phase in self.PHASES, f"phase must be one of {self.PHASES}"
         self.phase = phase
-        self.actor = model_wrapper_class_actor(args, actor_arguments)
-        self.critic = model_wrapper_class_critic(args, critic_arguments)
+        self.actor = self.get_hparam('actor_class')(args, actor_arguments)
+        self.critic = self.get_hparam('critic_class')(args, critic_arguments)
 
         # Create additional parameters that should be saved and loaded from checkpoints but NOT
         # modified by the optimizer
@@ -243,6 +244,13 @@ class PPOPolicy(ActorCriticPolicy):
         except ValueError:
             raise argparse.ArgumentTypeError("Entropy coeffs must be either a single float or three floats separated by commas")
        
+    @staticmethod
+    def parse_wrapper_class(value):
+        if value not in MODEL_WRAPPERS:
+            raise argparse.ArgumentTypeError(f"Model wrapper class must be one of {list(MODEL_WRAPPERS.keys())}")
+        
+        return MODEL_WRAPPERS[value]
+
     @classmethod
     def add_model_specific_args(cls, parser):
         """
@@ -253,6 +261,8 @@ class PPOPolicy(ActorCriticPolicy):
         #parser.set_defaults(policy="ppo")
 
         for phase in cls.PHASES:
+            parser.add_argument(f'--{phase}-actor-class', default='NLMWrapperActor', type=cls.parse_wrapper_class, help="Class of the model wrapper for the actor.")
+            parser.add_argument(f'--{phase}-critic-class', default='NLMWrapperCritic', type=cls.parse_wrapper_class, help="Class of the model wrapper for the critic.")
             parser.add_argument(f'--{phase}-lr', default=1e-3, type=float, help="Learning rate used in PPO.")
             parser.add_argument(f'--{phase}-epsilon', default=0.1, type=float, help="Epsilon parameter used in PPO. The larger it is, the larger policy updates can be.")
             parser.add_argument(f'--{phase}-entropy-coeffs', type=cls.parse_entropy_coeffs, help=("Coefficients used for the PPO entropy term and annealing it."

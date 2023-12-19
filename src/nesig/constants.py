@@ -23,3 +23,11 @@ TEST_PLANNER_ARGS = [LAMA_FIRST_ARG, LAZY_GREEDY_FF_ARG, LAZY_GREEDY_ADD_ARG]
 
 # Termination condition action, which signals the end of the (initial state or goal) generation phase
 TERM_ACTION = "END"
+
+# Dictionary from names to Model Wrapper classes used by the PPOPolicy
+from src.nesig.learning.model_wrapper import NLMWrapperActor, NLMWrapperCritic
+
+MODEL_WRAPPERS ={
+    'NLMWrapperActor' : NLMWrapperActor,
+    'NLMWrapperCritic' : NLMWrapperCritic
+}
