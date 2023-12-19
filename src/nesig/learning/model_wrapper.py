@@ -100,20 +100,27 @@ class NLMWrapper(ModelWrapper):
     @staticmethod
     def add_model_specific_args(parser):
         parser.set_defaults(model="NLM")
-        parser.add_argument('--breadth', default=3,type=int)
-        parser.add_argument('--depth', default=5,type=int)
-        parser.add_argument('--hidden-features', default=8,type=int)
-        parser.add_argument('--mlp-hidden-features', default=0,type=int)
-        parser.add_argument('--residual', default="input", choices=[None, "all", "input"])
-        parser.add_argument('--exclude-self', default=True, type=eval)
-        parser.add_argument('--use-batch-norm', action="store_true")
-        parser.add_argument('--activation', default='sigmoid', choices=["sigmoid","relu"])
+        parser.add_argument('--breadth', default=3,type=int, help="Maximum arity of predicates in the NLM.")
+        parser.add_argument('--depth', default=5,type=int, help="Number of NLM layers.")
+        parser.add_argument('--hidden-features', default=8,type=int, help=("Number of predicates for each arity output by all the NLM layers except the final one." 
+                                                                           "Right now, we assume the same number of predicates for all inner layers and arities."))
+        parser.add_argument('--mlp-hidden-features', default=0,type=int, help="Units in the hidden layer of all the inference MLPs. If 0, the inference MLPs have no hidden layer.")
+        parser.add_argument('--residual', default="input", choices=[None, "all", "input"], help=("Residual connections. If None, no residual is used."
+                                                                                                 "If 'all', each layer receives as additional input the inputs of all the previous layers."
+                                                                                                 "If 'input', each layer receives as additional input the input of the first layer."))
+        parser.add_argument('--exclude-self', default=True, type=eval, help="If True, the reduce operation ignores tensor positions corresponding to repeated indexes (e.g., [5][5][3] or [2][2][0][1]).")
+        parser.add_argument('--use-batch-norm', action="store_true", help="If this argument is provided, we apply batch normalization to the output of the inference MLPs.")
+        parser.add_argument('--activation', default='sigmoid', choices=["sigmoid","relu"], help="Activation function for the inference MLPs. The options are: 'sigmoid' and 'relu'.")
 
         # Extra nullary predicates
-        parser.add_argument('--input-max-size', action="store_true")
-        parser.add_argument('--input-num-actions', default=True, type=eval)
-        parser.add_argument('--input-num-objs', default=True, type=eval)
-        parser.add_argument('--input-num-atoms', default=True, type=eval)
+        parser.add_argument('--input-max-size', action="store_true", help=("If this argument is provided, the NLM receives as additional input the maximum number of actions that can be executed"
+                                                                           "in the init or in the init and goal phases (depending on whether we are in the init or goal generation phase)."
+                                                                           "This number is multiplied by 0.1."))
+        parser.add_argument('--input-num-actions', default=True, type=eval, help=("If True, the NLM receives as additional input the percentage of actions executed in the init or in the init+goal phases"   
+                                                                                  "(depending on the current phase), when compare to the maximum number of available actions."))
+        parser.add_argument('--input-num-objs', default=True, type=eval, help="If True, the NLM receives as additional input the number of objects of each type in the state (normalized by max actions init phase).")
+        parser.add_argument('--input-num-atoms', default=True, type=eval, help=("If True, the NLM receives as additional input the number of atoms of each type in the init state or the init and goal states"
+                                                                                "(depending on the current phase), always normalized by max actions init phase."))
 
     @staticmethod
     def stack_state_encodings(list_state_encodings:List[List[Optional[torch.Tensor]]], list_num_objs:List[int]) \

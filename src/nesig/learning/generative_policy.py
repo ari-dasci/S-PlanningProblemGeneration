@@ -9,6 +9,7 @@ from typing import List, Tuple, Optional, Union, Any
 from abc import ABC, abstractmethod
 import torch
 import math
+import argparse
 import pytorch_lightning as pl
 
 # define the type Action as Tuple[str, Tuple[int]]
@@ -82,13 +83,18 @@ class RandomPolicy(GenerativePolicy):
     Policy that selects actions uniformly at random.
     """
 
-    def __init__(self, term_action_prob:float):
+    def __init__(self, term_action_prob:Union[argparse.Namespace,float]):
         """
         Constructor. It takes the probability (between 0 and 1) of selecting TERM_ACTION at a given state.
                      This probability is always the same, regardless of the number of other applicable actions
                      at the state.
+                     For simplicity, this argument can be provided either as a float or as an argparse.Namespace.
         """
         super().__init__()
+
+        if isinstance(term_action_prob, argparse.Namespace):
+            term_action_prob = term_action_prob.term_action_prob
+
         assert term_action_prob >= 0 and term_action_prob <= 1, "Probability of selecting TERM_ACTION must be between 0 and 1"
         self.term_action_prob = term_action_prob
 
@@ -155,8 +161,6 @@ class ActorCriticPolicy(GenerativePolicy):
         raise NotImplementedError
 
 
-import argparse
-
 class PPOPolicy(ActorCriticPolicy):
     """
     A policy that uses PPO to train the actor and critic networks.
@@ -198,9 +202,48 @@ class PPOPolicy(ActorCriticPolicy):
             self.final_entropy_coeff = entropy_final_val
 
     @staticmethod
-    def add_model_specific_args(parser):
+    def parse_entropy_coeffs(value):
+        """
+        Auxiliary function used to parse the --entropy-coeffs argument.
+        """
+        # Try to parse as a single float
+        try:
+            val = float(value)
+            if val < 0:
+                raise argparse.ArgumentTypeError("Entropy coeffs must be non-negative")
+            return val
+        except ValueError:
+            pass
+
+        # Try to parse as three comma-separated floats
+        try:
+            parts = value.split(',')
+            if len(parts) == 3:
+                val =  tuple(float(p) for p in parts)
+
+                if val[0] < 0 or val[1] < 0:
+                    raise argparse.ArgumentTypeError("Entropy coeffs must be non-negative")
+                if val[1] > val[0]:
+                    raise argparse.ArgumentTypeError("Initial entropy coeff must be greater than or equal to final entropy coeff")
+                if val[2] < 0:
+                    raise argparse.ArgumentTypeError("Number of iterations must be non-negative")
+
+                return val
+            else:
+                raise argparse.ArgumentTypeError("Entropy coeffs must be either a single float or three floats separated by commas")
+        except ValueError:
+            raise argparse.ArgumentTypeError("Entropy coeffs must be either a single float or three floats separated by commas")
+
+    @classmethod
+    def add_model_specific_args(cls, parser):
         parser.set_defaults(policy="ppo")
-        parser.add_argument('--epsilon', default=0.1, type=float)
+        parser.add_argument('--epsilon', default=0.1, type=float, help="Epsilon parameter used in PPO. The larger it is, the larger policy updates can be.")
+        parser.add_argument('--entropy-coeffs', type=cls.parse_entropy_coeffs, help=("Coefficients used for the PPO entropy term and annealing it."
+                                                                                      "the first element is the initial value of the entropy coeff,"
+                                                                                      "the second element its final value, and the third element the"
+                                                                                      "number of trainer.fit() calls to reach the final value"
+                                                                                      "Conversely, a single float value can be provided, in which case"
+                                                                                      "the entropy coeff will remain constant."))
 
     def calculate_entropy(self, action_log_probs:torch.Tensor, applicable_actions:List[Tuple[str, Tuple[int]]]) \
         -> torch.Tensor:
