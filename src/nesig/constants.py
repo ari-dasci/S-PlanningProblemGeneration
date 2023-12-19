@@ -25,9 +25,17 @@ TEST_PLANNER_ARGS = [LAMA_FIRST_ARG, LAZY_GREEDY_FF_ARG, LAZY_GREEDY_ADD_ARG]
 TERM_ACTION = "END"
 
 # Dictionary from names to Model Wrapper classes used by the PPOPolicy
-from src.nesig.learning.model_wrapper import NLMWrapperActor, NLMWrapperCritic
+# We use lazyloading to avoid circular imports
+# Example use of this dictionary: MODEL_WRAPPERS['NLMWrapperActor']()
+def get_NLMWrapperActor():
+    from src.nesig.learning.model_wrapper import NLMWrapperActor
+    return NLMWrapperActor
 
-MODEL_WRAPPERS ={
-    'NLMWrapperActor' : NLMWrapperActor,
-    'NLMWrapperCritic' : NLMWrapperCritic
+def get_NLMWrapperCritic():
+    from src.nesig.learning.model_wrapper import NLMWrapperCritic
+    return NLMWrapperCritic
+
+MODEL_WRAPPERS = {
+    'NLMWrapperActor': get_NLMWrapperActor,
+    'NLMWrapperCritic': get_NLMWrapperCritic
 }

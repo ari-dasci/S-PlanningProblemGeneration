@@ -14,7 +14,6 @@ import torch
 import argparse
 
 from src.nesig.symbolic.pddl_problem import PDDLProblem
-from src.nesig.constants import TERM_ACTION
 
 class ModelWrapper(ABC, torch.nn.Module):
     """
@@ -210,6 +209,7 @@ class NLMWrapper(ModelWrapper):
 
         return internal_state_list
 
+from src.nesig.constants import TERM_ACTION
 
 class NLMWrapperActor(NLMWrapper):
     """

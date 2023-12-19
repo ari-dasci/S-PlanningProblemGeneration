@@ -249,7 +249,7 @@ class PPOPolicy(ActorCriticPolicy):
         if value not in MODEL_WRAPPERS:
             raise argparse.ArgumentTypeError(f"Model wrapper class must be one of {list(MODEL_WRAPPERS.keys())}")
         
-        return MODEL_WRAPPERS[value]
+        return MODEL_WRAPPERS[value]()
 
     @classmethod
     def add_model_specific_args(cls, parser):
