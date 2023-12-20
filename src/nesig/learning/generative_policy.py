@@ -204,7 +204,7 @@ class PPOPolicy(ActorCriticPolicy):
 
     def get_hparam(self, name):
         """
-        Use this method to access the hyperparameters instead of self.hparams.
+        Use this method to access the phase-dependent hyperparameters instead of self.hparams.
         This method is used to access the hyperparameters corresponding to the init or goal policy, depending on
         self.phase. 
         """
@@ -263,7 +263,7 @@ class PPOPolicy(ActorCriticPolicy):
         for phase in cls.PHASES:
             parser.add_argument(f'--{phase}-actor-class', default='NLMWrapperActor', type=cls.parse_wrapper_class, help="Class of the model wrapper for the actor.")
             parser.add_argument(f'--{phase}-critic-class', default='NLMWrapperCritic', type=cls.parse_wrapper_class, help="Class of the model wrapper for the critic.")
-            parser.add_argument(f'--{phase}-lr', default=1e-3, type=float, help="Learning rate used in PPO.")
+            parser.add_argument(f'--{phase}-PPO-epochs', default=1, type=int, help="For each PPO iteration, how many training epochs to use over the dataset of collected trajectories.")
             parser.add_argument(f'--{phase}-epsilon', default=0.1, type=float, help="Epsilon parameter used in PPO. The larger it is, the larger policy updates can be.")
             parser.add_argument(f'--{phase}-entropy-coeffs', type=cls.parse_entropy_coeffs, help=("Coefficients used for the PPO entropy term and annealing it."
                                                                                         "the first element is the initial value of the entropy coeff,"
@@ -362,7 +362,7 @@ class PPOPolicy(ActorCriticPolicy):
         return state_value_list, internal_state_list
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.get_hparam('lr'))
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
         return optimizer
     
     def on_train_end(self):

@@ -14,6 +14,13 @@ from pathlib import Path
 
 PLANNER_SCRIPTS_PATH = Path('src/nesig/libs/planner-scripts')
 
+TRAINING_CKPTS_PATH = Path('data/train/checkpoints')
+TRAINING_LOGS_PATH = Path('data/train/logs')
+TRAINING_INFO_PATH = Path('data/train/info')
+
+TEST_INFO_PATH = Path('data/test/info')
+TEST_PROBLEMS_PATH = Path('data/test/problems')
+
 # Planner args
 LAMA_FIRST_ARG = '--alias lama-first'
 LAZY_GREEDY_FF_ARG = '--evaluator h=ff(transform=adapt_costs(one)) --search lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)'
@@ -38,4 +45,11 @@ def get_NLMWrapperCritic():
 MODEL_WRAPPERS = {
     'NLMWrapperActor': get_NLMWrapperActor,
     'NLMWrapperCritic': get_NLMWrapperCritic
+}
+
+# Dictionary from domain names to their path
+DOMAINS = {
+    'blocksworld' : Path('data/domains/blocks-domain.pddl'),
+    'logistics' : Path('data/domains/logistics-domain.pddl'),
+    'sokoban' : Path('data/domains/sokoban-domain.pddl')
 }

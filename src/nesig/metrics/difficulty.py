@@ -154,7 +154,7 @@ class PlannerEvaluator(DifficultyEvaluator):
 
         """
         Example limit.sh calls:
-            - From command line: ./planner-scripts/limit.sh -t -1 -m -1 -- "planner-scripts/fd-latest-clean -o '--search astar(lmcut())'" -- ../../../data/problems/test_problems/bw_two_action_plan.pddl ../../../data/domains/blocks-domain.pddl
+            - From command line: ./planner-scripts/limit.sh -t -1 -m -1 -- "planner-scripts/fd-latest-clean -o '--search astar(lmcut())'" -- ../../../data/example_problems/bw_two_action_plan.pddl ../../../data/domains/blocks-domain.pddl
 
         """
          
