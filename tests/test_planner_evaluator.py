@@ -19,25 +19,25 @@ class TestPlannerEvaluator(unittest.TestCase):
 
     def test_solved_goal_problem(self):
         planner = PlannerEvaluator(self.domain_path, self.plan_args, max_workers=self.max_workers)
-        problem_path = Path('data/example_problems/bw_solved_goal.pddl')
+        problem_path = Path('data/problems/bw_solved_goal.pddl')
         difficulty = planner.get_difficulty([problem_path])
         self.assertEqual(difficulty, ([[0, 0, 0]], [0])) # The second element is the diff reward
 
     def test_one_action_plan_problem(self):
         planner = PlannerEvaluator(self.domain_path, self.plan_args, max_workers=self.max_workers, r_diff_weight=0.5)
-        problem_path = Path('data/example_problems/bw_one_action_plan.pddl')
+        problem_path = Path('data/problems/bw_one_action_plan.pddl')
         difficulty = planner.get_difficulty([problem_path])
         self.assertEqual(difficulty, ([[2, 2, 2]], [log(3)*0.5]))
 
     def test_two_action_plan_problem(self):
         planner = PlannerEvaluator(self.domain_path, self.plan_args, max_workers=self.max_workers, r_diff_weight=0.5)
-        problem_path = Path('data/example_problems/bw_two_action_plan.pddl')
+        problem_path = Path('data/problems/bw_two_action_plan.pddl')
         difficulty = planner.get_difficulty([problem_path])
         self.assertEqual(difficulty,([[3, 3, 3]], [log(4)*0.5]))
 
     def test_unsolvable_problem(self):
         planner = PlannerEvaluator(self.domain_path, self.plan_args, max_workers=self.max_workers, r_diff_weight=0.5, terminated_reward=10)
-        problem_path = Path('data/example_problems/bw_unsolvable.pddl')
+        problem_path = Path('data/problems/bw_unsolvable.pddl')
         try: # An exception must be raised
             difficulty = planner.get_difficulty([problem_path])
         except Exception as e:
@@ -46,7 +46,7 @@ class TestPlannerEvaluator(unittest.TestCase):
     def test_timeout(self):
         # We try to solve a very hard problem with a very low time limit and a very low memory limit
         # Therefore, a timeout/memory out must be produced and the difficulty must be -1
-        problem_path = Path('data/example_problems/bw_hard.pddl')
+        problem_path = Path('data/problems/bw_hard.pddl')
         planner = PlannerEvaluator(self.domain_path, self.plan_args, time_limit=1, max_workers=self.max_workers)
         difficulty_1 = planner.get_difficulty([problem_path])
         self.assertEqual(difficulty_1, ([[-1, -1, -1]], [1e6]))
@@ -59,10 +59,10 @@ class TestPlannerEvaluator(unittest.TestCase):
         planner = PlannerEvaluator(self.domain_path, self.plan_args, memory_limit=10, max_workers=self.max_workers, r_diff_weight=0.5,
                                    terminated_reward=32)
         problem_paths = [
-            Path('data/example_problems/bw_solved_goal.pddl'),
-            Path('data/example_problems/bw_one_action_plan.pddl'),
-            Path('data/example_problems/bw_two_action_plan.pddl'),
-            Path('data/example_problems/bw_hard.pddl')]
+            Path('data/problems/bw_solved_goal.pddl'),
+            Path('data/problems/bw_one_action_plan.pddl'),
+            Path('data/problems/bw_two_action_plan.pddl'),
+            Path('data/problems/bw_hard.pddl')]
         difficulty = planner.get_difficulty(problem_paths)
         self.assertEqual(difficulty, ([[0, 0, 0], [2, 2, 2], [3, 3, 3], [-1, -1, -1]], [0, 0.5*log(3), 0.5*log(4), 32]))
 

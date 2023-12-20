@@ -14,12 +14,15 @@ from pathlib import Path
 
 PLANNER_SCRIPTS_PATH = Path('src/nesig/libs/planner-scripts')
 
+# Now, we save all the model info inside /models/<model_id>
+"""
 TRAINING_CKPTS_PATH = Path('data/train/checkpoints')
 TRAINING_LOGS_PATH = Path('data/train/logs')
 TRAINING_INFO_PATH = Path('data/train/info')
 
 TEST_INFO_PATH = Path('data/test/info')
 TEST_PROBLEMS_PATH = Path('data/test/problems')
+"""
 
 # Planner args
 LAMA_FIRST_ARG = '--alias lama-first'
