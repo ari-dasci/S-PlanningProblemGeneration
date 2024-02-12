@@ -47,6 +47,8 @@ from os.path import dirname, abspath
 from pytorch_lightning import seed_everything
 
 from src.nesig.constants import DOMAINS
+from src.learning.generative_policy import RandomPolicy, PPOPolicy
+from src.learning.model_wrapper import NLMWrapper
 
 def parse_arguments():
 
@@ -137,6 +139,51 @@ def parse_arguments():
             
         - For mode=test, it can use the RandomPolicy instead of PPOPolicy (no training is needed)
     """
+
+    # Parsing
+    # Init and goal policy require different arguments (e.g., init policy is random but goal policy is PPO)
+
+    # Create subparsers for the init policy options
+    subparsers_init = parser.add_subparsers(title="init policy", help="Specifies the initial state generation policy to use")
+    subparsers_init_list = []
+
+    # Init random parser
+    parser_init_random = subparsers_init.add_parser('init-random', help="Use a random policy for initial state generation")
+    RandomPolicy.add_model_specific_args(parser_init_random, phase='init')
+    subparsers_init_list.append(parser_init_random)
+
+    # Init PPO parser
+    parser_init_ppo = subparsers_init.add_parser('init-PPO', help="Use a PPO policy for initial state generation")
+    PPOPolicy.add_model_specific_args(parser_init_ppo, phase='init')
+    subparsers_init_list.append(parser_init_ppo)
+
+    # Regardless of the chosen init policy, we can choose any type of goal policy 
+    # For this reason, we need to add subsubparsers (corresponding to goal policy type) to the subparser of each init policy
+    # We need to do this because argparse does not support multiple subparsers for the main parser, so we need to nest them
+    for subparser in subparsers_init_list: 
+        subparsers_goal = subparser.add_subparsers(title='goal policy', help="Specifies the goal generation policy to use")
+        subparsers_goal_list = []
+
+        # Goal random parser
+        parser_goal_random = subparsers_goal.add_parser('goal-random', help="Use a random policy for goal generation")
+        RandomPolicy.add_model_specific_args(parser_goal_random, phase='goal')
+        subparsers_goal_list.append(parser_goal_random)
+
+        # Goal PPO parser
+        parser_goal_ppo = subparsers_goal.add_parser('goal-PPO', help="Use a PPO policy for goal generation")
+        PPOPolicy.add_model_specific_args(parser_goal_ppo, phase='goal')
+        subparsers_goal_list.append(parser_goal_ppo)
+
+        # We also need to nest the subparser of each ML model (right now, NLM is the only model available)
+        for subsubparser in subparsers_goal_list:    
+            # If both init and goal policies are random, then no ML model is needed, so we don't parse its arguments
+            # We use strip() to remove the blank space that .prog attribute contains at the beginning
+            if subparser.prog.strip() != 'init-random' or subsubparser.prog.strip() != 'goal-random':    
+                subparsers_model = subsubparser.add_subparsers(title='ML model', help="The type of ML model to use for learning")
+
+                # NLM parser
+                parser_NLM = subparsers_model.add_parser('NLM', help="Use NLM as the ML model for the init and goal policies")
+                NLMWrapper.add_model_specific_args(parser_NLM) # We use the same arguments for both the critic and actor NLMs (and for the init and goal policies)
 
 
 

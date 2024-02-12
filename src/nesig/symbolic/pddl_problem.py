@@ -40,8 +40,9 @@ class PDDLProblem():
                             those atoms of type "at" which correspond to vehicles (and locations), but not to packages (and locations).
                             If None, all the atoms of the goal_state will be part of the goal.
             - init_state_info: PDDLState used to create the initial state of the generation process.
-                            If None, we assume an empty initial state.
-                                    If None, we assume all the objects can be added.
+                               If None, we assume an empty initial state.
+            - allowed_virtual_objects: Tuple with the object types that can be added as virtual objects to the state.             
+                                       If None, we assume all the objects can be added.
             - max_actions_init_phase and max_actions_goal_phase are used for calculating the percentage of actions executed
               passed as extra inputs to the NLM. If None, we cannot calculate this percentage.
         """

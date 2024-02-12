@@ -16,6 +16,7 @@ import pytorch_lightning as pl
 Action = Tuple[str, Tuple[int, ...]]
 
 from src.nesig.symbolic.pddl_problem import PDDLProblem
+from src.nesig.constants import MODEL_WRAPPERS
 from src.nesig.constants import TERM_ACTION
 
 class GenerativePolicy(ABC, pl.LightningModule):
@@ -44,6 +45,12 @@ class GenerativePolicy(ABC, pl.LightningModule):
                 representation again.
     """
 
+    # Generation phases. Either 'init' (for initial state generation phase) or 'goal' (for goal generation phase)
+    # Used by add_model_specific_args method, since the policy argparse arguments have the phase appended to the
+    # beginning of the argument name. This is needed to distinguish between arguments/hyperparameters of the init and goal
+    # policy (e.g., if init and goal policies are PPOPolicy, each one may have a different epsilon)
+    PHASES = ('init', 'goal')
+
     @abstractmethod
     def forward(self, problems:List[Union[PDDLProblem, Any]], applicable_actions_list:List[Tuple[Action]]) -> \
         Tuple[List[torch.Tensor], List]:
@@ -71,8 +78,8 @@ class GenerativePolicy(ABC, pl.LightningModule):
 
         return action_list, log_prob_chosen_action_list, internal_state_list
     
-    @staticmethod
-    def add_model_specific_args(parser):
+    @classmethod
+    def add_model_specific_args(cls, parser, phase:str):
         """
         Add policy-specific arguments to the parser (e.g., epsilon for PPOPolicy).
         """
@@ -135,10 +142,17 @@ class RandomPolicy(GenerativePolicy):
 
         return log_probs_list, internal_state_list
     
-    @staticmethod
-    def add_model_specific_args(parser):
-        #parser.set_defaults(policy="random")
-        parser.add_argument('--term-action-prob', default=0.0, type=float)
+    @classmethod
+    def add_model_specific_args(cls, parser, phase:str):
+        assert phase in cls.PHASES, f"phase must be one of {cls.PHASES}"
+
+        # Set a default parameter so that later we can recover the type of init/goal policy used
+        if phase == 'init':
+            parser.set_defaults(init_policy="random")
+        else:
+            parser.set_defaults(goal_policy="random")
+
+        parser.add_argument(f'--{phase}-term-action-prob', default=0.0, type=float)
 
     # Random policy does not need training
     def training_step(self, train_batch, batch_idx=0): 
@@ -160,15 +174,11 @@ class ActorCriticPolicy(GenerativePolicy):
         """
         raise NotImplementedError
 
-
-from src.nesig.constants import MODEL_WRAPPERS
-
 class PPOPolicy(ActorCriticPolicy):
     """
     A policy that uses PPO to train the actor and critic networks.
     """
-    PHASES = ('init', 'goal')
-
+    
     def __init__(self, phase, args:argparse.Namespace, actor_arguments, critic_arguments):
         """
         phase argument is 'init' for the initial state generation policy and 'goal' for the goal generation policy.
@@ -252,27 +262,33 @@ class PPOPolicy(ActorCriticPolicy):
         return MODEL_WRAPPERS[value]()
 
     @classmethod
-    def add_model_specific_args(cls, parser):
+    def add_model_specific_args(cls, parser, phase:str):
         """
         We add the PPO arguments for the init and goal policies.
         Both policies use the same arguments, but they can have different values (e.g., entropy coeffs).
         For this reason, for each argument, we create two copies: one for the init policy (with the 'init-' prefix) and one for the goal policy (with the 'goal-' prefix).
         """
-        #parser.set_defaults(policy="ppo")
+        assert phase in cls.PHASES, f"phase must be one of {cls.PHASES}"
 
-        for phase in cls.PHASES:
-            parser.add_argument(f'--{phase}-actor-class', default='NLMWrapperActor', type=cls.parse_wrapper_class, help="Class of the model wrapper for the actor.")
-            parser.add_argument(f'--{phase}-critic-class', default='NLMWrapperCritic', type=cls.parse_wrapper_class, help="Class of the model wrapper for the critic.")
-            parser.add_argument(f'--{phase}-PPO-epochs', default=1, type=int, help="For each PPO iteration, how many training epochs to use over the dataset of collected trajectories.")
-            parser.add_argument(f'--{phase}-epsilon', default=0.1, type=float, help="Epsilon parameter used in PPO. The larger it is, the larger policy updates can be.")
-            parser.add_argument(f'--{phase}-entropy-coeffs', type=cls.parse_entropy_coeffs, help=("Coefficients used for the PPO entropy term and annealing it."
-                                                                                        "the first element is the initial value of the entropy coeff,"
-                                                                                        "the second element its final value, and the third element the"
-                                                                                        "number of trainer.fit() calls to reach the final value"
-                                                                                        "Conversely, a single float value can be provided, in which case"
-                                                                                        "the entropy coeff will remain constant."))
-            parser.add_argument(f'--{phase}-lifted-entropy-weight', default=0.5, type=float, help=("Weight of the lifted entropy in the entropy term of PPO, when compared to the ground entropy."
-                                                                                            "It must be between 0 and 1, since ground_entropy_weight = 1 - lifted_entropy_weight."))
+        # Set a default parameter so that later we can recover the type of init/goal policy used
+        if phase == 'init':
+            parser.set_defaults(init_policy="PPO")
+        else:
+            parser.set_defaults(goal_policy="PPO")
+        
+        # type=cls.parse_wrapper_class passes cls.parse_wrapper_class as the function which will receive the value of the argument and parse it
+        parser.add_argument(f'--{phase}-actor-class', default='NLMWrapperActor', type=cls.parse_wrapper_class, help="Class of the model wrapper for the actor.")
+        parser.add_argument(f'--{phase}-critic-class', default='NLMWrapperCritic', type=cls.parse_wrapper_class, help="Class of the model wrapper for the critic.")
+        parser.add_argument(f'--{phase}-PPO-epochs', default=1, type=int, help="For each PPO iteration, how many training epochs to use over the dataset of collected trajectories.")
+        parser.add_argument(f'--{phase}-epsilon', default=0.1, type=float, help="Epsilon parameter used in PPO. The larger it is, the larger policy updates can be.")
+        parser.add_argument(f'--{phase}-entropy-coeffs', type=cls.parse_entropy_coeffs, help=("Coefficients used for the PPO entropy term and annealing it."
+                                                                                    "the first element is the initial value of the entropy coeff,"
+                                                                                    "the second element its final value, and the third element the"
+                                                                                    "number of trainer.fit() calls to reach the final value"
+                                                                                    "Conversely, a single float value can be provided, in which case"
+                                                                                    "the entropy coeff will remain constant."))
+        parser.add_argument(f'--{phase}-lifted-entropy-weight', default=0.5, type=float, help=("Weight of the lifted entropy in the entropy term of PPO, when compared to the ground entropy."
+                                                                                        "It must be between 0 and 1, since ground_entropy_weight = 1 - lifted_entropy_weight."))
 
     def calculate_entropy(self, _action_log_probs:torch.Tensor, applicable_actions:List[Tuple[str, Tuple[int]]]) \
         -> torch.Tensor:
@@ -361,6 +377,8 @@ class PPOPolicy(ActorCriticPolicy):
         state_value_list, internal_state_list = self.critic(problems)
         return state_value_list, internal_state_list
 
+    # TODO
+    # Add AdamW
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
         return optimizer
@@ -383,6 +401,9 @@ class PPOPolicy(ActorCriticPolicy):
         norm_return_tensor = torch.tensor(train_batch['norm_returns'], requires_grad=False, device=self.device) # Actually, requires_grad=False is not necessary
 
         critic_loss = torch.mean( (state_value_tensor - norm_return_tensor)**2 ) # Critic loss: (V(s) - R(s,.))^2
+
+        # TODO
+        # Use Generalized Advantage Estimation (GAE) instead of the discounted sum of rewards
 
         # <Actor>
         # First, we obtain the log_prob (using the current actor weights) for all the applicable actions of each sample
@@ -411,6 +432,10 @@ class PPOPolicy(ActorCriticPolicy):
         # Calculate the PPO loss
         epsilon = self.get_hparam('epsilon')
         advantage_tensor = torch.tensor(train_batch['advantages'], requires_grad=False, device=self.device) # requires_grad=False because we should not backpropagate through the advantages
+        
+        # TODO
+        # See if we should normalize the advantage_tensor
+        
         PPO_loss = torch.mean( -torch.min(prob_ratio_tensor * advantage_tensor, \
 						       torch.clip(prob_ratio_tensor, 1-epsilon, 1+epsilon) * advantage_tensor) ) # minus sign is because we want to maximize the objective function
 
@@ -423,6 +448,8 @@ class PPOPolicy(ActorCriticPolicy):
         actor_loss = PPO_loss + entropy_loss
 
         # < Total loss >
+        # TODO
+        # Add weight for the critic loss
         loss = actor_loss + critic_loss
 
         return loss

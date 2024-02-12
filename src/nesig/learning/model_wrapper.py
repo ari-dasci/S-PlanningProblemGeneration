@@ -100,8 +100,10 @@ class NLMWrapper(ModelWrapper):
     def add_model_specific_args(parser):
         """
         Right now, we assume that all the 4 NLMs (for the actor and critic and for the init and goal policies) share the same hyperparameters.
+        Otherwise, we would need a different subparser (and a different set of arguments and hyperparameters) for the init actor NLM, init critic NLM,
+        goal actor NLM and goal critic NLM.
         """
-        #parser.set_defaults(model="NLM")
+        parser.set_defaults(ML_model="NLM")
         parser.add_argument('--breadth', default=3,type=int, help="Maximum arity of predicates in the NLM.")
         parser.add_argument('--depth', default=5,type=int, help="Number of NLM layers.")
         parser.add_argument('--hidden-features', default=8,type=int, help=("Number of predicates for each arity output by all the NLM layers except the final one." 
@@ -227,64 +229,7 @@ class NLMWrapperActor(NLMWrapper):
         out_features[0] += 1 # TERM_ACTION is associated with the last nullary predicate of the nlm output
 
         return out_features    
-      
-    # UNUSED
-    def _mask_unapplicable_actions(self, nlm_output:List[Optional[torch.Tensor]], applicable_actions_list:List[Tuple[Action]], mask_val=-float("inf")) \
-        -> List[Optional[torch.Tensor]]:
-        """
-        Given the nlm_output for a batch of problems, it sets to mask_val those tensor positions corresponding to unapplicable actions, i.e.,
-        to actions that are not in applicable_actions_list.
-        """
-        # <Create mask tensors>
-
-        # Obtain a dictionary that maps action names to their predicate index, reusing the same indexes for
-        # actions of different arity (e.g., ('stack','pick-up') -> 0,0 since they have different arity)
-        action_name_to_ind = self.dummy_pddl_state.pred_names_to_indices_dict_each_arity
-
-        # We initialize all tensors to mask_val and then set to 0 those corresponding to applicable actions
-        mask_tensors = [torch.full_like(t, mask_val) if t is not None else None for t in nlm_output]
-
-        for ind_problem, actions in enumerate(applicable_actions_list):
-            ind_problem_tuple = tuple(ind_problem)
-
-            for curr_action in actions:
-                if curr_action == TERM_ACTION: # TERM_ACTION is associated with the last nullary predicate of the nlm output
-                    mask_tensors[0][ind_problem, -1] = 0.0
-                else:
-                    action_arity = len(curr_action[1])
-                    action_name_ind = tuple(action_name_to_ind[curr_action[0]]) # single-element tuple
-                    action_obj_inds = curr_action[1]
-
-                    mask_tensors[action_arity][ind_problem_tuple + action_obj_inds + action_name_ind] = 0.0
-
-        # <Add mask tensors to nlm_output tensors>
-        masked_nlm_output = [t+m if t is not None else None for t,m in zip(nlm_output, mask_tensors)]
-
-        return masked_nlm_output
-
-    # UNUSED
-    def _log_softmax_OLD(self, masked_nlm_output:List[Optional[torch.Tensor]], num_problems:int) -> List[Optional[torch.Tensor]]:
-        """
-        Applies log_softmax to the NLM output (after masking unapplicable actions). This way, we obtain a log probability
-        for each action.
-        We apply log_softmax for each sample separately, since the action probabilities for each sample must add to 1. 
-
-        <Note>: we use the log-sum-exp trick (https://blog.feedly.com/tricks-of-the-trade-logsumexp/)
-		to calculate this function quickly and in a stable manner.
-        """
-        # Obtain logsumexp (equal to log(sum(exp(x))) for all the tensor values x separately for each sample/problem)
-        # logsumexp_tensor[i] contains log(sum(exp(x))) for all the xs in the i-th sample
-        logsumexp_tensor = torch.cat([torch.logsumexp(torch.cat([t[i].flatten() for t in masked_nlm_output if t is not None]), dim=-1) \
-                                     for i in range(num_problems)]) 
-
-        # Substract logsumexp from each tensor value in order to obtain log_probabilities
-        # I use view() so that broadcasting works correctly. In order to broadcast to shape (num_problems, A, B, C), for example,
-        # I need logsumexp_tensor to have shape (num_problems, 1, 1, 1)
-        nlm_output_log_softmax = [t-logsumexp_tensor.view((num_problems,) + (1,)*(t.dim()-1)) if t is not None else None for t in masked_nlm_output]
-
-        return nlm_output_log_softmax
     
-
     def _get_nlm_output_applicable_actions(self, nlm_output:List[Optional[torch.Tensor]], applicable_actions_list:List[Tuple[Action]]) \
         -> List[torch.Tensor]:
         """
@@ -305,7 +250,7 @@ class NLMWrapperActor(NLMWrapper):
 
     def _log_softmax(self, applicable_actions_nlm_output:List[torch.Tensor]) -> List[torch.Tensor]:
         """
-        Independently applies log_softmax to the each problem's applicable actions. This way, the probabilities of applicable
+        Independently applies log_softmax to each problem's applicable actions. This way, the probabilities of applicable
         actions (after applying torch.exp) add up to one for each problem.
 
         <Note>: we use the log-sum-exp trick (https://blog.feedly.com/tricks-of-the-trade-logsumexp/)
@@ -349,21 +294,6 @@ class NLMWrapperActor(NLMWrapper):
         applicable_actions_log_probs = self._log_softmax(applicable_actions_nlm_output)
 
         return applicable_actions_log_probs, internal_state_list
-    
-        # NO
-        # We can directly obtain the nlm_output values corresponding to applicable actions and then apply log_softmax
-        """
-        # mask NLM output
-        # Be careful with the padded and stacked tensors (actually, I think this doesn't matter)
-        masked_nlm_output = self._mask_unapplicable_actions(nlm_output, applicable_actions_list)
-
-        # log_softmax
-        nlm_output_log_softmax = self._log_softmax_OLD(masked_nlm_output, num_problems)
-
-        # log_probabilities for applicable actions
-        actions_log_probs_list = self._obtain_action_log_probs(...) # Not implemented
-        """
-
 
 class NLMWrapperCritic(NLMWrapper):
     """
