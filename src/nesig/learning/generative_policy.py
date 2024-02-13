@@ -265,6 +265,7 @@ class PPOPolicy(GenerativePolicy):
         # type=cls.parse_wrapper_class passes cls.parse_wrapper_class as the function which will receive the value of the argument and parse it
         parser.add_argument(f'--{phase}-actor-class', default='NLMWrapperActor', type=cls.parse_wrapper_class, help="Class of the model wrapper for the actor.")
         parser.add_argument(f'--{phase}-critic-class', default='NLMWrapperCritic', type=cls.parse_wrapper_class, help="Class of the model wrapper for the critic.")
+        parser.add_argument(f'--{phase}-lr', default=1e-3, type=float, help="Learning rate")
         parser.add_argument(f'--{phase}-PPO-epochs', default=1, type=int, help="For each PPO iteration, how many training epochs to use over the dataset of collected trajectories.")
         parser.add_argument(f'--{phase}-epsilon', default=0.1, type=float, help="Epsilon parameter used in PPO. The larger it is, the larger policy updates can be.")
         parser.add_argument(f'--{phase}-entropy-coeffs', type=cls.parse_entropy_coeffs, help=("Coefficients used for the PPO entropy term and annealing it."
@@ -369,7 +370,7 @@ class PPOPolicy(GenerativePolicy):
     # TODO
     # Add AdamW
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.get_hparam('lr'))
         return optimizer
     
     def on_train_end(self):
