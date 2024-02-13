@@ -31,7 +31,8 @@ class TestPPOPolicy(unittest.TestCase):
 
         parser = argparse.ArgumentParser()
         parser.add_argument('--device', type=str, choices=['cpu', 'gpu'])
-        PPOPolicy.add_model_specific_args(parser) # Add init and goal arguments
+        PPOPolicy.add_model_specific_args(parser, 'init') # Add init and goal arguments
+        PPOPolicy.add_model_specific_args(parser, 'goal')
         NLMWrapper.add_model_specific_args(parser)
         args = parser.parse_args(['--device','cpu', '--init-entropy-coeffs', '0.2, 0.1, 100', '--goal-entropy-coeffs', '0.3, 0.05, 200'])
 
@@ -76,7 +77,8 @@ class TestPPOPolicy(unittest.TestCase):
     def test_entropy_coeffs(self):
         parser = argparse.ArgumentParser()
         parser.add_argument('--device', type=str, choices=['cpu', 'gpu'])
-        PPOPolicy.add_model_specific_args(parser)
+        PPOPolicy.add_model_specific_args(parser, 'init')
+        PPOPolicy.add_model_specific_args(parser, 'goal')
         NLMWrapper.add_model_specific_args(parser)
         args = parser.parse_args(['--device','cpu', '--init-entropy-coeffs', '0.57', '--goal-entropy-coeffs', '0.78'])
 

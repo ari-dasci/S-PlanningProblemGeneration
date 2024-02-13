@@ -158,23 +158,7 @@ class RandomPolicy(GenerativePolicy):
     def training_step(self, train_batch, batch_idx=0): 
         raise NotImplementedError
     
-class ActorCriticPolicy(GenerativePolicy):
-    """
-    A policy that can both output action probabilities and state values V(s).
-    """
-
-    @abstractmethod
-    def calculate_state_values(self, problems:List[Union[PDDLProblem, Any]]) -> Tuple[List[torch.Tensor], List]:
-        """
-        This method returns the state value V(s) for each problem in the list.
-        It returns them as a list of torch Tensors, where the i-th tensor contains the state value V(s)
-        of problem i as a zero-dimensional torch.Tensor containing a single float.
-        <Note>: just as forward() and select_actions(), this method also returns a list with the internal
-                state representations.
-        """
-        raise NotImplementedError
-
-class PPOPolicy(ActorCriticPolicy):
+class PPOPolicy(GenerativePolicy):
     """
     A policy that uses PPO to train the actor and critic networks.
     """
@@ -184,10 +168,12 @@ class PPOPolicy(ActorCriticPolicy):
         phase argument is 'init' for the initial state generation policy and 'goal' for the goal generation policy.
         We need this argument so that the init and goal policies can have different hyperparameter values (e.g., different entropy coeffs).
         """
-        super().__init__()
-        self.save_hyperparameters(args)
-
         assert phase in self.PHASES, f"phase must be one of {self.PHASES}"
+
+        super().__init__()
+        self.save_hyperparameters(args) # When we load this module from a checkpoint, 
+                                        # we don't need to pass "args" as a parameter since it can be loaded back from the checkpoint
+       
         self.phase = phase
         self.actor = self.get_hparam('actor_class')(args, actor_arguments)
         self.critic = self.get_hparam('critic_class')(args, critic_arguments)
@@ -372,6 +358,9 @@ class PPOPolicy(ActorCriticPolicy):
     
     def calculate_state_values(self, problems:List[Union[PDDLProblem, Any]]) -> Tuple[List[torch.Tensor], List]:
         """
+        This method returns the state value V(s) for each problem in the list.
+        It returns them as a list of torch Tensors, where the i-th tensor contains the state value V(s)
+        of problem i as a zero-dimensional torch.Tensor containing a single float.
         As in forward(), the list of problems can be given either as PDDLProblem instances or as the internal state representations.
         """
         state_value_list, internal_state_list = self.critic(problems)

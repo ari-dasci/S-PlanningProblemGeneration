@@ -188,7 +188,7 @@ def parse_arguments():
 
 
 def main(args):
-     # We set the working directory to the base folder of the repository
+    # We set the working directory to the base folder of the repository
     # The path of __file__ is FOLDER_BASE/src/nesig/controller/train.py
     os.chdir(dirname(dirname(dirname(dirname(abspath(__file__))))))
 
