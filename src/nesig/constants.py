@@ -14,15 +14,8 @@ from pathlib import Path
 
 PLANNER_SCRIPTS_PATH = Path('src/nesig/libs/planner-scripts')
 
-# Now, we save all the model info inside /models/<model_id>
-"""
-TRAINING_CKPTS_PATH = Path('data/train/checkpoints')
-TRAINING_LOGS_PATH = Path('data/train/logs')
-TRAINING_INFO_PATH = Path('data/train/info')
-
-TEST_INFO_PATH = Path('data/test/info')
-TEST_PROBLEMS_PATH = Path('data/test/problems')
-"""
+# Now, we save all the experiments info inside experiments/<experiment_id>
+EXPERIMENTS_PATH = Path('experiments')
 
 # Planner args
 LAMA_FIRST_ARG = '--alias lama-first'
@@ -55,4 +48,13 @@ DOMAINS = {
     'blocksworld' : Path('data/domains/blocks-domain.pddl'),
     'logistics' : Path('data/domains/logistics-domain.pddl'),
     'sokoban' : Path('data/domains/sokoban-domain.pddl')
+}
+
+# Set of arguments (parsed from command-line) which are NOT used for obtaining the experiment id
+# We exclude 'steps' so that we can increase the number of steps of an already-finished experiments:
+# if we use "--if-ckpt-exists resume" and increase "--steps", then the model id will be equal to the old
+# experiment (since 'steps' is excluded from id), we will save in experiment_info.json the new (greater)
+# number of --steps and train for more steps, overwriting the test results if they exist
+EXCLUDED_ARGS_ID = {
+    'steps'
 }

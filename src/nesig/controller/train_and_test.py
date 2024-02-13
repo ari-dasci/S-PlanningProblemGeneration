@@ -32,50 +32,30 @@ It controls what happens if we are performing an experiment which already exists
         
 ----- Experiment id
 
+For each experiment we assign a unique id. Two experiments are different if and only if they have different ids.
+The id is obtained using a hash calculated from a <subset of the parsed arguments>. The arguments which should NOT
+be used for obtaining the id are given in the constant "EXCLUDED_ARGS_ID" in constants.py.
 
+----- Experiment data and naming
 
-
------ Data
-    
-    
-    
-    
-  
-
-This script has three different modes: train, test and both.
-    - train: it trains a model during --steps training iterations. Before training, it saves the model hyperparameters in JSON.
-             During training, it periodically saves checkpoints and logs. Every --val-period steps, we run validation, in which
-             we generate problems with the current model, calculating their consistency, validity and difficulty (in addition to
-             the average quantities among all problems), saving the problems and metrics to disk (in a folder whose name corresponds
-             to the model id + curr_train_it).
-             Additionally, this mode can resume training from a previous existing checkpoint.
-             If mode==both, we run testing using the last model checkpoint.
-    - test: it loads a checkpoint (given by the model arguments and the --steps argument) and runs test, saving the results to a folder
-            of name model_id + --steps. If no ckpt exists for the model arguments and --steps, an Exception is raised.
-
-    The difference between validation and test is that, in test, we also calculate diversity using the planning-features-based validator
-    (in addition to InitStateDiversityEvaluator). In the future, maybe we will obtain additional metrics. Also, maybe we generate more
-    problems in test than in validation.
-
-    <NOTE>: HOW TO ORGANIZE THE MODEL FILES?
-            I think it is better to group all the model files, info, etc. in the same folder
-            Have a folder /models in which we have a single subfolder for every trained model INDEPENDENTLY OF --steps parameter
-            (it does not form part of the id). Inside each subfolder /models/<model_id> we have the following
-                - ckpts: a folder containing the model checkpoints (we can obtain the curr_step of the last saved model from here)
-                - logs: a folder containing the model logs
-                - model_info.json: a JSON file containing the model info (hyperparameters)
-                - val: a folder containing the validation info. Contains one folder of name 'step_n' for each validation episode
-                  (e.g., 'step_500', 'step_1000' if we validated the model for curr_steps 500 and 1000). In each subfolder 'step_n',
-                  we contain the whole set of generated problems 0..M and a JSON file containing metrics for each problem and the whole set.
-                - test: identical to the val folder but for testing. Its subfolders are also named 'step_n', where 'n' is the curr_step
-                        of the checkpoints loaded for testing. 
-
-    <NOTE>: for testing, should we always use the last checkpoint (if mode==train) or the specified checkpoint (by --steps if mode==test)
-            or should we use the <best checkpoint>, corresponding to the model with the best balance between consistency, diversity and
-            difficulty?? -> we would need a way of calculating this overall quality metric (that considers consistency, diversity and difficulty).
-            This way, when we test at the end of training, we would test not the last ckpt but the one with the best quality.
-            And, when we use mode==test, if we do not provide --steps (i.e., it is -1), we would also test the best ckpt.
-            We would name the test results folder with the number of iterations associated with the best ckpt (so that we know).
+We save all the data (checkpoints, logs, hyperparameter info, test results, generated problems, etc.) of an experiment
+in a single folder, whose name is "<experiment_id>".
+Experiment folders are located in the path given by EXPERIMENTS_PATH
+For each experiment we save the following:
+    - experiment_info.json: experiment id, date and time, and all hyperparameters
+        - If we resume training, we save the experiment_info again
+    - logs: tensorboard logs saved during training and validation
+    - train_ckpts: lightning checkpoints saved during training
+    - validation: folder with all the validation info. validation/<it> contains the validation info for the ckpt with train_steps=<it>
+        - validation/it/problems: problems generated during the validation epoch
+        - validation/it/results.json:
+            - info associated with each problem (num_actions_init,num_actions_goal,consistency,difficulty,diversity,val_score)
+            - mean info among all problems
+            - extra info (it value)
+    - test: folder with all the test info.
+        - test/problems: problems generated during test
+        - test/results.json: info associated with each problem and the average (as validation/it/results.json) and extra info
+                             (it value of loaded checkpoint)
 """
 
 import argparse
@@ -120,16 +100,17 @@ def parse_arguments():
 
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description=("It trains a model from scratch or resumes training." 
-                     "It also saves training logs, model checkpoints and model info to JSON."))
+        description=("It trains, validates and tests a model, saving the information to disk."))
 
+    # Main arguments
     parser.add_argument('--domain', type=str, choices=tuple(DOMAINS.keys()), help="Domain name to train the model on.")
+    parser.add_argument('--seed', type=int, default=1, help="Seed for reproducibility.")
+    parser.add_argument('--run_id', type=int, default=0, help="Extra id used for repeating the experiment when all other arguments are the same.")
     parser.add_argument('--steps', type=int, default=100000, help="Number of steps for training the model.")
-    parser.add_argument('--lr', type=float, default=1e-3, help="Learning rate.")
     parser.add_argument('--batch-size', type=int, default=64, help="Minibatch size during training.")
     parser.add_argument('--trajectories', type=int, default=25, help=("Number of trajectories (problems) to generate in each training step"
                                                                       "for obtaining the training data."))
-    parser.add_argument('--grad-clip', type=float, default=0.1, help="Gradient clipping value. Use -1 for no gradient clipping.")
+    parser.add_argument('--grad-clip', type=float, default=1.0, help="Gradient clipping value. Use -1 for no gradient clipping.")
     parser.add_argument('--device', type=str, choices=('gpu', 'cpu'), default='gpu', help="Device to run training on: gpu or cpu.")
 
     parser.add_argument('--max-init-actions', type=parse_max_actions, help=("Maximum number of actions that can be executed in the init phase."
@@ -139,16 +120,14 @@ def parse_arguments():
     parser.add_argument('--max-goal-actions', type=parse_max_actions, help="The same as '--max-init-actions' but for the goal phase.")
 
     parser.add_argument('--if-ckpt-exists',
-                    choices=("supersede","resume","error","skip"),
-                    default="skip",
-                    help=("Behaviour when a checkpoint already exists. "
-                            "supersede: remove the existing checkpoint and create a new one. "
-                            "resume: resume the training from the last model checkpoint. "
-                            "error: quit immediately raising an error. "
-                            "skip: skip training and exit. "))
+                    choices=("skip","supersede","resume"),
+                    default="resume",
+                    help=("Behaviour when an experiment already exists:"
+                            "skip: skip the experiment and leave the old one, <even if it is unfinished>."
+                            "supersede: delete the old experiment and rerun it, <even if it was finished>."
+                            "resume: finish the old experiment if partially-completed."
+                            ))
 
-    parser.add_argument('--seed', type=int, default=1, help="Seed for reproducibility.")
-    parser.add_argument('--run_id', type=int, default=0, help="Extra id used for repeating training when all other arguments are the same.")
 
     """
     TODO
