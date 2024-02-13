@@ -145,6 +145,16 @@ def parse_arguments():
         except ValueError:
             raise argparse.ArgumentTypeError("Max num actions must be either a single value or a tuple of integers")
 
+    def str2bool(v):
+        if isinstance(v, bool):
+            return v
+        if v.lower() in ('yes', 'true', 't', 'y', '1'):
+            return True
+        elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+            return False
+        else:
+            raise argparse.ArgumentTypeError('Boolean value expected.')
+
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description=("It trains, validates and tests a model, saving the information to disk."))
@@ -201,10 +211,19 @@ def parse_arguments():
 
     # At the moment, we have hardcoded the difficulty and diversity evaluators used in each phase
     # so they are not passed as arguments.
-    
-
-
-
+    # For the consistency evaluator, we either don't check consistency (use DummyConsistencyEvaluator) or
+    # we do (we use the consistency evaluator of the domain, specified in DOMAIN_INFO of constants.py)
+    parser.add_argument('--consistency-evaluator', choices=('dummy','domain'), default='domain',
+                        help=("If 'domain' (default value) we use the consistency evaluator of the corresponding domain."
+                              "If 'dummy', we use the dummy consistency evaluator which does not check consistency."))
+    parser.add_argument('--r-diversity-weight', type=float, default=50, help="Weight of the diversity reward in the total reward.")
+    parser.add_argument('--weighted-average-diversity', type=str2bool, default=True,
+                         help="If True (default), we use the weighted average the the init_state_diversity.")
+    parser.add_argument('--r_diff_weight', type=float, default=1.0, help="Weight of the difficulty reward in the total reward.")
+    parser.add_argument('terminated_reward', type=float, default=1e6, help="Difficulty reward of a problem that has been terminated (either by timeout or memory out).")
+    parser.add_argument('time_limit', type=int, default=-1, help="Time limit for each problem in seconds. -1 means no time limit.")
+    parser.add_argument('memory_limit', type=int, default=-1, help="Memory limit for each problem in KB. -1 means no memory limit.")
+    parser.add_argument('max_workers', type=int, default=1, help="Number of parallel workers for the difficulty evaluator.")
 
     # TODO
     # See if I should add to the id and experiment_info.json extra information in constants.py or derived from the parsed arguments
@@ -215,7 +234,7 @@ def parse_arguments():
 
     """
     TODO
-        - See <NOTE> and rest of the text above
+        
 
         - Add remaining arguments to argparse
             - class-specific arguments
