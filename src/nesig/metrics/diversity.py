@@ -237,3 +237,10 @@ class InitStateDiversityEvaluator(DiversityEvaluator):
         diversity_rewards = [self.r_diversity_weight*score for score in diversity_scores]
 
         return diversity_scores, diversity_rewards
+    
+
+# TODO
+class FeaturesDiversityEvaluator(DiversityEvaluator):
+    @abstractmethod
+    def get_diversity(self, problem_list : List[Union[PDDLProblem,Path]]) -> Tuple[List[float], List[float]]:
+        raise NotImplementedError

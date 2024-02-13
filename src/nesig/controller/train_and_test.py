@@ -7,6 +7,7 @@ Functionality for training, validating and testing a model. Functionality split 
 
 ----- Training+validation (we skip this phase if both init and goal policies are random)
 
+We train if --mode is "train" or "both".
 We train a model for --steps train its. 
 Every --val-period steps, we perform one validation epoch. In this validation epoch, we generate a large number of 
 problems with the current model and obtain its validation score, equal to the average among all problems of the
@@ -16,6 +17,7 @@ We save the most recent model checkpoint and the one with the best validation sc
 
 ----- Test
 
+We test if --mode is "test" or "both".
 We load the checkpoint with best val_score and obtain the test results: we generate a large number of problems and
 calculate their difficulty, consistency and diversity (<TODO> use diversity based on planning features).
 If both init and goal policies are random, we don't need to load any checkpoint in order to test.
@@ -69,14 +71,14 @@ from src.learning.model_wrapper import NLMWrapper
 
 def parse_arguments():
 
-    def parse_max_actions(value):
+    def parse_max_actions_train(value):
         """
         Parse either a single integer or a tuple of two integers.
         """
         try:
             val = int(value)
-            if val < 0:
-                raise argparse.ArgumentTypeError("Max num actions must be non-negative")
+            if val <= 0:
+                raise argparse.ArgumentTypeError("Max num actions must be larger than zero")
             return val
         except ValueError:
             pass
@@ -86,17 +88,40 @@ def parse_arguments():
             if len(parts) == 2:
                 val =  tuple(int(p) for p in parts)
 
-                if val[0] < 0 or val[1] < 0:
-                    raise argparse.ArgumentTypeError("Max num actions must be non-negative")
+                if val[0] <= 0 or val[1] <= 0:
+                    raise argparse.ArgumentTypeError("Max num actions must be larger than zero")
                 if val[0] >= val[1]:
                     raise argparse.ArgumentTypeError("The first element of the tuple must be smaller the the second one")
 
                 return val
             else:
-                raise argparse.ArgumentTypeError("Max num actions must be non-negative must be either a single integer or a tuple of two integers")
+                raise argparse.ArgumentTypeError("Max num actions must be either a single integer or a tuple of two integers")
         except ValueError:
-            raise argparse.ArgumentTypeError("Max num actions must be non-negative must be either a single integer or a tuple of two integers")
+            raise argparse.ArgumentTypeError("Max num actions must be either a single integer or a tuple of two integers")
 
+    def parse_max_actions_test(value):
+        """
+        Parse either a single integer or a tuple of several integers.
+        """
+        try:
+            val = int(value)
+            if val <= 0:
+                raise argparse.ArgumentTypeError("Max num actions must be larger than zero")
+            return tuple(val)
+        except ValueError:
+            pass
+
+        try:
+            parts = value.split(',')
+            val =  tuple(sorted([int(p) for p in parts]))
+
+            for v in val:
+                if v <= 0:
+                    raise argparse.ArgumentTypeError("Max num actions must be larger than zero")
+
+            return val
+        except ValueError:
+            raise argparse.ArgumentTypeError("Max num actions must be either a single value or a tuple of integers")
 
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -113,11 +138,21 @@ def parse_arguments():
     parser.add_argument('--grad-clip', type=float, default=1.0, help="Gradient clipping value. Use -1 for no gradient clipping.")
     parser.add_argument('--device', type=str, choices=('gpu', 'cpu'), default='gpu', help="Device to run training on: gpu or cpu.")
 
-    parser.add_argument('--max-init-actions', type=parse_max_actions, help=("Maximum number of actions that can be executed in the init phase."
+    parser.add_argument('--max-init-actions-train', type=parse_max_actions_train, help=("Maximum number of actions that can be executed in the init phase during training and validation."
                                                                             "It can be either a single integer, in which case all problems will use the same number,"
                                                                             "or a tuple (a, b), in which case each problem will use as the maximum number of actions"
                                                                             "a random number uniformly sampled from (a, b) (both ends included)."))
-    parser.add_argument('--max-goal-actions', type=parse_max_actions, help="The same as '--max-init-actions' but for the goal phase.")
+    parser.add_argument('--max-goal-actions-train', type=parse_max_actions_train, help="The same as '--max-init-actions-train' but for the goal phase.")
+    
+    parser.add_argument('--max-init-actions-test', type=parse_max_actions_test, help=("List with the max number of init actions for each problem size in test."))
+    parser.add_argument('--max-goal-actions-test', type=parse_max_actions_test, help=("List with the max number of goal actions for each problem size in test."))
+
+    # TODO check max-init-actions-test and max-goal-actions-test have same length
+
+    parser.add_argument('--mode',
+                        choices=('train','test','both'),
+                        default='both',
+                        help="Whether to only train, only test or do both.")
 
     parser.add_argument('--if-ckpt-exists',
                     choices=("skip","supersede","resume"),
@@ -128,6 +163,16 @@ def parse_arguments():
                             "resume: finish the old experiment if partially-completed."
                             ))
 
+    parser.add_argument('--diff-evaluator',
+                        help="Name of the class in metrics.difficulty.py to use for obtaining the problem difficulty.")
+
+
+
+    # TODO
+    # See if I should add to the id and experiment_info.json extra information in constants.py or derived from the parsed arguments
+
+    # TODO
+    # See interactions between if-ckpt-exists and --mode
 
     """
     TODO
@@ -137,8 +182,7 @@ def parse_arguments():
             - class-specific arguments
                 - Consistency (either dummy or the one associated with the model -> create dict from domain to consistency evaluator class),
                   diversity and difficulty (see how to pass the domain_path to the __init__ of plannerevaluator)
-                - Policy (PPOPolicy or randompolicy)
-                - Wrapper (NLMWrapper)
+
      
         - After parsing arguments, create init_state_info, goal_predicates and virtual_objects for the corresponding domain
             (this should be in constants.py or maybe in /data -> would it be possible to have a subfolder in /data containing all the 

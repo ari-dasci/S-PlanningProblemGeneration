@@ -17,6 +17,14 @@ PLANNER_SCRIPTS_PATH = Path('src/nesig/libs/planner-scripts')
 # Now, we save all the experiments info inside experiments/<experiment_id>
 EXPERIMENTS_PATH = Path('experiments')
 
+# Dictionary from domain names to their path
+# >>> Add here paths to new domains
+DOMAINS = {
+    'blocksworld' : Path('data/domains/blocks-domain.pddl'),
+    'logistics' : Path('data/domains/logistics-domain.pddl'),
+    'sokoban' : Path('data/domains/sokoban-domain.pddl')
+}
+
 # Planner args
 LAMA_FIRST_ARG = '--alias lama-first'
 LAZY_GREEDY_FF_ARG = '--evaluator h=ff(transform=adapt_costs(one)) --search lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)'
@@ -43,11 +51,29 @@ MODEL_WRAPPERS = {
     'NLMWrapperCritic': get_NLMWrapperCritic
 }
 
-# Dictionary from domain names to their path
-DOMAINS = {
-    'blocksworld' : Path('data/domains/blocks-domain.pddl'),
-    'logistics' : Path('data/domains/logistics-domain.pddl'),
-    'sokoban' : Path('data/domains/sokoban-domain.pddl')
+# Dictionaries for parsing the metric info (difficulty, diversity and consistency evaluator to use)
+from src.nesig.metrics.difficulty import *
+from src.nesig.metrics.diversity import *
+# >>> Add here imports for consistency evaluators of new domains
+from src.nesig.metrics.consistency_evaluators.dummy_consistency import DummyConsistencyEvaluator
+from src.nesig.metrics.consistency_evaluators.blocksworld_consistency import ConsistencyEvaluatorBlocksworld
+from src.nesig.metrics.consistency_evaluators.logistics_consistency import ConsistencyEvaluatorLogistics
+from src.nesig.metrics.consistency_evaluators.sokoban_consistency import ConsistencyEvaluatorSokoban
+
+DIFFICULTY_EVALUATORS = {
+    'dummy': DummyDifficultyEvaluator,
+    'planner': PlannerEvaluator
+}
+
+DIVERSITY_EVALUATORS = {
+    'init':InitStateDiversityEvaluator,
+    'features':FeaturesDiversityEvaluator
+}
+
+# >>> Add here arguments for new consistency evaluators
+# <NOTE>: the name of the keys should be equal to the name of the keys in the DOMAINS dict (e.g., use "blocksworld" )
+CONSISTENCY_EVALUATORS = {
+    'block'
 }
 
 # Set of arguments (parsed from command-line) which are NOT used for obtaining the experiment id
@@ -56,5 +82,6 @@ DOMAINS = {
 # experiment (since 'steps' is excluded from id), we will save in experiment_info.json the new (greater)
 # number of --steps and train for more steps, overwriting the test results if they exist
 EXCLUDED_ARGS_ID = {
-    'steps'
+    'steps',
+    'mode'
 }
