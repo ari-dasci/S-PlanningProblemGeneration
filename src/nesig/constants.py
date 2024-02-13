@@ -7,6 +7,12 @@ It results useful to have all constants in the same file, for quick access.
 
 from pathlib import Path
 
+# >>> Add here imports for consistency evaluators of new domains
+from src.nesig.metrics.consistency_evaluators.dummy_consistency import DummyConsistencyEvaluator
+from src.nesig.metrics.consistency_evaluators.blocksworld_consistency import ConsistencyEvaluatorBlocksworld
+from src.nesig.metrics.consistency_evaluators.logistics_consistency import ConsistencyEvaluatorLogistics
+from src.nesig.metrics.consistency_evaluators.sokoban_consistency import ConsistencyEvaluatorSokoban
+
 # NOTE, when calling the different scripts, we must first change the working directory to the parent folder
 # of the repository (in this case, S-planningproblemgeneration)
 
@@ -17,13 +23,52 @@ PLANNER_SCRIPTS_PATH = Path('src/nesig/libs/planner-scripts')
 # Now, we save all the experiments info inside experiments/<experiment_id>
 EXPERIMENTS_PATH = Path('experiments')
 
-# Dictionary from domain names to their path
-# >>> Add here paths to new domains
-DOMAINS = {
-    'blocksworld' : Path('data/domains/blocks-domain.pddl'),
-    'logistics' : Path('data/domains/logistics-domain.pddl'),
-    'sokoban' : Path('data/domains/sokoban-domain.pddl')
-}
+# --- DOMAIN_INFO ---
+# Dictionary that maps domain names to their info:
+# - path of the domain PDDL file
+# - consistency evaluator class of the domain (see files in src.nesigs.metrics.consistency_evaluators)
+# - init_state_info. If we start from a non-empty init state, instead of providing an instance of PDDLState,
+#                    we simple provide a tuple (obj_types, atoms) (see sokoban example below)
+# - goal_predicates
+# - allowed_virtual_objects
+
+sokoban_init_state_info = (['loc']*25,
+    { ('connected-right', (0, 1)), ('connected-right', (1, 2)), ('connected-right', (2, 3)), ('connected-right', (3, 4)),
+    ('connected-right', (5, 6)), ('connected-right', (6, 7)), ('connected-right', (7, 8)), ('connected-right', (8, 9)),
+    ('connected-right', (10, 11)), ('connected-right', (11, 12)), ('connected-right', (12, 13)), ('connected-right', (13, 14)),		
+    ('connected-right', (15, 16)), ('connected-right', (16, 17)), ('connected-right', (17, 18)), ('connected-right', (18, 19)),		
+    ('connected-right', (20, 21)), ('connected-right', (21, 22)), ('connected-right', (22, 23)), ('connected-right', (23, 24)),		
+
+    ('connected-up', (5, 0)), ('connected-up', (6, 1)), ('connected-up', (7, 2)), ('connected-up', (8, 3)), ('connected-up', (9, 4)),
+    ('connected-up', (10, 5)), ('connected-up', (11, 6)), ('connected-up', (12, 7)), ('connected-up', (13, 8)), ('connected-up', (14, 9)),	
+    ('connected-up', (15, 10)), ('connected-up', (16, 11)), ('connected-up', (17, 12)), ('connected-up', (18, 13)), ('connected-up', (19, 14)),
+    ('connected-up', (20, 15)), ('connected-up', (21, 16)), ('connected-up', (22, 17)), ('connected-up', (23, 18)), ('connected-up', (24, 19)),
+    })
+
+# >>> Add to DOMAIN_INFO the information about new domains
+DOMAIN_INFO = {
+    'blocksworld' :
+        {'path' : Path('data/domains/blocks-domain.pddl'),
+         'consistency_evaluator' : ConsistencyEvaluatorBlocksworld,
+         'init_state_info' : None,
+         'goal_predicates' : {('on', ('block','block'))},
+         'allowed_virtual_objects' : None},
+
+    'logistics' :
+            {'path' : Path('data/domains/logistics-domain.pddl'),
+             'consistency_evaluator' : ConsistencyEvaluatorLogistics,
+             'init_state_info' : None,
+             'goal_predicates' : {('at', ('package','location'))},
+             'allowed_virtual_objects' : ('city', 'location', 'airport', 'package', 'truck', 'airplane')},
+
+    'sokoban' :
+            {'path' : Path('data/domains/sokoban-domain.pddl'),
+             'consistency_evaluator' : ConsistencyEvaluatorSokoban,
+             'init_state_info' : sokoban_init_state_info,
+             'goal_predicates' : {('at-box', ('loc',))},
+             'allowed_virtual_objects' : tuple()},
+} 
+# No virtual objects can be added for sokoban (all objects are present from the start)
 
 # Planner args
 LAMA_FIRST_ARG = '--alias lama-first'
@@ -49,31 +94,6 @@ def get_NLMWrapperCritic():
 MODEL_WRAPPERS = {
     'NLMWrapperActor': get_NLMWrapperActor,
     'NLMWrapperCritic': get_NLMWrapperCritic
-}
-
-# Dictionaries for parsing the metric info (difficulty, diversity and consistency evaluator to use)
-from src.nesig.metrics.difficulty import *
-from src.nesig.metrics.diversity import *
-# >>> Add here imports for consistency evaluators of new domains
-from src.nesig.metrics.consistency_evaluators.dummy_consistency import DummyConsistencyEvaluator
-from src.nesig.metrics.consistency_evaluators.blocksworld_consistency import ConsistencyEvaluatorBlocksworld
-from src.nesig.metrics.consistency_evaluators.logistics_consistency import ConsistencyEvaluatorLogistics
-from src.nesig.metrics.consistency_evaluators.sokoban_consistency import ConsistencyEvaluatorSokoban
-
-DIFFICULTY_EVALUATORS = {
-    'dummy': DummyDifficultyEvaluator,
-    'planner': PlannerEvaluator
-}
-
-DIVERSITY_EVALUATORS = {
-    'init':InitStateDiversityEvaluator,
-    'features':FeaturesDiversityEvaluator
-}
-
-# >>> Add here arguments for new consistency evaluators
-# <NOTE>: the name of the keys should be equal to the name of the keys in the DOMAINS dict (e.g., use "blocksworld" )
-CONSISTENCY_EVALUATORS = {
-    'block'
 }
 
 # Set of arguments (parsed from command-line) which are NOT used for obtaining the experiment id

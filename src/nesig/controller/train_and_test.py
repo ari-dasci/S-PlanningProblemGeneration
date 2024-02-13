@@ -75,7 +75,7 @@ import os
 from os.path import dirname, abspath
 from pytorch_lightning import seed_everything
 
-from src.nesig.constants import DOMAINS
+from src.nesig.constants import DOMAIN_INFO
 from src.learning.generative_policy import RandomPolicy, PPOPolicy
 from src.learning.model_wrapper import NLMWrapper
 
@@ -109,6 +109,18 @@ def parse_arguments():
         except ValueError:
             raise argparse.ArgumentTypeError("Max num actions must be either a single integer or a tuple of two integers")
 
+    def parse_max_actions_val(value):
+        # If a value of "-1" is passed, we will use the same max_actions for training and val
+        # Otherwise, we need to parse the actual max_actions_val
+        try:
+            val = int(value)
+            if val == -1:
+                return val
+        except ValueError:
+            pass
+
+        return parse_max_actions_train(value)
+     
     def parse_max_actions_test(value):
         """
         Parse either a single integer or a tuple of several integers.
@@ -138,7 +150,7 @@ def parse_arguments():
         description=("It trains, validates and tests a model, saving the information to disk."))
 
     # Main arguments
-    parser.add_argument('--domain', type=str, choices=tuple(DOMAINS.keys()), help="Domain name to train the model on.")
+    parser.add_argument('--domain', type=str, choices=tuple(DOMAIN_INFO.keys()), help="Domain name to train the model on.")
     parser.add_argument('--seed', type=int, default=1, help="Seed for reproducibility.")
     parser.add_argument('--run_id', type=int, default=0, help="Extra id used for repeating the experiment when all other arguments are the same.")
     parser.add_argument('--steps', type=int, default=100000, help="Number of steps for training the model.")
@@ -148,12 +160,17 @@ def parse_arguments():
     parser.add_argument('--grad-clip', type=float, default=1.0, help="Gradient clipping value. Use -1 for no gradient clipping.")
     parser.add_argument('--device', type=str, choices=('gpu', 'cpu'), default='gpu', help="Device to run training on: gpu or cpu.")
 
-    parser.add_argument('--max-init-actions-train', type=parse_max_actions_train, help=("Maximum number of actions that can be executed in the init phase during training and validation."
+    parser.add_argument('--max-init-actions-train', type=parse_max_actions_train, help=("Maximum number of actions that can be executed in the init phase during training."
                                                                             "It can be either a single integer, in which case all problems will use the same number,"
                                                                             "or a tuple (a, b), in which case each problem will use as the maximum number of actions"
                                                                             "a random number uniformly sampled from (a, b) (both ends included)."))
     parser.add_argument('--max-goal-actions-train', type=parse_max_actions_train, help="The same as '--max-init-actions-train' but for the goal phase.")
-    
+    parser.add_argument('--max-init-actions-val', type=parse_max_actions_val, default=-1,
+                        help=("Maximum number of actions that can be executed in the init phase during validation."
+                              "If -1 or left unspecified, we use --max-init-actions-train."))
+    parser.add_argument('--max-goal-actions-val', type=parse_max_actions_val, default=-1,
+                        help=("Maximum number of actions that can be executed in the goal phase during validation."
+                              "If -1 or left unspecified, we use --max-goal-actions-train."))
     parser.add_argument('--max-init-actions-test', type=parse_max_actions_test, help=("List with the max number of init actions for each problem size in test."))
     parser.add_argument('--max-goal-actions-test', type=parse_max_actions_test, help=("List with the max number of goal actions for each problem size in test."))
 
@@ -182,15 +199,18 @@ def parse_arguments():
                             "If this flag is not given, then we simply skip test for the experiment."
                         ))
 
-    parser.add_argument('--diff-evaluator',
-                        help="Name of the class in metrics.difficulty.py to use for obtaining the problem difficulty.")
-
+    # At the moment, we have hardcoded the difficulty and diversity evaluators used in each phase
+    # so they are not passed as arguments.
     
+
 
 
 
     # TODO
     # See if I should add to the id and experiment_info.json extra information in constants.py or derived from the parsed arguments
+
+    # TODO
+    # When parsing domain_info from constants.py, we need to convert init_state_info from a tuple to PDDLState
 
 
     """
@@ -270,7 +290,7 @@ def parse_arguments():
     # Validate argument values
     
     # train-mode and test-mode cannot be both skip
-    # max-init-actions-test and max-goal-actions-test have same length
+    # checks for max-init-actions and max-goal-actions
 
 
 def main(args):
