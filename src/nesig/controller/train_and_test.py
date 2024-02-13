@@ -7,31 +7,41 @@ Functionality for training, validating and testing a model. Functionality split 
 
 ----- Training+validation (we skip this phase if both init and goal policies are random)
 
-We train if --mode is "train" or "both".
 We train a model for --steps train its. 
 Every --val-period steps, we perform one validation epoch. In this validation epoch, we generate a large number of 
 problems with the current model and obtain its validation score, equal to the average among all problems of the
 r_total_reward of the last sample of each trajectory (log(diff+1) + r_diversity_weight*diversity_reward).
 We save the most recent model checkpoint and the one with the best validation score.
+<Note>: when we start training, we remove the test information of the experiment if it existed.
 <TODO>: if this val score does not select the best model, use a different one. For example, val_score=mean(diff*diversity_reward)
 
 ----- Test
 
-We test if --mode is "test" or "both".
 We load the checkpoint with best val_score and obtain the test results: we generate a large number of problems and
 calculate their difficulty, consistency and diversity (<TODO> use diversity based on planning features).
 If both init and goal policies are random, we don't need to load any checkpoint in order to test.
 
------ if-ckpt-exists argument
+----- train-mode and test-mode arguments
 
-It controls what happens if we are performing an experiment which already exists:
-    - skip: skip the experiment and leave the old one, <even if it is unfinished>
-    - supersede: delete the old experiment and rerun it, <even if it was finished>
-    - resume: finish the old experiment if partially-completed:
-        - Unfinished training (--steps were not reached): loads last checkpoint and continues training. Then it tests.
-        - Finished training, unfinished testing: loads best ckpt and tests it.
-        - Finished training and test: it skips the experiment.
-        
+train-mode
+    - skip: do not train, jump right into test.
+    - supersede: if the experiment already exists, we remove it and start training from scratch.
+    - resume: if the experiment already exists, we resume training from the last ckpt, in case training was unfinished.
+              "--train-mode resume" can be used for increasing the number of training steps for an experiment.
+              If we use it and specify a larger value for --steps, we will resume training from the last ckpt
+              and perform test (if test-mode missing or supersede) for the new value of --steps.
+              If we use it and specify a smaller value of --steps, we skip training.
+
+test-mode:
+    - skip: do not test, only train.
+    - supersede: if the experiment contained test information, remove that folder and test again.
+    - missing:  if the experiment contained test information, skip test for this experiment.
+                In other words, only perform test for those experiments without test info.
+
+raise-error-test: if this flag is provided, we raise an exception in case we attempt to perform test for an experiment
+                  whose training has not finished yet.
+                  If this flag is not given, then we simply skip test for the experiment.
+
 ----- Experiment id
 
 For each experiment we assign a unique id. Two experiments are different if and only if they have different ids.
@@ -147,32 +157,41 @@ def parse_arguments():
     parser.add_argument('--max-init-actions-test', type=parse_max_actions_test, help=("List with the max number of init actions for each problem size in test."))
     parser.add_argument('--max-goal-actions-test', type=parse_max_actions_test, help=("List with the max number of goal actions for each problem size in test."))
 
-    # TODO check max-init-actions-test and max-goal-actions-test have same length
-
-    parser.add_argument('--mode',
-                        choices=('train','test','both'),
-                        default='both',
-                        help="Whether to only train, only test or do both.")
-
-    parser.add_argument('--if-ckpt-exists',
+    parser.add_argument('--train-mode',
                     choices=("skip","supersede","resume"),
                     default="resume",
-                    help=("Behaviour when an experiment already exists:"
-                            "skip: skip the experiment and leave the old one, <even if it is unfinished>."
-                            "supersede: delete the old experiment and rerun it, <even if it was finished>."
-                            "resume: finish the old experiment if partially-completed."
+                    help=("What to do in the training+validation phase:"
+                            "skip: do not train, jump right into test."
+                            "supersede: if the experiment already exists, we remove it and start training from scratch."
+                            "resume: if the experiment already exists, we resume training from the last ckpt, in case training was unfinished."
                             ))
+    parser.add_argument('--test-mode',
+                choices=("skip","supersede","missing"),
+                default="missing",
+                help=("What to do in the test phase:"
+                        "skip: do not test, only train."
+                        "supersede: if the experiment contained test information, remove that folder and test again."
+                        "missing: if the experiment contained test information, skip test for this experiment."
+                        "         In other words, only perform test for those experiments without test info."
+                        ))
+    parser.add_argument('--raise-error-test',
+                        action='store_true',
+                        help=(
+                            "if this flag is provided, we raise an exception in case we attempt to perform test for an experiment"
+                            "whose training has not finished yet."
+                            "If this flag is not given, then we simply skip test for the experiment."
+                        ))
 
     parser.add_argument('--diff-evaluator',
                         help="Name of the class in metrics.difficulty.py to use for obtaining the problem difficulty.")
+
+    
 
 
 
     # TODO
     # See if I should add to the id and experiment_info.json extra information in constants.py or derived from the parsed arguments
 
-    # TODO
-    # See interactions between if-ckpt-exists and --mode
 
     """
     TODO
@@ -245,6 +264,13 @@ def parse_arguments():
                 parser_NLM = subparsers_model.add_parser('NLM', help="Use NLM as the ML model for the init and goal policies")
                 NLMWrapper.add_model_specific_args(parser_NLM) # We use the same arguments for both the critic and actor NLMs (and for the init and goal policies)
 
+
+
+    # TODO
+    # Validate argument values
+    
+    # train-mode and test-mode cannot be both skip
+    # max-init-actions-test and max-goal-actions-test have same length
 
 
 def main(args):
