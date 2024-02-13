@@ -3,7 +3,44 @@
 """
 > train_and_test.py
 
-Functionality for training, validating and testing a model.
+Functionality for training, validating and testing a model. Functionality split in two phases: train+val and test.
+
+----- Training+validation (we skip this phase if both init and goal policies are random)
+
+We train a model for --steps train its. 
+Every --val-period steps, we perform one validation epoch. In this validation epoch, we generate a large number of 
+problems with the current model and obtain its validation score, equal to the average among all problems of the
+r_total_reward of the last sample of each trajectory (log(diff+1) + r_diversity_weight*diversity_reward).
+We save the most recent model checkpoint and the one with the best validation score.
+<TODO>: if this val score does not select the best model, use a different one. For example, val_score=mean(diff*diversity_reward)
+
+----- Test
+
+We load the checkpoint with best val_score and obtain the test results: we generate a large number of problems and
+calculate their difficulty, consistency and diversity (<TODO> use diversity based on planning features).
+If both init and goal policies are random, we don't need to load any checkpoint in order to test.
+
+----- if-ckpt-exists argument
+
+It controls what happens if we are performing an experiment which already exists:
+    - skip: skip the experiment and leave the old one, <even if it is unfinished>
+    - supersede: delete the old experiment and rerun it, <even if it was finished>
+    - resume: finish the old experiment if partially-completed:
+        - Unfinished training (--steps were not reached): loads last checkpoint and continues training. Then it tests.
+        - Finished training, unfinished testing: loads best ckpt and tests it.
+        - Finished training and test: it skips the experiment.
+        
+----- Experiment id
+
+
+
+
+----- Data
+    
+    
+    
+    
+  
 
 This script has three different modes: train, test and both.
     - train: it trains a model during --steps training iterations. Before training, it saves the model hyperparameters in JSON.

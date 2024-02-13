@@ -384,6 +384,7 @@ class PPOPolicy(GenerativePolicy):
         assert isinstance(train_batch, dict), "train_batch must be a dictionary"
         # TODO
         # Add logging
+        # Log rewards, consistency and difficulty on a per-problem basis and not on a sample-basis
 
         # <Critic>
         state_value_list, _ = self.calculate_state_values(train_batch['internal_states']) # We pass internal state to avoid recomputing them from the PDDLProblems
