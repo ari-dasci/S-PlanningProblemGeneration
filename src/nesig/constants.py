@@ -103,5 +103,13 @@ MODEL_WRAPPERS = {
 # number of --steps and train for more steps, overwriting the test results if they exist
 EXCLUDED_ARGS_ID = {
     'steps',
-    'mode'
+    'device',
+    'max_init_actions_test',
+    'max_goal_actions_test',
+    'train_mode',
+    'test_mode',
+    'raise_error_test',
+    'max_workers_planner'
 }
+# We skip max_init_actions_test and max_goal_actions_test because modifying the test parameters
+# does not modify the training or the model with the best val score

@@ -64,10 +64,11 @@ For each experiment we save the following:
             - info associated with each problem (num_actions_init,num_actions_goal,consistency,difficulty,diversity,val_score)
             - mean info among all problems
             - extra info (it value)
-    - test: folder with all the test info.
-        - test/problems: problems generated during test
-        - test/results.json: info associated with each problem and the average (as validation/it/results.json) and extra info
-                             (it value of loaded checkpoint)
+    - test: folder with all the test info. For a given experiment, we generate problems of different sizes given by
+            --max-init-actions-test and --max-goal-actions-test
+        - test/<N_M>/problems: problems generated during test for max_init_actions=N and max_goal_actions=M
+        - test/<N_M>/results.json: info associated with each problem and the average (as validation/it/results.json)
+        - test/info.json: extra info shared by all test results (e.g., the it of the checkpoint used for testing)
 """
 
 import argparse
@@ -135,7 +136,7 @@ def parse_arguments():
 
         try:
             parts = value.split(',')
-            val =  tuple(sorted([int(p) for p in parts]))
+            val =  tuple([int(p) for p in parts])
 
             for v in val:
                 if v <= 0:
@@ -163,7 +164,7 @@ def parse_arguments():
     parser.add_argument('--domain', type=str, choices=tuple(DOMAIN_INFO.keys()), help="Domain name to train the model on.")
     parser.add_argument('--seed', type=int, default=1, help="Seed for reproducibility.")
     parser.add_argument('--run_id', type=int, default=0, help="Extra id used for repeating the experiment when all other arguments are the same.")
-    parser.add_argument('--steps', type=int, default=100000, help="Number of steps for training the model.")
+    parser.add_argument('--steps', type=int, default=20000, help="Number of steps for training the model.")
     parser.add_argument('--batch-size', type=int, default=64, help="Minibatch size during training.")
     parser.add_argument('--trajectories', type=int, default=25, help=("Number of trajectories (problems) to generate in each training step"
                                                                       "for obtaining the training data."))
@@ -181,8 +182,8 @@ def parse_arguments():
     parser.add_argument('--max-goal-actions-val', type=parse_max_actions_val, default=-1,
                         help=("Maximum number of actions that can be executed in the goal phase during validation."
                               "If -1 or left unspecified, we use --max-goal-actions-train."))
-    parser.add_argument('--max-init-actions-test', type=parse_max_actions_test, help=("List with the max number of init actions for each problem size in test."))
-    parser.add_argument('--max-goal-actions-test', type=parse_max_actions_test, help=("List with the max number of goal actions for each problem size in test."))
+    parser.add_argument('--max-init-actions-test', type=parse_max_actions_test, help=("List with the max number of init actions for each test experiment."))
+    parser.add_argument('--max-goal-actions-test', type=parse_max_actions_test, help=("List with the max number of goal actions for each test experiment."))
 
     parser.add_argument('--train-mode',
                     choices=("skip","supersede","resume"),
@@ -219,47 +220,14 @@ def parse_arguments():
     parser.add_argument('--r-diversity-weight', type=float, default=50, help="Weight of the diversity reward in the total reward.")
     parser.add_argument('--weighted-average-diversity', type=str2bool, default=True,
                          help="If True (default), we use the weighted average the the init_state_diversity.")
-    parser.add_argument('--r_diff_weight', type=float, default=1.0, help="Weight of the difficulty reward in the total reward.")
-    parser.add_argument('terminated_reward', type=float, default=1e6, help="Difficulty reward of a problem that has been terminated (either by timeout or memory out).")
-    parser.add_argument('time_limit', type=int, default=-1, help="Time limit for each problem in seconds. -1 means no time limit.")
-    parser.add_argument('memory_limit', type=int, default=-1, help="Memory limit for each problem in KB. -1 means no memory limit.")
-    parser.add_argument('max_workers', type=int, default=1, help="Number of parallel workers for the difficulty evaluator.")
+    parser.add_argument('--r-diff-weight', type=float, default=1.0, help="Weight of the difficulty reward in the total reward.")
+    parser.add_argument('--r-terminated-problem', type=float, default=1e6, help="Difficulty reward of a problem that has been terminated (either by timeout or memory out).")
+    parser.add_argument('--time-limit-planner', type=int, default=-1, help="Time limit for each problem in seconds. -1 means no time limit.")
+    parser.add_argument('--memory-limit-planner', type=int, default=-1, help="Memory limit for each problem in KB. -1 means no memory limit.")
+    parser.add_argument('--max-workers-planner', type=int, default=1, help="Number of parallel workers for the difficulty evaluator.")
 
-    # TODO
-    # See if I should add to the id and experiment_info.json extra information in constants.py or derived from the parsed arguments
-
-    # TODO
-    # When parsing domain_info from constants.py, we need to convert init_state_info from a tuple to PDDLState
-
-
-    """
-    TODO
-        
-
-        - Add remaining arguments to argparse
-            - class-specific arguments
-                - Consistency (either dummy or the one associated with the model -> create dict from domain to consistency evaluator class),
-                  diversity and difficulty (see how to pass the domain_path to the __init__ of plannerevaluator)
-
-     
-        - After parsing arguments, create init_state_info, goal_predicates and virtual_objects for the corresponding domain
-            (this should be in constants.py or maybe in /data -> would it be possible to have a subfolder in /data containing all the 
-             domain-specific information??: consistencyevaluator for the domain, init_state_info, goal_predicates and virtual_objects)
-
-        - Check parameters and change values if needed
-            - --grad-clip, -1 means no gradient clipping
-
-        - Save model info in JSON in train/info (save it at the start of the training, since we sometimes interrupt training before reaching
-            --steps its)
-
-        - --steps should not be part of the model id (the idea is that we can stop training before reaching --steps and jump right into
-            test)
-            
-        - For mode=test, it can use the RandomPolicy instead of PPOPolicy (no training is needed)
-    """
-
-    # Parsing
-    # Init and goal policy require different arguments (e.g., init policy is random but goal policy is PPO)
+    # Subparsers
+    # Init and goal policy may require different arguments (e.g., init policy is random but goal policy is PPO)
 
     # Create subparsers for the init policy options
     subparsers_init = parser.add_subparsers(title="init policy", help="Specifies the initial state generation policy to use")
@@ -303,14 +271,50 @@ def parse_arguments():
                 parser_NLM = subparsers_model.add_parser('NLM', help="Use NLM as the ML model for the init and goal policies")
                 NLMWrapper.add_model_specific_args(parser_NLM) # We use the same arguments for both the critic and actor NLMs (and for the init and goal policies)
 
-
+    args = parser.parse_args()
+    return args
 
     # TODO
-    # Validate argument values
-    
-    # train-mode and test-mode cannot be both skip
-    # checks for max-init-actions and max-goal-actions
+    # See if I should add to the id and experiment_info.json extra information in constants.py or derived from the parsed arguments
 
+    # TODO
+    # When parsing domain_info from constants.py, we need to convert init_state_info from a tuple to PDDLState
+    
+def validate_and_modify_args(args):
+    if args.seed < 1:
+        raise ValueError("Seed must be a positive integer")
+    if args.steps < 1:
+        raise ValueError("Number of steps must be a positive integer")
+    if args.batch_size < 1:
+        raise ValueError("Batch size must be a positive integer")
+    if args.trajectories < 1:
+        raise ValueError("Number of trajectories must be a positive integer")
+    if args.grad_clip == -1:
+        args.grad_clip = None # gradient_clip_val=None in pl.Trainer is equivalent to no gradient clipping
+    elif args.grad_clip <= 0:
+        raise ValueError("Gradient clip value must be either -1 or a positive float")
+    if args.max_init_actions_val == -1:
+        args.max_init_actions_val = args.max_init_actions_train
+    if args.max_goal_actions_val == -1:
+        args.max_goal_actions_val = args.max_goal_actions_train
+    if len(args.max_init_action_test) != len(args.max_goal_action_test):
+        raise ValueError("The number of elements in max_init_actions_test and max_goal_actions_test must be the same")
+    if args.train_mode == "skip" and args.test_mode == "skip":
+        raise ValueError("train-mode and test-mode cannot be both 'skip'")
+    if args.r_diversity_weight < 0:
+        raise ValueError("r_diversity_weight must be a non-negative float")
+    if args.r_diff_weight < 0:
+        raise ValueError("r_diff_weight must be a non-negative float")
+    if args.r_terminated_problem < 0:
+        raise ValueError("r_terminated_problem must be a non-negative float")
+    if args.time_limit_planner != -1 and args.time_limit_planner < 1:
+        raise ValueError("time_limit_planner must be either -1 or a positive integer")
+    if args.memory_limit_planner != -1 and args.memory_limit_planner < 1:
+        raise ValueError("memory_limit_planner must be either -1 or a positive integer")
+    if args.max_workers_planner < 1:
+        raise ValueError("max_workers_planner must be a positive integer")
+    
+    return args
 
 def main(args):
     # We set the working directory to the base folder of the repository
@@ -321,5 +325,6 @@ def main(args):
 
 if __name__ == '__main__':
     args = parse_arguments()
+    args = validate_and_modify_args(args)
 
     main(args)
