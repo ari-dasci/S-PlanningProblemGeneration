@@ -113,3 +113,5 @@ EXCLUDED_ARGS_ID = {
 }
 # We skip max_init_actions_test and max_goal_actions_test because modifying the test parameters
 # does not modify the training or the model with the best val score
+
+ID_LENGTH = 8 # Number of characters of the hash to use as experiment id

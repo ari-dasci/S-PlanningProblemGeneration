@@ -72,11 +72,12 @@ For each experiment we save the following:
 """
 
 import argparse
+import hashlib
 import os
 from os.path import dirname, abspath
 from pytorch_lightning import seed_everything
 
-from src.nesig.constants import DOMAIN_INFO
+from src.nesig.constants import DOMAIN_INFO, EXCLUDED_ARGS_ID, ID_LENGTH
 from src.learning.generative_policy import RandomPolicy, PPOPolicy
 from src.learning.model_wrapper import NLMWrapper
 
@@ -277,9 +278,6 @@ def parse_arguments():
     # TODO
     # See if I should add to the id and experiment_info.json extra information in constants.py or derived from the parsed arguments
 
-    # TODO
-    # When parsing domain_info from constants.py, we need to convert init_state_info from a tuple to PDDLState
-    
 def validate_and_modify_args(args):
     if args.seed < 1:
         raise ValueError("Seed must be a positive integer")
@@ -316,12 +314,37 @@ def validate_and_modify_args(args):
     
     return args
 
+def get_experiment_id(args):
+    """
+    Obtain a unique id for the experiment, based on the parsed arguments.
+    """
+    # Arguments in EXCLUDED_ARGS_ID are not used for computing the experiment ID
+    included_args = {k: v for k, v in vars(args).items() if k not in EXCLUDED_ARGS_ID}
+
+    # We hash the included arg names and their values. Then, we take the N=ID_LENGTH first characters as the ID
+    full_hash = hashlib.sha256(str(included_args).encode()).hexdigest()[:ID_LENGTH]
+
+    return full_hash
+
 def main(args):
     # We set the working directory to the base folder of the repository
     # The path of __file__ is FOLDER_BASE/src/nesig/controller/train.py
     os.chdir(dirname(dirname(dirname(dirname(abspath(__file__))))))
 
+    # Reproducibility
     seed_everything(args.seed, workers=True)
+
+    experiment_id = get_experiment_id(args)
+
+    # TODO
+    # Check if experiment_id exists and what to do according to train-mode and test-mode
+
+
+
+    # TODO
+    # When parsing domain_info from constants.py, we need to convert init_state_info from a tuple to PDDLState
+
+    # When saving info to json, should we save parameters not parsed in command line? (e.g., in constants.py) -> I don't think so
 
 if __name__ == '__main__':
     args = parse_arguments()

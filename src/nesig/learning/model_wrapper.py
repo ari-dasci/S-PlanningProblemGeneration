@@ -84,11 +84,12 @@ class NLMWrapper(ModelWrapper):
         hidden_features = [[self.args['hidden_features']]*(self.args['breadth']+1)]*(self.args['depth']-1)
         # Equal to the number of preds/actions for each arity for the actor. Equal to a single nullary predicate for the critic    
         out_features = self._get_nlm_out_features()
-        
+        residual = None if self.args['residual']=='no' else self.args['residual'] # We use the "no" value for the None option when parsing from the command line
+
         self.model = NLM(hidden_features,
                         out_features,
                         self.args['mlp_hidden_features'],
-                        self.args['residual'],
+                        residual,
                         self.args['exclude_self'],
                         self.args['use_batch_norm'],
                         self.args['activation'])
@@ -109,7 +110,7 @@ class NLMWrapper(ModelWrapper):
         parser.add_argument('--hidden-features', default=8,type=int, help=("Number of predicates for each arity output by all the NLM layers except the final one." 
                                                                            "Right now, we assume the same number of predicates for all inner layers and arities."))
         parser.add_argument('--mlp-hidden-features', default=0,type=int, help="Units in the hidden layer of all the inference MLPs. If 0, the inference MLPs have no hidden layer.")
-        parser.add_argument('--residual', default="input", choices=[None, "all", "input"], help=("Residual connections. If None, no residual is used."
+        parser.add_argument('--residual', default="input", choices=["no", "all", "input"], help=("Residual connections. If 'no', no residual is used."
                                                                                                  "If 'all', each layer receives as additional input the inputs of all the previous layers."
                                                                                                  "If 'input', each layer receives as additional input the input of the first layer."))
         parser.add_argument('--exclude-self', default=True, type=eval, help="If True, the reduce operation ignores tensor positions corresponding to repeated indexes (e.g., [5][5][3] or [2][2][0][1]).")
