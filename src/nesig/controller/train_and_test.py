@@ -83,6 +83,7 @@ from pytorch_lightning import seed_everything
 import shutil
 import errno
 import json
+from copy import deepcopy
 from typing import Tuple, List, Dict, Any, Optional, Union
 from lifted_pddl import Parser
 
@@ -403,7 +404,7 @@ def parse_domain_and_obtain_info(args) -> Dict:
     return parsed_domain_info
 
 # TODO
-def train_and_val(args, parser:Parser, experiment_id) -> Tuple[GenerativePolicy,GenerativePolicy]:
+def train_and_val(args, parsed_domain_info, experiment_id) -> Tuple[GenerativePolicy,GenerativePolicy]:
     """
     This function uses trainer.py to train and validate the init and goal policies.
     The training and validation functionality depends on args.train_mode, whether the init 
@@ -414,9 +415,19 @@ def train_and_val(args, parser:Parser, experiment_id) -> Tuple[GenerativePolicy,
     train_mode = args.train_mode
     experiment_folder_path = EXPERIMENTS_PATH / experiment_id
     experiment_info_path = experiment_folder_path / EXPERIMENT_INFO_FILENAME
-    both_random_policies = args.init_policy=='random' and args.goal_policy=='random'
 
-    # What if both policies are random
+    # Obtain ML_model arguments
+    if args.ML_model == "NLM":
+        init_actor_class = goal_actor_class = NLMWrapperActor
+        init_critic_class = goal_critic_class = NLMWrapperCritic
+
+        init_actor_arguments = {'dummy_pddl_state' : parsed_domain_info['dummy_state_init']}
+        init_critic_arguments = deepcopy(init_actor_arguments)
+
+        goal_actor_arguments = {'dummy_pddl_state' : parsed_domain_info['dummy_state_goal']}
+        goal_critic_arguments = deepcopy(goal_actor_arguments)
+    else:
+        raise ValueError("Right now, we only support NLM as the ML model")
 
     if train_mode == "skip":
         """
@@ -428,36 +439,33 @@ def train_and_val(args, parser:Parser, experiment_id) -> Tuple[GenerativePolicy,
         # Load the policies or create them if Random
         if args.init_policy=='random':
             init_policy = RandomPolicy(args.init_term_action_prob)
-        else:
-            ckpt_path = experiment_folder_path / CKPTS_FOLDER_NAME / "init_best.ckpt"
-            
-            if args.ML_model == "NLM":
-                actor_class = NLMWrapperActor
-                critic_class = NLMWrapperCritic
-            else:
-                raise ValueError("Right now, we only support NLM as the ML model")
-            
-            
-            
+        elif args.init_policy == 'PPO':
+            ckpt_path = experiment_folder_path / CKPTS_FOLDER_NAME / "init_best.ckpt"         
             init_policy = PPOPolicy.load_from_checkpoint(ckpt_path,
                                                          phase='init',
                                                          args=args,
-                                                         actor_class=actor_class,
-                                                         actor_arguments=,
-                                                         critic_class=critic_class,
-                                                         critic_arguments=)
+                                                         actor_class=init_actor_class,
+                                                         actor_arguments=init_actor_arguments,
+                                                         critic_class=init_critic_class,
+                                                         critic_arguments=init_critic_arguments)
+        else:
+            raise ValueError("Invalid value for 'init-policy' argument")
 
         if args.goal_policy=='random':
             goal_policy = RandomPolicy(args.goal_term_action_prob)
-        else:
-            ckpt_path = experiment_folder_path / CKPTS_FOLDER_NAME / "goal_best.ckpt"
+        elif args.goal_policy == 'PPO':
+            ckpt_path = experiment_folder_path / CKPTS_FOLDER_NAME / "goal_best.ckpt"         
             goal_policy = PPOPolicy.load_from_checkpoint(ckpt_path,
-                                                        phase='goal',
-                                                        args=args,
-                                                        actor_class=NLMWrapperActor,
-                                                        actor_arguments=,
-                                                        critic_class=NLMWrapperCritic,
-                                                        critic_arguments=)
+                                                         phase='goal',
+                                                         args=args,
+                                                         actor_class=goal_actor_class,
+                                                         actor_arguments=goal_actor_arguments,
+                                                         critic_class=goal_critic_class,
+                                                         critic_arguments=goal_critic_arguments)
+        else:
+            raise ValueError("Invalid value for 'goal-policy' argument")
+
+
 
         # Save experiment_info.json
         save_experiment_info(experiment_info_path, args, experiment_id)
@@ -503,7 +511,7 @@ def main(args):
 
     # Perform training (and validation) phase
     # This phase may be skipped depending on train-mode argument
-    train_and_val(args, parser, experiment_id)
+    train_and_val(args, parsed_domain_info, experiment_id)
 
     # Perform test phase
     # This phase may be skipped depending on test-mode argument
