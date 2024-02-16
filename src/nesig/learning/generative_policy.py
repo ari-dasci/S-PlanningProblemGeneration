@@ -183,6 +183,11 @@ class PPOPolicy(GenerativePolicy):
         # Create additional parameters that should be saved and loaded from checkpoints but NOT
         # modified by the optimizer
 
+        # Variable to keep track of the current logging iteration
+        # This variable may be lower than the actual number of training iterations, since
+        # we skip training (trainer.fit() call) if not enough data was obtained for the current it
+        self.register_buffer('curr_logging_it', torch.tensor(0, dtype=torch.int32))
+
         # --entropy_coeffs is a three-element tuple where the first element is the initial value
         # of the entropy coeff, the second element its final value and the third element the number
         # of trainer.fit() calls to reach the final value
@@ -381,9 +386,11 @@ class PPOPolicy(GenerativePolicy):
     def on_train_end(self):
         """
         Anneal entropy after every trainer.fit() call.
+        <NOTE>: In our RL setting, we create a new pl.Trainer and do a trainer.fit() call for each training (PPO) it.
         """
         super().on_train_end()
         self.anneal_entropy_coeff()
+        self.curr_logging_it += 1 # Keep track of the number of trainer.fit() calls
 
     def training_step(self, train_batch : dict, batch_idx=0): 
         assert isinstance(train_batch, dict), "train_batch must be a dictionary"

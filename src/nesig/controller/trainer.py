@@ -4,6 +4,10 @@
 Functionality for training and validating the init and goal policies.
 """
 
+from pathlib import Path
+from typing import Tuple
+from src.nesig.learning.generative_policy import GenerativePolicy
+
 class PolicyTrainer():
     """
     Class that encapsulates all functionality needed to train and validate a model.
@@ -19,16 +23,20 @@ class PolicyTrainer():
         - Train the generative policies (i.e., trainer.fit calls)
     """
 
-    # We either initialize policy or pass ckpt path to load
-    # train-mode and test-mode functionality checked outside!
-    # info.json saved outside!
-    # checking randompolicy outside!
 
-    def __init__(self, init_policy, goal_policy,
-                 train_init_policy:bool = True, train_goal_policy:bool = True):
-        
-        if not (train_init_policy or train_goal_policy):
-            raise ValueError("At least one policy must be trained")
+    def __init__(self, experiment_info_path:Path, init_policy:GenerativePolicy, goal_policy:GenerativePolicy):
+        pass
+
 
 
     # NOTE: Make sure the model and all tensors are on the GPU or CPU from the start
+        
+    # NOTE: The training method should return not the trained policies (corresponding to last ckpt),
+    # but the best policies (best ckpt)
+        
+    # NOTE: when the ckpts are saved, "best_train_it" and "last_train_it" of
+    # experiment_info.json must be updated
+        
+    def train(self, start_it:int, end_it:int, train_init_policy:bool, train_goal_policy:bool) -> Tuple[GenerativePolicy, GenerativePolicy]:
+        if not (train_init_policy or train_goal_policy):
+            raise ValueError("At least one policy must be trained")

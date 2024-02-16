@@ -57,6 +57,7 @@ in a single folder, whose name is "<experiment_id>".
 Experiment folders are located in the path given by EXPERIMENTS_PATH
 For each experiment we save the following:
     - experiment_info.json: experiment id, and all hyperparameters (including those not used for obtaining the ID)
+                            It also includes the train_it of the best and last checkpoints.
         - If we resume training, we save the experiment_info again
     - logs: tensorboard logs saved during training and validation
     - checkpoints: lightning checkpoints saved during training
@@ -92,6 +93,8 @@ from src.nesig.learning.generative_policy import GenerativePolicy, RandomPolicy,
 from src.nesig.learning.model_wrapper import NLMWrapper, NLMWrapperActor, NLMWrapperCritic
 from src.nesig.symbolic.pddl_state import PDDLState
 from src.nesig.metrics.consistency_evaluators.dummy_consistency import DummyConsistencyEvaluator
+from src.nesig.controller.trainer import PolicyTrainer
+from src.nesig.controller.tester import PolicyTester
 
 def remove_if_exists(path : Path):
     """
@@ -359,10 +362,12 @@ def get_experiment_id(args):
 
     return full_hash
 
-def save_experiment_info(filepath, args, experiment_id):
+def save_experiment_info(filepath, args, experiment_id, best_train_it, last_train_it):
     # We only save those arguments which are not in EXCLUDED_ARGS_ID
     experiment_info = {k: v for k, v in vars(args).items() if k not in EXCLUDED_ARGS_ID}
     experiment_info['experiment_id'] = experiment_id
+    experiment_info['best_train_it'] = best_train_it
+    experiment_info['last_train_it'] = last_train_it
     # If the file already exists, we overwrite it
     with open(filepath, 'w') as f:
         json.dump(experiment_info, f, indent=2)
@@ -404,7 +409,7 @@ def parse_domain_and_obtain_info(args) -> Dict:
     return parsed_domain_info
 
 # TODO
-def train_and_val(args, parsed_domain_info, experiment_id) -> Tuple[GenerativePolicy,GenerativePolicy]:
+def train_and_val(args, parsed_domain_info, experiment_id) -> Tuple[Optional[GenerativePolicy],Optional[GenerativePolicy]]:
     """
     This function uses trainer.py to train and validate the init and goal policies.
     The training and validation functionality depends on args.train_mode, whether the init 
@@ -416,85 +421,109 @@ def train_and_val(args, parsed_domain_info, experiment_id) -> Tuple[GenerativePo
     experiment_folder_path = EXPERIMENTS_PATH / experiment_id
     experiment_info_path = experiment_folder_path / EXPERIMENT_INFO_FILENAME
 
+    # Obtain train its of the best and last ckpts
+    # If the file does not exist, we set both train its to 0
+    # <NOTE>: we only increment the train its when we save the ckpts to disk
+    if experiment_info_path.exists():
+        with open(experiment_info_path, 'r') as f:
+            experiment_info = json.load(f)
+            best_train_it = experiment_info['best_train_it']
+            last_train_it = experiment_info['last_train_it']
+    else:
+        best_train_it = 0
+        last_train_it = 0
+
     # Obtain ML_model arguments
-    if args.ML_model == "NLM":
-        init_actor_class = goal_actor_class = NLMWrapperActor
-        init_critic_class = goal_critic_class = NLMWrapperCritic
+    if hasattr(args, 'ML_model'): # If both policies are random, ML_model argument is not parsed
+        if args.ML_model == "NLM":
+            init_actor_class = goal_actor_class = NLMWrapperActor
+            init_critic_class = goal_critic_class = NLMWrapperCritic
 
-        init_actor_arguments = {'dummy_pddl_state' : parsed_domain_info['dummy_state_init']}
-        init_critic_arguments = deepcopy(init_actor_arguments)
+            init_actor_arguments = {'dummy_pddl_state' : parsed_domain_info['dummy_state_init']}
+            init_critic_arguments = deepcopy(init_actor_arguments)
 
-        goal_actor_arguments = {'dummy_pddl_state' : parsed_domain_info['dummy_state_goal']}
-        goal_critic_arguments = deepcopy(goal_actor_arguments)
-    else:
-        raise ValueError("Right now, we only support NLM as the ML model")
-
-    if train_mode == "skip":
-        """
-        > skip: jump right into test
-        
-        We know test_mode!="skip", so we load the best init and goal policies (unless random) and return them.
-        We also save to disk the experiment_info.json again.
-        """
-        # Load the policies or create them if Random
-        if args.init_policy=='random':
-            init_policy = RandomPolicy(args.init_term_action_prob)
-        elif args.init_policy == 'PPO':
-            ckpt_path = experiment_folder_path / CKPTS_FOLDER_NAME / "init_best.ckpt"         
-            init_policy = PPOPolicy.load_from_checkpoint(ckpt_path,
-                                                         phase='init',
-                                                         args=args,
-                                                         actor_class=init_actor_class,
-                                                         actor_arguments=init_actor_arguments,
-                                                         critic_class=init_critic_class,
-                                                         critic_arguments=init_critic_arguments)
+            goal_actor_arguments = {'dummy_pddl_state' : parsed_domain_info['dummy_state_goal']}
+            goal_critic_arguments = deepcopy(goal_actor_arguments)
         else:
-            raise ValueError("Invalid value for 'init-policy' argument")
+            raise ValueError("Right now, we only support NLM as the ML model")
 
-        if args.goal_policy=='random':
-            goal_policy = RandomPolicy(args.goal_term_action_prob)
-        elif args.goal_policy == 'PPO':
-            ckpt_path = experiment_folder_path / CKPTS_FOLDER_NAME / "goal_best.ckpt"         
-            goal_policy = PPOPolicy.load_from_checkpoint(ckpt_path,
-                                                         phase='goal',
-                                                         args=args,
-                                                         actor_class=goal_actor_class,
-                                                         actor_arguments=goal_actor_arguments,
-                                                         critic_class=goal_critic_class,
-                                                         critic_arguments=goal_critic_arguments)
-        else:
-            raise ValueError("Invalid value for 'goal-policy' argument")
+    # Obtain init and goal policies
+    if args.init_policy=='random':
+        init_policy = RandomPolicy(args.init_term_action_prob)
+    elif args.init_policy == 'PPO':
+        init_best_ckpt_path = experiment_folder_path / CKPTS_FOLDER_NAME / "init_best.ckpt"
+        init_last_ckpt_path = experiment_folder_path / CKPTS_FOLDER_NAME / "init_last.ckpt"
 
-
-
-        # Save experiment_info.json
-        save_experiment_info(experiment_info_path, args, experiment_id)
-
-
-
-
-
-        # If both policies are random, we create the experiment folder and save experiment_info.json
-        if both_random_policies:
-            os.makedir(experiment_folder_path, exist_ok=True)
-            save_experiment_info(experiment_info_path, args, experiment_id)
-
-
-    elif train_mode == "supersede":
-        pass
-    elif train_mode == "resume":
-        pass
+        # train-mode=skip -> we load the best ckpt. If it does not exist, we return a None init policy, meaning that test cannot be performed
+        if args.train_mode == "skip":
+            if init_best_ckpt_path.exists():
+                init_policy = PPOPolicy.load_from_checkpoint(init_best_ckpt_path, phase='init', args=args, actor_class=init_actor_class, actor_arguments=init_actor_arguments,
+                                                            critic_class=init_critic_class, critic_arguments=init_critic_arguments)
+            else:
+                init_policy = None
+        # train-mode=supersede -> we initialize the policy from scratch
+        # We also initialize the policy if there are no ckpts
+        elif args.train_mode == "supersede" or last_train_it==0:
+            init_policy = PPOPolicy(phase='init', args=args, actor_class=init_actor_class, actor_arguments=init_actor_arguments,
+                                    critic_class=init_critic_class, critic_arguments=init_critic_arguments)
+        # train-mode=resume -> if training is finished, we load the best ckpt.
+        # Otherwise, we load the last ckpt
+        elif args.train_mode == "resume":
+            ckpt_to_load = init_last_ckpt_path if args.steps > last_train_it else init_best_ckpt_path
+            init_policy = PPOPolicy.load_from_checkpoint(ckpt_to_load, phase='init', args=args, actor_class=init_actor_class, actor_arguments=init_actor_arguments,
+                                                        critic_class=init_critic_class, critic_arguments=init_critic_arguments)
     else:
-        raise ValueError("Invalid value for 'train-mode' argument")
+        raise ValueError("Invalid value for 'init-policy' argument")
 
-    
+    if args.goal_policy=='random':
+        goal_policy = RandomPolicy(args.goal_term_action_prob)
+    elif args.goal_policy == 'PPO':
+        goal_best_ckpt_path = experiment_folder_path / CKPTS_FOLDER_NAME / "goal_best.ckpt"
+        goal_last_ckpt_path = experiment_folder_path / CKPTS_FOLDER_NAME / "goal_last.ckpt"
+
+        if args.train_mode == "skip":
+            if goal_best_ckpt_path.exists():
+                goal_policy = PPOPolicy.load_from_checkpoint(goal_best_ckpt_path, phase='goal', args=args, actor_class=goal_actor_class, actor_arguments=goal_actor_arguments,
+                                                            critic_class=goal_critic_class, critic_arguments=goal_critic_arguments)
+            else:
+                goal_policy = None
+        elif args.train_mode == "supersede" or last_train_it==0:
+            goal_policy = PPOPolicy(phase='goal', args=args, actor_class=goal_actor_class, actor_arguments=goal_actor_arguments,
+                                    critic_class=goal_critic_class, critic_arguments=goal_critic_arguments)
+        elif args.train_mode == "resume":
+            ckpt_to_load = goal_last_ckpt_path if args.steps > last_train_it else goal_best_ckpt_path
+            goal_policy = PPOPolicy.load_from_checkpoint(ckpt_to_load, phase='goal', args=args, actor_class=goal_actor_class, actor_arguments=goal_actor_arguments,
+                                                        critic_class=goal_critic_class, critic_arguments=goal_critic_arguments)
+    else:
+        raise ValueError("Invalid value for 'goal-policy' argument")
+
+    save_experiment_info(experiment_info_path, args, experiment_id, best_train_it, last_train_it)
+
+    # We don't train if:
+    # Both policies are random
+    # train-mode=skip
+    # We have reached --steps training its
+    if args.train_mode == 'skip' or (args.init_policy=='random' and args.goal_policy=='random') or last_train_it >= args.steps:
+        return init_policy, goal_policy
+    else: # Perform training
+        train_init_policy = (args.init_policy != 'random')
+        train_goal_policy = (args.goal_policy != 'random')
 
 
-    pass
+
+
+
+
+
+
+
+
+
 
 # TODO
 def test():
     pass
+    # TODO, skip test if some policy is None
 
 def main(args):
     # We set the working directory to the base folder of the repository
