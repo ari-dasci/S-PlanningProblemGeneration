@@ -3,7 +3,9 @@
 """
 > train_and_test.py
 
-Functionality for training, validating and testing a model. Functionality split in two phases: train+val and test.
+This script is the one that should be called for training,validating and/or testing the different models.
+It parses the command-line arguments and uses functionality from the modules trainer.py and tester.py.
+This script should be executed as a module: python -m src.nesig.controller.train_and_test
 
 ----- Training+validation (we skip this phase if both init and goal policies are random)
 
@@ -12,7 +14,7 @@ Every --val-period steps, we perform one validation epoch. In this validation ep
 problems with the current model and obtain its validation score, equal to the average among all problems of the
 r_total_reward of the last sample of each trajectory (log(diff+1) + r_diversity_weight*diversity_reward).
 We save the most recent model checkpoint and the one with the best validation score.
-<Note>: when we start training, we remove the test information of the experiment if it existed.
+<Note>: when we start training, we save again experiment_info.json if it existed.
 <TODO>: if this val score does not select the best model, use a different one. For example, val_score=mean(diff*diversity_reward)
 
 ----- Test
@@ -54,10 +56,11 @@ We save all the data (checkpoints, logs, hyperparameter info, test results, gene
 in a single folder, whose name is "<experiment_id>".
 Experiment folders are located in the path given by EXPERIMENTS_PATH
 For each experiment we save the following:
-    - experiment_info.json: experiment id, date and time, and all hyperparameters
+    - experiment_info.json: experiment id, and all hyperparameters (including those not used for obtaining the ID)
         - If we resume training, we save the experiment_info again
     - logs: tensorboard logs saved during training and validation
-    - train_ckpts: lightning checkpoints saved during training
+    - checkpoints: lightning checkpoints saved during training
+        The checkpoint names are: init_best.ckpt, goal_best.ckpt, init_last.ckpt, goal_last.ckpt
     - validation: folder with all the validation info. validation/<it> contains the validation info for the ckpt with train_steps=<it>
         - validation/it/problems: problems generated during the validation epoch
         - validation/it/results.json:
@@ -75,11 +78,35 @@ import argparse
 import hashlib
 import os
 from os.path import dirname, abspath
+from pathlib import Path
 from pytorch_lightning import seed_everything
+import shutil
+import errno
+import json
+from typing import Tuple, List, Dict, Any, Optional, Union
+from lifted_pddl import Parser
 
-from src.nesig.constants import DOMAIN_INFO, EXCLUDED_ARGS_ID, ID_LENGTH
-from src.learning.generative_policy import RandomPolicy, PPOPolicy
-from src.learning.model_wrapper import NLMWrapper
+from src.nesig.constants import *
+from src.nesig.learning.generative_policy import GenerativePolicy, RandomPolicy, PPOPolicy
+from src.nesig.learning.model_wrapper import NLMWrapper, NLMWrapperActor, NLMWrapperCritic
+from src.nesig.symbolic.pddl_state import PDDLState
+from src.nesig.metrics.consistency_evaluators.dummy_consistency import DummyConsistencyEvaluator
+
+def remove_if_exists(path : Path):
+    """
+    Removes the folder or file given by the path if it exists. Otherwise, does nothing.
+    """
+    # File
+    if os.path.isfile(path) or os.path.islink(path):
+        try:
+            os.remove(path)
+        except OSError as e:
+            if e.errno != errno.ENOENT: # errno.ENOENT = no such file or directory
+                raise # re-raise exception if a different error occurred
+    # Folder
+    elif os.path.isdir(path):
+        shutil.rmtree(path) # Remove folder and contents
+
 
 def parse_arguments():
 
@@ -131,13 +158,13 @@ def parse_arguments():
             val = int(value)
             if val <= 0:
                 raise argparse.ArgumentTypeError("Max num actions must be larger than zero")
-            return tuple(val)
+            return (val,)
         except ValueError:
             pass
 
         try:
             parts = value.split(',')
-            val =  tuple([int(p) for p in parts])
+            val =  tuple(int(p) for p in parts)
 
             for v in val:
                 if v <= 0:
@@ -162,7 +189,7 @@ def parse_arguments():
         description=("It trains, validates and tests a model, saving the information to disk."))
 
     # Main arguments
-    parser.add_argument('--domain', type=str, choices=tuple(DOMAIN_INFO.keys()), help="Domain name to train the model on.")
+    parser.add_argument('--domain', type=str, required=True, choices=tuple(DOMAIN_INFO.keys()), help="Domain name to train the model on.")
     parser.add_argument('--seed', type=int, default=1, help="Seed for reproducibility.")
     parser.add_argument('--run_id', type=int, default=0, help="Extra id used for repeating the experiment when all other arguments are the same.")
     parser.add_argument('--steps', type=int, default=20000, help="Number of steps for training the model.")
@@ -172,19 +199,19 @@ def parse_arguments():
     parser.add_argument('--grad-clip', type=float, default=1.0, help="Gradient clipping value. Use -1 for no gradient clipping.")
     parser.add_argument('--device', type=str, choices=('gpu', 'cpu'), default='gpu', help="Device to run training on: gpu or cpu.")
 
-    parser.add_argument('--max-init-actions-train', type=parse_max_actions_train, help=("Maximum number of actions that can be executed in the init phase during training."
+    parser.add_argument('--max-init-actions-train', required=True, type=parse_max_actions_train, help=("Maximum number of actions that can be executed in the init phase during training."
                                                                             "It can be either a single integer, in which case all problems will use the same number,"
                                                                             "or a tuple (a, b), in which case each problem will use as the maximum number of actions"
                                                                             "a random number uniformly sampled from (a, b) (both ends included)."))
-    parser.add_argument('--max-goal-actions-train', type=parse_max_actions_train, help="The same as '--max-init-actions-train' but for the goal phase.")
+    parser.add_argument('--max-goal-actions-train', required=True, type=parse_max_actions_train, help="The same as '--max-init-actions-train' but for the goal phase.")
     parser.add_argument('--max-init-actions-val', type=parse_max_actions_val, default=-1,
                         help=("Maximum number of actions that can be executed in the init phase during validation."
                               "If -1 or left unspecified, we use --max-init-actions-train."))
     parser.add_argument('--max-goal-actions-val', type=parse_max_actions_val, default=-1,
                         help=("Maximum number of actions that can be executed in the goal phase during validation."
                               "If -1 or left unspecified, we use --max-goal-actions-train."))
-    parser.add_argument('--max-init-actions-test', type=parse_max_actions_test, help=("List with the max number of init actions for each test experiment."))
-    parser.add_argument('--max-goal-actions-test', type=parse_max_actions_test, help=("List with the max number of goal actions for each test experiment."))
+    parser.add_argument('--max-init-actions-test', required=True, type=parse_max_actions_test, help=("List with the max number of init actions for each test experiment."))
+    parser.add_argument('--max-goal-actions-test', required=True, type=parse_max_actions_test, help=("List with the max number of goal actions for each test experiment."))
 
     parser.add_argument('--train-mode',
                     choices=("skip","supersede","resume"),
@@ -218,6 +245,7 @@ def parse_arguments():
     parser.add_argument('--consistency-evaluator', choices=('dummy','domain'), default='domain',
                         help=("If 'domain' (default value) we use the consistency evaluator of the corresponding domain."
                               "If 'dummy', we use the dummy consistency evaluator which does not check consistency."))
+    parser.add_argument('--r-eventual-consistency', type=float, default=-1, help="Penalization given when a problem violates eventual consistency")
     parser.add_argument('--r-diversity-weight', type=float, default=50, help="Weight of the diversity reward in the total reward.")
     parser.add_argument('--weighted-average-diversity', type=str2bool, default=True,
                          help="If True (default), we use the weighted average the the init_state_diversity.")
@@ -295,10 +323,12 @@ def validate_and_modify_args(args):
         args.max_init_actions_val = args.max_init_actions_train
     if args.max_goal_actions_val == -1:
         args.max_goal_actions_val = args.max_goal_actions_train
-    if len(args.max_init_action_test) != len(args.max_goal_action_test):
+    if len(args.max_init_actions_test) != len(args.max_goal_actions_test):
         raise ValueError("The number of elements in max_init_actions_test and max_goal_actions_test must be the same")
     if args.train_mode == "skip" and args.test_mode == "skip":
         raise ValueError("train-mode and test-mode cannot be both 'skip'")
+    if args.r_eventual_consistency > 0:
+        raise ValueError("r_eventual_consistency must be a non-positive float")
     if args.r_diversity_weight < 0:
         raise ValueError("r_diversity_weight must be a non-negative float")
     if args.r_diff_weight < 0:
@@ -311,7 +341,9 @@ def validate_and_modify_args(args):
         raise ValueError("memory_limit_planner must be either -1 or a positive integer")
     if args.max_workers_planner < 1:
         raise ValueError("max_workers_planner must be a positive integer")
-    
+    if args.init_policy=='random' and args.goal_policy=='random' and (args.train_mode!="skip" or args.test_mode=="skip"):
+        raise ValueError("If both init and goal policies are random, then train_mode must be 'skip' and test_mode cannot be 'skip'")
+
     return args
 
 def get_experiment_id(args):
@@ -326,6 +358,136 @@ def get_experiment_id(args):
 
     return full_hash
 
+def save_experiment_info(filepath, args, experiment_id):
+    # We only save those arguments which are not in EXCLUDED_ARGS_ID
+    experiment_info = {k: v for k, v in vars(args).items() if k not in EXCLUDED_ARGS_ID}
+    experiment_info['experiment_id'] = experiment_id
+    # If the file already exists, we overwrite it
+    with open(filepath, 'w') as f:
+        json.dump(experiment_info, f, indent=2)
+
+def parse_domain_and_obtain_info(args) -> Dict:
+    """
+    We parse args.domain and obtain the following info:
+        - DummyPDDLStates for the init and goal generation phases
+        - Associated consistency evaluator
+        - goal_predicates
+        - init_state_info
+        - allowed_virtual_objects
+    """
+    parsed_domain_info = dict()
+
+    parser = Parser()
+    parser.parse_domain(DOMAIN_INFO[args.domain]['path'])
+    parsed_domain_info['parser'] = parser
+
+    # The dummy state for the init phase is an empty PDDLState
+    # The dummy state for the goal phase is a PDDLState with the domain actions as predicates
+    parsed_domain_info['dummy_state_init'] = PDDLState(parser.types, parser.type_hierarchy, parser.predicates)
+    domain_actions = set([(action[0], tuple([var for var, var_class in zip(action[1][0], action[1][1]) if var_class=='param'])) \
+						  for action in parser.actions])
+    parsed_domain_info['dummy_state_goal'] = PDDLState(parser.types, parser.type_hierarchy, domain_actions)
+
+    consistency_evaluator_class = DummyConsistencyEvaluator if args.consistency_evaluator == "dummy" else DOMAIN_INFO[args.domain]['consistency_evaluator']
+    parsed_domain_info['consistency_evaluator'] = consistency_evaluator_class(parser.types, parser.type_hierarchy, parser.predicates,
+                                                        penalization_eventual_consistency=args.r_eventual_consistency)
+
+    parsed_domain_info['goal_predicates'] = DOMAIN_INFO[args.domain]['goal_predicates']
+    parsed_domain_info['allowed_virtual_objects'] = DOMAIN_INFO[args.domain]['allowed_virtual_objects']
+
+    parsed_domain_info['init_state_info'] = None if DOMAIN_INFO[args.domain]['init_state_info'] is None else \
+                                            PDDLState(parser.types, parser.type_hierarchy, parser.predicates,
+                                                        objects=DOMAIN_INFO[args.domain]['init_state_info'][0],
+                                                        atoms=DOMAIN_INFO[args.domain]['init_state_info'][1])   
+
+    return parsed_domain_info
+
+# TODO
+def train_and_val(args, parser:Parser, experiment_id) -> Tuple[GenerativePolicy,GenerativePolicy]:
+    """
+    This function uses trainer.py to train and validate the init and goal policies.
+    The training and validation functionality depends on args.train_mode, whether the init 
+    and goal policies are PPO or Random, and the previous state of the experiment (if exists).
+    It returns the trained init and goal policies (RandomPolicies are simply returned untrained).
+    This function also saves the experiment info to disk.
+    """
+    train_mode = args.train_mode
+    experiment_folder_path = EXPERIMENTS_PATH / experiment_id
+    experiment_info_path = experiment_folder_path / EXPERIMENT_INFO_FILENAME
+    both_random_policies = args.init_policy=='random' and args.goal_policy=='random'
+
+    # What if both policies are random
+
+    if train_mode == "skip":
+        """
+        > skip: jump right into test
+        
+        We know test_mode!="skip", so we load the best init and goal policies (unless random) and return them.
+        We also save to disk the experiment_info.json again.
+        """
+        # Load the policies or create them if Random
+        if args.init_policy=='random':
+            init_policy = RandomPolicy(args.init_term_action_prob)
+        else:
+            ckpt_path = experiment_folder_path / CKPTS_FOLDER_NAME / "init_best.ckpt"
+            
+            if args.ML_model == "NLM":
+                actor_class = NLMWrapperActor
+                critic_class = NLMWrapperCritic
+            else:
+                raise ValueError("Right now, we only support NLM as the ML model")
+            
+            
+            
+            init_policy = PPOPolicy.load_from_checkpoint(ckpt_path,
+                                                         phase='init',
+                                                         args=args,
+                                                         actor_class=actor_class,
+                                                         actor_arguments=,
+                                                         critic_class=critic_class,
+                                                         critic_arguments=)
+
+        if args.goal_policy=='random':
+            goal_policy = RandomPolicy(args.goal_term_action_prob)
+        else:
+            ckpt_path = experiment_folder_path / CKPTS_FOLDER_NAME / "goal_best.ckpt"
+            goal_policy = PPOPolicy.load_from_checkpoint(ckpt_path,
+                                                        phase='goal',
+                                                        args=args,
+                                                        actor_class=NLMWrapperActor,
+                                                        actor_arguments=,
+                                                        critic_class=NLMWrapperCritic,
+                                                        critic_arguments=)
+
+        # Save experiment_info.json
+        save_experiment_info(experiment_info_path, args, experiment_id)
+
+
+
+
+
+        # If both policies are random, we create the experiment folder and save experiment_info.json
+        if both_random_policies:
+            os.makedir(experiment_folder_path, exist_ok=True)
+            save_experiment_info(experiment_info_path, args, experiment_id)
+
+
+    elif train_mode == "supersede":
+        pass
+    elif train_mode == "resume":
+        pass
+    else:
+        raise ValueError("Invalid value for 'train-mode' argument")
+
+    
+
+
+    pass
+
+# TODO
+def test():
+    pass
+
 def main(args):
     # We set the working directory to the base folder of the repository
     # The path of __file__ is FOLDER_BASE/src/nesig/controller/train.py
@@ -336,14 +498,49 @@ def main(args):
 
     experiment_id = get_experiment_id(args)
 
+    # Parse the domain and obtain its associated info
+    parsed_domain_info = parse_domain_and_obtain_info(args)
+
+    # Perform training (and validation) phase
+    # This phase may be skipped depending on train-mode argument
+    train_and_val(args, parser, experiment_id)
+
+    # Perform test phase
+    # This phase may be skipped depending on test-mode argument
+    test()
+
+
+
+
+
+
+
     # TODO
     # Check if experiment_id exists and what to do according to train-mode and test-mode
 
+    # What to consider
+    # train-mode and test-mode
+    # RandomPolicy vs PPOPolicy
+    # Whether the file exists or not
+    # For resume, whether --steps has been reached
 
+    # We load the model in order to check the current number of steps. Then, we pass the loaded model to Trainer()
+
+    """
+    - For RL, since dataset changes, I need to create a new trainer for each PPO epoch.
+      Therefore I do everything manually:
+        - Controlling the current training step, also when a ckpt is loaded
+        - Using the correct step for the TensorboardLogger
+    
+    
+    """
+
+    # NOTE: Make sure the model and all tensors are on the GPU or CPU from the start
 
     # TODO
     # When parsing domain_info from constants.py, we need to convert init_state_info from a tuple to PDDLState
 
+    # TODO
     # When saving info to json, should we save parameters not parsed in command line? (e.g., in constants.py) -> I don't think so
 
 if __name__ == '__main__':

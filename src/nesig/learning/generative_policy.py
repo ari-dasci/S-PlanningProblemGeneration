@@ -90,17 +90,16 @@ class RandomPolicy(GenerativePolicy):
     Policy that selects actions uniformly at random.
     """
 
-    def __init__(self, term_action_prob:Union[argparse.Namespace,float]):
+    def __init__(self, term_action_prob:float):
         """
         Constructor. It takes the probability (between 0 and 1) of selecting TERM_ACTION at a given state.
                      This probability is always the same, regardless of the number of other applicable actions
                      at the state.
-                     For simplicity, this argument can be provided either as a float or as an argparse.Namespace.
         """
         super().__init__()
 
-        if isinstance(term_action_prob, argparse.Namespace):
-            term_action_prob = term_action_prob.term_action_prob
+        #if isinstance(term_action_prob, argparse.Namespace):
+        #    term_action_prob = term_action_prob.term_action_prob
 
         assert term_action_prob >= 0 and term_action_prob <= 1, "Probability of selecting TERM_ACTION must be between 0 and 1"
         self.term_action_prob = term_action_prob
@@ -163,7 +162,8 @@ class PPOPolicy(GenerativePolicy):
     A policy that uses PPO to train the actor and critic networks.
     """
     
-    def __init__(self, phase, args:argparse.Namespace, actor_arguments, critic_arguments):
+    def __init__(self, phase, args:argparse.Namespace, actor_class, actor_arguments,
+                 critic_class, critic_arguments):
         """
         phase argument is 'init' for the initial state generation policy and 'goal' for the goal generation policy.
         We need this argument so that the init and goal policies can have different hyperparameter values (e.g., different entropy coeffs).
@@ -175,8 +175,10 @@ class PPOPolicy(GenerativePolicy):
                                         # we don't need to pass "args" as a parameter since it can be loaded back from the checkpoint
        
         self.phase = phase
-        self.actor = self.get_hparam('actor_class')(args, actor_arguments)
-        self.critic = self.get_hparam('critic_class')(args, critic_arguments)
+        #self.actor = self.get_hparam('actor_class')(args, actor_arguments)
+        #self.critic = self.get_hparam('critic_class')(args, critic_arguments)
+        self.actor = actor_class(args, actor_arguments)
+        self.critic = critic_class(args, critic_arguments)
 
         # Create additional parameters that should be saved and loaded from checkpoints but NOT
         # modified by the optimizer
@@ -263,17 +265,20 @@ class PPOPolicy(GenerativePolicy):
             parser.set_defaults(goal_policy="PPO")
         
         # type=cls.parse_wrapper_class passes cls.parse_wrapper_class as the function which will receive the value of the argument and parse it
-        parser.add_argument(f'--{phase}-actor-class', default='NLMWrapperActor', type=cls.parse_wrapper_class, help="Class of the model wrapper for the actor.")
-        parser.add_argument(f'--{phase}-critic-class', default='NLMWrapperCritic', type=cls.parse_wrapper_class, help="Class of the model wrapper for the critic.")
+        # The wrapper to use for the actor and critic is not provided as an argument of the policy. Instead, each existing ML model (right now, only NLM)
+        # has its own subparser with its own command-line arguments
+        # See line in train_and_test.py: parser_NLM = subparsers_model.add_parser('NLM', help="Use NLM as the ML model for the init and goal policies")
+        #parser.add_argument(f'--{phase}-actor-class', default='NLMWrapperActor', type=cls.parse_wrapper_class, help="Class of the model wrapper for the actor.")
+        #parser.add_argument(f'--{phase}-critic-class', default='NLMWrapperCritic', type=cls.parse_wrapper_class, help="Class of the model wrapper for the critic.")
         parser.add_argument(f'--{phase}-lr', default=1e-3, type=float, help="Learning rate")
         parser.add_argument(f'--{phase}-PPO-epochs', default=1, type=int, help="For each PPO iteration, how many training epochs to use over the dataset of collected trajectories.")
         parser.add_argument(f'--{phase}-epsilon', default=0.1, type=float, help="Epsilon parameter used in PPO. The larger it is, the larger policy updates can be.")
-        parser.add_argument(f'--{phase}-entropy-coeffs', type=cls.parse_entropy_coeffs, help=("Coefficients used for the PPO entropy term and annealing it."
-                                                                                    "the first element is the initial value of the entropy coeff,"
-                                                                                    "the second element its final value, and the third element the"
-                                                                                    "number of trainer.fit() calls to reach the final value"
-                                                                                    "Conversely, a single float value can be provided, in which case"
-                                                                                    "the entropy coeff will remain constant."))
+        parser.add_argument(f'--{phase}-entropy-coeffs', default=0.0, type=cls.parse_entropy_coeffs, help=("Coefficients used for the PPO entropy term and annealing it."
+                                                                                        "the first element is the initial value of the entropy coeff,"
+                                                                                        "the second element its final value, and the third element the"
+                                                                                        "number of trainer.fit() calls to reach the final value"
+                                                                                        "Conversely, a single float value can be provided, in which case"
+                                                                                        "the entropy coeff will remain constant."))
         parser.add_argument(f'--{phase}-lifted-entropy-weight', default=0.5, type=float, help=("Weight of the lifted entropy in the entropy term of PPO, when compared to the ground entropy."
                                                                                         "It must be between 0 and 1, since ground_entropy_weight = 1 - lifted_entropy_weight."))
 

@@ -22,6 +22,11 @@ PLANNER_SCRIPTS_PATH = Path('src/nesig/libs/planner-scripts')
 
 # Now, we save all the experiments info inside experiments/<experiment_id>
 EXPERIMENTS_PATH = Path('experiments')
+EXPERIMENT_INFO_FILENAME = 'experiment_info.json'
+LOGS_FOLDER_NAME = 'logs'
+CKPTS_FOLDER_NAME = 'checkpoints'
+VAL_FOLDER_NAME = 'validation'
+TEST_FOLDER_NAME = 'test'
 
 # --- DOMAIN_INFO ---
 # Dictionary that maps domain names to their info:
@@ -83,6 +88,7 @@ TERM_ACTION = "END"
 # Dictionary from names to Model Wrapper classes used by the PPOPolicy
 # We use lazyloading to avoid circular imports
 # Example use of this dictionary: MODEL_WRAPPERS['NLMWrapperActor']()
+"""
 def get_NLMWrapperActor():
     from src.nesig.learning.model_wrapper import NLMWrapperActor
     return NLMWrapperActor
@@ -94,7 +100,7 @@ def get_NLMWrapperCritic():
 MODEL_WRAPPERS = {
     'NLMWrapperActor': get_NLMWrapperActor,
     'NLMWrapperCritic': get_NLMWrapperCritic
-}
+}"""
 
 # Set of arguments (parsed from command-line) which are NOT used for obtaining the experiment id
 # We exclude 'steps' so that we can increase the number of steps of an already-finished experiments:
@@ -114,4 +120,4 @@ EXCLUDED_ARGS_ID = {
 # We skip max_init_actions_test and max_goal_actions_test because modifying the test parameters
 # does not modify the training or the model with the best val score
 
-ID_LENGTH = 8 # Number of characters of the hash to use as experiment id
+ID_LENGTH = 10 # Number of characters of the hash to use as experiment id
