@@ -438,12 +438,6 @@ def train(args, parsed_domain_info, experiment_id) -> Tuple[Optional[GenerativeP
     experiment_folder_path = EXPERIMENTS_PATH / experiment_id
     experiment_info_path = experiment_folder_path / EXPERIMENT_INFO_FILENAME
 
-    # If we start training from scratch, we remove all experiment data
-    if args.train_mode == "supersede" or last_train_it==0:
-        remove_if_exists(experiment_folder_path / LOGS_FOLDER_NAME)
-        remove_if_exists(experiment_folder_path / CKPTS_FOLDER_NAME)
-        remove_if_exists(experiment_folder_path / VAL_FOLDER_NAME)
-
     # Obtain train its of the best and last ckpts
     # If the file does not exist, we set both train its to 0
     # <NOTE>: we only increment the train its when we save the ckpts to disk
@@ -453,6 +447,15 @@ def train(args, parsed_domain_info, experiment_id) -> Tuple[Optional[GenerativeP
             best_train_it = experiment_info['best_train_it']
             last_train_it = experiment_info['last_train_it']
     else:
+        best_train_it = 0
+        last_train_it = 0
+
+    # If we start training from scratch, we remove all experiment data
+    # and reset best_train_it and last_train_it to 0
+    if args.train_mode == "supersede" or last_train_it==0:
+        remove_if_exists(experiment_folder_path / LOGS_FOLDER_NAME)
+        remove_if_exists(experiment_folder_path / CKPTS_FOLDER_NAME)
+        remove_if_exists(experiment_folder_path / VAL_FOLDER_NAME)
         best_train_it = 0
         last_train_it = 0
 
@@ -486,7 +489,8 @@ def train(args, parsed_domain_info, experiment_id) -> Tuple[Optional[GenerativeP
                 init_policy = None
         # train-mode=supersede -> we initialize the policy from scratch
         # We also do this if there are no ckpts
-        elif args.train_mode == "supersede" or last_train_it==0:
+        # Note: we only check last_train_it==0 because, above in the code, we set last_train_it=0 if train_mode=supersede
+        elif last_train_it==0:
             init_policy = PPOPolicy(phase='init', args=args, actor_class=init_actor_class, actor_arguments=init_actor_arguments,
                                     critic_class=init_critic_class, critic_arguments=init_critic_arguments)
         # train-mode=resume -> if training is finished, we load the best ckpt.
@@ -510,7 +514,7 @@ def train(args, parsed_domain_info, experiment_id) -> Tuple[Optional[GenerativeP
                                                             critic_class=goal_critic_class, critic_arguments=goal_critic_arguments)
             else:
                 goal_policy = None
-        elif args.train_mode == "supersede" or last_train_it==0:
+        elif last_train_it==0:
             goal_policy = PPOPolicy(phase='goal', args=args, actor_class=goal_actor_class, actor_arguments=goal_actor_arguments,
                                     critic_class=goal_critic_class, critic_arguments=goal_critic_arguments)
         elif args.train_mode == "resume":
@@ -521,6 +525,7 @@ def train(args, parsed_domain_info, experiment_id) -> Tuple[Optional[GenerativeP
         raise ValueError("Invalid value for 'goal-policy' argument")
 
     # We rewrite experiment_info.json regardless of the train mode
+    # This way, we make sure this info is up to date with the last training and/or test experiments
     save_experiment_info(experiment_info_path, args, experiment_id, best_train_it, last_train_it)
 
     # We don't train if:
