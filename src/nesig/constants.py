@@ -23,7 +23,6 @@ PLANNER_SCRIPTS_PATH = Path('src/nesig/libs/planner-scripts')
 # Now, we save all the experiments info inside experiments/<experiment_id>
 EXPERIMENTS_PATH = Path('experiments')
 EXPERIMENT_INFO_FILENAME = 'experiment_info.json'
-CURR_TRAIN_IT_FILENAME = 'curr_train_it.txt'
 LOGS_FOLDER_NAME = 'logs'
 CKPTS_FOLDER_NAME = 'checkpoints'
 VAL_FOLDER_NAME = 'validation'

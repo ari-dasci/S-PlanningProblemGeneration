@@ -92,7 +92,10 @@ from src.nesig.constants import *
 from src.nesig.learning.generative_policy import GenerativePolicy, RandomPolicy, PPOPolicy
 from src.nesig.learning.model_wrapper import NLMWrapper, NLMWrapperActor, NLMWrapperCritic
 from src.nesig.symbolic.pddl_state import PDDLState
+from src.nesig.symbolic.problem_generator import ProblemGenerator
 from src.nesig.metrics.consistency_evaluators.dummy_consistency import DummyConsistencyEvaluator
+from src.nesig.metrics.difficulty import PlannerEvaluator
+from src.nesig.metrics.diversity import InitStateDiversityEvaluator, FeaturesDiversityEvaluator
 from src.nesig.controller.trainer import PolicyTrainer
 from src.nesig.controller.tester import PolicyTester
 
@@ -375,6 +378,7 @@ def save_experiment_info(filepath, args, experiment_id, best_train_it, last_trai
 def parse_domain_and_obtain_info(args) -> Dict:
     """
     We parse args.domain and obtain the following info:
+        - Domain path
         - DummyPDDLStates for the init and goal generation phases
         - Associated consistency evaluator
         - goal_predicates
@@ -383,8 +387,10 @@ def parse_domain_and_obtain_info(args) -> Dict:
     """
     parsed_domain_info = dict()
 
+    parsed_domain_info['domain_path'] = DOMAIN_INFO[args.domain]['path']
+
     parser = Parser()
-    parser.parse_domain(DOMAIN_INFO[args.domain]['path'])
+    parser.parse_domain(parsed_domain_info['domain_path'])
     parsed_domain_info['parser'] = parser
 
     # The dummy state for the init phase is an empty PDDLState
@@ -408,8 +414,7 @@ def parse_domain_and_obtain_info(args) -> Dict:
 
     return parsed_domain_info
 
-# TODO
-def train_and_val(args, parsed_domain_info, experiment_id) -> Tuple[Optional[GenerativePolicy],Optional[GenerativePolicy]]:
+def train(args, parsed_domain_info, experiment_id) -> Tuple[Optional[GenerativePolicy],Optional[GenerativePolicy]]:
     """
     This function uses trainer.py to train and validate the init and goal policies.
     The training and validation functionality depends on args.train_mode, whether the init 
@@ -417,9 +422,17 @@ def train_and_val(args, parsed_domain_info, experiment_id) -> Tuple[Optional[Gen
     It returns the trained init and goal policies (RandomPolicies are simply returned untrained).
     This function also saves the experiment info to disk.
     """
-    train_mode = args.train_mode
     experiment_folder_path = EXPERIMENTS_PATH / experiment_id
     experiment_info_path = experiment_folder_path / EXPERIMENT_INFO_FILENAME
+
+    # Remove files
+    # We always remove the test experiments, regardless of whether we train or skip this phase
+    remove_if_exists(experiment_folder_path / TEST_FOLDER_NAME)
+    # If we start training from scratch, we remove all experiment data
+    if args.train_mode == "supersede" or last_train_it==0:
+        remove_if_exists(experiment_folder_path / LOGS_FOLDER_NAME)
+        remove_if_exists(experiment_folder_path / CKPTS_FOLDER_NAME)
+        remove_if_exists(experiment_folder_path / VAL_FOLDER_NAME)
 
     # Obtain train its of the best and last ckpts
     # If the file does not exist, we set both train its to 0
@@ -462,7 +475,7 @@ def train_and_val(args, parsed_domain_info, experiment_id) -> Tuple[Optional[Gen
             else:
                 init_policy = None
         # train-mode=supersede -> we initialize the policy from scratch
-        # We also initialize the policy if there are no ckpts
+        # We also do this if there are no ckpts
         elif args.train_mode == "supersede" or last_train_it==0:
             init_policy = PPOPolicy(phase='init', args=args, actor_class=init_actor_class, actor_arguments=init_actor_arguments,
                                     critic_class=init_critic_class, critic_arguments=init_critic_arguments)
@@ -506,21 +519,25 @@ def train_and_val(args, parsed_domain_info, experiment_id) -> Tuple[Optional[Gen
     if args.train_mode == 'skip' or (args.init_policy=='random' and args.goal_policy=='random') or last_train_it >= args.steps:
         return init_policy, goal_policy
     else: # Perform training
+        # Create problem generator
+        difficulty_evaluator = PlannerEvaluator(parsed_domain_info['domain_path'], TRAIN_PLANNER_ARGS, args.time_limit_planner,
+                                                args.memory_limit_planner, args.max_workers_planner, args.r_terminated_problem,
+                                                args.r_diff_weight)
+        diversity_evaluator = InitStateDiversityEvaluator(args.weighted_average_diversity, args.r_diversity_weight)
+        problem_generator = ProblemGenerator(parsed_domain_info['parser'], init_policy, goal_policy, parsed_domain_info['consistency_evaluator'],
+                                             parsed_domain_info['goal_predicates'], parsed_domain_info['init_state_info'],
+                                             parsed_domain_info['allowed_virtual_objects'], difficulty_evaluator, diversity_evaluator)
+
+        # Create PolicyTrainer
         train_init_policy = (args.init_policy != 'random')
         train_goal_policy = (args.goal_policy != 'random')
+        policy_trainer = PolicyTrainer(experiment_info_path, problem_generator, init_policy, goal_policy)
 
+        # Train
+        best_init_policy, best_goal_policy = policy_trainer.train(train_init_policy, train_goal_policy, last_train_it+1, args.steps)
 
+        return best_init_policy, best_goal_policy
 
-
-
-
-
-
-
-
-
-
-# TODO
 def test():
     pass
     # TODO, skip test if some policy is None
@@ -540,7 +557,7 @@ def main(args):
 
     # Perform training (and validation) phase
     # This phase may be skipped depending on train-mode argument
-    train_and_val(args, parsed_domain_info, experiment_id)
+    train(args, parsed_domain_info, experiment_id)
 
     # Perform test phase
     # This phase may be skipped depending on test-mode argument
