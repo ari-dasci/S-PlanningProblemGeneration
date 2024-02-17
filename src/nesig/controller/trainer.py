@@ -16,7 +16,7 @@ class PolicyTrainer():
     or loaded from a checkpoint). Then, it trains and validates the policies. After training
     finishes, it returns the trained policies.
     In case either the init or goal policy is a RandomPolicy and does not require training,
-    we provide the flag "train_*_policy" in the constructor.
+    we provide the flag "train_*_policy" in the method train().
     
     It does the following:
         - Generate problems and trajectories with problem_generator.py

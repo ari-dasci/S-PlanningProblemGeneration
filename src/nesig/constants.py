@@ -120,4 +120,10 @@ EXCLUDED_ARGS_ID = {
 # We skip max_init_actions_test and max_goal_actions_test because modifying the test parameters
 # does not modify the training or the model with the best val score
 
+# Dictionary with additional variables/constants to store in experiment_info.json
+ADDITIONAL_EXPERIMENT_INFO = {
+    'TRAIN_PLANNER_ARGS' : TRAIN_PLANNER_ARGS,
+    'TEST_PLANNER_ARGS' : TEST_PLANNER_ARGS
+}
+
 ID_LENGTH = 10 # Number of characters of the hash to use as experiment id

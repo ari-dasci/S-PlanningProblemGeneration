@@ -36,10 +36,14 @@ train-mode
 
 test-mode:
     - skip: do not test, only train.
-    - supersede: if the experiment contained test information, remove that folder and test again.
-    - missing:  if the experiment contained test information, skip test for this experiment.
-                In other words, only perform test for those experiments without test info.
-
+    - supersede: redo tests that already exist.
+                 We only remove test folders for problem sizes which are in the new test experiments.
+                 Those for other problem sizes are kept.
+    - missing: we skip the tests that already exist, performing those that do not."
+               Tests are compared on a problem-size basis. For example, if for some experiment"
+               we have performed tests for problems of size (10,10) and we want to perform tests for problems"
+               of sizes (10,10) and (20,20), we would only perform the test for (20,20)."
+               Note that we remove test info whenever we train the policies."
 raise-error-test: if this flag is provided, we raise an exception in case we attempt to perform test for an experiment
                   whose training has not finished yet.
                   If this flag is not given, then we simply skip test for the experiment.
@@ -72,7 +76,7 @@ For each experiment we save the following:
             --max-init-actions-test and --max-goal-actions-test
         - test/<N_M>/problems: problems generated during test for max_init_actions=N and max_goal_actions=M
         - test/<N_M>/results.json: info associated with each problem and the average (as validation/it/results.json)
-        - test/info.json: extra info shared by all test results (e.g., the it of the checkpoint used for testing)
+        - test/info.json: extra info shared by all test results (is this needed?)
 """
 
 import argparse
@@ -232,10 +236,15 @@ def parse_arguments():
                 choices=("skip","supersede","missing"),
                 default="missing",
                 help=("What to do in the test phase:"
-                        "skip: do not test, only train."
+                        "skip: redo tests that already exist."
+                        "We only remove test folders for problem sizes which are in the new test experiments."
+                        "Those for other problem sizes are kept."
                         "supersede: if the experiment contained test information, remove that folder and test again."
-                        "missing: if the experiment contained test information, skip test for this experiment."
-                        "         In other words, only perform test for those experiments without test info."
+                        "missing: we skip the tests that already exist, performing those that do not."
+                        "         Tests are compared on a problem-size basis. For example, if for some experiment"
+                        "         we have performed tests for problems of size (10,10) and we want to perform tests for problems"
+                        "         of sizes (10,10) and (20,20), we would only perform the test for (20,20)."
+                        "         Note that we remove test info whenever we train the policies."
                         ))
     parser.add_argument('--raise-error-test',
                         action='store_true',
@@ -368,9 +377,13 @@ def get_experiment_id(args):
 def save_experiment_info(filepath, args, experiment_id, best_train_it, last_train_it):
     # We only save those arguments which are not in EXCLUDED_ARGS_ID
     experiment_info = {k: v for k, v in vars(args).items() if k not in EXCLUDED_ARGS_ID}
+    
+    # Add additional info not in args
     experiment_info['experiment_id'] = experiment_id
     experiment_info['best_train_it'] = best_train_it
     experiment_info['last_train_it'] = last_train_it
+    experiment_info.update(ADDITIONAL_EXPERIMENT_INFO)
+
     # If the file already exists, we overwrite it
     with open(filepath, 'w') as f:
         json.dump(experiment_info, f, indent=2)
@@ -419,15 +432,12 @@ def train(args, parsed_domain_info, experiment_id) -> Tuple[Optional[GenerativeP
     This function uses trainer.py to train and validate the init and goal policies.
     The training and validation functionality depends on args.train_mode, whether the init 
     and goal policies are PPO or Random, and the previous state of the experiment (if exists).
-    It returns the trained init and goal policies (RandomPolicies are simply returned untrained).
-    This function also saves the experiment info to disk.
+    It returns the best checkpoint of the trained init and goal policies (RandomPolicies are simply returned untrained).
+    This function also creates the initial experiment_info.json.
     """
     experiment_folder_path = EXPERIMENTS_PATH / experiment_id
     experiment_info_path = experiment_folder_path / EXPERIMENT_INFO_FILENAME
 
-    # Remove files
-    # We always remove the test experiments, regardless of whether we train or skip this phase
-    remove_if_exists(experiment_folder_path / TEST_FOLDER_NAME)
     # If we start training from scratch, we remove all experiment data
     if args.train_mode == "supersede" or last_train_it==0:
         remove_if_exists(experiment_folder_path / LOGS_FOLDER_NAME)
@@ -510,6 +520,7 @@ def train(args, parsed_domain_info, experiment_id) -> Tuple[Optional[GenerativeP
     else:
         raise ValueError("Invalid value for 'goal-policy' argument")
 
+    # We rewrite experiment_info.json regardless of the train mode
     save_experiment_info(experiment_info_path, args, experiment_id, best_train_it, last_train_it)
 
     # We don't train if:
@@ -533,14 +544,63 @@ def train(args, parsed_domain_info, experiment_id) -> Tuple[Optional[GenerativeP
         train_goal_policy = (args.goal_policy != 'random')
         policy_trainer = PolicyTrainer(experiment_info_path, problem_generator, init_policy, goal_policy)
 
+        # If we train the policies, then the test experiments are no longer valid (i.e., best ckpt may change),
+        # so we remove them
+        remove_if_exists(experiment_folder_path / TEST_FOLDER_NAME)
+
         # Train
         best_init_policy, best_goal_policy = policy_trainer.train(train_init_policy, train_goal_policy, last_train_it+1, args.steps)
 
         return best_init_policy, best_goal_policy
 
-def test():
-    pass
-    # TODO, skip test if some policy is None
+def test(args, parsed_domain_info, experiment_id, best_init_policy, best_goal_policy):
+    """
+    This function uses tester.py to test the init and goal policies.
+    The test functionality depends on args.test_mode.
+    """
+    # Skip test experiments altogether if args.test_mode="skip"
+    if args.test_mode == "skip":
+        return
+
+    # If some policy is None, that means we skipped training but best ckpt could not be loaded for some policy
+    # In this case, we cannot perform test. We either skip the test phase (if --raise-error-test is False)
+    # or raise an exception (if --raise-error-test is True)
+    if best_init_policy is None or best_goal_policy is None:
+        if args.raise_error_test:
+            raise Exception("Cannot perform test because training was not finished")
+        else:
+            return
+        
+    experiment_folder_path = EXPERIMENTS_PATH / experiment_id
+    test_folder_path = experiment_folder_path / TEST_FOLDER_NAME
+
+    # Initialize PolicyTester
+    # TODO: use a different time and memory limit for test and train?
+    difficulty_evaluator = PlannerEvaluator(parsed_domain_info['domain_path'], TEST_PLANNER_ARGS, args.time_limit_planner,
+                                            args.memory_limit_planner, args.max_workers_planner, args.r_terminated_problem,
+                                            args.r_diff_weight)
+    # TODO: use features diversity evaluator for test
+    diversity_evaluator = InitStateDiversityEvaluator(args.weighted_average_diversity, args.r_diversity_weight)
+    problem_generator = ProblemGenerator(parsed_domain_info['parser'], best_init_policy, best_goal_policy,
+                                        parsed_domain_info['consistency_evaluator'], parsed_domain_info['goal_predicates'],
+                                        parsed_domain_info['init_state_info'], parsed_domain_info['allowed_virtual_objects'],
+                                        difficulty_evaluator, diversity_evaluator)
+    policy_tester = PolicyTester(args, problem_generator, best_init_policy, best_goal_policy)
+
+    # Perform test experiments for each problem size (depending on args.test_mode)
+    for max_init_actions, max_goal_actions in zip(args.max_init_actions_test, args.max_goal_actions_test):
+        # Check if the experiment for that problem size already exists
+        # If it does, we skip the test (if args.test_mode="missing") or remove it and perform the test again
+        # (if args.test_mode="supersede")
+        test_folder_path_curr_size = test_folder_path / f"{max_init_actions}_{max_goal_actions}"
+        curr_experiment_exists = test_folder_path_curr_size.exists()
+
+        if args.test_mode=="supersede":
+            remove_if_exists(test_folder_path_curr_size)
+
+        # Perform the experiment unless arg.test_mode="missing" and it already exists
+        if not curr_experiment_exists or args.test_mode=="supersede":
+            policy_tester.test(test_folder_path_curr_size, max_init_actions, max_goal_actions)
 
 def main(args):
     # We set the working directory to the base folder of the repository
@@ -557,11 +617,11 @@ def main(args):
 
     # Perform training (and validation) phase
     # This phase may be skipped depending on train-mode argument
-    train(args, parsed_domain_info, experiment_id)
+    best_init_policy, best_goal_policy = train(args, parsed_domain_info, experiment_id)
 
     # Perform test phase
     # This phase may be skipped depending on test-mode argument
-    test()
+    test(args, parsed_domain_info, experiment_id, best_init_policy, best_goal_policy)
 
 
 
