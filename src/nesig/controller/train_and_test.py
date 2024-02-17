@@ -205,10 +205,11 @@ def parse_arguments():
     # Main arguments
     parser.add_argument('--domain', type=str, required=True, choices=tuple(DOMAIN_INFO.keys()), help="Domain name to train the model on.")
     parser.add_argument('--seed', type=int, default=1, help="Seed for reproducibility.")
-    parser.add_argument('--run_id', type=int, default=0, help="Extra id used for repeating the experiment when all other arguments are the same.")
+    parser.add_argument('--run-id', type=int, default=0, help="Extra id used for repeating the experiment when all other arguments are the same.")
     parser.add_argument('--steps', type=int, default=20000, help="Number of steps for training the model.")
     parser.add_argument('--val-period', type=int, default=500, help=("Number of training steps between validation phases and saving the 'best' checkpoint."
                                                                      "If -1, we only perform validation at the end of training."))
+    parser.add_argument('--disc-factor', type=float, default=1.0, help="Discount factor (gamma) for the total reward.")
     parser.add_argument('--batch-size', type=int, default=64, help="Minibatch size during training.")
     parser.add_argument('--trajectories', type=int, default=25, help=("Number of trajectories (problems) to generate in each training step"
                                                                       "for obtaining the training data."))
@@ -334,6 +335,8 @@ def validate_and_modify_args(args):
         raise ValueError("Number of steps must be a positive integer")
     if args.val_period != -1 and args.val_period <= 0:
         raise ValueError("val-period must be either -1 or a positive integer")
+    if args.disc_factor < 0 or args.disc_factor > 1:
+        raise ValueError("Discount factor must be a float in the range [0, 1]")
     if args.batch_size < 1:
         raise ValueError("Batch size must be a positive integer")
     if args.trajectories < 1:
@@ -490,7 +493,7 @@ def train(args, parsed_domain_info, experiment_id) -> Tuple[Optional[GenerativeP
         # train-mode=skip -> we load the best ckpt. If it does not exist, we return a None init policy, meaning that test cannot be performed
         if args.train_mode == "skip":
             if init_best_ckpt_path.exists():
-                init_policy = PPOPolicy.load_from_checkpoint(init_best_ckpt_path, phase='init', args=args, actor_class=init_actor_class, actor_arguments=init_actor_arguments,
+                init_policy = PPOPolicy.load_from_checkpoint(init_best_ckpt_path, phase='init', actor_class=init_actor_class, actor_arguments=init_actor_arguments,
                                                             critic_class=init_critic_class, critic_arguments=init_critic_arguments)
             else:
                 init_policy = None
@@ -504,7 +507,7 @@ def train(args, parsed_domain_info, experiment_id) -> Tuple[Optional[GenerativeP
         # Otherwise, we load the last ckpt
         elif args.train_mode == "resume":
             ckpt_to_load = init_last_ckpt_path if args.steps > last_train_it else init_best_ckpt_path
-            init_policy = PPOPolicy.load_from_checkpoint(ckpt_to_load, phase='init', args=args, actor_class=init_actor_class, actor_arguments=init_actor_arguments,
+            init_policy = PPOPolicy.load_from_checkpoint(ckpt_to_load, phase='init', actor_class=init_actor_class, actor_arguments=init_actor_arguments,
                                                         critic_class=init_critic_class, critic_arguments=init_critic_arguments)
     else:
         raise ValueError("Invalid value for 'init-policy' argument")
@@ -517,7 +520,7 @@ def train(args, parsed_domain_info, experiment_id) -> Tuple[Optional[GenerativeP
 
         if args.train_mode == "skip":
             if goal_best_ckpt_path.exists():
-                goal_policy = PPOPolicy.load_from_checkpoint(goal_best_ckpt_path, phase='goal', args=args, actor_class=goal_actor_class, actor_arguments=goal_actor_arguments,
+                goal_policy = PPOPolicy.load_from_checkpoint(goal_best_ckpt_path, phase='goal', actor_class=goal_actor_class, actor_arguments=goal_actor_arguments,
                                                             critic_class=goal_critic_class, critic_arguments=goal_critic_arguments)
             else:
                 goal_policy = None
@@ -526,7 +529,7 @@ def train(args, parsed_domain_info, experiment_id) -> Tuple[Optional[GenerativeP
                                     critic_class=goal_critic_class, critic_arguments=goal_critic_arguments)
         elif args.train_mode == "resume":
             ckpt_to_load = goal_last_ckpt_path if args.steps > last_train_it else goal_best_ckpt_path
-            goal_policy = PPOPolicy.load_from_checkpoint(ckpt_to_load, phase='goal', args=args, actor_class=goal_actor_class, actor_arguments=goal_actor_arguments,
+            goal_policy = PPOPolicy.load_from_checkpoint(ckpt_to_load, phase='goal', actor_class=goal_actor_class, actor_arguments=goal_actor_arguments,
                                                         critic_class=goal_critic_class, critic_arguments=goal_critic_arguments)
     else:
         raise ValueError("Invalid value for 'goal-policy' argument")

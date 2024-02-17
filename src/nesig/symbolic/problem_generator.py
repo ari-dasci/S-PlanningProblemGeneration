@@ -277,12 +277,12 @@ class ProblemGenerator():
                                        by doing log_probabilities[chosen_action_ind].
                 - 'action_log_prob': log probability of the chosen action, according to the policy
                 - 'consistency_reward': eventual consistency reward of the sample. It is 0 for every sample except the last sample of the
-                                        initial state generation phase if it is eventually consistent.
+                                        initial state generation phase if it is eventually inconsistent.
                 - 'difficulty_reward': difficulty reward of the sample. It is 0 for every sample except the last sample of the goal generation
                                        phase. Inconsistent trajectories have a difficulty reward of 0.
                 - 'diversity_reward': diversity reward of the sample. It is computed once all trajectories have been generated. Inconsistent
-                                      trajectories have a diversity reward of 0. The diversity reward of a trajectory is assigned to all its
-                                      samples.
+                                      trajectories have a diversity reward of 0. Diversity reward is assigned to the last sample of the initial
+                                      state generation phase.
         """
         assert num_problems > 0, 'num_problems must be greater than 0'
 
