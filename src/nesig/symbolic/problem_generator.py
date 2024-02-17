@@ -257,8 +257,10 @@ class ProblemGenerator():
         It returns a three-element tuple:
             - A list of the generated problems, as instances of PDDLProblem.
             - A list of problem-level information, as a dictionary for each problem, with the following keys:
-                - 'init_phase_length': number of actions executed during the initial state generation phase.
-                - 'goal_phase_length': number of actions executed during the goal generation phase.
+                - 'init_phase_length': number of actions executed during the initial state generation phase, including TERM_ACTION if executed.
+                - 'goal_phase_length': number of actions executed during the goal generation phase, including TERM_ACTION if executed.
+                - 'max_init_state_actions': list_max_init_state_actions[i]
+                - 'max_goal_actions': list_max_goal_actions[i]
                 - 'consistency': True if the problem's initial state is eventual-consistent, False otherwise.
                 - 'difficulty': difficulty of the problem. None if no difficulty evaluator was provided.
                 - 'diversity': diversity of the problem. None if no diversity evaluator was provided.
@@ -314,6 +316,8 @@ class ProblemGenerator():
         # <Obtain the problem-level information>
         problem_info_list = [ {'init_phase_length':init_generation_phase_lengths[i],
                                'goal_phase_length':goal_generation_phase_lengths[i],
+                               'max_init_state_actions':list_max_init_state_actions[i],
+                               'max_goal_actions':list_max_goal_actions[i],
                                'consistency':is_eventual_consistent[i],
                                'difficulty':problem_difficulties[i],
                                'diversity':problem_diversities[i]} \

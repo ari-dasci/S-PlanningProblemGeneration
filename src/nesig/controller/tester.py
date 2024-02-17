@@ -29,7 +29,9 @@ class PolicyTester():
         # <NOTE>: the diversity evaluator of self.problem_generator should be FeaturesDiversityEvaluator in the future
 
     def test(self, test_folder_path:Path, max_init_actions:int, max_goal_actions:int):
-        # TODO
+        """
+        test_folder_path is the path for the test experiments with the current max_init_actions and max_goal_actions.
+        """
 
         # test_folder_path is test/<N_M>
         # NOTE: max_init_actions and max_goal_actions are for a single problem size (not a list)

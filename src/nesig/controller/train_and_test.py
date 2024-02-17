@@ -14,13 +14,16 @@ Every --val-period steps, we perform one validation epoch. In this validation ep
 problems with the current model and obtain its validation score, equal to the average among all problems of the
 r_total_reward of the last sample of each trajectory (log(diff+1) + r_diversity_weight*diversity_reward).
 We save the most recent model checkpoint and the one with the best validation score.
-<Note>: when we start training, we save again experiment_info.json if it existed.
+The train() function returns the init and goal policies with best val score during training
+(if they are random, we return the untrained policies).
+<Note>: whenever we start training, we rewrite experiment_info.json even if it existed.
 <TODO>: if this val score does not select the best model, use a different one. For example, val_score=mean(diff*diversity_reward)
 
 ----- Test
 
 We load the checkpoint with best val_score and obtain the test results: we generate a large number of problems and
 calculate their difficulty, consistency and diversity (<TODO> use diversity based on planning features).
+For the same init and goal policies, we perform test experiments for different problem sizes.
 If both init and goal policies are random, we don't need to load any checkpoint in order to test.
 
 ----- train-mode and test-mode arguments
@@ -45,7 +48,7 @@ test-mode:
                of sizes (10,10) and (20,20), we would only perform the test for (20,20)."
                Note that we remove test info whenever we train the policies."
 raise-error-test: if this flag is provided, we raise an exception in case we attempt to perform test for an experiment
-                  whose training has not finished yet.
+                  without training ('best') checkpoints for init and/or goal policies.
                   If this flag is not given, then we simply skip test for the experiment.
 
 ----- Experiment id
@@ -60,9 +63,9 @@ We save all the data (checkpoints, logs, hyperparameter info, test results, gene
 in a single folder, whose name is "<experiment_id>".
 Experiment folders are located in the path given by EXPERIMENTS_PATH
 For each experiment we save the following:
-    - experiment_info.json: experiment id, and all hyperparameters (including those not used for obtaining the ID)
-                            It also includes the train_it of the best and last checkpoints.
-        - If we resume training, we save the experiment_info again
+    - experiment_info.json: it contains all the argument values (except those in EXCLUDED_ARGS_ID) and additional data
+                            (experiment_id, train it of the current best and last ckpts and constants in ADDITIONAL_EXPERIMENT_INFO)   
+        - experiment_info is rewritten whenever we do training (supersede/resume)
     - logs: tensorboard logs saved during training and validation
     - checkpoints: lightning checkpoints saved during training
         The checkpoint names are: init_best.ckpt, goal_best.ckpt, init_last.ckpt, goal_last.ckpt
@@ -204,6 +207,8 @@ def parse_arguments():
     parser.add_argument('--seed', type=int, default=1, help="Seed for reproducibility.")
     parser.add_argument('--run_id', type=int, default=0, help="Extra id used for repeating the experiment when all other arguments are the same.")
     parser.add_argument('--steps', type=int, default=20000, help="Number of steps for training the model.")
+    parser.add_argument('--val-period', type=int, default=500, help=("Number of training steps between validation phases and saving the 'best' checkpoint."
+                                                                     "If -1, we only perform validation at the end of training."))
     parser.add_argument('--batch-size', type=int, default=64, help="Minibatch size during training.")
     parser.add_argument('--trajectories', type=int, default=25, help=("Number of trajectories (problems) to generate in each training step"
                                                                       "for obtaining the training data."))
@@ -327,6 +332,8 @@ def validate_and_modify_args(args):
         raise ValueError("Seed must be a positive integer")
     if args.steps < 1:
         raise ValueError("Number of steps must be a positive integer")
+    if args.val_period != -1 and args.val_period <= 0:
+        raise ValueError("val-period must be either -1 or a positive integer")
     if args.batch_size < 1:
         raise ValueError("Batch size must be a positive integer")
     if args.trajectories < 1:
@@ -547,7 +554,7 @@ def train(args, parsed_domain_info, experiment_id) -> Tuple[Optional[GenerativeP
         # Create PolicyTrainer
         train_init_policy = (args.init_policy != 'random')
         train_goal_policy = (args.goal_policy != 'random')
-        policy_trainer = PolicyTrainer(experiment_info_path, problem_generator, init_policy, goal_policy)
+        policy_trainer = PolicyTrainer(experiment_folder_path, problem_generator, init_policy, goal_policy)
 
         # If we train the policies, then the test experiments are no longer valid (i.e., best ckpt may change),
         # so we remove them
