@@ -5,11 +5,12 @@ Policy for generating PDDL problems. Given a set of states s (in the initial sta
 it selects the next action to apply for each state (i.e., either the next atom to add or the domain action to execute).
 """
 
-from typing import List, Tuple, Optional, Union, Any
+from typing import List, Tuple, Dict, Optional, Union, Any
 from abc import ABC, abstractmethod
 import torch
 import math
 import argparse
+import numpy as np
 import pytorch_lightning as pl
 
 # define the type Action as Tuple[str, Tuple[int]]
@@ -188,6 +189,11 @@ class PPOPolicy(GenerativePolicy):
         # we skip training (trainer.fit() call) if not enough data was obtained for the current it
         self.register_buffer('curr_logging_it', torch.tensor(0, dtype=torch.int32))
 
+        # Variables used for normalizing returns
+        # We use buffers in the init and goal policies so that they can be saved and loaded from checkpoints
+        self.register_buffer('moving_mean_return', torch.tensor(-1.0, dtype=torch.float32))
+        self.register_buffer('moving_std_return', torch.tensor(-1.0, dtype=torch.float32))
+
         # --entropy_coeffs is a three-element tuple where the first element is the initial value
         # of the entropy coeff, the second element its final value and the third element the number
         # of trainer.fit() calls to reach the final value
@@ -286,6 +292,34 @@ class PPOPolicy(GenerativePolicy):
                                                                                         "the entropy coeff will remain constant."))
         parser.add_argument(f'--{phase}-lifted-entropy-weight', default=0.5, type=float, help=("Weight of the lifted entropy in the entropy term of PPO, when compared to the ground entropy."
                                                                                         "It must be between 0 and 1, since ground_entropy_weight = 1 - lifted_entropy_weight."))
+
+    def normalize_return_trajectories(self, trajectories:List[List[Dict]]):
+        """
+        This method normalizes the returns of the trajectories in-place so that they have mean 0 and std 1.
+        We need to do this inside the policy so that the normalization parameters (mean and std) can be saved and loaded
+        if training resumes.
+        <NOTE>: we assume that the trajectories parameter only contains the samples for the init or goal phase,
+                depending on whether this is the init or goal policy.
+        """
+        # Calculate the mean and std of the returns for the trajectories of the current train it
+        curr_returns = [sample['return'] for t in trajectories for sample in t]
+        curr_mean_return = np.mean(curr_returns)
+        curr_std_return = np.std(curr_returns)
+
+        # First train it -> initialize moving averages
+        if self.moving_mean_return == -1.0:
+            self.moving_mean_return = curr_mean_return
+            self.moving_std_return = curr_std_return
+
+        # Normalize trajectory returns
+        for i in range(len(trajectories)):
+            for j in range(len(trajectories[i])):
+                trajectories[i][j]['norm_return'] = (trajectories[i][j]['return'] - self.moving_mean_return) / (self.moving_std_return + 1e-6)
+
+        # Update moving averages
+        moving_mean_coeff = self.hparams['moving_mean_return_coeff']
+        self.moving_mean_return = moving_mean_coeff*self.moving_mean_return + (1-moving_mean_coeff)*curr_mean_return
+        self.moving_std_return = moving_mean_coeff*self.moving_std_return + (1-moving_mean_coeff)*curr_std_return
 
     def calculate_entropy(self, _action_log_probs:torch.Tensor, applicable_actions:List[Tuple[str, Tuple[int]]]) \
         -> torch.Tensor:

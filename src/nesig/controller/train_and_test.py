@@ -214,6 +214,7 @@ def parse_arguments():
     parser.add_argument('--trajectories', type=int, default=25, help=("Number of trajectories (problems) to generate in each training step"
                                                                       "for obtaining the training data."))
     parser.add_argument('--grad-clip', type=float, default=1.0, help="Gradient clipping value. Use -1 for no gradient clipping.")
+    parser.add_argument('--moving-mean-return-coeff', type=float, default=0.99, help="Coefficient (decay factor) for the moving mean and std of the return. It is used for normalizing returns.")
     parser.add_argument('--device', type=str, choices=('gpu', 'cpu'), default='gpu', help="Device to run training on: gpu or cpu.")
 
     parser.add_argument('--max-init-actions-train', required=True, type=parse_max_actions_train, help=("Maximum number of actions that can be executed in the init phase during training."
@@ -345,6 +346,8 @@ def validate_and_modify_args(args):
         args.grad_clip = None # gradient_clip_val=None in pl.Trainer is equivalent to no gradient clipping
     elif args.grad_clip <= 0:
         raise ValueError("Gradient clip value must be either -1 or a positive float")
+    if args.moving_mean_return_coeff <= 0 or args.moving_mean_return_coeff >= 1:
+        raise ValueError("Moving mean return coefficient must be a float in the range (0, 1)")
     if args.max_init_actions_val == -1:
         args.max_init_actions_val = args.max_init_actions_train
     if args.max_goal_actions_val == -1:

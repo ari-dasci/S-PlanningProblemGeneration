@@ -85,6 +85,9 @@ class PolicyTrainer():
         return problems, problem_info_list, trajectories
 
     def _calculate_return_trajectories(self, trajectories):
+        """
+        We modify the trajectories in-place.
+        """
         for i in range(len(trajectories)):
             return_curr_state = 0 # R_t = r_t + gamma * R_{t+1}
 
@@ -95,49 +98,59 @@ class PolicyTrainer():
 
                 trajectories[i][j]['return'] = return_curr_state
 
-    def _normalize_return_trajectories(self, trajectories, problem_info_list):
+    def _normalize_return_trajectories(self, trajectories, problem_info_list, train_init_policy, train_goal_policy) -> \
+                                       Tuple[List[List[Dict]], List[List[Dict]]]:
         """
         We normalize returns separately for the init and goal generation phase of each trajectory.
         """  
-        # We use moving means and stds for the returns of the previous trajectories
-        # Should we split normalization for init and goal generation?
+        # We split the trajectories in the init and goal generation phase
+        init_phase_lengths = [problem_info['init_phase_length'] for problem_info in problem_info_list]
+        init_trajectories = [t[:length] for t, length in zip(trajectories, init_phase_lengths)]
+        goal_trajectories = [t[length:] for t, length in zip(trajectories, init_phase_lengths)]
+
+        # We normalize the returns for the init and goal phase separately
+        # If a policy is Random, we don't normalize the returns of the corresponding phase
+        norm_init_trajectories = self.init_policy.normalize_return_trajectories(init_trajectories) if train_init_policy else init_trajectories
+        norm_goal_trajectories = self.goal_policy.normalize_return_trajectories(goal_trajectories) if train_goal_policy else goal_trajectories
+       
+        return norm_init_trajectories, norm_goal_trajectories
+
+    def _calculate_advantage_trajectories(self, policy, trajectories):
+        """
+        Don't calculate the advantage for the samples of the init or goal phase if the corresponding policy is not trained (it is Random).
+        TODO: use Generalized Advantage Estimation (GAE) instead of the simple advantage A(s,a) = R(s,a) - V(s).
+        """
+        for i in range(len(trajectories)):
+            # Calculate V(s) in parallel for all the samples of the i-th trajectory
+            internal_states = [sample['internal_state'] for sample in trajectories[i]]
+            state_values = policy.calculate_state_values(internal_states)
+
+            # Calculate the advantage for each sample of the i-th trajectory as A(s,a) = R(s,a) - V(s)
+            for j in range(len(trajectories[i])):
+                trajectories[i][j]['advantage'] = trajectories[i][j]['norm_return'] - state_values[j]
 
     def _process_trajectories(self, trajectories:List[List[Dict]], problem_info_list:List[Dict],
-                              train_init_policy:bool, train_goal_policy:bool) -> List[List[Dict]]:
+                              train_init_policy:bool, train_goal_policy:bool) -> Tuple[List[List[Dict]], List[List[Dict]]]:
         """
         Processes the trajectories before using them for training. It does the following:
         - Sum and discount the rewards -> return
         - Normalize the rewards -> norm_return
             - We normalize returns separately for the init and goal generation phase of each trajectory.
+            - This is only done if the policy corresponding to the phase is not Random.
         - Compute the advantage -> advantage
-            - If the policy (init or goal) corresponding to the sample is not trained, the advantage is None
-
-        We modify the trajectories in-place.
+            - We calculate advantages as A(s,a) = R(s,a) - V(s), where V(s) is predicted by the policy of the phase (init or goal.
+            - This is only done if the policy corresponding to the phase is not Random.
+        
+        It returns a tuple with the processed init and goal trajectories.
         """
-
-        """
-        - 'state': PDDLProblem object, representing the state s
-        - 'internal_state': state representation used by the ML model of the policy (e.g., a list of tensors in the case of the NLM)
-        - 'applicable_actions': list of applicable actions (atoms or domain actions) at state s
-        - 'chosen_action': the action executed, either an atom or a domain action (or TERM_ACTION)
-        - 'chosen_action_ind': the index of the chosen action in the list of applicable actions
-                                (corresponding to applicable_actions.index(chosen_action)).
-                                This is useful for later obtaining the log probability of the chosen action
-                                by doing log_probabilities[chosen_action_ind].
-        - 'action_log_prob': log probability of the chosen action, according to the policy
-        - 'consistency_reward': eventual consistency reward of the sample. It is 0 for every sample except the last sample of the
-                                initial state generation phase if it is eventually consistent.
-        - 'difficulty_reward': difficulty reward of the sample. It is 0 for every sample except the last sample of the goal generation
-                                phase. Inconsistent trajectories have a difficulty reward of 0.
-        - 'diversity_reward': diversity reward of the sample. It is computed once all trajectories have been generated. Inconsistent
-                                trajectories have a diversity reward of 0. The diversity reward of a trajectory is assigned to all its
-                                samples.
-        """
-
         self._calculate_return_trajectories(trajectories)
-        self._normalize_return_trajectories(trajectories, problem_info_list)
-        self._calculate_advantage_trajectories(trajectories, train_init_policy, train_goal_policy)
-
+        norm_init_trajectories, norm_goal_trajectories = self._normalize_return_trajectories(trajectories, problem_info_list, train_init_policy, train_goal_policy)       
+        if train_init_policy:
+            self._calculate_advantage_trajectories(self.init_policy, norm_init_trajectories)
+        if train_goal_policy:
+            self._calculate_advantage_trajectories(self.goal_policy, norm_goal_trajectories)
+        
+        return norm_init_trajectories, norm_goal_trajectories
 
     def train(self, train_init_policy:bool, train_goal_policy:bool, start_it:int, end_it:int) -> Tuple[GenerativePolicy, GenerativePolicy]:
         """
@@ -156,7 +169,7 @@ class PolicyTrainer():
                                                                                                 self.args.max_goal_actions_train)
 
             # <Process data from trajectories>
-            self._process_trajectories(trajectories, problem_info_list, train_init_policy, train_goal_policy)
+            init_trajectories, goal_trajectories = self._process_trajectories(trajectories, problem_info_list, train_init_policy, train_goal_policy)
 
             # <Train init and/or goal policies>
 
