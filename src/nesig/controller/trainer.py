@@ -54,8 +54,6 @@ class PolicyTrainer():
 
 
 
-    # NOTE: Make sure the model and all tensors are on the GPU or CPU from the start
-        
     # NOTE: The training method should return not the trained policies (corresponding to last ckpt),
     # but the best policies (best ckpt)
         
@@ -290,8 +288,6 @@ class PolicyTrainer():
             if train_goal_policy:
                 self._perform_train_step(self.goal_policy, goal_trajectories)
 
-            # init and goal trajectories should not be used after this point
-
             # <Logging>
             # TODO
             # Maybe logs get messy when resuming training. Example: I load a ckpt for train_it=50 but I have logs up to train_it=70.
@@ -305,6 +301,15 @@ class PolicyTrainer():
             # TODO
             # Save best_train_it and last_train_it in experiment_info.json only when checkpoints are saved
             # If args.val_period=-1, we perform validation and save checkpoints only at the end of training
+            if self.args.val_period != -1 and curr_train_it % self.args.val_period == 0:
+                # TODO
+                # Add argument for trajectories_val, which should be larger
+                val_problems, val_problem_info_list, val_trajectories = self._generate_problems_and_trajectories(self.args.trajectories,
+                                                                                                self.args.max_init_actions_val,
+                                                                                                self.args.max_goal_actions_val)
+
+
+        # Perform validation after training unless we just did for the last train it
 
 
         # <Return best policies>

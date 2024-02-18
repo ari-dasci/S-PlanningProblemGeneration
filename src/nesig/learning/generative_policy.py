@@ -457,9 +457,15 @@ class PPOPolicy(GenerativePolicy):
     def on_train_end(self):
         """
         <Called after trainer.fit()>
+        NOTE: In our RL setting, we create a new pl.Trainer and do a trainer.fit() call for each training (PPO) it.
+
         Anneal entropy after every trainer.fit() call.
-        Also save Tensorboard logs.
-        <NOTE>: In our RL setting, we create a new pl.Trainer and do a trainer.fit() call for each training (PPO) it.
+        Additionally, we save the following Tensorboard logs for the init and goal policies separately:
+            - Gradient Norm for actor and critic
+            - Critic loss
+            - PPO loss
+            - Entropy loss
+            - Policy entropy (actor)
         """
         super().on_train_end()
         self.anneal_entropy_coeff()
