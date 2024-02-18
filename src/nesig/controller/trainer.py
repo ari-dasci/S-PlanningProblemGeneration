@@ -6,10 +6,14 @@ Functionality for training and validating the init and goal policies.
 from pathlib import Path
 from typing import Tuple, List, Dict, Union, Optional
 from random import randint
+import torch
+from torch.utils.data import DataLoader
+import pytorch_lightning as pl
 
 from src.nesig.constants import EXPERIMENT_INFO_FILENAME, LOGS_FOLDER_NAME, CKPTS_FOLDER_NAME, VAL_FOLDER_NAME
 from src.nesig.learning.generative_policy import GenerativePolicy
 from src.nesig.symbolic.problem_generator import ProblemGenerator
+from src.nesig.learning.data_utils import CommonDataset, common_collate_fn
 
 class PolicyTrainer():
     """
@@ -43,9 +47,9 @@ class PolicyTrainer():
         self.ckpts_path = experiment_folder_path / CKPTS_FOLDER_NAME
         self.val_path = experiment_folder_path / VAL_FOLDER_NAME
 
-        # Obtain the corresponding torch.device from args.device
-        # TODO. What if there are multiple GPUs?
-        self.device = args.device
+        # Obtain the corresponding torch.device from the args.device string
+        # TODO: adapt this code to settings with multiple devices
+        self.device = torch.device("cuda") if self.args.device=='gpu' else torch.device("cpu")
 
 
 
@@ -152,6 +156,31 @@ class PolicyTrainer():
         
         return norm_init_trajectories, norm_goal_trajectories
 
+    def _perform_train_step(self, policy, trajectories:List[List[Dict]]):
+        # Flatten the list of trajectories from List[List[Dict]] to List[Dict]
+        sample_list = [sample for trajectory in trajectories for sample in trajectory]
+        
+        # Skip trainin if the number of samples is less than min_samples_train
+        if len(sample_list) >= self.args.min_samples_train:  
+            dataset = CommonDataset(sample_list)
+            dataloader = DataLoader(dataset=dataset, batch_size=self.args.batch_size, shuffle=True, collate_fn=common_collate_fn,
+                                    max_workers=0) # We use max_workers=0 as the data is already on the GPU 
+                                                   # (all tensors are created using device=self.device in both the Generative Policies and Model Wrappers)
+
+            if self.device.type == 'cpu':
+                trainer = pl.Trainer(max_epochs=policy.get_hparam('PPO_epochs'), accelerator='cpu', enable_checkpointing=False,
+                                     gradient_clip_val=self.args.grad_clip)
+            else: # GPU
+                # TODO: select the GPU to train on if there are several available
+                trainer = pl.Trainer(max_epochs=policy.get_hparam('PPO_epochs'), accelerator='cuda', devices=1, enable_checkpointing=False,
+                                     gradient_clip_val=self.args.grad_clip)
+                
+            trainer.fit(policy, dataloader)
+
+            # TODO
+            # After every .fit call, is the lightning module moved back to the CPU???
+            
+
     def train(self, train_init_policy:bool, train_goal_policy:bool, start_it:int, end_it:int) -> Tuple[GenerativePolicy, GenerativePolicy]:
         """
         <Main method of the class>
@@ -172,10 +201,24 @@ class PolicyTrainer():
             init_trajectories, goal_trajectories = self._process_trajectories(trajectories, problem_info_list, train_init_policy, train_goal_policy)
 
             # <Train init and/or goal policies>
+            if train_init_policy:
+                self._perform_train_step(self.init_policy, init_trajectories)
+            if train_goal_policy:
+                self._perform_train_step(self.goal_policy, goal_trajectories)
+
+            # init and goal trajectories should not be used after this point
 
             # <Logging>
+            # TODO
+            # Maybe logs get messy when resuming training. Example: I load a ckpt for train_it=50 but I have logs up to train_it=70.
+            # Then, I will have repeated logs for train_it=50-70.
+            # To solve this, when resuming training we should read the logs folder and obtain (using the tensorboard library)
+            # the train_it (N) of the most recent log. Then, we don't log until curr_train_it > N.
 
             # <Perform validation epoch and save checkpoints>
+            # TODO
+            # Save best_train_it and last_train_it in experiment_info.json only when checkpoints are saved
+            # If args.val_period=-1, we perform validation and save checkpoints only at the end of training
 
 
         # <Return best policies>

@@ -78,6 +78,8 @@ class NLMWrapper(ModelWrapper):
         # If in the initial generation phase, this state will be PDDLState(obj_types, type_hierarchy, predicates)
         # If in the goal generation phase, it will be PDDLState(obj_types, type_hierarchy, actions)
         self.dummy_pddl_state = model_arguments["dummy_pddl_state"]
+        # TODO
+        # Adapt this code to settings with multiple GPUs 
         self.device = torch.device("cuda") if self.args['device']=='gpu' else torch.device("cpu")
 
         # Initialize NLM

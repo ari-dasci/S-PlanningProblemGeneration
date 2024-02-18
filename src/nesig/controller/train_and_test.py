@@ -91,6 +91,7 @@ from pytorch_lightning import seed_everything
 import shutil
 import errno
 import json
+import torch
 from copy import deepcopy
 from typing import Tuple, List, Dict, Any, Optional, Union
 from lifted_pddl import Parser
@@ -213,6 +214,8 @@ def parse_arguments():
     parser.add_argument('--batch-size', type=int, default=64, help="Minibatch size during training.")
     parser.add_argument('--trajectories', type=int, default=25, help=("Number of trajectories (problems) to generate in each training step"
                                                                       "for obtaining the training data."))
+    parser.add_argument('--min-samples-train', type=int, default=64, help=("Minimum number of collected samples in order to perform a PPO step."
+                                                                            "If the number of samples is smaller, we skip the current training step for the init/goal policy"))
     parser.add_argument('--grad-clip', type=float, default=1.0, help="Gradient clipping value. Use -1 for no gradient clipping.")
     parser.add_argument('--moving-mean-return-coeff', type=float, default=0.99, help="Coefficient (decay factor) for the moving mean and std of the return. It is used for normalizing returns.")
     parser.add_argument('--device', type=str, choices=('gpu', 'cpu'), default='gpu', help="Device to run training on: gpu or cpu.")
@@ -326,10 +329,10 @@ def parse_arguments():
     args = parser.parse_args()
     return args
 
-    # TODO
-    # See if I should add to the id and experiment_info.json extra information in constants.py or derived from the parsed arguments
-
 def validate_and_modify_args(args):
+    # TODO
+    # If there are different GPUs available, choose one automatically
+
     if args.seed < 1:
         raise ValueError("Seed must be a positive integer")
     if args.steps < 1:
@@ -341,7 +344,9 @@ def validate_and_modify_args(args):
     if args.batch_size < 1:
         raise ValueError("Batch size must be a positive integer")
     if args.trajectories < 1:
-        raise ValueError("Number of trajectories must be a positive integer")
+        raise ValueError("Number of trajectories must be a positive integer") 
+    if args.min_samples_train < 1:
+        raise ValueError("Minimum number of samples must be a positive integer")
     if args.grad_clip == -1:
         args.grad_clip = None # gradient_clip_val=None in pl.Trainer is equivalent to no gradient clipping
     elif args.grad_clip <= 0:

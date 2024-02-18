@@ -4,7 +4,7 @@
 Contains Pytorch and Lightning data structures (datasets, dataloaders, etc.)
 """
 
-from typing import Union, List, Tuple, Optional, Any
+from typing import Union, List, Dict, Tuple, Optional, Any
 import torch
 from torch.utils.data import Dataset
 
@@ -33,7 +33,7 @@ def stack_nlm_states(X:List[List[Optional[torch.Tensor]]]) -> List[Optional[torc
 
 
 class CommonDataset(Dataset):
-    def __init__(self, sample_list : List[dict] = []):
+    def __init__(self, sample_list : List[Dict] = []):
         assert isinstance(sample_list, list) and isinstance(sample_list[0], dict), \
             "sample_list must be a list of samples, where each sample is a dictionary"
         self._dataset = sample_list
@@ -53,7 +53,7 @@ class CommonDataset(Dataset):
 
         del self._dataset[idx]
     
-def common_collate_fn(batch : List[dict]) -> dict:
+def common_collate_fn(batch : List[Dict]) -> Dict:
     """
     Elements of each sample:
         - state : PDDLProblem

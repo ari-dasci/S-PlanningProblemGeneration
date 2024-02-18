@@ -124,13 +124,13 @@ class RandomPolicy(GenerativePolicy):
 
             if num_app_actions == 1:
                 # If there is only one applicable action, we return a probability of 1 for that action
-                log_probs = torch.log(torch.tensor([1.0]))
+                log_probs = torch.log(torch.tensor([1.0], device=self.device))
 
             elif TERM_ACTION in applicable_actions:
                 cum_prob_no_term_action = 1 - self.term_action_prob
                 prob_no_term = cum_prob_no_term_action / (num_app_actions-1)
                 log_probs = torch.log(torch.tensor([self.term_action_prob if action==TERM_ACTION \
-                                                     else prob_no_term for action in applicable_actions]))
+                                                     else prob_no_term for action in applicable_actions], device=self.device))
 
             else:
                 log_probs = torch.log(torch.ones(num_app_actions)/num_app_actions)
@@ -187,12 +187,12 @@ class PPOPolicy(GenerativePolicy):
         # Variable to keep track of the current logging iteration
         # This variable may be lower than the actual number of training iterations, since
         # we skip training (trainer.fit() call) if not enough data was obtained for the current it
-        self.register_buffer('curr_logging_it', torch.tensor(0, dtype=torch.int32))
+        self.register_buffer('curr_logging_it', torch.tensor(0, dtype=torch.int32, device=self.device))
 
         # Variables used for normalizing returns
         # We use buffers in the init and goal policies so that they can be saved and loaded from checkpoints
-        self.register_buffer('moving_mean_return', torch.tensor(-1.0, dtype=torch.float32))
-        self.register_buffer('moving_std_return', torch.tensor(-1.0, dtype=torch.float32))
+        self.register_buffer('moving_mean_return', torch.tensor(-1.0, dtype=torch.float32, device=self.device))
+        self.register_buffer('moving_std_return', torch.tensor(-1.0, dtype=torch.float32, device=self.device))
 
         # --entropy_coeffs is a three-element tuple where the first element is the initial value
         # of the entropy coeff, the second element its final value and the third element the number
@@ -202,13 +202,13 @@ class PPOPolicy(GenerativePolicy):
 
         # No entropy annealing (entropy coeff remains constant)
         if type(entropy_coeffs) == float:
-            self.register_buffer('curr_entropy_coeff', torch.tensor(entropy_coeffs, dtype=torch.float32))
-            self.register_buffer('entropy_reduction_val', torch.tensor(0.0, dtype=torch.float32))
+            self.register_buffer('curr_entropy_coeff', torch.tensor(entropy_coeffs, dtype=torch.float32, device=self.device))
+            self.register_buffer('entropy_reduction_val', torch.tensor(0.0, dtype=torch.float32, device=self.device))
             self.final_entropy_coeff = entropy_coeffs # The final entropy coeff is equal to the initial one
         else: # Entropy annealing
-            self.register_buffer('curr_entropy_coeff', torch.tensor(entropy_coeffs[0], dtype=torch.float32))
+            self.register_buffer('curr_entropy_coeff', torch.tensor(entropy_coeffs[0], dtype=torch.float32, device=self.device))
             self.register_buffer('entropy_reduction_val', torch.tensor((entropy_coeffs[0] - entropy_coeffs[1]) / entropy_coeffs[2], 
-                                                                    dtype=torch.float32)) # (init_coeff - final_coeff) / num_iterations
+                                                                    dtype=torch.float32, device=self.device)) # (init_coeff - final_coeff) / num_iterations
             self.final_entropy_coeff = entropy_coeffs[1]
 
     def get_hparam(self, name):
