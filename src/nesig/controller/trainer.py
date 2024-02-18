@@ -8,6 +8,7 @@ from typing import Tuple, List, Dict, Union, Optional
 from random import randint
 import torch
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 import pytorch_lightning as pl
 
 from src.nesig.constants import EXPERIMENT_INFO_FILENAME, LOGS_FOLDER_NAME, CKPTS_FOLDER_NAME, VAL_FOLDER_NAME
@@ -43,9 +44,9 @@ class PolicyTrainer():
 
         # Using the paths in constants.py, obtain the paths for all the experiment files and subfolders
         self.experiment_info_path = experiment_folder_path / EXPERIMENT_INFO_FILENAME
-        self.logs_path = experiment_folder_path / LOGS_FOLDER_NAME
-        self.ckpts_path = experiment_folder_path / CKPTS_FOLDER_NAME
-        self.val_path = experiment_folder_path / VAL_FOLDER_NAME
+        self.logs_folder = experiment_folder_path / LOGS_FOLDER_NAME
+        self.ckpts_folder = experiment_folder_path / CKPTS_FOLDER_NAME
+        self.val_folder = experiment_folder_path / VAL_FOLDER_NAME
 
         # Obtain the corresponding torch.device from the args.device string
         # TODO: adapt this code to settings with multiple devices
@@ -160,7 +161,7 @@ class PolicyTrainer():
         # Flatten the list of trajectories from List[List[Dict]] to List[Dict]
         sample_list = [sample for trajectory in trajectories for sample in trajectory]
         
-        # Skip trainin if the number of samples is less than min_samples_train
+        # Skip training if the number of samples is less than min_samples_train
         if len(sample_list) >= self.args.min_samples_train:  
             dataset = CommonDataset(sample_list)
             dataloader = DataLoader(dataset=dataset, batch_size=self.args.batch_size, shuffle=True, collate_fn=common_collate_fn,
@@ -177,9 +178,94 @@ class PolicyTrainer():
                 
             trainer.fit(policy, dataloader)
 
-            # TODO
-            # After every .fit call, is the lightning module moved back to the CPU???
+            # Seems like the pl.Trainer moves the model back to the CPU after training, so we need to move it back to the GPU
+            if self.device.type == 'cuda':
+                policy.to('cuda')
             
+    def _log_metrics(self, curr_train_it, problems, problem_info_list, trajectories):
+        """
+        Log problem-level info for the current training iteration. We log the following:
+            - Percentage of problems that are eventual-consistent
+            - Mean problem diversity
+            - Mean and std problem difficulty
+            - Mean and std number of actions for the init and goal phase (without considering TERM_ACTION)
+            - Mean return, norm_return and advantage
+            - Mean and std number of atoms and objects for each type
+            
+        Additional logs that need to be logged inside the policies (this is done as average over the samples of the first PPO epoch):
+            - Gradient magnitudes before clipping
+            - Losses
+            - Policy entropy
+        """
+        # Calculate metrics to log
+        num_problems = len(problems)
+        
+        perc_consistency = [p_info['consistency'] for p_info in problem_info_list].count(True) / num_problems
+        mean_diversity = sum([p_info['diversity'] for p_info in problem_info_list]) / num_problems
+        problem_diffs = [p_info['difficulty'] for p_info in problem_info_list]
+        mean_difficulty = sum(problem_diffs) / num_problems
+        std_difficulty = (sum([(d - mean_difficulty)**2 for d in problem_diffs]) / num_problems)**0.5
+
+        init_actions = [p.num_init_state_actions_executed for p in problems]
+        goal_actions = [p.num_goal_actions_executed for p in problems]
+        mean_init_actions = sum(init_actions) / num_problems
+        mean_goal_actions = sum(goal_actions) / num_problems
+        std_init_actions = (sum([(a - mean_init_actions)**2 for a in init_actions]) / num_problems)**0.5
+        std_goal_actions = (sum([(a - mean_goal_actions)**2 for a in goal_actions]) / num_problems)**0.5
+
+        # Flatten the trajectories into a list of samples
+        sample_list = [sample for trajectory in trajectories for sample in trajectory]
+        mean_return = sum([sample['return'] for sample in sample_list]) / len(sample_list)
+        mean_norm_return = sum([sample['norm_return'] for sample in sample_list]) / len(sample_list)
+        mean_advantage = sum([sample['advantage'] for sample in sample_list]) / len(sample_list)
+
+        obj_types = problems[0].initial_state.types
+        pred_types = problems[0].initial_state.predicates
+        # Matrix where rows correspond to problems and columns to object types
+        num_objs_each_type_matrix = np.array([p.initial_state.num_objects_each_type for p in problems])
+        mean_num_objs_each_type = num_objs_each_type_matrix.mean(axis=0)
+        std_num_objs_each_type = num_objs_each_type_matrix.std(axis=0)
+        mean_objs_dict = {t : mean_objs for t, mean_objs in zip(obj_types, mean_num_objs_each_type)}
+        std_objs_dict = {t : std_objs for t, std_objs in zip(obj_types, std_num_objs_each_type)}
+        # Matrix where rows correspond to problem initial states and columns to predicate types
+        num_atoms_each_type_matrix_init = np.array([p.initial_state.num_atoms_each_type for p in problems])
+        mean_num_atoms_each_type_init = num_atoms_each_type_matrix_init.mean(axis=0)
+        std_num_atoms_each_type_init = num_atoms_each_type_matrix_init.std(axis=0)
+        mean_atoms_dict_init = {t : mean_atoms for t, mean_atoms in zip(pred_types, mean_num_atoms_each_type_init)}
+        std_atoms_dict_init = {t : std_atoms for t, std_atoms in zip(pred_types, std_num_atoms_each_type_init)}
+        # Same as above, but this time for the goal state
+        num_atoms_each_type_matrix_goal = np.array([p.goal_state.num_atoms_each_type for p in problems if p.goal_state is not None]) # We skip problems without goal state
+        if num_atoms_each_type_matrix_goal.size == 0: # If there are no problems with goal state (i.e., every problem is inconsistent), then the means and stds are all zero
+            mean_num_atoms_each_type_goal = np.zeros(len(pred_types))
+            std_num_atoms_each_type_goal = np.zeros(len(pred_types))
+        else:   
+            mean_num_atoms_each_type_goal = num_atoms_each_type_matrix_goal.mean(axis=0)
+            std_num_atoms_each_type_goal = num_atoms_each_type_matrix_goal.std(axis=0)
+        mean_atoms_dict_goal = {t : mean_atoms for t, mean_atoms in zip(pred_types, mean_num_atoms_each_type_goal)}
+        std_atoms_dict_goal = {t : std_atoms for t, std_atoms in zip(pred_types, std_num_atoms_each_type_goal)}
+
+        # Log the metrics
+        writer = SummaryWriter(log_dir=self.logs_folder)
+
+        writer.add_scalar('Consistency Percentage', perc_consistency, global_step=curr_train_it)
+        writer.add_scalar('Mean Diversity', mean_diversity, global_step=curr_train_it)
+        writer.add_scalar('Mean Difficulty', mean_difficulty, global_step=curr_train_it)
+        writer.add_scalar('Std Difficulty', std_difficulty, global_step=curr_train_it)
+        writer.add_scalar('Mean Init Actions', mean_init_actions, global_step=curr_train_it)
+        writer.add_scalar('Std Init Actions', std_init_actions, global_step=curr_train_it)
+        writer.add_scalar('Mean Goal Actions', mean_goal_actions, global_step=curr_train_it)
+        writer.add_scalar('Std Goal Actions', std_goal_actions, global_step=curr_train_it)
+        writer.add_scalar('Mean Return', mean_return, global_step=curr_train_it)
+        writer.add_scalar('Mean Norm Return', mean_norm_return, global_step=curr_train_it)
+        writer.add_scalar('Mean Advantage', mean_advantage, global_step=curr_train_it)
+        writer.add_scalars('Mean Num Objects', mean_objs_dict, global_step=curr_train_it)
+        writer.add_scalars('Std Num Objects', std_objs_dict, global_step=curr_train_it)
+        writer.add_scalars('Mean Num Atoms Init', mean_atoms_dict_init, global_step=curr_train_it)
+        writer.add_scalars('Std Num Atoms Init', std_atoms_dict_init, global_step=curr_train_it)
+        writer.add_scalars('Mean Num Atoms Goal', mean_atoms_dict_goal, global_step=curr_train_it)
+        writer.add_scalars('Std Num Atoms Goal', std_atoms_dict_goal, global_step=curr_train_it)
+
+        writer.close()
 
     def train(self, train_init_policy:bool, train_goal_policy:bool, start_it:int, end_it:int) -> Tuple[GenerativePolicy, GenerativePolicy]:
         """
@@ -194,8 +280,8 @@ class PolicyTrainer():
         for curr_train_it in range(start_it, end_it):
             # <Generate problems and trajectories>
             problems, problem_info_list, trajectories = self._generate_problems_and_trajectories(self.args.trajectories,
-                                                                                                self.args.max_init_actions_train,
-                                                                                                self.args.max_goal_actions_train)
+                                                                                                 self.args.max_init_actions_train,
+                                                                                                 self.args.max_goal_actions_train)
 
             # <Process data from trajectories>
             init_trajectories, goal_trajectories = self._process_trajectories(trajectories, problem_info_list, train_init_policy, train_goal_policy)
@@ -214,6 +300,7 @@ class PolicyTrainer():
             # Then, I will have repeated logs for train_it=50-70.
             # To solve this, when resuming training we should read the logs folder and obtain (using the tensorboard library)
             # the train_it (N) of the most recent log. Then, we don't log until curr_train_it > N.
+            self._log_metrics(curr_train_it, problems, problem_info_list, trajectories)
 
             # <Perform validation epoch and save checkpoints>
             # TODO
