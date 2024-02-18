@@ -210,6 +210,7 @@ def parse_arguments():
     parser.add_argument('--steps', type=int, default=20000, help="Number of steps for training the model.")
     parser.add_argument('--val-period', type=int, default=500, help=("Number of training steps between validation phases and saving the 'best' checkpoint."
                                                                      "If -1, we only perform validation at the end of training."))
+    parser.add_argument('--log-period', type=int, default=10, help="Number of training steps between logging to tensorboard.")
     parser.add_argument('--disc-factor', type=float, default=1.0, help="Discount factor (gamma) for the total reward.")
     parser.add_argument('--batch-size', type=int, default=64, help="Minibatch size during training.")
     parser.add_argument('--trajectories', type=int, default=25, help=("Number of trajectories (problems) to generate in each training step"
@@ -339,6 +340,8 @@ def validate_and_modify_args(args):
         raise ValueError("Number of steps must be a positive integer")
     if args.val_period != -1 and args.val_period <= 0:
         raise ValueError("val-period must be either -1 or a positive integer")
+    if args.log_period < 1:
+        raise ValueError("log-period must be a positive integer")
     if args.disc_factor < 0 or args.disc_factor > 1:
         raise ValueError("Discount factor must be a float in the range [0, 1]")
     if args.batch_size < 1:

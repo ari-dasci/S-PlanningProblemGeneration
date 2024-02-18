@@ -168,13 +168,16 @@ class PolicyTrainer():
                                     max_workers=0) # We use max_workers=0 as the data is already on the GPU 
                                                    # (all tensors are created using device=self.device in both the Generative Policies and Model Wrappers)
 
+            # Save logs in self.logs_folder
+            logger = pl.loggers.TensorBoardLogger(save_dir=self.logs_folder, name='', version='')
+
             if self.device.type == 'cpu':
                 trainer = pl.Trainer(max_epochs=policy.get_hparam('PPO_epochs'), accelerator='cpu', enable_checkpointing=False,
-                                     gradient_clip_val=self.args.grad_clip)
+                                     gradient_clip_val=self.args.grad_clip, logger=logger)
             else: # GPU
                 # TODO: select the GPU to train on if there are several available
                 trainer = pl.Trainer(max_epochs=policy.get_hparam('PPO_epochs'), accelerator='cuda', devices=1, enable_checkpointing=False,
-                                     gradient_clip_val=self.args.grad_clip)
+                                     gradient_clip_val=self.args.grad_clip, logger=logger)
                 
             trainer.fit(policy, dataloader)
 
@@ -191,11 +194,6 @@ class PolicyTrainer():
             - Mean and std number of actions for the init and goal phase (without considering TERM_ACTION)
             - Mean return, norm_return and advantage
             - Mean and std number of atoms and objects for each type
-            
-        Additional logs that need to be logged inside the policies (this is done as average over the samples of the first PPO epoch):
-            - Gradient magnitudes before clipping
-            - Losses
-            - Policy entropy
         """
         # Calculate metrics to log
         num_problems = len(problems)
@@ -251,10 +249,10 @@ class PolicyTrainer():
         writer.add_scalar('Mean Diversity', mean_diversity, global_step=curr_train_it)
         writer.add_scalar('Mean Difficulty', mean_difficulty, global_step=curr_train_it)
         writer.add_scalar('Std Difficulty', std_difficulty, global_step=curr_train_it)
-        writer.add_scalar('Mean Init Actions', mean_init_actions, global_step=curr_train_it)
-        writer.add_scalar('Std Init Actions', std_init_actions, global_step=curr_train_it)
-        writer.add_scalar('Mean Goal Actions', mean_goal_actions, global_step=curr_train_it)
-        writer.add_scalar('Std Goal Actions', std_goal_actions, global_step=curr_train_it)
+        writer.add_scalar('Mean Actions Init', mean_init_actions, global_step=curr_train_it)
+        writer.add_scalar('Std Actions Init', std_init_actions, global_step=curr_train_it)
+        writer.add_scalar('Mean Actions Goal', mean_goal_actions, global_step=curr_train_it)
+        writer.add_scalar('Std Actions Goal', std_goal_actions, global_step=curr_train_it)
         writer.add_scalar('Mean Return', mean_return, global_step=curr_train_it)
         writer.add_scalar('Mean Norm Return', mean_norm_return, global_step=curr_train_it)
         writer.add_scalar('Mean Advantage', mean_advantage, global_step=curr_train_it)
@@ -300,7 +298,8 @@ class PolicyTrainer():
             # Then, I will have repeated logs for train_it=50-70.
             # To solve this, when resuming training we should read the logs folder and obtain (using the tensorboard library)
             # the train_it (N) of the most recent log. Then, we don't log until curr_train_it > N.
-            self._log_metrics(curr_train_it, problems, problem_info_list, trajectories)
+            if curr_train_it % self.args.log_period == 0: # Log every log_period iterations
+                self._log_metrics(curr_train_it, problems, problem_info_list, trajectories)
 
             # <Perform validation epoch and save checkpoints>
             # TODO

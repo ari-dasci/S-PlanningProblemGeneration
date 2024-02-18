@@ -181,6 +181,15 @@ class PPOPolicy(GenerativePolicy):
         self.actor = actor_class(args, actor_arguments)
         self.critic = critic_class(args, critic_arguments)
 
+        # Variables used to sum metrics over each batch to log them at the start of the training iteration (i.e., on_train_end())
+        self.total_norm_actor_sum  = 0.0
+        self.total_norm_critic_sum  = 0.0  
+        self.critic_loss_sum  = 0.0
+        self.ppo_loss_sum = 0.0
+        self.entropy_loss_sum = 0.0
+        self.policy_entropy_sum = 0.0
+        self.num_samples = 0
+
         # Create additional parameters that should be saved and loaded from checkpoints but NOT
         # modified by the optimizer
 
@@ -292,6 +301,34 @@ class PPOPolicy(GenerativePolicy):
                                                                                         "the entropy coeff will remain constant."))
         parser.add_argument(f'--{phase}-lifted-entropy-weight', default=0.5, type=float, help=("Weight of the lifted entropy in the entropy term of PPO, when compared to the ground entropy."
                                                                                         "It must be between 0 and 1, since ground_entropy_weight = 1 - lifted_entropy_weight."))
+
+    def get_gradient_norm(self):
+		# We calculate gradients separately for actor and critic
+		total_norm_actor = 0.0
+		total_norm_critic = 0.0
+
+		for p in self.actor.parameters():
+			if p.grad is not None:
+				param_norm = p.grad.data.norm(2)
+				total_norm_actor += param_norm.item() ** 2
+		total_norm_actor = total_norm_actor ** 0.5
+
+		for p in self.critic.parameters():
+			if p.grad is not None:
+				param_norm = p.grad.data.norm(2)
+				total_norm_critic += param_norm.item() ** 2
+		total_norm_critic = total_norm_critic ** 0.5
+
+		return total_norm_actor, total_norm_critic
+
+	def on_after_backward(self):
+        """
+        Custom callback for logging gradient magnitudes <BEFORE CLIPPING>.
+        """
+		if self.curr_logging_it % self.hparams['log_period'] == 0 and self.current_epoch == 0:
+			total_norm_actor, total_norm_critic = self.get_gradient_norm()
+            self.total_norm_actor_sum += total_norm_actor
+            self.total_norm_critic_sum += total_norm_critic
 
     def normalize_return_trajectories(self, trajectories:List[List[Dict]]):
         """
@@ -419,18 +456,40 @@ class PPOPolicy(GenerativePolicy):
     
     def on_train_end(self):
         """
+        <Called after trainer.fit()>
         Anneal entropy after every trainer.fit() call.
+        Also save Tensorboard logs.
         <NOTE>: In our RL setting, we create a new pl.Trainer and do a trainer.fit() call for each training (PPO) it.
         """
         super().on_train_end()
         self.anneal_entropy_coeff()
+        
+        # Log metrics averaged over the samples of the first PPO epoch
+        if self.curr_logging_it % self.hparams['log_period'] == 0:
+            suffix = " Init" if self.phase == 'init' else " Goal"
+
+            self.logger.experiment.add_scalars('Gradient Norm' + suffix, 
+                {'Actor': self.total_norm_actor_sum/self.num_samples, 'Critic': self.total_norm_critic_sum/self.num_samples}, 
+                global_step=self.curr_logging_it)
+            self.logger.experiment.add_scalar('Critic Loss' + suffix, self.critic_loss_sum/self.num_samples, global_step=self.curr_logging_it)
+            self.logger.experiment.add_scalars('Actor Losses' + suffix,
+                {'PPO Loss' : self.ppo_loss_sum/self.num_samples, 'Entropy Loss' : self.entropy_loss_sum/self.num_samples},
+                global_step=self.curr_logging_it)
+            self.logger.experiment.add_scalar('Policy Entropy' + suffix, self.policy_entropy_sum/self.num_samples, global_step=self.curr_logging_it)
+
+            # Reset counters
+            self.total_norm_actor_sum  = 0.0
+            self.total_norm_critic_sum  = 0.0  
+            self.critic_loss_sum  = 0.0
+            self.ppo_loss_sum = 0.0
+            self.entropy_loss_sum = 0.0
+            self.policy_entropy_sum = 0.0
+            self.num_samples = 0
+
         self.curr_logging_it += 1 # Keep track of the number of trainer.fit() calls
 
     def training_step(self, train_batch : dict, batch_idx=0): 
         assert isinstance(train_batch, dict), "train_batch must be a dictionary"
-        # TODO
-        # Add logging
-        # Log rewards, consistency and difficulty on a per-problem basis and not on a sample-basis
 
         # <Critic>
         state_value_list, _ = self.calculate_state_values(train_batch['internal_states']) # We pass internal state to avoid recomputing them from the PDDLProblems
@@ -488,5 +547,14 @@ class PPOPolicy(GenerativePolicy):
         # TODO
         # Add weight for the critic loss
         loss = actor_loss + critic_loss
+
+        # <Logging>
+        # We average all log metrics among all samples of the first PPO epoch
+        if self.curr_logging_it % self.hparams['log_period'] == 0 and self.current_epoch == 0:
+            self.num_samples += len(train_batch['states'])
+            self.critic_loss_sum += critic_loss.item()
+            self.ppo_loss_sum += PPO_loss.item()
+            self.entropy_loss_sum += entropy_loss.item()
+            self.policy_entropy_sum += policy_entropy.item()
 
         return loss
