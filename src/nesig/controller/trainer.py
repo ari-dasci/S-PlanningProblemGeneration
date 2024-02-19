@@ -168,7 +168,7 @@ class PolicyTrainer():
                                                    # (all tensors are created using device=self.device in both the Generative Policies and Model Wrappers)
 
             # Save logs in self.logs_folder
-            logger = pl.loggers.TensorBoardLogger(save_dir=self.logs_folder, name='', version='')
+            logger = pl.loggers.TensorBoardLogger(save_dir=self.logs_folder, name='train', version='')
 
             if self.device.type == 'cpu':
                 trainer = pl.Trainer(max_epochs=policy.get_hparam('PPO_epochs'), accelerator='cpu', enable_checkpointing=False,
@@ -184,19 +184,43 @@ class PolicyTrainer():
             if self.device.type == 'cuda':
                 policy.to('cuda')
             
-    def _log_metrics(self, curr_train_it, problems, problem_info_list, trajectories):
+    def _log_metrics(self, phase:str, x_value:int, problems, problem_info_list, trajectories=None, score=None) -> Dict:
         """
-        Log problem-level info for the current training iteration. We log the following:
+        Log problem related info and metrics for the training, validation and test phases.
+        Additionally, it returns a dictionary with all the metrics logged.
+        The metrics to log are different for each phase.
+
+        - Common to all phases:          
             - Percentage of problems that are eventual-consistent
-            - Mean problem diversity
+            - Mean problem diversity (calculated with either InitStateDiversityEvaluator or FeaturesDiversityEvaluator)
             - Mean and std problem difficulty
-            - Mean and std number of actions for the init and goal phase (without considering TERM_ACTION)
-            - Mean return, norm_return and advantage
+            - Mean and std number of actions for the init and goal phase (without considering TERM_ACTION)        
             - Mean and std number of atoms and objects for each type
-        """
-        # Calculate metrics to log
-        num_problems = len(problems)
+
+        - Training phase:
+            - Trajectory information: mean return, norm_return and advantage
+
+        - Validation phase:
+            - Validation score (given by score parameter)
+
+        - Test phase:
+            - Test score (given by score parameter)
+        """    
+
+        def log_and_save(writer, log_dict, name, y_val:Union[int,float,Dict], x_val):
+            log_dict[name] = y_val
+            
+            if isinstance(y_val, dict):
+               writer.add_scalars(name, y_val, global_step=x_val)
+            else: 
+               writer.add_scalar(name, y_val, global_step=x_val)
         
+        assert phase in {'train', 'val', 'test'}, "phase must be 'train', 'val' or 'test'"  
+        writer = SummaryWriter(log_dir=self.logs_folder / phase)
+        log_dict = dict()
+        num_problems = len(problems)
+
+        # <Common information>
         perc_consistency = [p_info['consistency'] for p_info in problem_info_list].count(True) / num_problems
         mean_diversity = sum([p_info['diversity'] for p_info in problem_info_list]) / num_problems
         problem_diffs = [p_info['difficulty'] for p_info in problem_info_list]
@@ -209,12 +233,6 @@ class PolicyTrainer():
         mean_goal_actions = sum(goal_actions) / num_problems
         std_init_actions = (sum([(a - mean_init_actions)**2 for a in init_actions]) / num_problems)**0.5
         std_goal_actions = (sum([(a - mean_goal_actions)**2 for a in goal_actions]) / num_problems)**0.5
-
-        # Flatten the trajectories into a list of samples
-        sample_list = [sample for trajectory in trajectories for sample in trajectory]
-        mean_return = sum([sample['return'] for sample in sample_list]) / len(sample_list)
-        mean_norm_return = sum([sample['norm_return'] for sample in sample_list]) / len(sample_list)
-        mean_advantage = sum([sample['advantage'] for sample in sample_list]) / len(sample_list)
 
         obj_types = problems[0].initial_state.types
         pred_types = problems[0].initial_state.predicates
@@ -241,28 +259,39 @@ class PolicyTrainer():
         mean_atoms_dict_goal = {t : mean_atoms for t, mean_atoms in zip(pred_types, mean_num_atoms_each_type_goal)}
         std_atoms_dict_goal = {t : std_atoms for t, std_atoms in zip(pred_types, std_num_atoms_each_type_goal)}
 
-        # Log the metrics
-        writer = SummaryWriter(log_dir=self.logs_folder)
+        log_and_save(writer, log_dict, 'Consistency Percentage', perc_consistency, x_value)
+        log_and_save(writer, log_dict, 'Mean Diversity', mean_diversity, x_value)
+        log_and_save(writer, log_dict, 'Mean Difficulty', mean_difficulty, x_value)
+        log_and_save(writer, log_dict, 'Std Difficulty', std_difficulty, x_value)
+        log_and_save(writer, log_dict, 'Mean Actions Init', mean_init_actions, x_value)
+        log_and_save(writer, log_dict, 'Std Actions Init', std_init_actions, x_value)
+        log_and_save(writer, log_dict, 'Mean Actions Goal', mean_goal_actions, x_value)
+        log_and_save(writer, log_dict, 'Std Actions Goal', std_goal_actions, x_value)
+        log_and_save(writer, log_dict, 'Mean Num Objects', mean_objs_dict, x_value)
+        log_and_save(writer, log_dict, 'Std Num Objects', std_objs_dict, x_value)
+        log_and_save(writer, log_dict, 'Mean Num Atoms Init', mean_atoms_dict_init, x_value)
+        log_and_save(writer, log_dict, 'Std Num Atoms Init', std_atoms_dict_init, x_value)
+        log_and_save(writer, log_dict, 'Mean Num Atoms Goal', mean_atoms_dict_goal, x_value)
+        log_and_save(writer, log_dict, 'Std Num Atoms Goal', std_atoms_dict_goal, x_value)
 
-        writer.add_scalar('Consistency Percentage', perc_consistency, global_step=curr_train_it)
-        writer.add_scalar('Mean Diversity', mean_diversity, global_step=curr_train_it)
-        writer.add_scalar('Mean Difficulty', mean_difficulty, global_step=curr_train_it)
-        writer.add_scalar('Std Difficulty', std_difficulty, global_step=curr_train_it)
-        writer.add_scalar('Mean Actions Init', mean_init_actions, global_step=curr_train_it)
-        writer.add_scalar('Std Actions Init', std_init_actions, global_step=curr_train_it)
-        writer.add_scalar('Mean Actions Goal', mean_goal_actions, global_step=curr_train_it)
-        writer.add_scalar('Std Actions Goal', std_goal_actions, global_step=curr_train_it)
-        writer.add_scalar('Mean Return', mean_return, global_step=curr_train_it)
-        writer.add_scalar('Mean Norm Return', mean_norm_return, global_step=curr_train_it)
-        writer.add_scalar('Mean Advantage', mean_advantage, global_step=curr_train_it)
-        writer.add_scalars('Mean Num Objects', mean_objs_dict, global_step=curr_train_it)
-        writer.add_scalars('Std Num Objects', std_objs_dict, global_step=curr_train_it)
-        writer.add_scalars('Mean Num Atoms Init', mean_atoms_dict_init, global_step=curr_train_it)
-        writer.add_scalars('Std Num Atoms Init', std_atoms_dict_init, global_step=curr_train_it)
-        writer.add_scalars('Mean Num Atoms Goal', mean_atoms_dict_goal, global_step=curr_train_it)
-        writer.add_scalars('Std Num Atoms Goal', std_atoms_dict_goal, global_step=curr_train_it)
+        # < Training information >
+        if trajectories is not None:   
+            sample_list = [sample for trajectory in trajectories for sample in trajectory] # Flatten the trajectories into a list of samples
+            mean_return = sum([sample['return'] for sample in sample_list]) / len(sample_list)
+            mean_norm_return = sum([sample['norm_return'] for sample in sample_list]) / len(sample_list)
+            mean_advantage = sum([sample['advantage'] for sample in sample_list]) / len(sample_list)
+
+            log_and_save(writer, log_dict, 'Mean Return', mean_return, x_value)
+            log_and_save(writer, log_dict, 'Mean Norm Return', mean_norm_return, x_value)
+            log_and_save(writer, log_dict, 'Mean Advantage', mean_advantage, x_value)
+
+        # < Validation and test information >
+        if score is not None:
+            log_and_save(writer, log_dict, 'Score', score, x_value)
 
         writer.close()
+
+        return log_dict
 
     def calculate_val_score(self, problem_info_list:List[Dict]) -> float:
         num_problems = len(problem_info_list)
@@ -317,7 +346,7 @@ class PolicyTrainer():
             # To solve this, when resuming training we should read the logs folder and obtain (using the tensorboard library)
             # the train_it (N) of the most recent log. Then, we don't log until curr_train_it > N.
             if curr_train_it % self.args.log_period == 0: # Log every log_period iterations
-                self._log_metrics(curr_train_it, problems, problem_info_list, trajectories)
+                self._log_metrics('train', curr_train_it, problems, problem_info_list, trajectories=trajectories)
 
             # <Perform validation epoch and save checkpoints>
             # TODO
@@ -332,6 +361,7 @@ class PolicyTrainer():
                 val_score = self.calculate_val_score(val_problem_info_list)
 
                 # Log
+                val_log_dict = self._log_metrics('val', curr_train_it, problems, problem_info_list, score=val_score)
 
                 # Save ckpt (best ckpt is saved if val_score is better than 'best_val_score' in experiment_info.json)
 
@@ -348,3 +378,7 @@ class PolicyTrainer():
         # TODO
         # After training, load and return policies with best ckpts
         # For random policies, do not load ckpt
+
+    # TODO
+    # Test logging
+    # Log everything as in validation, and use as global step the problem size of the current experiment

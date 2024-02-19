@@ -66,6 +66,7 @@ For each experiment we save the following:
                             (experiment_id, train it of the current best and last ckpts and constants in ADDITIONAL_EXPERIMENT_INFO)   
         - experiment_info is rewritten whenever we do training (supersede/resume)
     - logs: tensorboard logs saved during training and validation
+        - logs/train -> Train logs, logs/val -> Validation logs
     - checkpoints: lightning checkpoints saved during training
         The checkpoint names are: init_best.ckpt, goal_best.ckpt, init_last.ckpt, goal_last.ckpt
     - validation: folder with all the validation info. validation/<it> contains the validation info for the ckpt with train_steps=<it>
@@ -369,7 +370,9 @@ def validate_and_modify_args(args):
     if args.max_goal_actions_val == -1:
         args.max_goal_actions_val = args.max_goal_actions_train
     if len(args.max_init_actions_test) != len(args.max_goal_actions_test):
-        raise ValueError("The number of elements in max_init_actions_test and max_goal_actions_test must be the same")
+        raise ValueError("The number of elements in max_init_actions_test and max_goal_actions_test must be the same")  
+    if len(args.max_init_actions_test) != len(set(args.max_init_actions_test)):
+        raise ValueError("At the moment, we assume that each test experiment uses a different value for max_init_actions")
     if args.train_mode == "skip" and args.test_mode == "skip":
         raise ValueError("train-mode and test-mode cannot be both 'skip'")
     if args.r_eventual_consistency > 0:
