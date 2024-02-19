@@ -279,9 +279,11 @@ class PolicyTrainer():
         if trajectories is not None:   
             sample_list = [sample for trajectory in trajectories for sample in trajectory] # Flatten the trajectories into a list of samples
             mean_return = sum([sample['return'] for sample in sample_list]) / len(sample_list)
-            mean_norm_return = sum([sample['norm_return'] for sample in sample_list]) / len(sample_list)
-            mean_advantage = sum([sample['advantage'] for sample in sample_list]) / len(sample_list)
-
+            # We check if 'norm_return' and 'advantage' are in the sample because they are not calculated if the corresponding policy is Random     
+            norm_returns = [sample['norm_return'] for sample in sample_list if 'norm_return' in sample]
+            mean_norm_return = sum(norm_returns) / len(norm_returns)
+            advantages = [sample['advantage'] for sample in sample_list if 'advantage' in sample]
+            mean_advantage = sum(advantages) / len(advantages)
             log_and_save(writer, log_dict, 'Mean return', mean_return, x_value)
             log_and_save(writer, log_dict, 'Mean norm return', mean_norm_return, x_value)
             log_and_save(writer, log_dict, 'Mean advantage', mean_advantage, x_value)
@@ -383,7 +385,8 @@ class PolicyTrainer():
         else:
             raise FileNotFoundError(f"File {self.experiment_info_path} not found")
 
-        for curr_train_it in range(start_it, end_it):
+        curr_train_it = start_it
+        while curr_train_it <= end_it:
             # <Generate problems and trajectories>
             problems, problem_info_list, trajectories = self._generate_problems_and_trajectories(self.args.num_problems_train,
                                                                                                  self.args.max_init_actions_train,
@@ -450,6 +453,13 @@ class PolicyTrainer():
 
                 # Update experiment_info.json
                 self.update_experiment_info(self.experiment_info_path, best_train_it, curr_train_it, best_val_score)
+
+            # Increment counters
+            curr_train_it += 1
+            if train_init_policy:
+                self.init_policy.curr_logging_it +=1
+            if train_goal_policy:
+                self.goal_policy.curr_logging_it +=1
 
 
         # Perform validation after training unless we just did for the last train it

@@ -196,7 +196,7 @@ class PPOPolicy(GenerativePolicy):
         # Variable to keep track of the current logging iteration
         # This variable may be lower than the actual number of training iterations, since
         # we skip training (trainer.fit() call) if not enough data was obtained for the current it
-        self.register_buffer('curr_logging_it', torch.tensor(0, dtype=torch.int32, device=self.device))
+        self.register_buffer('curr_logging_it', torch.tensor(1, dtype=torch.int32, device=self.device))
 
         # Variables used for normalizing returns
         # We use buffers in the init and goal policies so that they can be saved and loaded from checkpoints
@@ -325,7 +325,7 @@ class PPOPolicy(GenerativePolicy):
         """
         Custom callback for logging gradient magnitudes <BEFORE CLIPPING>.
         """
-		if self.curr_logging_it % self.hparams['log_period'] == 0 and self.current_epoch == 0:
+		if self.curr_logging_it.item % self.hparams['log_period'] == 0 and self.current_epoch == 0:
 			total_norm_actor, total_norm_critic = self.get_gradient_norm()
             self.total_norm_actor_sum += total_norm_actor
             self.total_norm_critic_sum += total_norm_critic
@@ -344,19 +344,19 @@ class PPOPolicy(GenerativePolicy):
         curr_std_return = np.std(curr_returns)
 
         # First train it -> initialize moving averages
-        if self.moving_mean_return == -1.0:
-            self.moving_mean_return = curr_mean_return
-            self.moving_std_return = curr_std_return
+        if self.moving_mean_return.item == -1.0:
+            self.moving_mean_return = torch.tensor(curr_mean_return, dtype=torch.float32, device=self.device)
+            self.moving_std_return = torch.tensor(curr_std_return, dtype=torch.float32, device=self.device)
 
         # Normalize trajectory returns
         for i in range(len(trajectories)):
             for j in range(len(trajectories[i])):
-                trajectories[i][j]['norm_return'] = (trajectories[i][j]['return'] - self.moving_mean_return) / (self.moving_std_return + 1e-6)
+                trajectories[i][j]['norm_return'] = (trajectories[i][j]['return'] - self.moving_mean_return.item) / (self.moving_std_return.item + 1e-6)
 
         # Update moving averages
         moving_mean_coeff = self.hparams['moving_mean_return_coeff']
-        self.moving_mean_return = moving_mean_coeff*self.moving_mean_return + (1-moving_mean_coeff)*curr_mean_return
-        self.moving_std_return = moving_mean_coeff*self.moving_std_return + (1-moving_mean_coeff)*curr_std_return
+        self.moving_mean_return = torch.tensor(moving_mean_coeff*self.moving_mean_return + (1-moving_mean_coeff)*curr_mean_return, dtype=torch.float32, device=self.device)
+        self.moving_std_return = torch.tensor(moving_mean_coeff*self.moving_std_return + (1-moving_mean_coeff)*curr_std_return, dtype=torch.float32, device=self.device)
 
     def calculate_entropy(self, _action_log_probs:torch.Tensor, applicable_actions:List[Tuple[str, Tuple[int]]]) \
         -> torch.Tensor:
@@ -471,17 +471,17 @@ class PPOPolicy(GenerativePolicy):
         self.anneal_entropy_coeff()
         
         # Log metrics averaged over the samples of the first PPO epoch
-        if self.curr_logging_it % self.hparams['log_period'] == 0:
+        if self.curr_logging_it.item % self.hparams['log_period'] == 0:
             suffix = " Init" if self.phase == 'init' else " Goal"
 
             self.logger.experiment.add_scalars('Gradient Norm' + suffix, 
                 {'Actor': self.total_norm_actor_sum/self.num_samples, 'Critic': self.total_norm_critic_sum/self.num_samples}, 
-                global_step=self.curr_logging_it)
-            self.logger.experiment.add_scalar('Critic Loss' + suffix, self.critic_loss_sum/self.num_samples, global_step=self.curr_logging_it)
+                global_step=self.curr_logging_it.item)
+            self.logger.experiment.add_scalar('Critic Loss' + suffix, self.critic_loss_sum/self.num_samples, global_step=self.curr_logging_it.item)
             self.logger.experiment.add_scalars('Actor Losses' + suffix,
                 {'PPO Loss' : self.ppo_loss_sum/self.num_samples, 'Entropy Loss' : self.entropy_loss_sum/self.num_samples},
-                global_step=self.curr_logging_it)
-            self.logger.experiment.add_scalar('Policy Entropy' + suffix, self.policy_entropy_sum/self.num_samples, global_step=self.curr_logging_it)
+                global_step=self.curr_logging_it.item)
+            self.logger.experiment.add_scalar('Policy Entropy' + suffix, self.policy_entropy_sum/self.num_samples, global_step=self.curr_logging_it.item)
 
             # Reset counters
             self.total_norm_actor_sum  = 0.0
@@ -492,7 +492,9 @@ class PPOPolicy(GenerativePolicy):
             self.policy_entropy_sum = 0.0
             self.num_samples = 0
 
-        self.curr_logging_it += 1 # Keep track of the number of trainer.fit() calls
+        # We increment it outside the LightningModule, in trainer.py, so that
+        # curr_logging_it and curr_train_it are incremented at the same time
+        # self.curr_logging_it += 1 # Keep track of the number of trainer.fit() calls
 
     def training_step(self, train_batch : dict, batch_idx=0): 
         assert isinstance(train_batch, dict), "train_batch must be a dictionary"
@@ -556,7 +558,7 @@ class PPOPolicy(GenerativePolicy):
 
         # <Logging>
         # We average all log metrics among all samples of the first PPO epoch
-        if self.curr_logging_it % self.hparams['log_period'] == 0 and self.current_epoch == 0:
+        if self.curr_logging_it.item % self.hparams['log_period'] == 0 and self.current_epoch == 0:
             self.num_samples += len(train_batch['states'])
             self.critic_loss_sum += critic_loss.item()
             self.ppo_loss_sum += PPO_loss.item()
