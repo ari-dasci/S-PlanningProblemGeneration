@@ -444,12 +444,11 @@ def parse_domain_and_obtain_info(args) -> Dict:
 
     return parsed_domain_info
 
-def train(args, parsed_domain_info, experiment_id) -> Tuple[Optional[GenerativePolicy],Optional[GenerativePolicy]]:
+def train(args, parsed_domain_info, experiment_id):
     """
     This function uses trainer.py to train and validate the init and goal policies.
     The training and validation functionality depends on args.train_mode, whether the init 
     and goal policies are PPO or Random, and the previous state of the experiment (if exists).
-    It returns the best checkpoint of the trained init and goal policies (RandomPolicies are simply returned untrained).
     This function also creates the initial experiment_info.json.
     """
     experiment_folder_path = EXPERIMENTS_PATH / experiment_id
@@ -500,7 +499,7 @@ def train(args, parsed_domain_info, experiment_id) -> Tuple[Optional[GenerativeP
         init_best_ckpt_path = experiment_folder_path / CKPTS_FOLDER_NAME / "init_best.ckpt"
         init_last_ckpt_path = experiment_folder_path / CKPTS_FOLDER_NAME / "init_last.ckpt"
 
-        # train-mode=skip -> we load the best ckpt. If it does not exist, we return a None init policy, meaning that test cannot be performed
+        # train-mode=skip -> we load the best ckpt
         if args.train_mode == "skip":
             if init_best_ckpt_path.exists():
                 init_policy = PPOPolicy.load_from_checkpoint(init_best_ckpt_path, phase='init', actor_class=init_actor_class, actor_arguments=init_actor_arguments,
@@ -553,7 +552,7 @@ def train(args, parsed_domain_info, experiment_id) -> Tuple[Optional[GenerativeP
     # train-mode=skip
     # We have reached --steps training its
     if args.train_mode == 'skip' or (args.init_policy=='random' and args.goal_policy=='random') or last_train_it >= args.steps:
-        return init_policy, goal_policy
+        return
     else: # Perform training
         # Create problem generator
         difficulty_evaluator = PlannerEvaluator(parsed_domain_info['domain_path'], TRAIN_PLANNER_ARGS, args.time_limit_planner,
@@ -573,9 +572,7 @@ def train(args, parsed_domain_info, experiment_id) -> Tuple[Optional[GenerativeP
         remove_if_exists(experiment_folder_path / TEST_FOLDER_NAME)
 
         # Train
-        best_init_policy, best_goal_policy = policy_trainer.train(train_init_policy, train_goal_policy, last_train_it+1, args.steps)
-
-        return best_init_policy, best_goal_policy
+        policy_trainer.train_and_val(train_init_policy, train_goal_policy, last_train_it+1, args.steps)
 
 def test(args, parsed_domain_info, experiment_id, best_init_policy, best_goal_policy):
     """

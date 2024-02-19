@@ -158,6 +158,10 @@ class PolicyTrainer():
         return norm_init_trajectories, norm_goal_trajectories
 
     def _perform_train_step(self, policy, trajectories:List[List[Dict]]):
+        """
+        Executes one trainer.fit() call on 'policy' using the data from 'trajectories'.
+        If the number of samples is less than args.min_samples_train, we skip training.
+        """
         # Flatten the list of trajectories from List[List[Dict]] to List[Dict]
         sample_list = [sample for trajectory in trajectories for sample in trajectory]
         
@@ -345,6 +349,20 @@ class PolicyTrainer():
 
         return avg_val_score, tuple(val_scores)
 
+    def update_experiment_info(self, filepath, **kwargs):
+        """
+        kwargs contains the keys and values to update in the experiment_info.json file.
+        """
+        # We load the experiment info in filepath, update it and save it again to the same file
+        with open(filepath, 'r') as f:
+            experiment_info = json.load(f)
+
+        for k, v in kwargs.items():
+            experiment_info[k] = v
+
+        with open(filepath, 'w') as f:
+            json.dump(experiment_info, f, indent=2)
+
     def save_checkpoint(self, model:pl.LightningModule, ckpt_path:Path):
         # We need a "hacky" way to do this
         # We create a dummy trainer and associate it with a model by "performing" training for 0 epochs     
@@ -354,24 +372,73 @@ class PolicyTrainer():
         dummy_trainer.fit(model)
         dummy_trainer.save_checkpoint(ckpt_path) 
 
-    def update_experiment_info(self, filepath, best_train_it, last_train_it, best_val_score):
-        # We load the experiment info in filepath, update it and save it again to the same file
-        with open(filepath, 'r') as f:
-            experiment_info = json.load(f)
+    def save_policies(self, train_init_policy, train_goal_policy, save_best:bool):
+        """
+        Saves the init and goal policies as ckpts, unless they are Random (train_*_policy=False).
+        If save_best is True, we save the policies to both the 'last' and 'best' ckpt files.
+        Otherwise, we save the policies only to the 'last' ckpt files.
+        """
+        if train_init_policy:
+            self.save_checkpoint(self.init_policy, self.ckpts_folder / 'init_last.ckpt')   
+            if save_best:
+                self.save_checkpoint(self.init_policy, self.ckpts_folder / 'init_best.ckpt')
+            
+        if train_goal_policy:
+            self.save_checkpoint(self.goal_policy, self.ckpts_folder / 'goal_last.ckpt')        
+            if save_best:
+                self.save_checkpoint(self.goal_policy, self.ckpts_folder / 'goal_best.ckpt')
 
-        experiment_info['best_train_it'] = best_train_it
-        experiment_info['last_train_it'] = last_train_it
-        experiment_info['best_val_score'] = best_val_score
+    def _run_validation(self, train_init_policy, train_goal_policy, curr_train_it, best_train_it, best_val_score) -> Tuple[float, int]:
+        """
+        Runs one validation epoch. It does the following:
+            - Generate the validation problems with the most recent policies
+            - Calculate their validation scores
+            - Log their metrics
+            - Save the problems and their metrics to disk
+            - Save policy checkpoints
+            - Update experiment_info.json
 
-        with open(filepath, 'w') as f:
-            json.dump(experiment_info, f, indent=2)
+        It returns best_val_score, best_train_it.
+        """
+        val_problems, val_problem_info_list, val_trajectories = self._generate_problems_and_trajectories(self.args.num_problems_val,
+                                                                                                self.args.max_init_actions_val,
+                                                                                                self.args.max_goal_actions_val)
 
-    def train(self, train_init_policy:bool, train_goal_policy:bool, start_it:int, end_it:int) -> Tuple[GenerativePolicy, GenerativePolicy]:
+        # Calculate the val score for each problem and the average score
+        avg_val_score, val_scores = self.calculate_val_scores(val_problem_info_list)
+        
+        # Add the score to each problem info
+        for p_info, score in zip(val_problem_info_list, val_scores): # Add the val_score of each problem to its problem_info
+            p_info['score'] = score
+
+        # Log validation metrics
+        val_log_dict = self.log_metrics('val', curr_train_it, val_problems, val_problem_info_list, score=avg_val_score)
+        val_log_dict['Train it'] = curr_train_it # We also save to disk the train_it of the validation epoch
+
+        # Save problems and their metrics to disk
+        val_folder_curr_it = self.val_folder / str(curr_train_it)
+        self.save_problems_and_metrics(val_folder_curr_it, val_problems, val_problem_info_list, val_log_dict)
+
+        # Calculate the best val score and best train it so far and save policies to disk
+        if avg_val_score > best_val_score:
+            best_val_score = avg_val_score
+            best_train_it = curr_train_it
+            self.save_policies(train_init_policy, train_goal_policy, save_best=True)
+        else:
+            self.save_policies(train_init_policy, train_goal_policy, save_best=False)
+
+        # Update experiment_info.json
+        self.update_experiment_info(self.experiment_info_path, best_train_it=best_train_it, last_train_it=curr_train_it,
+                                    best_val_score=best_val_score)
+
+        return best_val_score, best_train_it
+
+    def train_and_val(self, train_init_policy:bool, train_goal_policy:bool, start_it:int, end_it:int):
         """
         <Main method of the class>
         This method trains the init and/or goal policies from start_it+1 up to end_it (inclusive).
-        If train_init_policy and train_goal_policy are False, we don't train the corresponding policy. 
-        Then, it returns the best policies (i.e., the policies corresponding to the best checkpoint).
+        If train_init_policy and train_goal_policy are False, we don't train the corresponding policy.
+        The trained policies are saved as checkpoints. 
         """        
         if not (train_init_policy or train_goal_policy):
             raise ValueError("At least one policy must be trained")
@@ -415,44 +482,7 @@ class PolicyTrainer():
             # Save best_train_it and last_train_it in experiment_info.json only when checkpoints are saved
             # If args.val_period=-1, we perform validation and save checkpoints only at the end of training
             if self.args.val_period != -1 and curr_train_it % self.args.val_period == 0:
-                val_problems, val_problem_info_list, val_trajectories = self._generate_problems_and_trajectories(self.args.num_problems_val,
-                                                                                                self.args.max_init_actions_val,
-                                                                                                self.args.max_goal_actions_val)
-
-                # Calculate the val score for each problem and the average score
-                avg_val_score, val_scores = self.calculate_val_scores(val_problem_info_list)
-                
-                # Add the score to each problem info
-                for p_info, score in zip(val_problem_info_list, val_scores): # Add the val_score of each problem to its problem_info
-                    p_info['score'] = score
-
-                # Log validation metrics
-                val_log_dict = self.log_metrics('val', curr_train_it, problems, problem_info_list, score=avg_val_score)
-                val_log_dict['Train it'] = curr_train_it # We also save to disk the train_it of the validation epoch
-
-                # Save problems and their metrics to disk
-                val_folder_curr_it = self.val_folder / str(curr_train_it)
-                self.save_problems_and_metrics(val_folder_curr_it, val_problems, val_problem_info_list, val_log_dict)
-
-                # Save checkpoints 
-                # 'last' checkpoints are always saved with the most recent models
-                # 'best' checkpoints are saved only if the current val score is better than the best val score
-                if train_init_policy:
-                    self.save_checkpoint(self.init_policy, self.ckpts_folder / 'init_last.ckpt')
-                if train_goal_policy:
-                    self.save_checkpoint(self.goal_policy, self.ckpts_folder / 'goal_last.ckpt')
-
-                if avg_val_score > best_val_score:
-                    best_val_score = avg_val_score
-                    best_train_it = curr_train_it
-
-                    if train_init_policy:
-                        self.save_checkpoint(self.init_policy, self.ckpts_folder / 'init_best.ckpt')
-                    if train_goal_policy:
-                        self.save_checkpoint(self.goal_policy, self.ckpts_folder / 'goal_best.ckpt')
-
-                # Update experiment_info.json
-                self.update_experiment_info(self.experiment_info_path, best_train_it, curr_train_it, best_val_score)
+                best_val_score, best_train_it = self._run_validation(train_init_policy, train_goal_policy, curr_train_it, best_train_it, best_val_score)
 
             # Increment counters
             curr_train_it += 1
@@ -461,16 +491,10 @@ class PolicyTrainer():
             if train_goal_policy:
                 self.goal_policy.curr_logging_it +=1
 
+        # Perform validation after training if args.val_period=-1 or if we didn't do validation at the last training iteration
+        if self.args.val_period == -1 or (curr_train_it-1) % self.args.val_period != 0:
+            best_val_score, best_train_it = self._run_validation(train_init_policy, train_goal_policy, curr_train_it, best_train_it, best_val_score)
 
-        # Perform validation after training unless we just did for the last train it
-
-
-        # <Return best policies>
-
-
-        # TODO
-        # After training, load and return policies with best ckpts
-        # For random policies, do not load ckpt
 
     # TODO
     # Test logging
