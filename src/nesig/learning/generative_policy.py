@@ -504,7 +504,9 @@ class PPOPolicy(GenerativePolicy):
         state_value_tensor = torch.stack(state_value_list) # Preserves gradients
         norm_return_tensor = torch.tensor(train_batch['norm_returns'], requires_grad=False, device=self.device) # Actually, requires_grad=False is not necessary
 
-        critic_loss = torch.mean( (state_value_tensor - norm_return_tensor)**2 ) # Critic loss: (V(s) - R(s,.))^2
+        # Critic loss: (V(s) - R(s,.))^2
+        # It is weighted by critic_loss_weight
+        critic_loss = torch.mean( (state_value_tensor - norm_return_tensor)**2 )*self.hparams['critic_loss_weight']
 
         # TODO
         # Use Generalized Advantage Estimation (GAE) instead of the discounted sum of rewards
