@@ -264,10 +264,14 @@ def parse_arguments():
                          help="If True (default), we use the weighted average the the init_state_diversity.")
     # We keep r_diff_weight to 1
     #parser.add_argument('--r-diff-weight', type=float, default=1.0, help="Weight of the difficulty reward in the total reward.")
-    parser.add_argument('--r-terminated-problem', type=float, default=1e6, help="Difficulty reward of a problem that has been terminated (either by timeout or memory out).")
-    parser.add_argument('--time-limit-planner', type=int, default=-1, help="Time limit for each problem in seconds. -1 means no time limit.")
-    parser.add_argument('--memory-limit-planner', type=int, default=-1, help="Memory limit for each problem in KB. -1 means no memory limit.")
-    parser.add_argument('--max-workers-planner', type=int, default=1, help="Number of parallel workers for the difficulty evaluator.")
+    parser.add_argument('--r-terminated-problem-train', type=float, default=1e6, help="Difficulty reward of a problem that has been terminated (either by timeout or memory out) during the training phase.")
+    parser.add_argument('--time-limit-planner-train', type=int, default=-1, help="Time limit for each problem in seconds during the training phase. -1 means no time limit.")
+    parser.add_argument('--memory-limit-planner-train', type=int, default=-1, help="Memory limit for each problem in KB during the training phase. -1 means no memory limit.")
+    parser.add_argument('--max-workers-planner-train', type=int, default=1, help="Number of parallel workers for the difficulty evaluator during the training phase.")
+    parser.add_argument('--r-terminated-problem-test', type=float, default=-1, help="Same as the analogous option above but for the test phase. If -1, we use the same value as for training.")
+    parser.add_argument('--time-limit-planner-test', type=int, default=-1, help="Same as the analogous option above but for the test phase. If -1, we use the same value as for training.")
+    parser.add_argument('--memory-limit-planner-test', type=int, default=-1, help="Same as the analogous option above but for the test phase. If -1, we use the same value as for training.")
+    parser.add_argument('--max-workers-planner-test', type=int, default=-1, help="Same as the analogous option above but for the test phase. If -1, we use the same value as for training.")
 
     # Subparsers
     # Init and goal policy may require different arguments (e.g., init policy is random but goal policy is PPO)
@@ -363,16 +367,26 @@ def validate_and_modify_args(args):
         raise ValueError("r_diversity_weight must be a non-negative float")
     if args.diversity_weight_val_score == -1:
         args.diversity_weight_val_score = args.r_diversity_weight
+    
     #if args.r_diff_weight < 0:
     #    raise ValueError("r_diff_weight must be a non-negative float")
-    if args.r_terminated_problem < 0:
-        raise ValueError("r_terminated_problem must be a non-negative float")
-    if args.time_limit_planner != -1 and args.time_limit_planner < 1:
-        raise ValueError("time_limit_planner must be either -1 or a positive integer")
-    if args.memory_limit_planner != -1 and args.memory_limit_planner < 1:
-        raise ValueError("memory_limit_planner must be either -1 or a positive integer")
-    if args.max_workers_planner < 1:
-        raise ValueError("max_workers_planner must be a positive integer")
+    if args.r_terminated_problem_train < 0:
+        raise ValueError("r_terminated_problem_train must be a non-negative float")
+    if args.time_limit_planner_train != -1 and args.time_limit_planner_train < 1:
+        raise ValueError("time_limit_planner_train must be either -1 or a positive integer")
+    if args.memory_limit_planner_train != -1 and args.memory_limit_planner_train < 1:
+        raise ValueError("memory_limit_planner_train must be either -1 or a positive integer")
+    if args.max_workers_planner_train < 1:
+        raise ValueError("max_workers_planner_train must be a positive integer")
+    if args.r_terminated_problem_test == -1:
+        args.r_terminated_problem_test = args.r_terminated_problem_train
+    if args.time_limit_planner_test == -1:
+        args.time_limit_planner_test = args.time_limit_planner_train
+    if args.memory_limit_planner_test == -1:
+        args.memory_limit_planner_test = args.memory_limit_planner_train
+    if args.max_workers_planner_test == -1:
+        args.max_workers_planner_test = args.max_workers_planner_train
+
     if args.init_policy=='random' and args.goal_policy=='random' and (args.train_mode!="skip" or args.test_mode=="skip"):
         raise ValueError("If both init and goal policies are random, then train_mode must be 'skip' and test_mode cannot be 'skip'")
 
@@ -444,19 +458,7 @@ def parse_domain_and_obtain_info(args) -> Dict:
 
     return parsed_domain_info
 
-def train(args, parsed_domain_info, experiment_id):
-    """
-    This function uses trainer.py to train and validate the init and goal policies.
-    The training and validation functionality depends on args.train_mode, whether the init 
-    and goal policies are PPO or Random, and the previous state of the experiment (if exists).
-    This function also creates the initial experiment_info.json.
-    """
-    experiment_folder_path = EXPERIMENTS_PATH / experiment_id
-    experiment_info_path = experiment_folder_path / EXPERIMENT_INFO_FILENAME
-
-    # Obtain train its of the best and last ckpts
-    # If the file does not exist, we set both train its to 0
-    # <NOTE>: we only increment the train its when we save the ckpts to disk
+def _read_previous_experiment_info(experiment_info_path):
     if experiment_info_path.exists():
         with open(experiment_info_path, 'r') as f:
             experiment_info = json.load(f)
@@ -468,8 +470,103 @@ def train(args, parsed_domain_info, experiment_id):
         last_train_it = 0
         best_val_score = -1 # We can safely do this because val score is always non-negative
 
-    # If we start training from scratch, we remove all experiment data
-    # and reset best_train_it and last_train_it to 0
+    return best_train_it, last_train_it, best_val_score
+
+def _get_ML_model_arguments(phase, args, parsed_domain_info):
+    """
+    It returns the arguments passed to the constructor of PPOPolicy.
+    phase is either 'init' or 'goal'
+    """
+    if args.ML_model == "NLM":
+        actor_class = NLMWrapperActor
+        critic_class = NLMWrapperCritic
+        actor_arguments = {'dummy_pddl_state' : parsed_domain_info['dummy_state_'+phase]}
+        critic_arguments = deepcopy(actor_arguments)
+    else:
+        raise ValueError("Right now, we only support NLM as the ML model")
+
+    return actor_class, actor_arguments, critic_class, critic_arguments
+
+def _get_policies_to_train(args, experiment_folder_path, parsed_domain_info, last_train_it):
+    # Obtain ML model arguments
+    init_actor_class, init_actor_arguments, init_critic_class, init_critic_arguments = _get_ML_model_arguments('init', args, parsed_domain_info)
+    goal_actor_class, goal_actor_arguments, goal_critic_class, goal_critic_arguments = _get_ML_model_arguments('goal', args, parsed_domain_info)
+
+    # Obtain init policy
+    if args.init_policy=='random':
+        init_policy = RandomPolicy(args.init_term_action_prob)
+    elif args.init_policy == 'PPO':
+        # train-mode=supersede -> we initialize the policy from scratch
+        # We also do this if there are no ckpts
+        if args.train_mode == "supersede" or last_train_it==0:
+            init_policy = PPOPolicy(phase='init', args=args, actor_class=init_actor_class, actor_arguments=init_actor_arguments,
+                                    critic_class=init_critic_class, critic_arguments=init_critic_arguments)
+        # train-mode=resume -> if training is finished, we load the best ckpt.
+        # Otherwise, we load the last ckpt
+        elif args.train_mode == "resume":
+            init_last_ckpt_path = experiment_folder_path / CKPTS_FOLDER_NAME / "init_last.ckpt"
+            init_policy = PPOPolicy.load_from_checkpoint(init_last_ckpt_path, phase='init', actor_class=init_actor_class, actor_arguments=init_actor_arguments,
+                                                        critic_class=init_critic_class, critic_arguments=init_critic_arguments)
+        else:
+            raise ValueError("Invalid value for 'args.train_mode' argument")
+    else:
+        raise ValueError("Invalid value for 'init-policy' argument")
+
+    # Obtain goal policy
+    if args.goal_policy=='random':
+        goal_policy = RandomPolicy(args.goal_term_action_prob)
+    elif args.goal_policy == 'PPO':
+        if args.train_mode == "supersede" or last_train_it==0:
+            goal_policy = PPOPolicy(phase='goal', args=args, actor_class=goal_actor_class, actor_arguments=goal_actor_arguments,
+                                    critic_class=goal_critic_class, critic_arguments=goal_critic_arguments)
+        elif args.train_mode == "resume":
+            goal_last_ckpt_path = experiment_folder_path / CKPTS_FOLDER_NAME / "goal_last.ckpt"
+            goal_policy = PPOPolicy.load_from_checkpoint(goal_last_ckpt_path, phase='goal', actor_class=goal_actor_class, actor_arguments=goal_actor_arguments,
+                                                        critic_class=goal_critic_class, critic_arguments=goal_critic_arguments)
+        else:
+            raise ValueError("Invalid value for 'args.train_mode' argument")
+    else:
+        raise ValueError("Invalid value for 'goal-policy' argument")
+
+    return init_policy, goal_policy
+
+def _create_problem_generator(stage, args, parsed_domain_info, init_policy, goal_policy):
+    """
+    We differentiate between the problem generator used for training and the one used for testing.
+    """
+    assert stage in ('train', 'test'), "stage must be either 'train' or 'test'"
+
+    if stage == 'train':
+        difficulty_evaluator = PlannerEvaluator(parsed_domain_info['domain_path'], TRAIN_PLANNER_ARGS, args.time_limit_planner_train,
+                                                args.memory_limit_planner_train, args.max_workers_planner_train, args.r_terminated_problem_train)
+        diversity_evaluator = InitStateDiversityEvaluator(args.weighted_average_diversity, args.r_diversity_weight)
+    else:
+        difficulty_evaluator = PlannerEvaluator(parsed_domain_info['domain_path'], TEST_PLANNER_ARGS, args.time_limit_planner_test,
+                                                args.memory_limit_planner_test, args.max_workers_planner_test, args.r_terminated_problem_test)
+        # TODO
+        # Use FeaturesDiversityEvaluator for testing
+        diversity_evaluator = InitStateDiversityEvaluator(args.weighted_average_diversity, args.r_diversity_weight)
+    
+    problem_generator = ProblemGenerator(parsed_domain_info['parser'], init_policy, goal_policy, parsed_domain_info['consistency_evaluator'],
+                                            parsed_domain_info['goal_predicates'], parsed_domain_info['init_state_info'],
+                                            parsed_domain_info['allowed_virtual_objects'], difficulty_evaluator, diversity_evaluator)
+    return problem_generator
+
+def train(args, parsed_domain_info, experiment_id):
+    """
+    This function uses trainer.py to train and validate the init and goal policies.
+    The training and validation functionality depends on args.train_mode, whether the init 
+    and goal policies are PPO or Random, and the previous state of the experiment (if exists).
+    This function also creates the initial experiment_info.json.
+    """
+    experiment_folder_path = EXPERIMENTS_PATH / experiment_id
+    experiment_info_path = experiment_folder_path / EXPERIMENT_INFO_FILENAME
+
+    # Obtain train its of the best and last ckpts and the best val score
+    # If the file does not exist, we set both train its to 0 and best val score to -1
+    best_train_it, last_train_it, best_val_score = _read_previous_experiment_info(experiment_info_path)
+
+    # If supersede, reset experiment info and data
     if args.train_mode == "supersede" or last_train_it==0: # last_train_it==0 -> training started but was stopped before saving the first ckpt
         remove_if_exists(experiment_folder_path / LOGS_FOLDER_NAME)
         remove_if_exists(experiment_folder_path / CKPTS_FOLDER_NAME)
@@ -478,110 +575,78 @@ def train(args, parsed_domain_info, experiment_id):
         last_train_it = 0
         best_val_score = -1
 
-    # Obtain ML_model arguments
-    if hasattr(args, 'ML_model'): # If both policies are random, ML_model argument is not parsed
-        if args.ML_model == "NLM":
-            init_actor_class = goal_actor_class = NLMWrapperActor
-            init_critic_class = goal_critic_class = NLMWrapperCritic
+    # We rewrite experiment_info.json regardless of the train mode
+    # This way, we make sure this info is up to date with the last training and/or test experiments
+    save_experiment_info(experiment_info_path, args, experiment_id, best_train_it, last_train_it, best_val_score)
+    
+    # Check if we should skip training
+    if args.train_mode == 'skip' or (args.init_policy=='random' and args.goal_policy=='random') or last_train_it >= args.steps:
+        return
 
-            init_actor_arguments = {'dummy_pddl_state' : parsed_domain_info['dummy_state_init']}
-            init_critic_arguments = deepcopy(init_actor_arguments)
+    # If we train the policies, then the test experiments are no longer valid (i.e., best ckpt may change),
+    # so we remove them
+    remove_if_exists(experiment_folder_path / TEST_FOLDER_NAME)
 
-            goal_actor_arguments = {'dummy_pddl_state' : parsed_domain_info['dummy_state_goal']}
-            goal_critic_arguments = deepcopy(goal_actor_arguments)
-        else:
-            raise ValueError("Right now, we only support NLM as the ML model")
+    # Obtain policies to train (Note: random policies are not trained)
+    init_policy, goal_policy = _get_policies_to_train(args, experiment_folder_path, parsed_domain_info, last_train_it)
 
-    # Obtain init and goal policies
+    # Create policy trainer
+    problem_generator = _create_problem_generator('train', args, parsed_domain_info, init_policy, goal_policy)
+    train_init_policy = (args.init_policy != 'random')
+    train_goal_policy = (args.goal_policy != 'random')
+    policy_trainer = PolicyTrainer(experiment_folder_path, problem_generator, init_policy, goal_policy)
+
+    # Train
+    policy_trainer.train_and_val(train_init_policy, train_goal_policy, last_train_it+1, args.steps)
+
+def _get_policies_to_test(args, experiment_folder_path, parsed_domain_info):
+    # Obtain ML model arguments
+    init_actor_class, init_actor_arguments, init_critic_class, init_critic_arguments = _get_ML_model_arguments('init', args, parsed_domain_info)
+    goal_actor_class, goal_actor_arguments, goal_critic_class, goal_critic_arguments = _get_ML_model_arguments('goal', args, parsed_domain_info)
+
+    # Obtain init policy    
     if args.init_policy=='random':
         init_policy = RandomPolicy(args.init_term_action_prob)
     elif args.init_policy == 'PPO':
         init_best_ckpt_path = experiment_folder_path / CKPTS_FOLDER_NAME / "init_best.ckpt"
-        init_last_ckpt_path = experiment_folder_path / CKPTS_FOLDER_NAME / "init_last.ckpt"
-
-        # train-mode=skip -> we load the best ckpt
-        if args.train_mode == "skip":
-            if init_best_ckpt_path.exists():
-                init_policy = PPOPolicy.load_from_checkpoint(init_best_ckpt_path, phase='init', actor_class=init_actor_class, actor_arguments=init_actor_arguments,
-                                                            critic_class=init_critic_class, critic_arguments=init_critic_arguments)
-            else:
-                init_policy = None
-        # train-mode=supersede -> we initialize the policy from scratch
-        # We also do this if there are no ckpts
-        # Note: we only check last_train_it==0 because, above in the code, we set last_train_it=0 if train_mode=supersede
-        elif last_train_it==0:
-            init_policy = PPOPolicy(phase='init', args=args, actor_class=init_actor_class, actor_arguments=init_actor_arguments,
-                                    critic_class=init_critic_class, critic_arguments=init_critic_arguments)
-        # train-mode=resume -> if training is finished, we load the best ckpt.
-        # Otherwise, we load the last ckpt
-        elif args.train_mode == "resume":
-            ckpt_to_load = init_last_ckpt_path if args.steps > last_train_it else init_best_ckpt_path
-            init_policy = PPOPolicy.load_from_checkpoint(ckpt_to_load, phase='init', actor_class=init_actor_class, actor_arguments=init_actor_arguments,
+        if init_best_ckpt_path.exists():
+            init_policy = PPOPolicy.load_from_checkpoint(init_best_ckpt_path, phase='init', actor_class=init_actor_class, actor_arguments=init_actor_arguments,
                                                         critic_class=init_critic_class, critic_arguments=init_critic_arguments)
+        else:
+            init_policy = None
     else:
         raise ValueError("Invalid value for 'init-policy' argument")
 
+    # Obtain goal policy
     if args.goal_policy=='random':
         goal_policy = RandomPolicy(args.goal_term_action_prob)
     elif args.goal_policy == 'PPO':
         goal_best_ckpt_path = experiment_folder_path / CKPTS_FOLDER_NAME / "goal_best.ckpt"
-        goal_last_ckpt_path = experiment_folder_path / CKPTS_FOLDER_NAME / "goal_last.ckpt"
-
-        if args.train_mode == "skip":
-            if goal_best_ckpt_path.exists():
-                goal_policy = PPOPolicy.load_from_checkpoint(goal_best_ckpt_path, phase='goal', actor_class=goal_actor_class, actor_arguments=goal_actor_arguments,
-                                                            critic_class=goal_critic_class, critic_arguments=goal_critic_arguments)
-            else:
-                goal_policy = None
-        elif last_train_it==0:
-            goal_policy = PPOPolicy(phase='goal', args=args, actor_class=goal_actor_class, actor_arguments=goal_actor_arguments,
-                                    critic_class=goal_critic_class, critic_arguments=goal_critic_arguments)
-        elif args.train_mode == "resume":
-            ckpt_to_load = goal_last_ckpt_path if args.steps > last_train_it else goal_best_ckpt_path
-            goal_policy = PPOPolicy.load_from_checkpoint(ckpt_to_load, phase='goal', actor_class=goal_actor_class, actor_arguments=goal_actor_arguments,
+        if goal_best_ckpt_path.exists():
+            goal_policy = PPOPolicy.load_from_checkpoint(goal_best_ckpt_path, phase='goal', actor_class=goal_actor_class, actor_arguments=goal_actor_arguments,
                                                         critic_class=goal_critic_class, critic_arguments=goal_critic_arguments)
+        else:
+            goal_policy = None
     else:
         raise ValueError("Invalid value for 'goal-policy' argument")
 
-    # We rewrite experiment_info.json regardless of the train mode
-    # This way, we make sure this info is up to date with the last training and/or test experiments
-    save_experiment_info(experiment_info_path, args, experiment_id, best_train_it, last_train_it, best_val_score)
+    return init_policy, goal_policy
 
-    # We don't train if:
-    # Both policies are random
-    # train-mode=skip
-    # We have reached --steps training its
-    if args.train_mode == 'skip' or (args.init_policy=='random' and args.goal_policy=='random') or last_train_it >= args.steps:
-        return
-    else: # Perform training
-        # Create problem generator
-        difficulty_evaluator = PlannerEvaluator(parsed_domain_info['domain_path'], TRAIN_PLANNER_ARGS, args.time_limit_planner,
-                                                args.memory_limit_planner, args.max_workers_planner, args.r_terminated_problem)
-        diversity_evaluator = InitStateDiversityEvaluator(args.weighted_average_diversity, args.r_diversity_weight)
-        problem_generator = ProblemGenerator(parsed_domain_info['parser'], init_policy, goal_policy, parsed_domain_info['consistency_evaluator'],
-                                             parsed_domain_info['goal_predicates'], parsed_domain_info['init_state_info'],
-                                             parsed_domain_info['allowed_virtual_objects'], difficulty_evaluator, diversity_evaluator)
-
-        # Create PolicyTrainer
-        train_init_policy = (args.init_policy != 'random')
-        train_goal_policy = (args.goal_policy != 'random')
-        policy_trainer = PolicyTrainer(experiment_folder_path, problem_generator, init_policy, goal_policy)
-
-        # If we train the policies, then the test experiments are no longer valid (i.e., best ckpt may change),
-        # so we remove them
-        remove_if_exists(experiment_folder_path / TEST_FOLDER_NAME)
-
-        # Train
-        policy_trainer.train_and_val(train_init_policy, train_goal_policy, last_train_it+1, args.steps)
-
-def test(args, parsed_domain_info, experiment_id, best_init_policy, best_goal_policy):
+def test(args, parsed_domain_info, experiment_id):
     """
     This function uses tester.py to test the init and goal policies.
     The test functionality depends on args.test_mode.
     """
+    experiment_folder_path = EXPERIMENTS_PATH / experiment_id
+    experiment_info_path = experiment_folder_path / EXPERIMENT_INFO_FILENAME
+    test_folder_path = experiment_folder_path / TEST_FOLDER_NAME
+    
     # Skip test experiments altogether if args.test_mode="skip"
     if args.test_mode == "skip":
         return
+
+    # Obtain the policies to test
+    best_init_policy, best_goal_policy = _get_policies_to_test(args, experiment_folder_path, parsed_domain_info)
 
     # If some policy is None, that means we skipped training but best ckpt could not be loaded for some policy
     # In this case, we cannot perform test. We either skip the test phase (if --raise-error-test is False)
@@ -592,19 +657,9 @@ def test(args, parsed_domain_info, experiment_id, best_init_policy, best_goal_po
         else:
             return
         
-    experiment_folder_path = EXPERIMENTS_PATH / experiment_id
-    test_folder_path = experiment_folder_path / TEST_FOLDER_NAME
-
-    # Initialize PolicyTester
-    # TODO: use a different time and memory limit for test and train?
-    difficulty_evaluator = PlannerEvaluator(parsed_domain_info['domain_path'], TEST_PLANNER_ARGS, args.time_limit_planner,
-                                            args.memory_limit_planner, args.max_workers_planner, args.r_terminated_problem)
-    # TODO: use features diversity evaluator for test
-    diversity_evaluator = InitStateDiversityEvaluator(args.weighted_average_diversity, args.r_diversity_weight)
-    problem_generator = ProblemGenerator(parsed_domain_info['parser'], best_init_policy, best_goal_policy,
-                                        parsed_domain_info['consistency_evaluator'], parsed_domain_info['goal_predicates'],
-                                        parsed_domain_info['init_state_info'], parsed_domain_info['allowed_virtual_objects'],
-                                        difficulty_evaluator, diversity_evaluator)
+    # TODO
+    # Initialize policy tester
+    problem_generator = _create_problem_generator('test', args, parsed_domain_info, init_policy, goal_policy)
     policy_tester = PolicyTester(args, problem_generator, best_init_policy, best_goal_policy)
 
     # Perform test experiments for each problem size (depending on args.test_mode)
@@ -637,11 +692,11 @@ def main(args):
 
     # Perform training (and validation) phase
     # This phase may be skipped depending on train-mode argument
-    best_init_policy, best_goal_policy = train(args, parsed_domain_info, experiment_id)
+    train(args, parsed_domain_info, experiment_id)
 
     # Perform test phase
     # This phase may be skipped depending on test-mode argument
-    test(args, parsed_domain_info, experiment_id, best_init_policy, best_goal_policy)
+    test(args, parsed_domain_info, experiment_id)
 
 
 
