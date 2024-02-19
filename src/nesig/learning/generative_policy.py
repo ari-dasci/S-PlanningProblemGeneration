@@ -339,14 +339,14 @@ class PPOPolicy(GenerativePolicy):
                 depending on whether this is the init or goal policy.
         """
         # Calculate the mean and std of the returns for the trajectories of the current train it
-        curr_returns = [sample['return'] for t in trajectories for sample in t]
-        curr_mean_return = np.mean(curr_returns)
-        curr_std_return = np.std(curr_returns)
+        curr_returns = torch.tensor([sample['return'] for t in trajectories for sample in t], dtype=torch.float32, device=self.device)
+        curr_mean_return = torch.mean(curr_returns)
+        curr_std_return = torch.std(curr_returns)
 
         # First train it -> initialize moving averages
         if self.moving_mean_return.item == -1.0:
-            self.moving_mean_return = torch.tensor(curr_mean_return, dtype=torch.float32, device=self.device)
-            self.moving_std_return = torch.tensor(curr_std_return, dtype=torch.float32, device=self.device)
+            self.moving_mean_return = curr_mean_return
+            self.moving_std_return = curr_std_return
 
         # Normalize trajectory returns
         for i in range(len(trajectories)):
@@ -355,8 +355,8 @@ class PPOPolicy(GenerativePolicy):
 
         # Update moving averages
         moving_mean_coeff = self.hparams['moving_mean_return_coeff']
-        self.moving_mean_return = torch.tensor(moving_mean_coeff*self.moving_mean_return + (1-moving_mean_coeff)*curr_mean_return, dtype=torch.float32, device=self.device)
-        self.moving_std_return = torch.tensor(moving_mean_coeff*self.moving_std_return + (1-moving_mean_coeff)*curr_std_return, dtype=torch.float32, device=self.device)
+        self.moving_mean_return = moving_mean_coeff*self.moving_mean_return + (1-moving_mean_coeff)*curr_mean_return
+        self.moving_std_return = moving_mean_coeff*self.moving_std_return + (1-moving_mean_coeff)*curr_std_return
 
     def calculate_entropy(self, _action_log_probs:torch.Tensor, applicable_actions:List[Tuple[str, Tuple[int]]]) \
         -> torch.Tensor:
