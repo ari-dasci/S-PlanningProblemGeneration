@@ -15,13 +15,7 @@ import re
 import math
 
 from src.nesig.symbolic.pddl_problem import PDDLProblem
-from src.nesig.constants import PLANNER_SCRIPTS_PATH
-
-# Auxiliary function that only removes a file if it exists (otherwise it does nothing)
-def silentremove(path):
-    if os.path.exists(path) and os.path.isfile(path):
-        os.remove(path)
-
+from src.nesig.constants import PLANNER_SCRIPTS_PATH, remove_if_exists
 
 class DifficultyEvaluator(ABC):
     """
@@ -203,10 +197,10 @@ class PlannerEvaluator(DifficultyEvaluator):
                             raise Exception(f"> Unexpected planner output: {planner_output}")
 
         # Delete planner files
-        silentremove(problem_path)
-        silentremove(err_path)
-        silentremove(log_path)
-        silentremove(plan_path)
-        silentremove(negative_path)
+        remove_if_exists(problem_path)
+        remove_if_exists(err_path)
+        remove_if_exists(log_path)
+        remove_if_exists(plan_path)
+        remove_if_exists(negative_path)
 
         return num_expanded_nodes

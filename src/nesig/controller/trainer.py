@@ -6,13 +6,14 @@ Functionality for training and validating the init and goal policies.
 from pathlib import Path
 from typing import Tuple, List, Dict, Union, Optional
 from random import randint
+from copy import deepcopy
 import math
 import torch
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 import pytorch_lightning as pl
 
-from src.nesig.constants import EXPERIMENT_INFO_FILENAME, LOGS_FOLDER_NAME, CKPTS_FOLDER_NAME, VAL_FOLDER_NAME
+from src.nesig.constants import EXPERIMENT_INFO_FILENAME, LOGS_FOLDER_NAME, CKPTS_FOLDER_NAME, VAL_FOLDER_NAME, remove_if_exists
 from src.nesig.learning.generative_policy import GenerativePolicy
 from src.nesig.symbolic.problem_generator import ProblemGenerator
 from src.nesig.learning.data_utils import CommonDataset, common_collate_fn
@@ -184,7 +185,7 @@ class PolicyTrainer():
             if self.device.type == 'cuda':
                 policy.to('cuda')
             
-    def _log_metrics(self, phase:str, x_value:int, problems, problem_info_list, trajectories=None, score=None) -> Dict:
+    def log_metrics(self, phase:str, x_value:int, problems, problem_info_list, trajectories=None, score=None) -> Dict:
         """
         Log problem related info and metrics for the training, validation and test phases.
         Additionally, it returns a dictionary with all the metrics logged.
@@ -259,20 +260,20 @@ class PolicyTrainer():
         mean_atoms_dict_goal = {t : mean_atoms for t, mean_atoms in zip(pred_types, mean_num_atoms_each_type_goal)}
         std_atoms_dict_goal = {t : std_atoms for t, std_atoms in zip(pred_types, std_num_atoms_each_type_goal)}
 
-        log_and_save(writer, log_dict, 'Consistency Percentage', perc_consistency, x_value)
-        log_and_save(writer, log_dict, 'Mean Diversity', mean_diversity, x_value)
-        log_and_save(writer, log_dict, 'Mean Difficulty', mean_difficulty, x_value)
-        log_and_save(writer, log_dict, 'Std Difficulty', std_difficulty, x_value)
-        log_and_save(writer, log_dict, 'Mean Actions Init', mean_init_actions, x_value)
-        log_and_save(writer, log_dict, 'Std Actions Init', std_init_actions, x_value)
-        log_and_save(writer, log_dict, 'Mean Actions Goal', mean_goal_actions, x_value)
-        log_and_save(writer, log_dict, 'Std Actions Goal', std_goal_actions, x_value)
-        log_and_save(writer, log_dict, 'Mean Num Objects', mean_objs_dict, x_value)
-        log_and_save(writer, log_dict, 'Std Num Objects', std_objs_dict, x_value)
-        log_and_save(writer, log_dict, 'Mean Num Atoms Init', mean_atoms_dict_init, x_value)
-        log_and_save(writer, log_dict, 'Std Num Atoms Init', std_atoms_dict_init, x_value)
-        log_and_save(writer, log_dict, 'Mean Num Atoms Goal', mean_atoms_dict_goal, x_value)
-        log_and_save(writer, log_dict, 'Std Num Atoms Goal', std_atoms_dict_goal, x_value)
+        log_and_save(writer, log_dict, 'Consistency percentage', perc_consistency, x_value)
+        log_and_save(writer, log_dict, 'Mean diversity', mean_diversity, x_value)
+        log_and_save(writer, log_dict, 'Mean difficulty', mean_difficulty, x_value)
+        log_and_save(writer, log_dict, 'Std difficulty', std_difficulty, x_value)
+        log_and_save(writer, log_dict, 'Mean actions init', mean_init_actions, x_value)
+        log_and_save(writer, log_dict, 'Std actions init', std_init_actions, x_value)
+        log_and_save(writer, log_dict, 'Mean actions goal', mean_goal_actions, x_value)
+        log_and_save(writer, log_dict, 'Std actions goal', std_goal_actions, x_value)
+        log_and_save(writer, log_dict, 'Mean num objects', mean_objs_dict, x_value)
+        log_and_save(writer, log_dict, 'Std num objects', std_objs_dict, x_value)
+        log_and_save(writer, log_dict, 'Mean num atoms init', mean_atoms_dict_init, x_value)
+        log_and_save(writer, log_dict, 'Std num atoms init', std_atoms_dict_init, x_value)
+        log_and_save(writer, log_dict, 'Mean num atoms goal', mean_atoms_dict_goal, x_value)
+        log_and_save(writer, log_dict, 'Std num atoms goal', std_atoms_dict_goal, x_value)
 
         # < Training information >
         if trajectories is not None:   
@@ -281,38 +282,87 @@ class PolicyTrainer():
             mean_norm_return = sum([sample['norm_return'] for sample in sample_list]) / len(sample_list)
             mean_advantage = sum([sample['advantage'] for sample in sample_list]) / len(sample_list)
 
-            log_and_save(writer, log_dict, 'Mean Return', mean_return, x_value)
-            log_and_save(writer, log_dict, 'Mean Norm Return', mean_norm_return, x_value)
-            log_and_save(writer, log_dict, 'Mean Advantage', mean_advantage, x_value)
+            log_and_save(writer, log_dict, 'Mean return', mean_return, x_value)
+            log_and_save(writer, log_dict, 'Mean norm return', mean_norm_return, x_value)
+            log_and_save(writer, log_dict, 'Mean advantage', mean_advantage, x_value)
 
         # < Validation and test information >
         if score is not None:
-            log_and_save(writer, log_dict, 'Score', score, x_value)
+            log_and_save(writer, log_dict, 'Average score', score, x_value)
 
         writer.close()
 
         return log_dict
 
-    def calculate_val_score(self, problem_info_list:List[Dict]) -> float:
-        num_problems = len(problem_info_list)
+    def save_problems_and_metrics(self, folder:Path, problems:List[PDDLProblem], problem_info_list:List[Dict],
+                                  global_info:Dict, problem_names:Optional[List[str]]=None):
+        """
+        We save to folder the generated problems along with their info (problem_info_list and global_info) in results.json.
+        If problem_names is not provided, problem names are indexed like problem_0, problem_1, etc.
+        """
+        json_filename = 'results.json'
+        assert problem_names is None or len(problem_names) == len(problems), "problem_names must have the same length as problems or be None"
 
-        # Calculate mean log difficulty among problems
-        log_diff_sum = 0
+        problem_names = [f'problem_{i}' for i in range(len(problems))] if problem_names is None else problem_names
+
+        # Save the problems in PDDL format to disk
+        for problem, name in zip(problems, problem_names):
+            with open(folder / f'{name}.pddl', 'w') as f:
+                f.write(problem.dump_to_pddl(name))
+
+        # Save the problem and global info to results.json
+        info_dict = deepcopy(global_info)
+        info_dict['Problem Results'] = dict()
+
+        for p_info, name in zip(problem_info_list, problem_names):
+            info_dict['Problem Results'][name] = p_info
+
+        # Save info_dict to results.json
+        with open(folder / json_filename, 'w') as f:
+            json.dump(info_dict, f, indent=2)
+
+    def calculate_val_scores(self, problem_info_list:List[Dict]) -> Tuple[float, Tuple[float]]:
+        """
+        Returns the avg_val_score and the val_score for each problem.
+        """
+        val_scores = []
+
         for p_info in problem_info_list:
             curr_diff = p_info['difficulty']
 
             if isinstance(curr_diff, list): # Same formula as for calculating r_difficulty (except that we multiply by r_diff_weight)
-                log_diff_sum += sum([math.log(d+1) for d in curr_diff])/len(curr_diff) 
+                diff_score = sum([math.log(d+1) for d in curr_diff]) / len(curr_diff)
             else:
-                log_diff_sum += math.log(curr_diff+1)
+                diff_score = math.log(curr_diff+1)
         
-        mean_log_diff = log_diff_sum / num_problems
+            diversity_score = p_info['diversity']*self.args.diversity_weight_val_score
 
-        # Calculate mean diversity among problems
-        mean_diversity = sum([p_info['diversity'] for p_info in problem_info_list]) / num_problems
+            val_scores.append(diff_score+diversity_score)
 
-        val_score = mean_log_diff + self.args.diversity_weight_val_score*mean_diversity
-        return val_score
+        avg_val_score = sum(val_scores) / len(val_scores)
+
+        return avg_val_score, tuple(val_scores)
+
+    def save_checkpoint(self, model:pl.LightningModule, ckpt_path:Path):
+        # We need a "hacky" way to do this
+        # We create a dummy trainer and associate it with a model by "performing" training for 0 epochs     
+        remove_if_exists(ckpt_path) # Remove the old checkpoint if it exists, just in case
+
+        dummy_trainer = pl.Trainer(max_epochs=0, enable_checkpointing=False, enable_progress_bar=False, enable_model_summary=False)
+        dummy_trainer.fit(model)
+        dummy_trainer.save_checkpoint(ckpt_path) 
+
+    def update_experiment_info(self, filepath, best_train_it, last_train_it, best_val_score):
+        # We load the experiment info in filepath, update it and save it again to the same file
+        with open(filepath, 'r') as f:
+            experiment_info = json.load(f)
+
+        experiment_info['best_train_it'] = best_train_it
+        experiment_info['last_train_it'] = last_train_it
+        experiment_info['best_val_score'] = best_val_score
+
+        with open(filepath, 'w') as f:
+            json.dump(experiment_info, f, indent=2)
 
     def train(self, train_init_policy:bool, train_goal_policy:bool, start_it:int, end_it:int) -> Tuple[GenerativePolicy, GenerativePolicy]:
         """
@@ -324,6 +374,15 @@ class PolicyTrainer():
         if not (train_init_policy or train_goal_policy):
             raise ValueError("At least one policy must be trained")
         
+        # Read the it and score of the model with best val_score from experiment_info.json
+        if self.experiment_info_path.exists():
+            with open(self.experiment_info_path, 'r') as f:
+                experiment_info = json.load(f)
+                best_train_it = experiment_info['best_train_it']
+                best_val_score = experiment_info['best_val_score']              
+        else:
+            raise FileNotFoundError(f"File {self.experiment_info_path} not found")
+
         for curr_train_it in range(start_it, end_it):
             # <Generate problems and trajectories>
             problems, problem_info_list, trajectories = self._generate_problems_and_trajectories(self.args.num_problems_train,
@@ -346,7 +405,7 @@ class PolicyTrainer():
             # To solve this, when resuming training we should read the logs folder and obtain (using the tensorboard library)
             # the train_it (N) of the most recent log. Then, we don't log until curr_train_it > N.
             if curr_train_it % self.args.log_period == 0: # Log every log_period iterations
-                self._log_metrics('train', curr_train_it, problems, problem_info_list, trajectories=trajectories)
+                self.log_metrics('train', curr_train_it, problems, problem_info_list, trajectories=trajectories)
 
             # <Perform validation epoch and save checkpoints>
             # TODO
@@ -357,17 +416,41 @@ class PolicyTrainer():
                                                                                                 self.args.max_init_actions_val,
                                                                                                 self.args.max_goal_actions_val)
 
-                # Calculate val score
-                val_score = self.calculate_val_score(val_problem_info_list)
+                # Calculate the val score for each problem and the average score
+                avg_val_score, val_scores = self.calculate_val_scores(val_problem_info_list)
+                
+                # Add the score to each problem info
+                for p_info, score in zip(val_problem_info_list, val_scores): # Add the val_score of each problem to its problem_info
+                    p_info['score'] = score
 
-                # Log
-                val_log_dict = self._log_metrics('val', curr_train_it, problems, problem_info_list, score=val_score)
+                # Log validation metrics
+                val_log_dict = self.log_metrics('val', curr_train_it, problems, problem_info_list, score=avg_val_score)
+                val_log_dict['Train it'] = curr_train_it # We also save to disk the train_it of the validation epoch
 
-                # Save ckpt (best ckpt is saved if val_score is better than 'best_val_score' in experiment_info.json)
+                # Save problems and their metrics to disk
+                val_folder_curr_it = self.val_folder / str(curr_train_it)
+                self.save_problems_and_metrics(val_folder_curr_it, val_problems, val_problem_info_list, val_log_dict)
+
+                # Save checkpoints 
+                # 'last' checkpoints are always saved with the most recent models
+                # 'best' checkpoints are saved only if the current val score is better than the best val score
+                if train_init_policy:
+                    self.save_checkpoint(self.init_policy, self.ckpts_folder / 'init_last.ckpt')
+                if train_goal_policy:
+                    self.save_checkpoint(self.goal_policy, self.ckpts_folder / 'goal_last.ckpt')
+
+                if avg_val_score > best_val_score:
+                    best_val_score = avg_val_score
+                    best_train_it = curr_train_it
+
+                    if train_init_policy:
+                        self.save_checkpoint(self.init_policy, self.ckpts_folder / 'init_best.ckpt')
+                    if train_goal_policy:
+                        self.save_checkpoint(self.goal_policy, self.ckpts_folder / 'goal_best.ckpt')
 
                 # Update experiment_info.json
+                self.update_experiment_info(self.experiment_info_path, best_train_it, curr_train_it, best_val_score)
 
-                # Save problems to disk and their info to results.json
 
         # Perform validation after training unless we just did for the last train it
 

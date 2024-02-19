@@ -69,17 +69,15 @@ For each experiment we save the following:
         - logs/train -> Train logs, logs/val -> Validation logs
     - checkpoints: lightning checkpoints saved during training
         The checkpoint names are: init_best.ckpt, goal_best.ckpt, init_last.ckpt, goal_last.ckpt
-    - validation: folder with all the validation info. validation/<it> contains the validation info for the ckpt with train_steps=<it>
-        - validation/it/problems: problems generated during the validation epoch
+    - validation: folder with all the validation info. validation/<it> contains the validation info and problems for the ckpt with train_steps=<it>
+        - validation/it/problem_i.pddl: pddl file of the i-th problem
         - validation/it/results.json:
             - info associated with each problem (num_actions_init,num_actions_goal,consistency,difficulty,diversity,val_score)
-            - mean info among all problems
-            - extra info (it value)
+            - global info among all problems
     - test: folder with all the test info. For a given experiment, we generate problems of different sizes given by
             --max-init-actions-test and --max-goal-actions-test
-        - test/<N_M>/problems: problems generated during test for max_init_actions=N and max_goal_actions=M
+        - test/<N_M>/problem_i.pddl: pddl file of the i-th problem
         - test/<N_M>/results.json: info associated with each problem and the average (as validation/it/results.json)
-        - test/info.json: extra info shared by all test results (is this needed?)
 """
 
 import argparse
@@ -106,22 +104,6 @@ from src.nesig.metrics.difficulty import PlannerEvaluator
 from src.nesig.metrics.diversity import InitStateDiversityEvaluator, FeaturesDiversityEvaluator
 from src.nesig.controller.trainer import PolicyTrainer
 from src.nesig.controller.tester import PolicyTester
-
-def remove_if_exists(path : Path):
-    """
-    Removes the folder or file given by the path if it exists. Otherwise, does nothing.
-    """
-    # File
-    if os.path.isfile(path) or os.path.islink(path):
-        try:
-            os.remove(path)
-        except OSError as e:
-            if e.errno != errno.ENOENT: # errno.ENOENT = no such file or directory
-                raise # re-raise exception if a different error occurred
-    # Folder
-    elif os.path.isdir(path):
-        shutil.rmtree(path) # Remove folder and contents
-
 
 def parse_arguments():
 

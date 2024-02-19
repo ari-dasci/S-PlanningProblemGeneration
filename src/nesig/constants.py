@@ -127,3 +127,21 @@ ADDITIONAL_EXPERIMENT_INFO = {
 }
 
 ID_LENGTH = 10 # Number of characters of the hash to use as experiment id
+
+# --- Functions ---
+# We also include functions that are used throughout the codebase
+
+def remove_if_exists(path : Path):
+    """
+    Removes the folder or file given by the path if it exists. Otherwise, does nothing.
+    """
+    # File
+    if os.path.isfile(path) or os.path.islink(path):
+        try:
+            os.remove(path)
+        except OSError as e:
+            if e.errno != errno.ENOENT: # errno.ENOENT = no such file or directory
+                raise # re-raise exception if a different error occurred
+    # Folder
+    elif os.path.isdir(path):
+        shutil.rmtree(path) # Remove folder and contents
