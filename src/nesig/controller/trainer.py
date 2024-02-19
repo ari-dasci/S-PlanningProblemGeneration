@@ -13,28 +13,21 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 import pytorch_lightning as pl
 
-from src.nesig.constants import EXPERIMENT_INFO_FILENAME, LOGS_FOLDER_NAME, CKPTS_FOLDER_NAME, VAL_FOLDER_NAME, remove_if_exists
+from src.nesig.constants import EXPERIMENT_INFO_FILENAME, LOGS_FOLDER_NAME, CKPTS_FOLDER_NAME, VAL_FOLDER_NAME,
+                                TEST_FOLDER_NAME, remove_if_exists
 from src.nesig.learning.generative_policy import GenerativePolicy
 from src.nesig.symbolic.problem_generator import ProblemGenerator
 from src.nesig.learning.data_utils import CommonDataset, common_collate_fn
 
 class PolicyTrainer():
     """
-    Class that encapsulates all functionality needed to train and validate a model.
+    Class that encapsulates all functionality needed to train, validate and test a model.
     It receives in the constructor an init and goal policy (either initialized from zero
-    or loaded from a checkpoint). Then, it trains and validates the policies. After training
-    finishes, it returns the trained policies.
+    or loaded from a checkpoint). Then, it can be used for training and validating the policies
+    and/or testing them.
     In case either the init or goal policy is a RandomPolicy and does not require training,
     we provide the flag "train_*_policy" in the method train().
-    
-    It does the following:
-        - Generate problems and trajectories with problem_generator.py
-        - Process the generated data (e.g., summing and discounting rewards)
-        - Train and validate the generative policies
-        - Save checkpoints to disk
-        - Logging
     """
-
 
     def __init__(self, args, experiment_folder_path:Path, problem_generator:ProblemGenerator,
                  init_policy:GenerativePolicy, goal_policy:GenerativePolicy):
@@ -495,7 +488,29 @@ class PolicyTrainer():
         if self.args.val_period == -1 or (curr_train_it-1) % self.args.val_period != 0:
             best_val_score, best_train_it = self._run_validation(train_init_policy, train_goal_policy, curr_train_it, best_train_it, best_val_score)
 
+    def test(self, folder_curr_experiment:Path, max_init_actions:int, max_goal_actions:int):
+        """
+        Run a test experiment with the current policies.
+        We assume that self.init_policy and self.goal_policy have been loaded from the best ckpts.
+        This method generates problems of size (max_init_actions, max_goal_actions), logs the metrics and saves the problems and metrics to disk.
+        """
+        problems, problem_info_list, trajectories = self._generate_problems_and_trajectories(self.args.num_problems_test,
+                                                                                             max_init_actions,
+                                                                                             max_goal_actions)
 
-    # TODO
-    # Test logging
-    # Log everything as in validation, and use as global step the problem size of the current experiment
+        # Calculate the test score for each problem and the average score
+        # At the moment, we use the val_score formula to calculate the test score
+        avg_score, scores = self.calculate_val_scores(problem_info_list)
+        
+        # Add the score to each problem info
+        for p_info, score in zip(problem_info_list, scores):
+            p_info['score'] = score
+
+        # Log test metrics
+        # For the log charts, the x value of each metric corresponds to the problem size (measured by max_init_actions)
+        log_dict = self.log_metrics('test', max_init_actions, problems, problem_info_list, score=avg_score)
+        log_dict['Max init actions'] = max_init_actions # We also save the (max) problem size of the experiment
+        log_dict['Max goal actions'] = max_goal_actions
+
+        # Save problems and their metrics to disk
+        self.save_problems_and_metrics(folder_curr_experiment, problems, problem_info_list, log_dict)

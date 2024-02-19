@@ -4,7 +4,7 @@
 > train_and_test.py
 
 This script is the one that should be called for training,validating and/or testing the different models.
-It parses the command-line arguments and uses functionality from the modules trainer.py and tester.py.
+It parses the command-line arguments and uses functionality from the module trainer.py.
 This script should be executed as a module: python -m src.nesig.controller.train_and_test
 
 ----- Training+validation (we skip this phase if both init and goal policies are random)
@@ -66,7 +66,7 @@ For each experiment we save the following:
                             (experiment_id, train it of the current best and last ckpts and constants in ADDITIONAL_EXPERIMENT_INFO)   
         - experiment_info is rewritten whenever we do training (supersede/resume)
     - logs: tensorboard logs saved during training and validation
-        - logs/train -> Train logs, logs/val -> Validation logs
+        - logs/train -> Train logs, logs/val -> Validation logs, logs/test -> Test logs
     - checkpoints: lightning checkpoints saved during training
         The checkpoint names are: init_best.ckpt, goal_best.ckpt, init_last.ckpt, goal_last.ckpt
     - validation: folder with all the validation info. validation/<it> contains the validation info and problems for the ckpt with train_steps=<it>
@@ -103,7 +103,6 @@ from src.nesig.metrics.consistency_evaluators.dummy_consistency import DummyCons
 from src.nesig.metrics.difficulty import PlannerEvaluator
 from src.nesig.metrics.diversity import InitStateDiversityEvaluator, FeaturesDiversityEvaluator
 from src.nesig.controller.trainer import PolicyTrainer
-from src.nesig.controller.tester import PolicyTester
 
 def parse_arguments():
 
@@ -552,7 +551,7 @@ def _create_problem_generator(stage, args, parsed_domain_info, init_policy, goal
                                             parsed_domain_info['allowed_virtual_objects'], difficulty_evaluator, diversity_evaluator)
     return problem_generator
 
-def train(args, parsed_domain_info, experiment_id):
+def train_and_val(args, parsed_domain_info, experiment_id):
     """
     This function uses trainer.py to train and validate the init and goal policies.
     The training and validation functionality depends on args.train_mode, whether the init 
@@ -634,7 +633,7 @@ def _get_policies_to_test(args, experiment_folder_path, parsed_domain_info):
 
 def test(args, parsed_domain_info, experiment_id):
     """
-    This function uses tester.py to test the init and goal policies.
+    This function loads and tests the initial and goal policies.
     The test functionality depends on args.test_mode.
     """
     experiment_folder_path = EXPERIMENTS_PATH / experiment_id
@@ -657,10 +656,9 @@ def test(args, parsed_domain_info, experiment_id):
         else:
             return
         
-    # TODO
-    # Initialize policy tester
+    # Initialize policy trainer
     problem_generator = _create_problem_generator('test', args, parsed_domain_info, init_policy, goal_policy)
-    policy_tester = PolicyTester(args, problem_generator, best_init_policy, best_goal_policy)
+    policy_trainer = PolicyTrainer(args, experiment_folder_path, problem_generator, best_init_policy, best_goal_policy)
 
     # Perform test experiments for each problem size (depending on args.test_mode)
     for max_init_actions, max_goal_actions in zip(args.max_init_actions_test, args.max_goal_actions_test):
@@ -668,14 +666,12 @@ def test(args, parsed_domain_info, experiment_id):
         # If it does, we skip the test (if args.test_mode="missing") or remove it and perform the test again
         # (if args.test_mode="supersede")
         test_folder_path_curr_size = test_folder_path / f"{max_init_actions}_{max_goal_actions}"
-        curr_experiment_exists = test_folder_path_curr_size.exists()
 
         if args.test_mode=="supersede":
             remove_if_exists(test_folder_path_curr_size)
 
-        # Perform the experiment unless arg.test_mode="missing" and it already exists
-        if not curr_experiment_exists or args.test_mode=="supersede":
-            policy_tester.test(test_folder_path_curr_size, max_init_actions, max_goal_actions)
+        if not test_folder_path_curr_size.exists(): # if test_mode="supersede", we will have removed the folder and exists() will return False
+            policy_trainer.test(test_folder_path_curr_size, max_init_actions, max_goal_actions)
 
 def main(args):
     # We set the working directory to the base folder of the repository
@@ -692,45 +688,11 @@ def main(args):
 
     # Perform training (and validation) phase
     # This phase may be skipped depending on train-mode argument
-    train(args, parsed_domain_info, experiment_id)
+    train_and_val(args, parsed_domain_info, experiment_id)
 
     # Perform test phase
     # This phase may be skipped depending on test-mode argument
     test(args, parsed_domain_info, experiment_id)
-
-
-
-
-
-
-
-    # TODO
-    # Check if experiment_id exists and what to do according to train-mode and test-mode
-
-    # What to consider
-    # train-mode and test-mode
-    # RandomPolicy vs PPOPolicy
-    # Whether the file exists or not
-    # For resume, whether --steps has been reached
-
-    # We load the model in order to check the current number of steps. Then, we pass the loaded model to Trainer()
-
-    """
-    - For RL, since dataset changes, I need to create a new trainer for each PPO epoch.
-      Therefore I do everything manually:
-        - Controlling the current training step, also when a ckpt is loaded
-        - Using the correct step for the TensorboardLogger
-    
-    
-    """
-
-    # NOTE: Make sure the model and all tensors are on the GPU or CPU from the start
-
-    # TODO
-    # When parsing domain_info from constants.py, we need to convert init_state_info from a tuple to PDDLState
-
-    # TODO
-    # When saving info to json, should we save parameters not parsed in command line? (e.g., in constants.py) -> I don't think so
 
 if __name__ == '__main__':
     args = parse_arguments()
