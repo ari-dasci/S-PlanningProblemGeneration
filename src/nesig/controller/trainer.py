@@ -6,6 +6,7 @@ Functionality for training and validating the init and goal policies.
 from pathlib import Path
 from typing import Tuple, List, Dict, Union, Optional
 from random import randint
+import math
 import torch
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -263,6 +264,27 @@ class PolicyTrainer():
 
         writer.close()
 
+    def calculate_val_score(self, problem_info_list:List[Dict]) -> float:
+        num_problems = len(problem_info_list)
+
+        # Calculate mean log difficulty among problems
+        log_diff_sum = 0
+        for p_info in problem_info_list:
+            curr_diff = p_info['difficulty']
+
+            if isinstance(curr_diff, list): # Same formula as for calculating r_difficulty (except that we multiply by r_diff_weight)
+                log_diff_sum += sum([math.log(d+1) for d in curr_diff])/len(curr_diff) 
+            else:
+                log_diff_sum += math.log(curr_diff+1)
+        
+        mean_log_diff = log_diff_sum / num_problems
+
+        # Calculate mean diversity among problems
+        mean_diversity = sum([p_info['diversity'] for p_info in problem_info_list]) / num_problems
+
+        val_score = mean_log_diff + self.args.diversity_weight_val_score*mean_diversity
+        return val_score
+
     def train(self, train_init_policy:bool, train_goal_policy:bool, start_it:int, end_it:int) -> Tuple[GenerativePolicy, GenerativePolicy]:
         """
         <Main method of the class>
@@ -275,7 +297,7 @@ class PolicyTrainer():
         
         for curr_train_it in range(start_it, end_it):
             # <Generate problems and trajectories>
-            problems, problem_info_list, trajectories = self._generate_problems_and_trajectories(self.args.trajectories,
+            problems, problem_info_list, trajectories = self._generate_problems_and_trajectories(self.args.num_problems_train,
                                                                                                  self.args.max_init_actions_train,
                                                                                                  self.args.max_goal_actions_train)
 
@@ -302,12 +324,20 @@ class PolicyTrainer():
             # Save best_train_it and last_train_it in experiment_info.json only when checkpoints are saved
             # If args.val_period=-1, we perform validation and save checkpoints only at the end of training
             if self.args.val_period != -1 and curr_train_it % self.args.val_period == 0:
-                # TODO
-                # Add argument for trajectories_val, which should be larger
-                val_problems, val_problem_info_list, val_trajectories = self._generate_problems_and_trajectories(self.args.trajectories,
+                val_problems, val_problem_info_list, val_trajectories = self._generate_problems_and_trajectories(self.args.num_problems_val,
                                                                                                 self.args.max_init_actions_val,
                                                                                                 self.args.max_goal_actions_val)
 
+                # Calculate val score
+                val_score = self.calculate_val_score(val_problem_info_list)
+
+                # Log
+
+                # Save ckpt (best ckpt is saved if val_score is better than 'best_val_score' in experiment_info.json)
+
+                # Update experiment_info.json
+
+                # Save problems to disk and their info to results.json
 
         # Perform validation after training unless we just did for the last train it
 

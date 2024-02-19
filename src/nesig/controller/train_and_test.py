@@ -11,8 +11,7 @@ This script should be executed as a module: python -m src.nesig.controller.train
 
 We train a model for --steps train its. 
 Every --val-period steps, we perform one validation epoch. In this validation epoch, we generate a large number of 
-problems with the current model and obtain its validation score, equal to the average among all problems of the
-r_total_reward of the last sample of each trajectory (log(diff+1) + r_diversity_weight*diversity_reward).
+problems with the current model and obtain its validation score, equal to the mean (log(diff+1) + diversity_weight_val_score*diversity_score).
 We save the most recent model checkpoint and the one with the best validation score.
 The train() function returns the init and goal policies with best val score during training
 (if they are random, we return the untrained policies).
@@ -213,8 +212,10 @@ def parse_arguments():
     parser.add_argument('--log-period', type=int, default=10, help="Number of training steps between logging to tensorboard.")
     parser.add_argument('--disc-factor', type=float, default=1.0, help="Discount factor (gamma) for the total reward.")
     parser.add_argument('--batch-size', type=int, default=64, help="Minibatch size during training.")
-    parser.add_argument('--trajectories', type=int, default=25, help=("Number of trajectories (problems) to generate in each training step"
-                                                                      "for obtaining the training data."))
+    parser.add_argument('--num-problems-train', type=int, default=25, help=("Number of trajectories (problems) to generate in each training step"
+                                                                            "for obtaining the training data."))
+    parser.add_argument('--num-problems-val', type=int, default=100, help="Number of problems to generate every time we perform validation.")
+    parser.add_argument('--num-problems-test', type=int, default=100, help="Number of problems to generate for each test experiment for each problem size.")                                                                        
     parser.add_argument('--min-samples-train', type=int, default=64, help=("Minimum number of collected samples in order to perform a PPO step."
                                                                             "If the number of samples is smaller, we skip the current training step for the init/goal policy"))
     parser.add_argument('--grad-clip', type=float, default=1.0, help="Gradient clipping value. Use -1 for no gradient clipping.")
@@ -274,9 +275,12 @@ def parse_arguments():
                               "If 'dummy', we use the dummy consistency evaluator which does not check consistency."))
     parser.add_argument('--r-eventual-consistency', type=float, default=-1, help="Penalization given when a problem violates eventual consistency")
     parser.add_argument('--r-diversity-weight', type=float, default=50, help="Weight of the diversity reward in the total reward.")
+    parser.add_argument('--diversity-weight-val-score', type=float, default=-1, help=("Weight of the diversity score used for calculating the val score."
+                                                                                      "If -1, we use the same weight as in --r-diversity-weight."))
     parser.add_argument('--weighted-average-diversity', type=str2bool, default=True,
                          help="If True (default), we use the weighted average the the init_state_diversity.")
-    parser.add_argument('--r-diff-weight', type=float, default=1.0, help="Weight of the difficulty reward in the total reward.")
+    # We keep r_diff_weight to 1
+    #parser.add_argument('--r-diff-weight', type=float, default=1.0, help="Weight of the difficulty reward in the total reward.")
     parser.add_argument('--r-terminated-problem', type=float, default=1e6, help="Difficulty reward of a problem that has been terminated (either by timeout or memory out).")
     parser.add_argument('--time-limit-planner', type=int, default=-1, help="Time limit for each problem in seconds. -1 means no time limit.")
     parser.add_argument('--memory-limit-planner', type=int, default=-1, help="Memory limit for each problem in KB. -1 means no memory limit.")
@@ -346,8 +350,12 @@ def validate_and_modify_args(args):
         raise ValueError("Discount factor must be a float in the range [0, 1]")
     if args.batch_size < 1:
         raise ValueError("Batch size must be a positive integer")
-    if args.trajectories < 1:
-        raise ValueError("Number of trajectories must be a positive integer") 
+    if args.num_problems_train < 1:
+        raise ValueError("Number of training problems must be a positive integer")
+    if args.num_problems_val < 1:
+        raise ValueError("Number of validation problems must be a positive integer")
+    if args.num_problems_test < 1:
+        raise ValueError("Number of test problems must be a positive integer") 
     if args.min_samples_train < 1:
         raise ValueError("Minimum number of samples must be a positive integer")
     if args.grad_clip == -1:
@@ -368,8 +376,10 @@ def validate_and_modify_args(args):
         raise ValueError("r_eventual_consistency must be a non-positive float")
     if args.r_diversity_weight < 0:
         raise ValueError("r_diversity_weight must be a non-negative float")
-    if args.r_diff_weight < 0:
-        raise ValueError("r_diff_weight must be a non-negative float")
+    if args.diversity_weight_val_score == -1:
+        args.diversity_weight_val_score = args.r_diversity_weight
+    #if args.r_diff_weight < 0:
+    #    raise ValueError("r_diff_weight must be a non-negative float")
     if args.r_terminated_problem < 0:
         raise ValueError("r_terminated_problem must be a non-negative float")
     if args.time_limit_planner != -1 and args.time_limit_planner < 1:
@@ -395,7 +405,7 @@ def get_experiment_id(args):
 
     return full_hash
 
-def save_experiment_info(filepath, args, experiment_id, best_train_it, last_train_it):
+def save_experiment_info(filepath, args, experiment_id, best_train_it, last_train_it, best_val_score):
     # We only save those arguments which are not in EXCLUDED_ARGS_ID
     experiment_info = {k: v for k, v in vars(args).items() if k not in EXCLUDED_ARGS_ID}
     
@@ -403,6 +413,7 @@ def save_experiment_info(filepath, args, experiment_id, best_train_it, last_trai
     experiment_info['experiment_id'] = experiment_id
     experiment_info['best_train_it'] = best_train_it
     experiment_info['last_train_it'] = last_train_it
+    experiment_info['best_val_score'] = best_val_score
     experiment_info.update(ADDITIONAL_EXPERIMENT_INFO)
 
     # If the file already exists, we overwrite it
@@ -467,18 +478,21 @@ def train(args, parsed_domain_info, experiment_id) -> Tuple[Optional[GenerativeP
             experiment_info = json.load(f)
             best_train_it = experiment_info['best_train_it']
             last_train_it = experiment_info['last_train_it']
-    else:
+            best_val_score = experiment_info['best_val_score']
+    else:  
         best_train_it = 0
         last_train_it = 0
+        best_val_score = -1 # We can safely do this because val score is always non-negative
 
     # If we start training from scratch, we remove all experiment data
     # and reset best_train_it and last_train_it to 0
-    if args.train_mode == "supersede" or last_train_it==0:
+    if args.train_mode == "supersede" or last_train_it==0: # last_train_it==0 -> training started but was stopped before saving the first ckpt
         remove_if_exists(experiment_folder_path / LOGS_FOLDER_NAME)
         remove_if_exists(experiment_folder_path / CKPTS_FOLDER_NAME)
         remove_if_exists(experiment_folder_path / VAL_FOLDER_NAME)
         best_train_it = 0
         last_train_it = 0
+        best_val_score = -1
 
     # Obtain ML_model arguments
     if hasattr(args, 'ML_model'): # If both policies are random, ML_model argument is not parsed
@@ -547,7 +561,7 @@ def train(args, parsed_domain_info, experiment_id) -> Tuple[Optional[GenerativeP
 
     # We rewrite experiment_info.json regardless of the train mode
     # This way, we make sure this info is up to date with the last training and/or test experiments
-    save_experiment_info(experiment_info_path, args, experiment_id, best_train_it, last_train_it)
+    save_experiment_info(experiment_info_path, args, experiment_id, best_train_it, last_train_it, best_val_score)
 
     # We don't train if:
     # Both policies are random
@@ -558,8 +572,7 @@ def train(args, parsed_domain_info, experiment_id) -> Tuple[Optional[GenerativeP
     else: # Perform training
         # Create problem generator
         difficulty_evaluator = PlannerEvaluator(parsed_domain_info['domain_path'], TRAIN_PLANNER_ARGS, args.time_limit_planner,
-                                                args.memory_limit_planner, args.max_workers_planner, args.r_terminated_problem,
-                                                args.r_diff_weight)
+                                                args.memory_limit_planner, args.max_workers_planner, args.r_terminated_problem)
         diversity_evaluator = InitStateDiversityEvaluator(args.weighted_average_diversity, args.r_diversity_weight)
         problem_generator = ProblemGenerator(parsed_domain_info['parser'], init_policy, goal_policy, parsed_domain_info['consistency_evaluator'],
                                              parsed_domain_info['goal_predicates'], parsed_domain_info['init_state_info'],
@@ -603,8 +616,7 @@ def test(args, parsed_domain_info, experiment_id, best_init_policy, best_goal_po
     # Initialize PolicyTester
     # TODO: use a different time and memory limit for test and train?
     difficulty_evaluator = PlannerEvaluator(parsed_domain_info['domain_path'], TEST_PLANNER_ARGS, args.time_limit_planner,
-                                            args.memory_limit_planner, args.max_workers_planner, args.r_terminated_problem,
-                                            args.r_diff_weight)
+                                            args.memory_limit_planner, args.max_workers_planner, args.r_terminated_problem)
     # TODO: use features diversity evaluator for test
     diversity_evaluator = InitStateDiversityEvaluator(args.weighted_average_diversity, args.r_diversity_weight)
     problem_generator = ProblemGenerator(parsed_domain_info['parser'], best_init_policy, best_goal_policy,
