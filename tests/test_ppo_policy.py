@@ -67,7 +67,7 @@ class TestPPOPolicy(unittest.TestCase):
         PPOPolicy.add_model_specific_args(parser, 'init') # Add init and goal arguments
         PPOPolicy.add_model_specific_args(parser, 'goal')
         NLMWrapper.add_model_specific_args(parser)
-        args = parser.parse_args(['--device','cpu', '--init-entropy-coeffs', '0.2, 0.1, 100', '--goal-entropy-coeffs', '0.3, 0.05, 200',
+        args = parser.parse_args(['--device','gpu', '--init-entropy-coeffs', '0.2, 0.1, 100', '--goal-entropy-coeffs', '0.3, 0.05, 200',
                                   '--moving-mean-return-coeff', '0.9', '--critic-loss-weight', '0.1', '--log-period', '1000'])
 
         self.init_policy = PPOPolicy('init', args, NLMWrapperActor, {'dummy_pddl_state':self.dummy_init_state}, NLMWrapperCritic,
@@ -395,7 +395,7 @@ class TestPPOPolicy(unittest.TestCase):
         dataset = CommonDataset(sample_list)
         dataloader = DataLoader(dataset=dataset, batch_size=5, shuffle=True, collate_fn=common_collate_fn, num_workers=0) 
 
-        trainer = pl.Trainer(max_epochs=1, accelerator='cpu', enable_checkpointing=False, logger=None)
+        trainer = pl.Trainer(max_epochs=1, accelerator='cuda', enable_checkpointing=False, logger=None)
         trainer.fit(self.init_policy, dataloader)
 
 if __name__ == '__main__':
