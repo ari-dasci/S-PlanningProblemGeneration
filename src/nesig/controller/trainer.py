@@ -92,7 +92,7 @@ class PolicyTrainer():
             for j in range(len(trajectories[i])-1, -1, -1):
                 total_reward_curr_state = trajectories[i][j]['consistency_reward'] + trajectories[i][j]['difficulty_reward'] + \
                                           trajectories[i][j]['diversity_reward']
-                return_curr_state = total_reward_curr_state + self.args.disc_factor * return_curr_state
+                return_curr_state = total_reward_curr_state + self.args.disc_factor*return_curr_state
 
                 trajectories[i][j]['return'] = return_curr_state
 
@@ -121,13 +121,14 @@ class PolicyTrainer():
         TODO: use Generalized Advantage Estimation (GAE) instead of the simple advantage A(s,a) = R(s,a) - V(s).
         """
         for i in range(len(trajectories)):
-            # Calculate V(s) in parallel for all the samples of the i-th trajectory
-            internal_states = [sample['internal_state'] for sample in trajectories[i]]
-            state_values = policy.calculate_state_values(internal_states)
+            if len(trajectories[i]) > 0: # Skip empty trajectories
+                # Calculate V(s) in parallel for all the samples of the i-th trajectory
+                internal_states = [sample['internal_state'] for sample in trajectories[i]]
+                state_values = policy.calculate_state_values(internal_states)
 
-            # Calculate the advantage for each sample of the i-th trajectory as A(s,a) = R(s,a) - V(s)
-            for j in range(len(trajectories[i])):
-                trajectories[i][j]['advantage'] = trajectories[i][j]['norm_return'] - state_values[j]
+                # Calculate the advantage for each sample of the i-th trajectory as A(s,a) = R(s,a) - V(s)
+                for j in range(len(trajectories[i])):
+                    trajectories[i][j]['advantage'] = trajectories[i][j]['norm_return'] - state_values[j]
 
     def _process_trajectories(self, trajectories:List[List[Dict]], problem_info_list:List[Dict],
                               train_init_policy:bool, train_goal_policy:bool) -> Tuple[List[List[Dict]], List[List[Dict]]]:

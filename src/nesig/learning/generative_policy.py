@@ -66,7 +66,9 @@ class GenerativePolicy(ABC, pl.LightningModule):
         """
         We obtain the action probabilities using self.forward() and then we sample actions according
         to these probabilities.
+        NOTE: we assume that the problems are not an empty list (i.e., there is at least one problem in the list).
         """
+        # self.forward checks that there is at least one problem in the list
         log_probs_list, internal_state_list = self.forward(problems, applicable_actions_list)
 
         action_list = []
@@ -114,6 +116,7 @@ class RandomPolicy(GenerativePolicy):
         <Note>: actually, we return log_probs instead of probabilities.
         """
         assert len(problems) == len(applicable_actions_list), "Number of problems and number of lists of applicable actions must be the same"
+        assert len(problems) > 0, "There must be at least one problem"
         assert all([len(applicable_actions) > 0 for applicable_actions in applicable_actions_list]), \
             "Each list of applicable actions must be non-empty"
 
@@ -444,6 +447,11 @@ class PPOPolicy(GenerativePolicy):
         used by self.wrapper. In the latter case, when doing self.wrapper.forward() the model will not need to convert the
         problems to the internal state representation (i.e., we will avoid doing the same work twice).
         """
+        assert len(problems) == len(applicable_actions_list), "Number of problems and number of lists of applicable actions must be the same"
+        assert len(problems) > 0, "There must be at least one problem"
+        assert all([len(applicable_actions) > 0 for applicable_actions in applicable_actions_list]), \
+            "Each list of applicable actions must be non-empty"
+
         log_probs_list, internal_state_list = self.actor(problems, applicable_actions_list)
         return log_probs_list, internal_state_list
     
@@ -453,7 +461,10 @@ class PPOPolicy(GenerativePolicy):
         It returns them as a list of torch Tensors, where the i-th tensor contains the state value V(s)
         of problem i as a zero-dimensional torch.Tensor containing a single float.
         As in forward(), the list of problems can be given either as PDDLProblem instances or as the internal state representations.
+        NOTE: we assume that problems is not an empty list (i.e., there is at least one problem in the list).
         """
+        assert len(problems) > 0, "There must be at least one problem"
+
         state_value_list, internal_state_list = self.critic(problems)
         return state_value_list, internal_state_list
 
@@ -525,7 +536,6 @@ class PPOPolicy(GenerativePolicy):
         log_probs_list, _ = self.forward(train_batch['internal_states'], train_batch['applicable_actions_list']) # We pass internal state to avoid recomputing them from the PDDLProblems
         # Second, we obtain the log_prob of the chosen action for each sample, and exponentiate it to obtain the probability
         chosen_actions_probs_curr_policy = torch.exp(torch.stack([t[ind] for t,ind in zip(log_probs_list,train_batch['chosen_action_inds'])])) # Preserves gradients
-
 
         # The value obtained with this other method should be the same!
         # We obtain, with the current actor weights, the log_prob of the chosen action for each batch sample
