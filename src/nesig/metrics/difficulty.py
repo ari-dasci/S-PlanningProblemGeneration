@@ -164,9 +164,14 @@ class PlannerEvaluator(DifficultyEvaluator):
             plan_path = problem_path.with_suffix('.plan')
             negative_path = problem_path.with_suffix('.negative')
 
-            # Call the planner
+            # Obtain the paths of the scripts needed to call the planner           
             limit_sh_path = Path(PLANNER_SCRIPTS_PATH, 'limit.sh')
             fd_path = Path(PLANNER_SCRIPTS_PATH, 'fd-latest-clean')
+            # We make sure that the paths exist
+            assert limit_sh_path.exists(), f"Path {limit_sh_path} does not exist"
+            assert fd_path.exists(), f"Path {fd_path} does not exist"
+
+            # Call the planner
             planner_call = f"""{limit_sh_path} -t {self.time_limit} -m {self.memory_limit} -- "{fd_path} -o '{planner_arg}'" -- {problem_path} {self.domain_path}"""
 
             # We redirect stdout and stderr so that they are not printed to the console

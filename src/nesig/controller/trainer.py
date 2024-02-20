@@ -108,10 +108,12 @@ class PolicyTrainer():
 
         # We normalize the returns for the init and goal phase separately
         # If a policy is Random, we don't normalize the returns of the corresponding phase
-        norm_init_trajectories = self.init_policy.normalize_return_trajectories(init_trajectories) if train_init_policy else init_trajectories
-        norm_goal_trajectories = self.goal_policy.normalize_return_trajectories(goal_trajectories) if train_goal_policy else goal_trajectories
-       
-        return norm_init_trajectories, norm_goal_trajectories
+        if train_init_policy:
+            self.init_policy.normalize_return_trajectories(init_trajectories)
+        if train_goal_policy:
+            self.goal_policy.normalize_return_trajectories(goal_trajectories)
+
+        return init_trajectories, goal_trajectories
 
     def _calculate_advantage_trajectories(self, policy, trajectories):
         """

@@ -681,6 +681,10 @@ def main(args):
     # The path of __file__ is FOLDER_BASE/src/nesig/controller/train.py
     os.chdir(dirname(dirname(dirname(dirname(abspath(__file__))))))
 
+    # TODO
+    # Make sure that working directory is S-PlanningProblemGeneration
+    print("Working dir:", os.getcwd())
+
     # Reproducibility
     seed_everything(args.seed, workers=True)
 

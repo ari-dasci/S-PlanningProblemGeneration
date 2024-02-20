@@ -2,26 +2,53 @@
 
 import unittest
 from copy import deepcopy
+from pathlib import Path
+import numpy as np
 import torch
 import math
 import os
+from os.path import dirname, abspath
 import argparse
 from lifted_pddl import Parser
+from pytorch_lightning import seed_everything
 
 from src.nesig.learning.generative_policy import PPOPolicy
 from src.nesig.learning.model_wrapper import NLMWrapper, NLMWrapperActor, NLMWrapperCritic
-from src.nesig.constants import TERM_ACTION
+from src.nesig.constants import TERM_ACTION, TRAIN_PLANNER_ARGS
 from src.nesig.symbolic.pddl_state import PDDLState
 from src.nesig.symbolic.pddl_problem import PDDLProblem
+from src.nesig.metrics.difficulty import PlannerEvaluator
+from src.nesig.metrics.diversity import InitStateDiversityEvaluator, FeaturesDiversityEvaluator
+from src.nesig.symbolic.problem_generator import ProblemGenerator
+from src.nesig.metrics.consistency_evaluators.logistics_consistency import ConsistencyEvaluatorLogistics
+
+"""
+TODO
+
+- Test that, in train_step(), when we use chosen_action_index to obtain the log_prob of the chosen action (from the NLM
+forward pass), this log_prob is the same as the log_prob stored in the dataset ('action_log_prob')
+
+- Normalize_return_trajectories
+	- Check that coeffs are updated
+
+- Check load and manually save checkpoints
+
+- Check that, in training, policies of problem_generator are also modified
+"""
 
 class TestPPOPolicy(unittest.TestCase):
 
     def setUp(self):
-        # Initialize PPOPolicy
-        self.parser = Parser()
-        os.chdir(os.path.dirname(os.path.abspath(__file__)))
-        self.parser.parse_domain('../data/domains/logistics-domain.pddl')
+        # We set the working directory to the base folder of the repository
+        # This is needed for calling the planner, since otherwise it won't find the path to planner-scripts
+        os.chdir(dirname(dirname(abspath(__file__))))
+        # Reproducility
+        seed_everything(1, workers=True)
 
+        # Initialize PPOPolicy
+        domain_path = './data/domains/logistics-domain.pddl'
+        self.parser = Parser()
+        self.parser.parse_domain(domain_path)
         self.dummy_init_state = PDDLState(self.parser.types, self.parser.type_hierarchy, 
                                           self.parser.predicates)
         # Obtain the domain actions
@@ -31,10 +58,12 @@ class TestPPOPolicy(unittest.TestCase):
 
         parser = argparse.ArgumentParser()
         parser.add_argument('--device', type=str, choices=['cpu', 'gpu'])
+        parser.add_argument('--moving-mean-return-coeff', type=float)
         PPOPolicy.add_model_specific_args(parser, 'init') # Add init and goal arguments
         PPOPolicy.add_model_specific_args(parser, 'goal')
         NLMWrapper.add_model_specific_args(parser)
-        args = parser.parse_args(['--device','cpu', '--init-entropy-coeffs', '0.2, 0.1, 100', '--goal-entropy-coeffs', '0.3, 0.05, 200'])
+        args = parser.parse_args(['--device','cpu', '--init-entropy-coeffs', '0.2, 0.1, 100', '--goal-entropy-coeffs', '0.3, 0.05, 200',
+                                  '--moving-mean-return-coeff', '0.9'])
 
         self.init_policy = PPOPolicy('init', args, NLMWrapperActor, {'dummy_pddl_state':self.dummy_init_state}, NLMWrapperCritic,
                                      {'dummy_pddl_state':self.dummy_init_state})
@@ -67,6 +96,15 @@ class TestPPOPolicy(unittest.TestCase):
         self.applicable_actions_goal = [(('drive', (2,1,0)), ('fly',(3,4,2)), TERM_ACTION),
                                         (('load', (2,3,1)), ('unload', (4,3,2)))]
 
+        # Create problem generator
+        self.consistency_evaluator = ConsistencyEvaluatorLogistics(self.parser.types, self.parser.type_hierarchy, self.parser.predicates)
+        self.difficulty_evaluator = PlannerEvaluator(Path(domain_path), TRAIN_PLANNER_ARGS)
+        self.diversity_evaluator = InitStateDiversityEvaluator(True, 1.0)
+        self.problem_generator = ProblemGenerator(self.parser, self.init_policy, self.goal_policy, self.consistency_evaluator,
+                                            (('at', ('package','location')),), None,
+                                            ('city', 'location', 'airport', 'package', 'truck', 'airplane'),
+                                            self.difficulty_evaluator, self.diversity_evaluator)
+
     def _compare_tensor_list(self, a, b):
         self.assertEqual(len(a), len(b))
         for i in range(len(a)):
@@ -75,6 +113,35 @@ class TestPPOPolicy(unittest.TestCase):
             else:
                 self.assertTrue(torch.equal(a[i], b[i]))
     
+    def _calculate_return_trajectories(self, trajectories, disc_factor=1.0):
+        # Copied from trainer._calculate_return_trajectories
+        # Trajectories are modified in-place
+        for i in range(len(trajectories)):
+            return_curr_state = 0 # R_t = r_t + gamma * R_{t+1}
+
+            for j in range(len(trajectories[i])-1, -1, -1):
+                total_reward_curr_state = trajectories[i][j]['consistency_reward'] + trajectories[i][j]['difficulty_reward'] + \
+                                          trajectories[i][j]['diversity_reward']
+                return_curr_state = total_reward_curr_state + disc_factor * return_curr_state
+
+                trajectories[i][j]['return'] = return_curr_state
+
+    def _normalize_return_trajectories(self, trajectories, problem_info_list):
+        """
+        Copied from trainer._normalize_return_trajectories
+        """  
+        # We split the trajectories in the init and goal generation phase
+        init_phase_lengths = [problem_info['init_phase_length'] for problem_info in problem_info_list]
+        init_trajectories = [t[:length] for t, length in zip(trajectories, init_phase_lengths)]
+        goal_trajectories = [t[length:] for t, length in zip(trajectories, init_phase_lengths)]
+
+        # We normalize the returns for the init and goal phase separately
+        # If a policy is Random, we don't normalize the returns of the corresponding phase
+        self.init_policy.normalize_return_trajectories(init_trajectories)
+        self.goal_policy.normalize_return_trajectories(goal_trajectories)
+       
+        return init_trajectories, goal_trajectories
+
     def test_wrapper_classes(self):
         self.assertTrue(isinstance(self.init_policy.actor, NLMWrapperActor))
         self.assertTrue(isinstance(self.goal_policy.actor, NLMWrapperActor))
@@ -221,6 +288,74 @@ class TestPPOPolicy(unittest.TestCase):
         applicable_actions8 = (('action_1', (1,0)),('action_3', (3,2)),('action_2', (4,5)), TERM_ACTION)
         entropy_8 = self.init_policy.calculate_entropy(action_log_probs8, applicable_actions8).item()
         self.assertGreater(entropy_8, entropy_7)
+
+    def test_normalize_return_trajectories(self):
+        # Obtain a set of trajectories
+        problems, problem_info_list, trajectories = self.problem_generator.generate_problems(25,10,10)
+        self.assertEqual(len(trajectories), 25)
+        self.assertEqual(len(problem_info_list), 25)
+        self.assertEqual(len(problems), 25)
+
+        # Calculate their return
+        self._calculate_return_trajectories(trajectories) # Works
+
+        """
+        for sample in trajectories[8]:
+            print({'consistency_reward' : sample['consistency_reward'],
+                'difficulty_reward' : sample['difficulty_reward'],
+                'diversity_reward' : sample['diversity_reward'],
+                'return' : sample['return']})
+        """
+
+        # Before calling policy.normalize_return_trajectories, moving_mean_return and moving_std_return must be -1.0
+        self.assertEqual(self.init_policy.moving_mean_return.item(), -1.0)
+        self.assertEqual(self.init_policy.moving_std_return.item(), -1.0)
+        self.assertEqual(self.goal_policy.moving_mean_return.item(), -1.0)
+        self.assertEqual(self.goal_policy.moving_std_return.item(), -1.0)
+
+        # Call normalize_return_trajectories
+        norm_init_trajectories, norm_goal_trajectories = self._normalize_return_trajectories(trajectories, problem_info_list)
+
+        # Check lengths of init and goal trajectories
+        self.assertEqual(len(norm_init_trajectories), 25)
+        self.assertEqual(len(norm_goal_trajectories), 25)
+        for i in range(len(problems)):
+            self.assertEqual(len(norm_init_trajectories[i]), problem_info_list[i]['init_phase_length'])
+            self.assertEqual(len(norm_goal_trajectories[i]), problem_info_list[i]['goal_phase_length'])
+            self.assertEqual(len(norm_init_trajectories[i])+len(norm_goal_trajectories[i]), len(trajectories[i]))
+
+        # Calculate statistics of the returns with and without normalization
+        init_returns = [sample['return'] for traj in norm_init_trajectories for sample in traj]
+        goal_returns = [sample['return'] for traj in norm_goal_trajectories for sample in traj]
+        init_norm_returns = [sample['norm_return'] for traj in norm_init_trajectories for sample in traj]
+        goal_norm_returns = [sample['norm_return'] for traj in norm_goal_trajectories for sample in traj]
+            
+        init_returns_mean = np.mean(init_returns)
+        init_returns_std = np.std(init_returns)
+        goal_returns_mean = np.mean(goal_returns)
+        goal_returns_std = np.std(goal_returns)
+
+        init_norm_returns_mean = np.mean(init_norm_returns)
+        init_norm_returns_std = np.std(init_norm_returns)
+        goal_norm_returns_mean = np.mean(goal_norm_returns)
+        goal_norm_returns_std = np.std(goal_norm_returns)
+
+        # After calling policy.normalize_return_trajectories, moving_mean_return and moving_std_return should be equal to the mean
+        # and std of the trajectory returns (before normalization)
+        self.assertAlmostEqual(self.init_policy.moving_mean_return.item(), init_returns_mean, places=1) # We use places=1 because np.std and torch.std return slightly different results
+        self.assertAlmostEqual(self.init_policy.moving_std_return.item(), init_returns_std, places=1)
+        self.assertAlmostEqual(self.goal_policy.moving_mean_return.item(), goal_returns_mean, places=1)
+        self.assertAlmostEqual(self.goal_policy.moving_std_return.item(), goal_returns_std, places=1)
+
+        # After normalizing returns, their mean and std must be 0 and 1, respectively
+        self.assertAlmostEqual(init_norm_returns_mean, 0, places=1)
+        self.assertAlmostEqual(init_norm_returns_std, 1, places=1)
+        self.assertAlmostEqual(goal_norm_returns_mean, 0, places=1)
+        self.assertAlmostEqual(goal_norm_returns_std, 1, places=1)
+
+        # TODO
+        # Check in the code what happens if trajectories are empty or only contain a sample
+
 
 if __name__ == '__main__':
     unittest.main()

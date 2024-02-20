@@ -18,6 +18,7 @@ from src.nesig.metrics.consistency_evaluators.sokoban_consistency import Consist
 # of the repository (in this case, S-planningproblemgeneration)
 
 # All relative file paths assume that the working directory is the parent folder of the repository
+# <Otherwise, they won't work (i.e., when calling PlannerEvaluator)>
 
 PLANNER_SCRIPTS_PATH = Path('src/nesig/libs/planner-scripts')
 
@@ -52,26 +53,27 @@ sokoban_init_state_info = (['loc']*25,
     })
 
 # >>> Add to DOMAIN_INFO the information about new domains
+# Note: goal_predicates must be given as a tuple instead of as a set
 DOMAIN_INFO = {
     'blocksworld' :
         {'path' : Path('data/domains/blocks-domain.pddl'),
          'consistency_evaluator' : ConsistencyEvaluatorBlocksworld,
          'init_state_info' : None,
-         'goal_predicates' : {('on', ('block','block'))},
+         'goal_predicates' : (('on', ('block','block')),),
          'allowed_virtual_objects' : None},
 
     'logistics' :
             {'path' : Path('data/domains/logistics-domain.pddl'),
              'consistency_evaluator' : ConsistencyEvaluatorLogistics,
              'init_state_info' : None,
-             'goal_predicates' : {('at', ('package','location'))},
+             'goal_predicates' : (('at', ('package','location')),),
              'allowed_virtual_objects' : ('city', 'location', 'airport', 'package', 'truck', 'airplane')},
 
     'sokoban' :
             {'path' : Path('data/domains/sokoban-domain.pddl'),
              'consistency_evaluator' : ConsistencyEvaluatorSokoban,
              'init_state_info' : sokoban_init_state_info,
-             'goal_predicates' : {('at-box', ('loc',))},
+             'goal_predicates' : (('at-box', ('loc',)),),
              'allowed_virtual_objects' : tuple()},
 } 
 # No virtual objects can be added for sokoban (all objects are present from the start)
