@@ -124,11 +124,12 @@ class PolicyTrainer():
             if len(trajectories[i]) > 0: # Skip empty trajectories
                 # Calculate V(s) in parallel for all the samples of the i-th trajectory
                 internal_states = [sample['internal_state'] for sample in trajectories[i]]
-                state_values = policy.calculate_state_values(internal_states)
+                state_values, _ = policy.calculate_state_values(internal_states) # It returns a tuple (state_values, internal_states)
 
-                # Calculate the advantage for each sample of the i-th trajectory as A(s,a) = R(s,a) - V(s)
+                # Calculate the advantage for each sample of the i-th trajectory as A(s,a) = R(s,a) - V(s)ç
+                # It is saved as a float value instead of a tensor (we don't need to keep gradient)
                 for j in range(len(trajectories[i])):
-                    trajectories[i][j]['advantage'] = trajectories[i][j]['norm_return'] - state_values[j]
+                    trajectories[i][j]['advantage'] = trajectories[i][j]['norm_return'] - state_values[j].item()
 
     def _process_trajectories(self, trajectories:List[List[Dict]], problem_info_list:List[Dict],
                               train_init_policy:bool, train_goal_policy:bool) -> Tuple[List[List[Dict]], List[List[Dict]]]:
@@ -165,7 +166,7 @@ class PolicyTrainer():
         if len(sample_list) >= self.args.min_samples_train:  
             dataset = CommonDataset(sample_list)
             dataloader = DataLoader(dataset=dataset, batch_size=self.args.batch_size, shuffle=True, collate_fn=common_collate_fn,
-                                    max_workers=0) # We use max_workers=0 as the data is already on the GPU 
+                                    num_workers=0) # We use num_workers=0 as the data is already on the GPU 
                                                    # (all tensors are created using device=self.device in both the Generative Policies and Model Wrappers)
 
             # Save logs in self.logs_folder

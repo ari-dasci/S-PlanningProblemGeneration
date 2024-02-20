@@ -519,6 +519,11 @@ class PPOPolicy(GenerativePolicy):
     def training_step(self, train_batch : dict, batch_idx=0): 
         assert isinstance(train_batch, dict), "train_batch must be a dictionary"
 
+        # TODO
+        # If performing several PPO epochs, see if I should recompute the advantages at the beginning of each epoch
+        # Maybe it's not worth the trouble
+        # See https://kshitijkg.github.io/data/RecurrentPPO_Report.pdf, Section 4.3, recompute_advantage
+
         # <Critic>
         state_value_list, _ = self.calculate_state_values(train_batch['internal_states']) # We pass internal state to avoid recomputing them from the PDDLProblems
         state_value_tensor = torch.stack(state_value_list) # Preserves gradients

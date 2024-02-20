@@ -5,11 +5,13 @@ from copy import deepcopy
 from pathlib import Path
 import numpy as np
 import torch
+from torch.utils.data import DataLoader
 import math
 import os
 from os.path import dirname, abspath
 import argparse
 from lifted_pddl import Parser
+import pytorch_lightning as pl
 from pytorch_lightning import seed_everything
 
 from src.nesig.learning.generative_policy import PPOPolicy
@@ -21,6 +23,7 @@ from src.nesig.metrics.difficulty import PlannerEvaluator
 from src.nesig.metrics.diversity import InitStateDiversityEvaluator, FeaturesDiversityEvaluator
 from src.nesig.symbolic.problem_generator import ProblemGenerator
 from src.nesig.metrics.consistency_evaluators.logistics_consistency import ConsistencyEvaluatorLogistics
+from src.nesig.learning.data_utils import CommonDataset, common_collate_fn
 
 """
 TODO
@@ -59,11 +62,13 @@ class TestPPOPolicy(unittest.TestCase):
         parser = argparse.ArgumentParser()
         parser.add_argument('--device', type=str, choices=['cpu', 'gpu'])
         parser.add_argument('--moving-mean-return-coeff', type=float)
+        parser.add_argument('--critic-loss-weight', type=float)
+        parser.add_argument('--log-period', type=float)
         PPOPolicy.add_model_specific_args(parser, 'init') # Add init and goal arguments
         PPOPolicy.add_model_specific_args(parser, 'goal')
         NLMWrapper.add_model_specific_args(parser)
         args = parser.parse_args(['--device','cpu', '--init-entropy-coeffs', '0.2, 0.1, 100', '--goal-entropy-coeffs', '0.3, 0.05, 200',
-                                  '--moving-mean-return-coeff', '0.9'])
+                                  '--moving-mean-return-coeff', '0.9', '--critic-loss-weight', '0.1', '--log-period', '1000'])
 
         self.init_policy = PPOPolicy('init', args, NLMWrapperActor, {'dummy_pddl_state':self.dummy_init_state}, NLMWrapperCritic,
                                      {'dummy_pddl_state':self.dummy_init_state})
@@ -141,6 +146,21 @@ class TestPPOPolicy(unittest.TestCase):
         self.goal_policy.normalize_return_trajectories(goal_trajectories)
        
         return init_trajectories, goal_trajectories
+
+    def _calculate_advantage_trajectories(self, policy, trajectories):
+        """
+        Copied from trainer._calculate_advantage_trajectories.
+        We calculate advantages as A(s,a) = R(s,a) - V(s), where V(s) is the value of the state s
+        """
+        for i in range(len(trajectories)):
+            if len(trajectories[i]) > 0: # Skip empty trajectories
+                # Calculate V(s) in parallel for all the samples of the i-th trajectory
+                internal_states = [sample['internal_state'] for sample in trajectories[i]]
+                state_values, _ = policy.calculate_state_values(internal_states)
+
+                # Calculate the advantage for each sample of the i-th trajectory as A(s,a) = R(s,a) - V(s)
+                for j in range(len(trajectories[i])):
+                    trajectories[i][j]['advantage'] = trajectories[i][j]['norm_return'] - state_values[j].item()
 
     def test_wrapper_classes(self):
         self.assertTrue(isinstance(self.init_policy.actor, NLMWrapperActor))
@@ -353,9 +373,30 @@ class TestPPOPolicy(unittest.TestCase):
         self.assertAlmostEqual(goal_norm_returns_mean, 0, places=1)
         self.assertAlmostEqual(goal_norm_returns_std, 1, places=1)
 
-        # TODO
-        # Check in the code what happens if trajectories are empty or only contain a sample
+    def test_training_functionality(self):
+        """
+        We test the following:
+            - Training modifies the parameters
+            - When saving and loading the model back, the parameters, buffers and hyperparameters are the same
+            - In PPOPolicy.train_step, the log_prob of the chosen action is the same as the one stored in the dataset
+        """
+        # Generate trajectories
+        problems, problem_info_list, trajectories = self.problem_generator.generate_problems(10,10,10)
 
+        # Process them (calculate return, norm_return and advantage)
+        self._calculate_return_trajectories(trajectories)
+        norm_init_trajectories, norm_goal_trajectories = self._normalize_return_trajectories(trajectories, problem_info_list)
+        self._calculate_advantage_trajectories(self.init_policy, norm_init_trajectories)
+        self._calculate_advantage_trajectories(self.goal_policy, norm_goal_trajectories)
+
+        # Perform one training step for the init policy
+        # We don't train the goal policy because maybe the goal_trajectories are empty (if all problems are inconsistent)
+        sample_list = [sample for trajectory in norm_init_trajectories for sample in trajectory]
+        dataset = CommonDataset(sample_list)
+        dataloader = DataLoader(dataset=dataset, batch_size=5, shuffle=True, collate_fn=common_collate_fn, num_workers=0) 
+
+        trainer = pl.Trainer(max_epochs=1, accelerator='cpu', enable_checkpointing=False, logger=None)
+        trainer.fit(self.init_policy, dataloader)
 
 if __name__ == '__main__':
     unittest.main()
