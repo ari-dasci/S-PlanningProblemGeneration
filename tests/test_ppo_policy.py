@@ -67,6 +67,14 @@ class TestPPOPolicy(unittest.TestCase):
         self.applicable_actions_goal = [(('drive', (2,1,0)), ('fly',(3,4,2)), TERM_ACTION),
                                         (('load', (2,3,1)), ('unload', (4,3,2)))]
 
+    def _compare_tensor_list(self, a, b):
+        self.assertEqual(len(a), len(b))
+        for i in range(len(a)):
+            if a[i] is None:
+                self.assertIsNone(b[i])
+            else:
+                self.assertTrue(torch.equal(a[i], b[i]))
+    
     def test_wrapper_classes(self):
         self.assertTrue(isinstance(self.init_policy.actor, NLMWrapperActor))
         self.assertTrue(isinstance(self.goal_policy.actor, NLMWrapperActor))
@@ -114,6 +122,33 @@ class TestPPOPolicy(unittest.TestCase):
         self.assertEqual(log_probs_list_init[0].shape, torch.Size([3]))
         self.assertEqual(log_probs_list_goal[0].shape, torch.Size([3]))
 
+        # We check that that the sum of exponentiated log_probs add up to 1
+        for log_probs in log_probs_list_init:
+            self.assertAlmostEqual(torch.exp(log_probs).sum().item(), 1, places=5)
+
+        # We now perform forward pass again but with the internal_state_lists
+        # The results should be the same as with the PDDLProblems
+        log_probs_list_init_2, internal_state_list_init_2 = self.init_policy(internal_state_list_init, self.applicable_actions_init)
+        log_probs_list_goal_2, internal_state_list_goal_2 = self.goal_policy(internal_state_list_goal, self.applicable_actions_goal)
+
+        # Compare log_probs_list
+        self._compare_tensor_list(log_probs_list_init, log_probs_list_init_2)
+        self._compare_tensor_list(log_probs_list_goal, log_probs_list_goal_2)
+
+        # Compare internal_state_list
+        # It is a list of (nlm_tensor_list, num_objects)
+        for s1, s2 in zip(internal_state_list_init, internal_state_list_init_2):
+            self._compare_tensor_list(s1[0], s2[0])
+            self.assertEqual(s1[1], s2[1])
+
+        for s1, s2 in zip(internal_state_list_goal, internal_state_list_goal_2):
+            self._compare_tensor_list(s1[0], s2[0])
+            self.assertEqual(s1[1], s2[1])
+
+
+        # TODO
+        # Check action log probls sum to 1
+
     def test_calculate_state_values(self):
         state_values_init, internal_state_list_init = self.init_policy.calculate_state_values(self.problems_init) 
         state_values_goal, internal_state_list_goal = self.goal_policy.calculate_state_values(self.problems_goal)
@@ -124,6 +159,25 @@ class TestPPOPolicy(unittest.TestCase):
         self.assertEqual(len(internal_state_list_goal), 2)
         self.assertEqual(state_values_init[0].shape, torch.Size([]))
         self.assertEqual(state_values_goal[0].shape, torch.Size([]))
+
+        # We now perform forward pass again but with the internal_state_lists
+        # The results should be the same as with the PDDLProblems
+        state_values_init_2, internal_state_list_init_2 = self.init_policy.calculate_state_values(internal_state_list_init)
+        state_values_goal_2, internal_state_list_goal_2 = self.goal_policy.calculate_state_values(internal_state_list_goal)
+
+        # Compare log_probs_list
+        self._compare_tensor_list(state_values_init, state_values_init_2)
+        self._compare_tensor_list(state_values_goal, state_values_goal_2)
+
+        # Compare internal_state_list
+        # It is a list of (nlm_tensor_list, num_objects)
+        for s1, s2 in zip(internal_state_list_init, internal_state_list_init_2):
+            self._compare_tensor_list(s1[0], s2[0])
+            self.assertEqual(s1[1], s2[1])
+
+        for s1, s2 in zip(internal_state_list_goal, internal_state_list_goal_2):
+            self._compare_tensor_list(s1[0], s2[0])
+            self.assertEqual(s1[1], s2[1])
 
     def test_calculate_entropy(self):
         action_log_probs1 = torch.tensor([0.0], dtype=torch.float32)

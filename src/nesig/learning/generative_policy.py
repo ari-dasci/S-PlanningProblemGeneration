@@ -137,8 +137,9 @@ class RandomPolicy(GenerativePolicy):
             
             log_probs_list.append(log_probs)
 
-        # This policy does not use an internal state representation
-        internal_state_list = [None]*len(problems)
+        # The internal state representation of this policy is the same as the input problems
+        # internal_state_list = [None]*len(problems)
+        internal_state_list = problems
 
         return log_probs_list, internal_state_list
     

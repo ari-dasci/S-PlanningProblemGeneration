@@ -37,9 +37,9 @@ class TestRandomPolicy(unittest.TestCase):
         self.assertEqualTensorList(log_probs_list_0, expected_res)
         self.assertEqualTensorList(log_probs_list_3, expected_res)
         self.assertEqualTensorList(log_probs_list_1, expected_res)
-        self.assertEqual(internal_states_0, [None]*3)
-        self.assertEqual(internal_states_3, [None]*3)
-        self.assertEqual(internal_states_1, [None]*3)
+        self.assertEqual(internal_states_0, problems)
+        self.assertEqual(internal_states_3, problems)
+        self.assertEqual(internal_states_1, problems)
 
         # With term action
         applicable_actions_list = [(('action_1',(1,0)), ('action_1',(3,2)), ('action_2',(1,0)), TERM_ACTION),
@@ -80,19 +80,18 @@ class TestRandomPolicy(unittest.TestCase):
 
         expected_action_list = [('action_1',(1,0)), ('action_3',(1,))]
         expected_log_prob_list = [t(0.0, dtype=torch.float32),t(0.0, dtype=torch.float32)]
-        expected_internal_state_list = [None, None]
 
         self.assertEqual(action_list0, expected_action_list)
         self.assertEqual(log_prob_list0, expected_log_prob_list)
-        self.assertEqual(internal_state_list0, expected_internal_state_list)
+        self.assertEqual(internal_state_list0, problems)
 
         self.assertEqual(action_list3, expected_action_list)
         self.assertEqual(log_prob_list3, expected_log_prob_list)
-        self.assertEqual(internal_state_list3, expected_internal_state_list)
+        self.assertEqual(internal_state_list3, problems)
 
         self.assertEqual(action_list1, expected_action_list)
         self.assertEqual(log_prob_list1, expected_log_prob_list)
-        self.assertEqual(internal_state_list1, expected_internal_state_list)
+        self.assertEqual(internal_state_list1, problems)
 
         # With term action and term_action_prob=0.0
         # TERM_ACTION must never be selected (unless TERM_ACTION is the only applicable action)
@@ -107,7 +106,7 @@ class TestRandomPolicy(unittest.TestCase):
 
         self.assertEqual(action_list, expected_action_list)
         self.assertEqual(log_prob_list, expected_log_prob_list)
-        self.assertEqual(internal_state_list, expected_internal_state_list)
+        self.assertEqual(internal_state_list, problems)
 
         # With term action and term_action_prob=1.0
         # TERM_ACTION must always be selected (unless TERM_ACTION is not in applicable actions)
@@ -126,7 +125,7 @@ class TestRandomPolicy(unittest.TestCase):
         
         self.assertEqual(action_list, expected_action_list)
         self.assertEqual(log_prob_list, expected_log_prob_list)
-        self.assertEqual(internal_state_list, expected_internal_state_list)
+        self.assertEqual(internal_state_list, problems)
 
 if __name__ == '__main__':
     unittest.main()
