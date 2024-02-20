@@ -201,7 +201,7 @@ def parse_arguments():
     parser.add_argument('--min-samples-train', type=int, default=64, help=("Minimum number of collected samples in order to perform a PPO step."
                                                                             "If the number of samples is smaller, we skip the current training step for the init/goal policy"))
     parser.add_argument('--critic-loss-weight', type=float, default=0.1, help="Weight for the critic loss when compared to the actor loss. Used so that gradient norm is similar for actor and critic and training is stable.")
-    parser.add_argument('--grad-clip', type=float, default=1.0, help="Gradient clipping value. Use -1 for no gradient clipping.")
+    parser.add_argument('--grad-clip', type=float, default=5.0, help="Gradient clipping value. Use -1 for no gradient clipping.")
     parser.add_argument('--moving-mean-return-coeff', type=float, default=0.99, help="Coefficient (decay factor) for the moving mean and std of the return. It is used for normalizing returns.")
     parser.add_argument('--device', type=str, choices=('gpu', 'cpu'), default='gpu', help="Device to run training on: gpu or cpu.")
 

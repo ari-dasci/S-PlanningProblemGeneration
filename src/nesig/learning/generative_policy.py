@@ -17,7 +17,7 @@ import pytorch_lightning as pl
 Action = Tuple[str, Tuple[int, ...]]
 
 from src.nesig.symbolic.pddl_problem import PDDLProblem
-from src.nesig.constants import MODEL_WRAPPERS
+# from src.nesig.constants import MODEL_WRAPPERS
 from src.nesig.constants import TERM_ACTION
 
 class GenerativePolicy(ABC, pl.LightningModule):
@@ -262,12 +262,14 @@ class PPOPolicy(GenerativePolicy):
         except ValueError:
             raise argparse.ArgumentTypeError("Entropy coeffs must be either a single float or three floats separated by commas")
        
+    """
     @staticmethod
     def parse_wrapper_class(value):
         if value not in MODEL_WRAPPERS:
             raise argparse.ArgumentTypeError(f"Model wrapper class must be one of {list(MODEL_WRAPPERS.keys())}")
         
         return MODEL_WRAPPERS[value]()
+    """
 
     @classmethod
     def add_model_specific_args(cls, parser, phase:str):
@@ -303,30 +305,30 @@ class PPOPolicy(GenerativePolicy):
                                                                                         "It must be between 0 and 1, since ground_entropy_weight = 1 - lifted_entropy_weight."))
 
     def get_gradient_norm(self):
-		# We calculate gradients separately for actor and critic
-		total_norm_actor = 0.0
-		total_norm_critic = 0.0
+        # We calculate gradients separately for actor and critic
+        total_norm_actor = 0.0
+        total_norm_critic = 0.0
 
-		for p in self.actor.parameters():
-			if p.grad is not None:
-				param_norm = p.grad.data.norm(2)
-				total_norm_actor += param_norm.item() ** 2
-		total_norm_actor = total_norm_actor ** 0.5
+        for p in self.actor.parameters():
+            if p.grad is not None:
+                param_norm = p.grad.data.norm(2)
+                total_norm_actor += param_norm.item() ** 2
+        total_norm_actor = total_norm_actor ** 0.5
 
-		for p in self.critic.parameters():
-			if p.grad is not None:
-				param_norm = p.grad.data.norm(2)
-				total_norm_critic += param_norm.item() ** 2
-		total_norm_critic = total_norm_critic ** 0.5
+        for p in self.critic.parameters():
+            if p.grad is not None:
+                param_norm = p.grad.data.norm(2)
+                total_norm_critic += param_norm.item() ** 2
+        total_norm_critic = total_norm_critic ** 0.5
 
-		return total_norm_actor, total_norm_critic
+        return total_norm_actor, total_norm_critic
 
-	def on_after_backward(self):
+    def on_after_backward(self):
         """
         Custom callback for logging gradient magnitudes <BEFORE CLIPPING>.
         """
-		if self.curr_logging_it.item % self.hparams['log_period'] == 0 and self.current_epoch == 0:
-			total_norm_actor, total_norm_critic = self.get_gradient_norm()
+        if self.curr_logging_it.item % self.hparams['log_period'] == 0 and self.current_epoch == 0:
+            total_norm_actor, total_norm_critic = self.get_gradient_norm()
             self.total_norm_actor_sum += total_norm_actor
             self.total_norm_critic_sum += total_norm_critic
 
@@ -543,7 +545,7 @@ class PPOPolicy(GenerativePolicy):
         # See if we should normalize the advantage_tensor
         
         PPO_loss = torch.mean( -torch.min(prob_ratio_tensor * advantage_tensor, \
-						       torch.clip(prob_ratio_tensor, 1-epsilon, 1+epsilon) * advantage_tensor) ) # minus sign is because we want to maximize the objective function
+                               torch.clip(prob_ratio_tensor, 1-epsilon, 1+epsilon) * advantage_tensor) ) # minus sign is because we want to maximize the objective function
 
         # Calculate the entropy loss
         policy_entropy = torch.mean(torch.stack([self.calculate_entropy(lprobs, actions) for lprobs, actions \
