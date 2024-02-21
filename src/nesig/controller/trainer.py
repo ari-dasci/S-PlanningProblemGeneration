@@ -305,6 +305,7 @@ class PolicyTrainer():
                                   global_info:Dict, problem_names:Optional[List[str]]=None):
         """
         We save to folder the generated problems along with their info (problem_info_list and global_info) in results.json.
+        If a problem is inconsistent, we don't save it to disk (but we still save its info to results.json).
         If problem_names is not provided, problem names are indexed like problem_0, problem_1, etc.
         """
         json_filename = 'results.json'
@@ -313,9 +314,10 @@ class PolicyTrainer():
         problem_names = [f'problem_{i}' for i in range(len(problems))] if problem_names is None else problem_names
 
         # Save the problems in PDDL format to disk
-        for problem, name in zip(problems, problem_names):
-            with open(folder / f'{name}.pddl', 'w') as f:
-                f.write(problem.dump_to_pddl(name))
+        for problem, name, p_info in zip(problems, problem_names, problem_info_list):
+            if p_info['consistency']: # Save the problem to disk only if it is consistent
+                with open(folder / f'{name}.pddl', 'w') as f:
+                    f.write(problem.dump_to_pddl(name))
 
         # Save the problem and global info to results.json
         info_dict = deepcopy(global_info)
