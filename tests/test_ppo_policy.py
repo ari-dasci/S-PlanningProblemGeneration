@@ -379,7 +379,7 @@ class TestPPOPolicy(unittest.TestCase):
         We test the following:
             - Training modifies the parameters
             - When saving and loading the model back, the parameters, buffers and hyperparameters are the same
-            - In PPOPolicy.train_step, the log_prob of the chosen action is the same as the one stored in the dataset
+            - In PPOPolicy.train_step, the log_prob of the chosen action is the same as the one stored in the dataset ('action_log_prob')
         """
         # Generate trajectories
         problems, problem_info_list, trajectories = self.problem_generator.generate_problems(10,10,10)
@@ -417,7 +417,7 @@ class TestPPOPolicy(unittest.TestCase):
         ckpt_path = Path('tests/example.ckpt')
 
         # This is how we save the policies in trainer.py
-        dummy_trainer = pl.Trainer(max_epochs=0, enable_checkpointing=False, enable_progress_bar=False, enable_model_summary=False)
+        dummy_trainer = pl.Trainer(max_epochs=0, logger=False, enable_checkpointing=False, enable_progress_bar=False, enable_model_summary=False)
         dummy_trainer.fit(self.init_policy, DataLoader(dataset=CommonDataset(), num_workers=0))
         dummy_trainer.save_checkpoint(ckpt_path)
 

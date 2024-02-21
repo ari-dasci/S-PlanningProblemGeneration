@@ -365,7 +365,7 @@ class PolicyTrainer():
         # We create a dummy trainer and associate it with a model by "performing" training for 0 epochs on an empty dataset
         remove_if_exists(ckpt_path) # Remove the old checkpoint if it exists, just in case
 
-        dummy_trainer = pl.Trainer(max_epochs=0, enable_checkpointing=False, enable_progress_bar=False, enable_model_summary=False)
+        dummy_trainer = pl.Trainer(max_epochs=0, logger=False, enable_checkpointing=False, enable_progress_bar=False, enable_model_summary=False)
         dummy_trainer.fit(model, DataLoader(dataset=CommonDataset(), num_workers=0))
         dummy_trainer.save_checkpoint(ckpt_path) 
 
