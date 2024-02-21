@@ -516,7 +516,7 @@ class PPOPolicy(GenerativePolicy):
         # curr_logging_it and curr_train_it are incremented at the same time
         # self.curr_logging_it += 1 # Keep track of the number of trainer.fit() calls
 
-    def training_step(self, train_batch : dict, batch_idx=0): 
+    def training_step(self, train_batch : Dict, batch_idx=0): 
         assert isinstance(train_batch, dict), "train_batch must be a dictionary"
 
         # TODO

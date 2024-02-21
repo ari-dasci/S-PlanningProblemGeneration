@@ -34,8 +34,8 @@ def stack_nlm_states(X:List[List[Optional[torch.Tensor]]]) -> List[Optional[torc
 
 class CommonDataset(Dataset):
     def __init__(self, sample_list : List[Dict] = []):
-        assert isinstance(sample_list, list) and isinstance(sample_list[0], dict), \
-            "sample_list must be a list of samples, where each sample is a dictionary"
+        assert isinstance(sample_list, list) and (len(sample_list) == 0 or isinstance(sample_list[0], dict)), \
+            "sample_list must be a list of samples, where each sample is a dictionary, or an empty list."
         self._dataset = sample_list
 
     def __len__(self):

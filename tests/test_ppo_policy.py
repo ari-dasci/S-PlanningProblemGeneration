@@ -67,12 +67,12 @@ class TestPPOPolicy(unittest.TestCase):
         PPOPolicy.add_model_specific_args(parser, 'init') # Add init and goal arguments
         PPOPolicy.add_model_specific_args(parser, 'goal')
         NLMWrapper.add_model_specific_args(parser)
-        args = parser.parse_args(['--device','gpu', '--init-entropy-coeffs', '0.2, 0.1, 100', '--goal-entropy-coeffs', '0.3, 0.05, 200',
+        self.args = parser.parse_args(['--device', 'cpu', '--init-entropy-coeffs', '0.2, 0.1, 100', '--goal-entropy-coeffs', '0.3, 0.05, 200',
                                   '--moving-mean-return-coeff', '0.9', '--critic-loss-weight', '0.1', '--log-period', '1000'])
 
-        self.init_policy = PPOPolicy('init', args, NLMWrapperActor, {'dummy_pddl_state':self.dummy_init_state}, NLMWrapperCritic,
+        self.init_policy = PPOPolicy('init', self.args, NLMWrapperActor, {'dummy_pddl_state':self.dummy_init_state}, NLMWrapperCritic,
                                      {'dummy_pddl_state':self.dummy_init_state})
-        self.goal_policy = PPOPolicy('goal', args, NLMWrapperActor, {'dummy_pddl_state':self.dummy_goal_state}, NLMWrapperCritic,
+        self.goal_policy = PPOPolicy('goal', self.args, NLMWrapperActor, {'dummy_pddl_state':self.dummy_goal_state}, NLMWrapperCritic,
                                      {'dummy_pddl_state':self.dummy_goal_state})
 
         # Create problems in the init generation phase
@@ -117,6 +117,7 @@ class TestPPOPolicy(unittest.TestCase):
                 self.assertIsNone(b[i])
             else:
                 self.assertTrue(torch.equal(a[i], b[i]))
+
     
     def _calculate_return_trajectories(self, trajectories, disc_factor=1.0):
         # Copied from trainer._calculate_return_trajectories
@@ -389,14 +390,51 @@ class TestPPOPolicy(unittest.TestCase):
         self._calculate_advantage_trajectories(self.init_policy, norm_init_trajectories)
         self._calculate_advantage_trajectories(self.goal_policy, norm_goal_trajectories)
 
-        # Perform one training step for the init policy
+        # < Model Training >
         # We don't train the goal policy because maybe the goal_trajectories are empty (if all problems are inconsistent)
         sample_list = [sample for trajectory in norm_init_trajectories for sample in trajectory]
         dataset = CommonDataset(sample_list)
         dataloader = DataLoader(dataset=dataset, batch_size=5, shuffle=True, collate_fn=common_collate_fn, num_workers=0) 
 
-        trainer = pl.Trainer(max_epochs=1, accelerator='cuda', enable_checkpointing=False, logger=None)
+        trainer = pl.Trainer(max_epochs=1, accelerator='cpu', enable_checkpointing=False, logger=False)
+        old_parameters = [deepcopy(p) for p in self.init_policy.parameters()] # Save parameters before training
+        old_parameters2 = [deepcopy(p) for p in self.init_policy.parameters()]
+        old_entropy_coeff = deepcopy(self.init_policy.curr_entropy_coeff)
+
         trainer.fit(self.init_policy, dataloader)
+
+        new_parameters = [deepcopy(p) for p in self.init_policy.parameters()]
+        new_entropy_coeff = deepcopy(self.init_policy.curr_entropy_coeff)
+
+        self._compare_tensor_list(old_parameters, old_parameters2) # If training didn't happen, the parameters must be unchanged
+        # If training happened, the parameters must have changed, i.e., not every new parameter can be equal to the old parameter
+        self.assertFalse(all([torch.equal(p_new, p_old) for p_new, p_old in zip(new_parameters, old_parameters)]))
+        self.assertNotEqual(old_entropy_coeff, new_entropy_coeff)
+
+        # < Model saving and loading >
+        params_before_dummy_trainer = new_parameters
+        entropy_coeff_before_dummy_trainer = new_entropy_coeff
+        ckpt_path = Path('tests/example.ckpt')
+
+        # This is how we save the policies in trainer.py
+        dummy_trainer = pl.Trainer(max_epochs=0, enable_checkpointing=False, enable_progress_bar=False, enable_model_summary=False)
+        dummy_trainer.fit(self.init_policy, DataLoader(dataset=CommonDataset(), num_workers=0))
+        dummy_trainer.save_checkpoint(ckpt_path)
+
+        # The dummy trainer should not modify the parameters
+        params_before_saving = [deepcopy(p) for p in self.init_policy.parameters()]
+        entropy_coeff_before_saving = deepcopy(self.init_policy.curr_entropy_coeff)
+        self._compare_tensor_list(params_before_dummy_trainer, params_before_saving)
+        self.assertEqual(entropy_coeff_before_dummy_trainer, entropy_coeff_before_saving)
+
+        loaded_policy = PPOPolicy.load_from_checkpoint(ckpt_path, phase='init', actor_class=NLMWrapperActor, actor_arguments={'dummy_pddl_state':self.dummy_init_state},
+                                                       critic_class=NLMWrapperCritic, critic_arguments={'dummy_pddl_state':self.dummy_init_state})
+        
+        # The loaded parameters should be equal to those before saving the policy
+        params_after_loading = [deepcopy(p) for p in loaded_policy.parameters()]
+        entropy_coeff_after_loading = deepcopy(loaded_policy.curr_entropy_coeff)
+        self._compare_tensor_list(params_before_saving, params_after_loading)
+        self.assertEqual(entropy_coeff_before_saving, entropy_coeff_after_loading)
 
 if __name__ == '__main__':
     unittest.main()
