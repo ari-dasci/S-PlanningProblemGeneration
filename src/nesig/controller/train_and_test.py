@@ -3,9 +3,9 @@
 """
 > train_and_test.py
 
+NOTE: This script should be executed as a module: python -m src.nesig.controller.train_and_test
 This script is the one that should be called for training,validating and/or testing the different models.
 It parses the command-line arguments and uses functionality from the module trainer.py.
-This script should be executed as a module: python -m src.nesig.controller.train_and_test
 
 ----- Training+validation (we skip this phase if both init and goal policies are random)
 
@@ -82,6 +82,7 @@ For each experiment we save the following:
 
 import argparse
 import hashlib
+import sys
 import os
 from os.path import dirname, abspath
 from pathlib import Path
@@ -185,6 +186,8 @@ def parse_arguments():
         description=("It trains, validates and tests a model, saving the information to disk."))
 
     # Main arguments
+    # Add to EXCLUDED_ARGS_ID in constants.py those arguments which should NOT be used for calculating the experiment id
+    # When both policies are random, leave most options unspecified (except those needed for the random policies)
     parser.add_argument('--domain', type=str, required=True, choices=tuple(DOMAIN_INFO.keys()), help="Domain name to train the model on.")
     parser.add_argument('--seed', type=int, default=1, help="Seed for reproducibility.")
     parser.add_argument('--run-id', type=int, default=0, help="Extra id used for repeating the experiment when all other arguments are the same.")
@@ -324,6 +327,19 @@ def parse_arguments():
 def validate_and_modify_args(args):
     # TODO
     # If there are different GPUs available, choose one automatically
+
+    if not hasattr(args, 'init_policy'):
+        raise ValueError("Undefined init_policy. You must define the type of init policy to use: 'init-random' or 'init-PPO'")
+    if not hasattr(args, 'goal_policy'):
+        raise ValueError("Undefined goal_policy. You must define the type of goal policy to use: 'goal-random' or 'goal-PPO'")
+    # If both policies are random, we must left the ML_model unspecified (i.e., don't use "NLM" argument).
+    # If at least one policy is not random, we must specify the ML model (right now, we only support the "NLM" option).
+    if args.init_policy=='random' and args.goal_policy=='random':
+        if hasattr(args, 'ML_model'):
+            raise ValueError("If both policies are random, we must leave the ML model unspecified (i.e., don't use the 'NLM' argument)")
+    else:
+        if not hasattr(args, 'ML_model'):
+            raise ValueError("If at least one policy is NOT random, we must specify the ML model (i.e., use the 'NLM' argument)")
 
     if args.seed < 1:
         raise ValueError("Seed must be a positive integer")
@@ -564,9 +580,16 @@ def train_and_val(args, parsed_domain_info, experiment_id):
     experiment_folder_path = EXPERIMENTS_PATH / experiment_id
     experiment_info_path = experiment_folder_path / EXPERIMENT_INFO_FILENAME
 
+    # Create experiment folder if it doesn't exist
+    experiment_folder_path.mkdir(parents=True, exist_ok=True) # exists_ok=True -> if it already exists, do nothing
+                                                              # parents=True -> create parent directory (experiments folder) if it does not exist
+
     # Obtain train its of the best and last ckpts and the best val score
     # If the file does not exist, we set both train its to 0 and best val score to -1
     best_train_it, last_train_it, best_val_score = _read_previous_experiment_info(experiment_info_path)
+
+    # REMOVE
+    print(f"best_train_it={best_train_it}, last_train_it={last_train_it}, best_val_score={best_val_score}")
 
     # If supersede, reset experiment info and data
     if args.train_mode == "supersede" or last_train_it==0: # last_train_it==0 -> training started but was stopped before saving the first ckpt
@@ -680,10 +703,6 @@ def main(args):
     # We set the working directory to the base folder of the repository
     # The path of __file__ is FOLDER_BASE/src/nesig/controller/train.py
     os.chdir(dirname(dirname(dirname(dirname(abspath(__file__))))))
-
-    # TODO
-    # Make sure that working directory is S-PlanningProblemGeneration
-    print("Working dir:", os.getcwd())
 
     # Reproducibility
     seed_everything(args.seed, workers=True)

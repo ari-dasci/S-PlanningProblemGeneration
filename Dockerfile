@@ -4,6 +4,9 @@ FROM ubuntu:22.04
 # Install necessary packages and dependencies
 RUN apt-get update && apt-get install -y wget nano git cmake software-properties-common
 
+# Configure git so that it uses consistent line endings across different Operative Systems
+RUN git config --global core.autocrlf true
+
 # Install CUDA 12.3
 RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-ubuntu2204.pin &&\
     mv cuda-ubuntu2204.pin /etc/apt/preferences.d/cuda-repository-pin-600 &&\

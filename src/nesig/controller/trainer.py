@@ -13,8 +13,9 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 import pytorch_lightning as pl
 
-from src.nesig.constants import EXPERIMENT_INFO_FILENAME, LOGS_FOLDER_NAME, CKPTS_FOLDER_NAME, VAL_FOLDER_NAME,
+from src.nesig.constants import EXPERIMENT_INFO_FILENAME, LOGS_FOLDER_NAME, CKPTS_FOLDER_NAME, VAL_FOLDER_NAME, \
                                 TEST_FOLDER_NAME, remove_if_exists
+from src.nesig.symbolic.pddl_problem import PDDLProblem
 from src.nesig.learning.generative_policy import GenerativePolicy
 from src.nesig.symbolic.problem_generator import ProblemGenerator
 from src.nesig.learning.data_utils import CommonDataset, common_collate_fn
