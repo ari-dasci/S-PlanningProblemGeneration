@@ -596,7 +596,7 @@ def train_and_val(args, parsed_domain_info, experiment_id):
     print(f"best_train_it={best_train_it}, last_train_it={last_train_it}, best_val_score={best_val_score}")
 
     # If supersede, reset experiment info and data
-    if args.train_mode == "supersede" or last_train_it==0: # last_train_it==0 -> training started but was stopped before saving the first ckpt
+    if args.train_mode == "supersede" or (args.train_mode == "resume" and last_train_it==0): # last_train_it==0 -> training started but was stopped before saving the first ckpt
         remove_if_exists(experiment_folder_path / LOGS_FOLDER_NAME)
         remove_if_exists(experiment_folder_path / CKPTS_FOLDER_NAME)
         remove_if_exists(experiment_folder_path / VAL_FOLDER_NAME)
@@ -697,11 +697,16 @@ def test(args, parsed_domain_info, experiment_id):
         # (if args.test_mode="supersede")
         test_folder_path_curr_size = test_folder_path / f"{max_init_actions}_{max_goal_actions}"
 
-        if args.test_mode=="supersede":
+        if args.test_mode=="supersede" and test_folder_path_curr_size.exists():
             remove_if_exists(test_folder_path_curr_size)
+            # We remove the entire test logs because, otherwise, we would be logging several times for the same x_value
+            # Example: we did previous tests with size (10,10), so we have test logs (e.g., mean num atoms) for x_value=10
+            # If we perform the test again for size (10,10), we would be logging again for x_value=10, which is not what we want, 
+            # so we remove the entire test logs
+            remove_if_exists(experiment_folder_path / CKPTS_FOLDER_NAME / 'test')
 
         if not test_folder_path_curr_size.exists(): # if test_mode="supersede", we will have removed the folder and exists() will return False
-            # We need to create the folder before saving problems to it
+            # We need to create the folder before saving problems and info to it
             test_folder_path_curr_size.mkdir(parents=True, exist_ok=True)
 
             policy_trainer.test(test_folder_path_curr_size, max_init_actions, max_goal_actions)

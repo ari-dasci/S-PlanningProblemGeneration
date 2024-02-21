@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Tuple, List, Dict, Union, Optional
 from random import randint
 from copy import deepcopy
+import json
 import numpy as np
 import math
 import torch
@@ -227,7 +228,8 @@ class PolicyTrainer():
         # <Common information>
         perc_consistency = [p_info['consistency'] for p_info in problem_info_list].count(True) / num_problems
         mean_diversity = sum([p_info['diversity'] for p_info in problem_info_list]) / num_problems
-        problem_diffs = [p_info['difficulty'] for p_info in problem_info_list]
+        problem_diffs = [p_info['difficulty'] if isinstance(p_info['difficulty'], int) else sum(p_info['difficulty']) / len(p_info['difficulty']) \
+                         for p_info in problem_info_list] # If we are using different planner difficulties, we calculate the mean
         mean_difficulty = sum(problem_diffs) / num_problems
         std_difficulty = (sum([(d - mean_difficulty)**2 for d in problem_diffs]) / num_problems)**0.5
 
@@ -273,8 +275,6 @@ class PolicyTrainer():
         log_and_save(writer, log_dict, 'Std actions goal', std_goal_actions, x_value)
         log_and_save(writer, log_dict, 'Mean num objects', mean_objs_dict, x_value)
         log_and_save(writer, log_dict, 'Std num objects', std_objs_dict, x_value)
-        # REMOVE
-        print("Mean num atoms init", mean_atoms_dict_init)
         log_and_save(writer, log_dict, 'Mean num atoms init', mean_atoms_dict_init, x_value)
         log_and_save(writer, log_dict, 'Std num atoms init', std_atoms_dict_init, x_value)
         log_and_save(writer, log_dict, 'Mean num atoms goal', mean_atoms_dict_goal, x_value)
@@ -420,6 +420,7 @@ class PolicyTrainer():
 
         # Save problems and their metrics to disk
         val_folder_curr_it = self.val_folder / str(curr_train_it)
+        val_folder_curr_it.mkdir(parents=True, exist_ok=True) # We create the folder in case it doesn't exist
         self.save_problems_and_metrics(val_folder_curr_it, val_problems, val_problem_info_list, val_log_dict)
 
         # Calculate the best val score and best train it so far and save policies to disk
@@ -511,9 +512,6 @@ class PolicyTrainer():
         # Calculate the test score for each problem and the average score
         # At the moment, we use the val_score formula to calculate the test score
         avg_score, scores = self.calculate_val_scores(problem_info_list)
-        
-        # REMOVE
-        print("Scores", avg_score, scores)
 
         # Add the score to each problem info
         for p_info, score in zip(problem_info_list, scores):
