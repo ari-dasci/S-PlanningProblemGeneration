@@ -208,11 +208,11 @@ def parse_arguments():
     parser.add_argument('--moving-mean-return-coeff', type=float, default=0.99, help="Coefficient (decay factor) for the moving mean and std of the return. It is used for normalizing returns.")
     parser.add_argument('--device', type=str, choices=('gpu', 'cpu'), default='gpu', help="Device to run training on: gpu or cpu.")
 
-    parser.add_argument('--max-init-actions-train', required=True, type=parse_max_actions_train, help=("Maximum number of actions that can be executed in the init phase during training."
+    parser.add_argument('--max-init-actions-train', required=False, default=10, type=parse_max_actions_train, help=("Maximum number of actions that can be executed in the init phase during training."
                                                                             "It can be either a single integer, in which case all problems will use the same number,"
                                                                             "or a tuple (a, b), in which case each problem will use as the maximum number of actions"
                                                                             "a random number uniformly sampled from (a, b) (both ends included)."))
-    parser.add_argument('--max-goal-actions-train', required=True, type=parse_max_actions_train, help="The same as '--max-init-actions-train' but for the goal phase.")
+    parser.add_argument('--max-goal-actions-train', required=False, default=10, type=parse_max_actions_train, help="The same as '--max-init-actions-train' but for the goal phase.")
     parser.add_argument('--max-init-actions-val', type=parse_max_actions_val, default=-1,
                         help=("Maximum number of actions that can be executed in the init phase during validation."
                               "If -1 or left unspecified, we use --max-init-actions-train."))
@@ -493,15 +493,19 @@ def _read_previous_experiment_info(experiment_info_path):
 def _get_ML_model_arguments(phase, args, parsed_domain_info):
     """
     It returns the arguments passed to the constructor of PPOPolicy.
-    phase is either 'init' or 'goal'
+    phase is either 'init' or 'goal'.
+    If args.ML_model does not exist, that's because both init and goal policies are random, so we return None.
     """
-    if args.ML_model == "NLM":
-        actor_class = NLMWrapperActor
-        critic_class = NLMWrapperCritic
-        actor_arguments = {'dummy_pddl_state' : parsed_domain_info['dummy_state_'+phase]}
-        critic_arguments = deepcopy(actor_arguments)
+    if hasattr(args, 'ML_model'):
+        if args.ML_model == "NLM":
+            actor_class = NLMWrapperActor
+            critic_class = NLMWrapperCritic
+            actor_arguments = {'dummy_pddl_state' : parsed_domain_info['dummy_state_'+phase]}
+            critic_arguments = deepcopy(actor_arguments)
+        else:
+            raise ValueError("Right now, we only support NLM as the ML model")
     else:
-        raise ValueError("Right now, we only support NLM as the ML model")
+        actor_class = actor_arguments = critic_class = critic_arguments = None 
 
     return actor_class, actor_arguments, critic_class, critic_arguments
 
@@ -672,6 +676,9 @@ def test(args, parsed_domain_info, experiment_id):
 
     # Obtain the policies to test
     best_init_policy, best_goal_policy = _get_policies_to_test(args, experiment_folder_path, parsed_domain_info)
+
+    print(best_init_policy, best_goal_policy)
+    sys.exit()
 
     # If some policy is None, that means we skipped training but best ckpt could not be loaded for some policy
     # In this case, we cannot perform test. We either skip the test phase (if --raise-error-test is False)

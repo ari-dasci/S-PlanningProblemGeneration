@@ -7,21 +7,6 @@ RUN apt-get update && apt-get install -y wget nano git cmake software-properties
 # Configure git so that it uses consistent line endings across different Operative Systems
 RUN git config --global core.autocrlf true
 
-# Install CUDA 12.3
-RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-ubuntu2204.pin &&\
-    mv cuda-ubuntu2204.pin /etc/apt/preferences.d/cuda-repository-pin-600 &&\
-    wget https://developer.download.nvidia.com/compute/cuda/12.3.1/local_installers/cuda-repo-ubuntu2204-12-3-local_12.3.1-545.23.08-1_amd64.deb &&\
-    dpkg -i cuda-repo-ubuntu2204-12-3-local_12.3.1-545.23.08-1_amd64.deb &&\
-    cp /var/cuda-repo-ubuntu2204-12-3-local/cuda-*-keyring.gpg /usr/share/keyrings/ &&\
-    apt-get update &&\
-    apt-get -y install cuda-toolkit-12-3 &&\
-    rm cuda-repo-ubuntu2204-12-3-local_12.3.1-545.23.08-1_amd64.deb
-
-# Ensure the CUDA runtime is in the PATH
-ENV PATH /usr/local/cuda-12.3/bin:${PATH}
-ENV LD_LIBRARY_PATH /usr/local/cuda-12.3/lib64:${LD_LIBRARY_PATH}
-ENV CUDA_HOME /usr/local/cuda-12.3
-
 # Install Anaconda
 RUN wget https://repo.anaconda.com/archive/Anaconda3-2023.09-0-Linux-x86_64.sh \
     && bash Anaconda3-2023.09-0-Linux-x86_64.sh -b -p /opt/conda \
@@ -36,11 +21,8 @@ RUN conda create -n nesig python=3.11 -y
 RUN echo "source activate nesig" > ~/.bashrc
 ENV PATH /opt/conda/envs/nesig/bin:$PATH
 
-# Install cudatoolkit
-RUN conda install cudatoolkit=11.8 -y
-
 # Install PyTorch with CUDA support
-RUN conda install pytorch pytorch-cuda=12.1 -c pytorch -c nvidia -y
+RUN conda install -n nesig pytorch pytorch-cuda=12.1 -c pytorch -c nvidia
 # Pytorch with CPU-only
 #RUN conda install -n nesig pytorch=2.1 cpuonly -c pytorch
 
