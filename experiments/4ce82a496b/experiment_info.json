@@ -1,5 +1,5 @@
 {
-  "domain": "sokoban",
+  "domain": "blocksworld",
   "seed": 1,
   "run_id": 0,
   "val_period": 500,
@@ -7,7 +7,7 @@
   "batch_size": 64,
   "num_problems_train": 25,
   "num_problems_val": 100,
-  "num_problems_test": 100,
+  "num_problems_test": 5,
   "min_samples_train": 64,
   "critic_loss_weight": 0.1,
   "grad_clip": 5.0,
@@ -31,10 +31,10 @@
   "init_policy": "random",
   "goal_term_action_prob": 0.0,
   "goal_policy": "random",
-  "experiment_id": "5c98c4d8b6",
-  "best_train_it": 50,
-  "last_train_it": 100,
-  "best_val_score": 17.89,
+  "experiment_id": "4ce82a496b",
+  "best_train_it": 0,
+  "last_train_it": 0,
+  "best_val_score": -1,
   "TRAIN_PLANNER_ARGS": [
     "--alias lama-first"
   ],

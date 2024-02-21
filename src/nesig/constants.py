@@ -6,6 +6,7 @@ It results useful to have all constants in the same file, for quick access.
 """
 
 from pathlib import Path
+import shutil
 import os
 
 # >>> Add here imports for consistency evaluators of new domains

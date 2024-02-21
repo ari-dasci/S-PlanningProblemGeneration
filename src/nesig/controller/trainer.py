@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Tuple, List, Dict, Union, Optional
 from random import randint
 from copy import deepcopy
+import numpy as np
 import math
 import torch
 from torch.utils.data import DataLoader
@@ -238,7 +239,7 @@ class PolicyTrainer():
         std_goal_actions = (sum([(a - mean_goal_actions)**2 for a in goal_actions]) / num_problems)**0.5
 
         obj_types = problems[0].initial_state.types
-        pred_types = problems[0].initial_state.predicates
+        pred_types = problems[0].initial_state.predicate_names
         # Matrix where rows correspond to problems and columns to object types
         num_objs_each_type_matrix = np.array([p.initial_state.num_objects_each_type for p in problems])
         mean_num_objs_each_type = num_objs_each_type_matrix.mean(axis=0)
@@ -272,6 +273,8 @@ class PolicyTrainer():
         log_and_save(writer, log_dict, 'Std actions goal', std_goal_actions, x_value)
         log_and_save(writer, log_dict, 'Mean num objects', mean_objs_dict, x_value)
         log_and_save(writer, log_dict, 'Std num objects', std_objs_dict, x_value)
+        # REMOVE
+        print("Mean num atoms init", mean_atoms_dict_init)
         log_and_save(writer, log_dict, 'Mean num atoms init', mean_atoms_dict_init, x_value)
         log_and_save(writer, log_dict, 'Std num atoms init', std_atoms_dict_init, x_value)
         log_and_save(writer, log_dict, 'Mean num atoms goal', mean_atoms_dict_goal, x_value)
@@ -507,6 +510,9 @@ class PolicyTrainer():
         # At the moment, we use the val_score formula to calculate the test score
         avg_score, scores = self.calculate_val_scores(problem_info_list)
         
+        # REMOVE
+        print("Scores", avg_score, scores)
+
         # Add the score to each problem info
         for p_info, score in zip(problem_info_list, scores):
             p_info['score'] = score

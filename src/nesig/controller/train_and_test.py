@@ -677,9 +677,6 @@ def test(args, parsed_domain_info, experiment_id):
     # Obtain the policies to test
     best_init_policy, best_goal_policy = _get_policies_to_test(args, experiment_folder_path, parsed_domain_info)
 
-    print(best_init_policy, best_goal_policy)
-    sys.exit()
-
     # If some policy is None, that means we skipped training but best ckpt could not be loaded for some policy
     # In this case, we cannot perform test. We either skip the test phase (if --raise-error-test is False)
     # or raise an exception (if --raise-error-test is True)
@@ -690,7 +687,7 @@ def test(args, parsed_domain_info, experiment_id):
             return
         
     # Initialize policy trainer
-    problem_generator = _create_problem_generator('test', args, parsed_domain_info, init_policy, goal_policy)
+    problem_generator = _create_problem_generator('test', args, parsed_domain_info, best_init_policy, best_goal_policy)
     policy_trainer = PolicyTrainer(args, experiment_folder_path, problem_generator, best_init_policy, best_goal_policy)
 
     # Perform test experiments for each problem size (depending on args.test_mode)
@@ -704,6 +701,9 @@ def test(args, parsed_domain_info, experiment_id):
             remove_if_exists(test_folder_path_curr_size)
 
         if not test_folder_path_curr_size.exists(): # if test_mode="supersede", we will have removed the folder and exists() will return False
+            # We need to create the folder before saving problems to it
+            test_folder_path_curr_size.mkdir(parents=True, exist_ok=True)
+
             policy_trainer.test(test_folder_path_curr_size, max_init_actions, max_goal_actions)
 
 def main(args):
