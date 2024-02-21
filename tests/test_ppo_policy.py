@@ -374,6 +374,30 @@ class TestPPOPolicy(unittest.TestCase):
         self.assertAlmostEqual(goal_norm_returns_mean, 0, places=1)
         self.assertAlmostEqual(goal_norm_returns_std, 1, places=1)
 
+    def test_action_probs(self):
+        """
+        We make sure that the log_prob of the chosen action stored in the dataset (i.e., 'action_log_prob' for each trajectory sample)
+        is the same as the one computed by training_step inside PPOPolicy (by using the ML model to perform a forward pass and select the
+        log_probs given by 'chosen_action_inds').
+        """
+        problems, problem_info_list, trajectories = self.problem_generator.generate_problems(30,10,10)
+
+        for t, p_info in zip(trajectories, problem_info_list):
+            # We separate each trajectory in samples of the init and goal phases
+            init_samples = t[:p_info['init_phase_length']]
+            goal_samples = t[p_info['init_phase_length']:]
+
+            for samples, policy in ((init_samples, self.init_policy), (goal_samples, self.goal_policy)):
+                if len(samples) > 0:
+                    # We group sample info as done in common_collate_fn in data_utils.py
+                    internal_states = [sample['internal_state'] for sample in samples]
+                    applicable_actions_list = [sample['applicable_actions'] for sample in samples]
+                    log_probs_list_forward, _ = policy.forward(internal_states, applicable_actions_list)
+
+                    # Compare the log_prob given by 'action_log_prob' and the one obtained from the policy forward pass
+                    for sample, log_probs_forward in zip(samples, log_probs_list_forward):
+                        self.assertAlmostEqual(sample['action_log_prob'].item(), log_probs_forward[sample['chosen_action_ind']].item(), places=5)
+
     def test_training_functionality(self):
         """
         We test the following:
