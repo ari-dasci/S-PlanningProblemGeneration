@@ -164,8 +164,6 @@ class PolicyTrainer():
         """
         # Flatten the list of trajectories from List[List[Dict]] to List[Dict]
         sample_list = [sample for trajectory in trajectories for sample in trajectory]
-        
-        print("len sample_list:", len(sample_list))
 
         # Skip training if the number of samples is less than min_samples_train
         if len(sample_list) >= self.args.min_samples_train:  
@@ -473,8 +471,7 @@ class PolicyTrainer():
 
         curr_train_it = start_it
         while curr_train_it <= end_it:
-            # REMOVE
-            print("\n\n>>>>> CURR TRAIN IT:", curr_train_it)
+            print("\n\n>>>>> CURRENT STEP:", curr_train_it)
 
             # <Generate problems and trajectories>
             problems, problem_info_list, trajectories = self._generate_problems_and_trajectories(self.args.num_problems_train,

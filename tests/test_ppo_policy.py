@@ -233,10 +233,6 @@ class TestPPOPolicy(unittest.TestCase):
             self._compare_tensor_list(s1[0], s2[0])
             self.assertEqual(s1[1], s2[1])
 
-
-        # TODO
-        # Check action log probls sum to 1
-
     def test_calculate_state_values(self):
         state_values_init, internal_state_list_init = self.init_policy.calculate_state_values(self.problems_init) 
         state_values_goal, internal_state_list_goal = self.goal_policy.calculate_state_values(self.problems_goal)

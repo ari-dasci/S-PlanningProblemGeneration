@@ -205,7 +205,7 @@ def parse_arguments():
                                                                             "If the number of samples is smaller, we skip the current training step for the init/goal policy"))
     parser.add_argument('--critic-loss-weight', type=float, default=0.1, help="Weight for the critic loss when compared to the actor loss. Used so that gradient norm is similar for actor and critic and training is stable.")
     parser.add_argument('--grad-clip', type=float, default=5.0, help="Gradient clipping value. Use -1 for no gradient clipping.")
-    parser.add_argument('--moving-mean-return-coeff', type=float, default=0.99, help="Coefficient (decay factor) for the moving mean and std of the return. It is used for normalizing returns.")
+    parser.add_argument('--moving-mean-return-coeff', type=float, default=0.95, help="Coefficient (decay factor) for the moving mean and std of the return. It is used for normalizing returns.")
     parser.add_argument('--device', type=str, choices=('gpu', 'cpu'), default='gpu', help="Device to run training on: gpu or cpu.")
 
     parser.add_argument('--max-init-actions-train', required=False, default=10, type=parse_max_actions_train, help=("Maximum number of actions that can be executed in the init phase during training."
@@ -745,6 +745,17 @@ TODO tests (for bugs):
     - Different train-mode and test-mode with PPOPolicy
     - Mix Random policy and PPOPolicy
 
+Other TODOs:
+    - Measure num_expanded_nodes, planning time and memory for hardest problems (in order to find a good value
+      for r_terminated_problem_train, time_limit_planner_train and memory_limit_planner_train)
+    - NLM: prune arities that are not used
+    - Merge refactoring branch with master
 
+TODO improvements:
+    - Implement FeaturesDiversityEvaluator
+    - If resuming training, don't log repeated step values to tensorboard
+    - Implement Generalized Advantage Estimation
+    - Implemente advantage normalization
+    - Use AdamW (and find a good weight decay value)
 
 """
