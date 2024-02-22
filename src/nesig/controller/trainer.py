@@ -165,6 +165,8 @@ class PolicyTrainer():
         # Flatten the list of trajectories from List[List[Dict]] to List[Dict]
         sample_list = [sample for trajectory in trajectories for sample in trajectory]
         
+        print("len sample_list:", len(sample_list))
+
         # Skip training if the number of samples is less than min_samples_train
         if len(sample_list) >= self.args.min_samples_train:  
             dataset = CommonDataset(sample_list)
@@ -374,6 +376,10 @@ class PolicyTrainer():
         dummy_trainer = pl.Trainer(max_epochs=0, logger=False, enable_checkpointing=False, enable_progress_bar=False, enable_model_summary=False)
         dummy_trainer.fit(model, DataLoader(dataset=CommonDataset(), num_workers=0))
         dummy_trainer.save_checkpoint(ckpt_path) 
+        
+        # We move the model back to the GPU
+        if self.device.type == 'cuda':
+            model.to('cuda')
 
     def save_policies(self, train_init_policy, train_goal_policy, save_best:bool):
         """
@@ -456,8 +462,20 @@ class PolicyTrainer():
         else:
             raise FileNotFoundError(f"File {self.experiment_info_path} not found")
 
+        # If we are training on GPU, we move the policies to the GPU at the start
+        # Otherwise, self._generate_problems_and_trajectories throws an error since state tensors are on GPU
+        # but the policy used to obtain the trajectories are on CPU
+        if self.device.type == 'cuda':
+            if train_init_policy:
+                self.init_policy.to('cuda')
+            if train_goal_policy:
+                self.goal_policy.to('cuda')
+
         curr_train_it = start_it
         while curr_train_it <= end_it:
+            # REMOVE
+            print("\n\n>>>>> CURR TRAIN IT:", curr_train_it)
+
             # <Generate problems and trajectories>
             problems, problem_info_list, trajectories = self._generate_problems_and_trajectories(self.args.num_problems_train,
                                                                                                  self.args.max_init_actions_train,
@@ -482,7 +500,7 @@ class PolicyTrainer():
                 self.log_metrics('train', curr_train_it, problems, problem_info_list, trajectories=trajectories)
 
             # <Perform validation epoch and save checkpoints>
-            # TODO
+
             # Save best_train_it and last_train_it in experiment_info.json only when checkpoints are saved
             # If args.val_period=-1, we perform validation and save checkpoints only at the end of training
             if self.args.val_period != -1 and curr_train_it % self.args.val_period == 0:

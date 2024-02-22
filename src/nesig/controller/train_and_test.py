@@ -201,7 +201,7 @@ def parse_arguments():
                                                                             "for obtaining the training data."))
     parser.add_argument('--num-problems-val', type=int, default=100, help="Number of problems to generate every time we perform validation.")
     parser.add_argument('--num-problems-test', type=int, default=100, help="Number of problems to generate for each test experiment for each problem size.")                                                                        
-    parser.add_argument('--min-samples-train', type=int, default=64, help=("Minimum number of collected samples in order to perform a PPO step."
+    parser.add_argument('--min-samples-train', type=int, default=32, help=("Minimum number of collected samples in order to perform a PPO step."
                                                                             "If the number of samples is smaller, we skip the current training step for the init/goal policy"))
     parser.add_argument('--critic-loss-weight', type=float, default=0.1, help="Weight for the critic loss when compared to the actor loss. Used so that gradient norm is similar for actor and critic and training is stable.")
     parser.add_argument('--grad-clip', type=float, default=5.0, help="Gradient clipping value. Use -1 for no gradient clipping.")
@@ -219,8 +219,8 @@ def parse_arguments():
     parser.add_argument('--max-goal-actions-val', type=parse_max_actions_val, default=-1,
                         help=("Maximum number of actions that can be executed in the goal phase during validation."
                               "If -1 or left unspecified, we use --max-goal-actions-train."))
-    parser.add_argument('--max-init-actions-test', required=True, type=parse_max_actions_test, help=("List with the max number of init actions for each test experiment."))
-    parser.add_argument('--max-goal-actions-test', required=True, type=parse_max_actions_test, help=("List with the max number of goal actions for each test experiment."))
+    parser.add_argument('--max-init-actions-test', required=False, default=(10,), type=parse_max_actions_test, help=("List with the max number of init actions for each test experiment."))
+    parser.add_argument('--max-goal-actions-test', required=False, default=(10,), type=parse_max_actions_test, help=("List with the max number of goal actions for each test experiment."))
 
     parser.add_argument('--train-mode',
                     choices=("skip","supersede","resume"),
@@ -623,7 +623,7 @@ def train_and_val(args, parsed_domain_info, experiment_id):
     problem_generator = _create_problem_generator('train', args, parsed_domain_info, init_policy, goal_policy)
     train_init_policy = (args.init_policy != 'random')
     train_goal_policy = (args.goal_policy != 'random')
-    policy_trainer = PolicyTrainer(experiment_folder_path, problem_generator, init_policy, goal_policy)
+    policy_trainer = PolicyTrainer(args, experiment_folder_path, problem_generator, init_policy, goal_policy)
 
     # Train
     policy_trainer.train_and_val(train_init_policy, train_goal_policy, last_train_it+1, args.steps)
@@ -737,3 +737,14 @@ if __name__ == '__main__':
     args = validate_and_modify_args(args)
 
     main(args)
+
+
+"""
+TODO tests (for bugs):
+    - Test with trained policies
+    - Different train-mode and test-mode with PPOPolicy
+    - Mix Random policy and PPOPolicy
+
+
+
+"""
