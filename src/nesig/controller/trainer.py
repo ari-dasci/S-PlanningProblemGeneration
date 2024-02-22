@@ -488,11 +488,6 @@ class PolicyTrainer():
                 self._perform_train_step(self.goal_policy, goal_trajectories)
 
             # <Logging>
-            # TODO
-            # Maybe logs get messy when resuming training. Example: I load a ckpt for train_it=50 but I have logs up to train_it=70.
-            # Then, I will have repeated logs for train_it=50-70.
-            # To solve this, when resuming training we should read the logs folder and obtain (using the tensorboard library)
-            # the train_it (N) of the most recent log. Then, we don't log until curr_train_it > N.
             if curr_train_it % self.args.log_period == 0: # Log every log_period iterations
                 self.log_metrics('train', curr_train_it, problems, problem_info_list, trajectories=trajectories)
 

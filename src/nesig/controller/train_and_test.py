@@ -697,13 +697,8 @@ def test(args, parsed_domain_info, experiment_id):
         # (if args.test_mode="supersede")
         test_folder_path_curr_size = test_folder_path / f"{max_init_actions}_{max_goal_actions}"
 
-        if args.test_mode=="supersede" and test_folder_path_curr_size.exists():
+        if args.test_mode=="supersede":
             remove_if_exists(test_folder_path_curr_size)
-            # We remove the entire test logs because, otherwise, we would be logging several times for the same x_value
-            # Example: we did previous tests with size (10,10), so we have test logs (e.g., mean num atoms) for x_value=10
-            # If we perform the test again for size (10,10), we would be logging again for x_value=10, which is not what we want, 
-            # so we remove the entire test logs
-            remove_if_exists(experiment_folder_path / CKPTS_FOLDER_NAME / 'test')
 
         if not test_folder_path_curr_size.exists(): # if test_mode="supersede", we will have removed the folder and exists() will return False
             # We need to create the folder before saving problems and info to it
@@ -741,9 +736,11 @@ if __name__ == '__main__':
 
 """
 TODO tests (for bugs):
-    - Test with trained policies
-    - Different train-mode and test-mode with PPOPolicy
+    - See what happens with repeated logs in tensorboard - DONE
+    - Test with trained policies (steps 1000 train-mode resume test-mode missing) - DONE
+    - train-mode supersede - DONE
     - Mix Random policy and PPOPolicy
+        - Test
 
 Other TODOs:
     - Measure num_expanded_nodes, planning time and memory for hardest problems (in order to find a good value
@@ -754,8 +751,11 @@ Other TODOs:
 TODO improvements:
     - Implement FeaturesDiversityEvaluator
     - If resuming training, don't log repeated step values to tensorboard
+        - NO need to: it seems that new values substitute the old ones
     - Implement Generalized Advantage Estimation
     - Implemente advantage normalization
     - Use AdamW (and find a good weight decay value)
+
+    - Should I modify InitStateDiversityEvaluator so that it uses the atoms of both the init and goal state?
 
 """
