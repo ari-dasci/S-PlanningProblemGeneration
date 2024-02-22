@@ -283,15 +283,21 @@ class PolicyTrainer():
         # < Training information >
         if trajectories is not None:   
             sample_list = [sample for trajectory in trajectories for sample in trajectory] # Flatten the trajectories into a list of samples
-            mean_return = sum([sample['return'] for sample in sample_list]) / len(sample_list)
-            # We check if 'norm_return' and 'advantage' are in the sample because they are not calculated if the corresponding policy is Random     
-            norm_returns = [sample['norm_return'] for sample in sample_list if 'norm_return' in sample]
-            mean_norm_return = sum(norm_returns) / len(norm_returns)
-            advantages = [sample['advantage'] for sample in sample_list if 'advantage' in sample]
-            mean_advantage = sum(advantages) / len(advantages)
-            log_and_save(writer, log_dict, 'Mean return', mean_return, x_value)
-            log_and_save(writer, log_dict, 'Mean norm return', mean_norm_return, x_value)
-            log_and_save(writer, log_dict, 'Mean advantage', mean_advantage, x_value)
+            
+            if len(sample_list) > 0:
+                mean_return = sum([sample['return'] for sample in sample_list]) / len(sample_list)
+                log_and_save(writer, log_dict, 'Mean return', mean_return, x_value)
+                          
+                # We check if 'norm_return' and 'advantage' are in the sample because they are not calculated if the corresponding policy is Random     
+                norm_returns = [sample['norm_return'] for sample in sample_list if 'norm_return' in sample]
+                advantages = [sample['advantage'] for sample in sample_list if 'advantage' in sample]
+                
+                if len(norm_returns) > 0:
+                    mean_norm_return = sum(norm_returns) / len(norm_returns)
+                    log_and_save(writer, log_dict, 'Mean norm return', mean_norm_return, x_value)
+                if len(advantages) > 0:    
+                    mean_advantage = sum(advantages) / len(advantages)
+                    log_and_save(writer, log_dict, 'Mean advantage', mean_advantage, x_value)
 
         # < Validation and test information >
         if score is not None:

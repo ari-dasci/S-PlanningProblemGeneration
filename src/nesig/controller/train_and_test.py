@@ -735,13 +735,6 @@ if __name__ == '__main__':
 
 
 """
-TODO tests (for bugs):
-    - See what happens with repeated logs in tensorboard - DONE
-    - Test with trained policies (steps 1000 train-mode resume test-mode missing) - DONE
-    - train-mode supersede - DONE
-    - Mix Random policy and PPOPolicy
-        - Test
-
 Other TODOs:
     - Measure num_expanded_nodes, planning time and memory for hardest problems (in order to find a good value
       for r_terminated_problem_train, time_limit_planner_train and memory_limit_planner_train)
