@@ -46,7 +46,6 @@ class TestProblemGenerator(unittest.TestCase):
         self.difficulty_evaluator = DummyDifficultyEvaluator()
         self.diversity_evaluator = InitStateDiversityEvaluator()
 
-
     def assertEqualTensorList(self, l1, l2):
         self.assertEqual(len(l1), len(l2))
         for i in range(len(l1)):
@@ -85,7 +84,7 @@ class TestProblemGenerator(unittest.TestCase):
         #print("Actions", trajectory_actions_from_index)
         self.assertEqual(trajectory_actions_from_index, trajectory_actions_from_name)
 
-        self.assertEqual([step['internal_state'] for step in trajectories[0]], [None]*2)
+        self.assertEqual([step['internal_state'] for step in trajectories[0]], [step['state'] for step in trajectories[0]])
         self.assertEqual([step['consistency_reward'] for step in trajectories[0]], [0,-1])
         self.assertEqual([step['difficulty_reward'] for step in trajectories[0]], [0]*2)
         self.assertEqual([step['diversity_reward'] for step in trajectories[0]], [0]*2)
@@ -146,7 +145,7 @@ class TestProblemGenerator(unittest.TestCase):
                                             for step in trajectories[0]]
         trajectory_actions_from_name = [step['chosen_action'] for step in trajectories[0]]
         self.assertEqual(trajectory_actions_from_index, trajectory_actions_from_name)
-        self.assertEqual([step['internal_state'] for step in trajectories[0]], [None])
+        self.assertEqual([step['internal_state'] for step in trajectories[0]], [step['state'] for step in trajectories[0]])
         self.assertEqual([step['consistency_reward'] for step in trajectories[0]], [-1])
         self.assertEqual([step['difficulty_reward'] for step in trajectories[0]], [0])
         self.assertEqual([step['diversity_reward'] for step in trajectories[0]], [0])
@@ -167,7 +166,7 @@ class TestProblemGenerator(unittest.TestCase):
                                             for step in trajectories[1]]
         trajectory_actions_from_name = [step['chosen_action'] for step in trajectories[1]]
         self.assertEqual(trajectory_actions_from_index, trajectory_actions_from_name)
-        self.assertEqual([step['internal_state'] for step in trajectories[1]], [None]*2)
+        self.assertEqual([step['internal_state'] for step in trajectories[1]], [step['state'] for step in trajectories[1]])
         self.assertEqual([step['consistency_reward'] for step in trajectories[1]], [0,-1])
         self.assertEqual([step['difficulty_reward'] for step in trajectories[1]], [0]*2)
         self.assertEqual([step['diversity_reward'] for step in trajectories[1]], [0]*2)
@@ -188,7 +187,7 @@ class TestProblemGenerator(unittest.TestCase):
                                             for step in trajectories[2]]
         trajectory_actions_from_name = [step['chosen_action'] for step in trajectories[2]]
         self.assertEqual(trajectory_actions_from_index, trajectory_actions_from_name)
-        self.assertEqual([step['internal_state'] for step in trajectories[2]], [None]*3)
+        self.assertEqual([step['internal_state'] for step in trajectories[2]], [step['state'] for step in trajectories[2]])
         self.assertEqual([step['consistency_reward'] for step in trajectories[2]], [0,0,-1])
         self.assertEqual([step['difficulty_reward'] for step in trajectories[2]], [0]*3)
         self.assertEqual([step['diversity_reward'] for step in trajectories[2]], [0]*3)

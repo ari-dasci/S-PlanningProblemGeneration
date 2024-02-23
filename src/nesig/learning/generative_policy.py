@@ -7,6 +7,7 @@ it selects the next action to apply for each state (i.e., either the next atom t
 
 from typing import List, Tuple, Dict, Optional, Union, Any
 from abc import ABC, abstractmethod
+from copy import deepcopy
 import torch
 import math
 import argparse
@@ -141,8 +142,8 @@ class RandomPolicy(GenerativePolicy):
             log_probs_list.append(log_probs)
 
         # The internal state representation of this policy is the same as the input problems
-        # internal_state_list = [None]*len(problems)
-        internal_state_list = problems
+        # We do deepcopy because, otherwise, the internal states will be modified when the problems are (e.g., by applying actions to them)
+        internal_state_list = [deepcopy(p) for p in problems]
 
         return log_probs_list, internal_state_list
     
