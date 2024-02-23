@@ -18,7 +18,7 @@ ENV PATH /opt/conda/bin:$PATH
 # Create the conda environment with Python only
 # (when we try to install all the packages at the same time, sometimes we run out of memory)
 RUN conda create -n nesig python=3.11 -y
-RUN echo "source activate nesig" > ~/.bashrc
+RUN echo "source activate nesig" >> ~/.bashrc
 ENV PATH /opt/conda/envs/nesig/bin:$PATH
 
 # Install PyTorch with CUDA support
@@ -33,7 +33,7 @@ RUN conda install -n nesig pytorch-lightning=2.1 -c conda-forge -y
 RUN python -m pip install tensorboard lifted-pddl neural-logic-machine PDDL-Prover
 
 # Solve perl locale issue
-RUN echo "export LC_ALL=C" > ~/.bashrc
+RUN echo "export LC_ALL=C" >> ~/.bashrc
 
 # Clone NeSIG repository, including submodules
 # This is not needed if we are developing with VScode Devcontainers and source code is already in the local directory

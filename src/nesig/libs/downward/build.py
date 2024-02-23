@@ -17,6 +17,7 @@ CMAKE = "cmake"
 DEFAULT_MAKE_PARAMETERS = []
 if os.name == "posix":
     MAKE = "make"
+    #MAKE = "/home/ccaarlos/.conda/envs/nesig/bin/make"
     try:
         num_cpus = multiprocessing.cpu_count()
     except NotImplementedError:
@@ -117,8 +118,12 @@ def build(config_name, cmake_parameters, make_parameters):
         else:
             raise
 
-    try_run([CMAKE, "-G", CMAKE_GENERATOR] + cmake_parameters + [rel_src_path],
-            cwd=build_path)
+    # Specify the path to Conda's make here. Replace "/path/to/conda/env/bin/make" with the actual path.
+    #conda_make_path = "/home/ccaarlos/.conda/envs/nesig/bin/make"
+    #cmake_parameters_with_make = cmake_parameters + [f"-DCMAKE_MAKE_PROGRAM={conda_make_path}"]
+
+    try_run([CMAKE, "-G", CMAKE_GENERATOR] + cmake_parameters + [rel_src_path], cwd=build_path)
+    #try_run([CMAKE, "-G", CMAKE_GENERATOR] + cmake_parameters_with_make + [rel_src_path], cwd=build_path)
     try_run([MAKE] + make_parameters, cwd=build_path)
 
     print("Built configuration {config_name} successfully.".format(**locals()))
