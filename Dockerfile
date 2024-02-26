@@ -22,9 +22,9 @@ RUN echo "source activate nesig" >> ~/.bashrc
 ENV PATH /opt/conda/envs/nesig/bin:$PATH
 
 # Install PyTorch with CUDA support
-RUN conda install -n nesig pytorch pytorch-cuda=12.1 -c pytorch -c nvidia
+RUN conda install -n nesig pytorch=2.2 pytorch-cuda=12.1 -c pytorch -c nvidia -y
 # Pytorch with CPU-only
-#RUN conda install -n nesig pytorch=2.1 cpuonly -c pytorch
+#RUN conda install -n nesig pytorch=2.1 cpuonly -c pytorch -y
 
 # Install PyTorch Lightning
 RUN conda install -n nesig pytorch-lightning=2.1 -c conda-forge -y
