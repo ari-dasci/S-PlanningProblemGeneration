@@ -104,7 +104,7 @@ class TestPPOPolicy(unittest.TestCase):
         # Create problem generator
         self.consistency_evaluator = ConsistencyEvaluatorLogistics(self.parser.types, self.parser.type_hierarchy, self.parser.predicates)
         self.difficulty_evaluator = PlannerEvaluator(Path(domain_path), TRAIN_PLANNER_ARGS)
-        self.diversity_evaluator = InitGoalDiversityEvaluator(True, 1.0)
+        self.diversity_evaluator = InitGoalDiversityEvaluator(1.0)
         self.problem_generator = ProblemGenerator(self.parser, self.init_policy, self.goal_policy, self.consistency_evaluator,
                                             (('at', ('package','location')),), None,
                                             ('city', 'location', 'airport', 'package', 'truck', 'airplane'),

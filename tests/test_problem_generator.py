@@ -266,7 +266,7 @@ class TestProblemGenerator(unittest.TestCase):
 
         # Diversity is symmetrical
         self.assertEqual(problem_info_list[0]['diversity'], problem_info_list[1]['diversity'])
-        self.assertEqual(trajectories[0][9]['diversity_reward'], trajectories[1][7]['diversity_reward'])
+        self.assertEqual(trajectories[0][-1]['diversity_reward'], trajectories[1][-1]['diversity_reward'])
 
         # Problem 1
         self.assertEqual(len(trajectories[0]), 12)
@@ -286,7 +286,7 @@ class TestProblemGenerator(unittest.TestCase):
 
         self.assertEqual([step['consistency_reward'] for step in trajectories[0]], [0]*12)
         self.assertEqual(trajectories[0][-1]['difficulty_reward'], 1)
-        self.assertGreater(trajectories[0][9]['diversity_reward'], 0) # Diversity reward is stored in the last step of the init phase
+        self.assertGreater(trajectories[0][-1]['diversity_reward'], 0) # Diversity reward is stored in the last step of the init phase
 
         # Make sure that the list of applicable actions is correct
         self.assertEqual( [step['applicable_actions'] for step in trajectories[0]],
@@ -315,7 +315,7 @@ class TestProblemGenerator(unittest.TestCase):
        
         self.assertEqual([step['consistency_reward'] for step in trajectories[1]], [0]*13)
         self.assertEqual(trajectories[1][-1]['difficulty_reward'], 1)
-        self.assertGreater(trajectories[1][7]['diversity_reward'], 0) # Diversity reward is stored in the last step of the init phase
+        self.assertGreater(trajectories[1][-1]['diversity_reward'], 0) # Diversity reward is stored in the last step of the init phase
 
         # Make sure that the list of applicable actions is correct
         self.assertEqual( [step['applicable_actions'] for step in trajectories[1]],
