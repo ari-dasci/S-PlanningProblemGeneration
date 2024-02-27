@@ -39,21 +39,13 @@ class InitGoalDiversityEvaluator(DiversityEvaluator):
     Calculates the diversity of a set of problems based on their initial and goal states.
     To do so, it computes a series of features for each problem, and calculates diversity as the mean distance
     of each problem with the rest, based on these features.
-    The features are:
-        - Percentage of objects of each type in the initial state
-        - Percentage of atoms of each predicate type in the initial state and in the goal state
-        - Mean and std of the number of objects of type j each object of type i "relates", i.e., appears on the same
-        atom with, according to atoms of predicate type k -> l[obj_type_i][pred_type_k][obj_type_j]
-        Example: in some logistics state, each city has an average of 1.2 locations and an std of 0.5 locations.
-                This would correspond to l[city][in-city][location]
-          This is done for both the initial and goal state.
-        
-    The features used do NOT depend on the size of the initial state (that's why we use percentage of objects/atoms instead of absolute numbers).
+     
+    The features used do NOT depend on the size of the initial state, as they are normalized.
     We do this so that we can fairly compare the diversity among problems of different sizes.
    
-    <NOTE>:
+    <NOTE> - Changes from InitDiversityEvaluator (old) to InitGoalDiversityEvaluator (new)
     - We don't apply z-score to normalize each feature:
-        - The mean and std is computed per-batch! This is wrong!
+        - The mean and std was computed per-batch, which was wrong!
 
     - Features = [n_objs_t, n_atoms_t_init, n_atoms_t_goal, l2_mean_init, l2_std_init, l2_mean_goal, l2_std_goal]
         - We use both the init and goal states
@@ -224,13 +216,14 @@ class InitGoalDiversityEvaluator(DiversityEvaluator):
         # - l2_mean_goal=0.5
         # - l2_std_goal=0.5
 
-        obj_features_norm = (obj_features / np.sum(obj_features)) * 2
-        init_atom_features_norm = init_atom_features / np.sum(init_atom_features)
-        goal_atom_features_norm = goal_atom_features / np.sum(goal_atom_features)
-        init_l_mean_norm = (init_l_mean / np.sum(init_l_mean)) * 0.5
-        init_l_std_norm = (init_l_std / np.sum(init_l_std)) * 0.5
-        goal_l_mean_norm = (goal_l_mean / np.sum(goal_l_mean)) * 0.5
-        goal_l_std_norm = (goal_l_std / np.sum(goal_l_std)) * 0.5
+        eps = 1e-8 # To avoid division by zero
+        obj_features_norm = (obj_features / (np.sum(obj_features)+eps)) * 2
+        init_atom_features_norm = init_atom_features / (np.sum(init_atom_features)+eps)
+        goal_atom_features_norm = goal_atom_features / (np.sum(goal_atom_features)+eps)
+        init_l_mean_norm = (init_l_mean / (np.sum(init_l_mean)+eps)) * 0.5
+        init_l_std_norm = (init_l_std / (np.sum(init_l_std)+eps)) * 0.5
+        goal_l_mean_norm = (goal_l_mean / (np.sum(goal_l_mean)+eps)) * 0.5
+        goal_l_std_norm = (goal_l_std / (np.sum(goal_l_std)+eps)) * 0.5
 
         # <Concatenate all the features>
         state_features = np.concatenate((obj_features_norm, init_atom_features_norm, goal_atom_features_norm, init_l_mean_norm, init_l_std_norm,
@@ -239,7 +232,11 @@ class InitGoalDiversityEvaluator(DiversityEvaluator):
         return state_features       
 
     def _calculate_distances(self, feature_matrix):
-        num_feature_groups = 7 # We have 7 feature groups: n_objs_t, n_atoms_t_init, n_atoms_t_goal, l2_mean_init, l2_std_init, l2_mean_goal, l2_std_goal
+        # We have 7 feature groups: n_objs_t, n_atoms_t_init, n_atoms_t_goal, l2_mean_init, l2_std_init, l2_mean_goal, l2_std_goal
+        # For each feature group, the maximum distance between two states considering only the features in the group is equal to 2*feature_group_weight
+        # Therefore, the maximum distance between two states is 2*2 + 2*1 + 2*1 + 2*0.5 + 2*0.5 + 2*0.5 + 2*0.5 = 12
+        max_pairwise_dist = 12
+
         num_states, num_features = feature_matrix.shape
         distance_matrix = np.zeros((num_states,num_states), dtype=np.float32)
 
@@ -248,11 +245,9 @@ class InitGoalDiversityEvaluator(DiversityEvaluator):
                 # We use L1 norm (abs difference) to calculate the distance between two states
                 # <Note>: remember that state features do not depend on state size (i.e, num objects/atoms)
                 curr_features_diff = np.abs(feature_matrix[i] - feature_matrix[j])
-                    
-                # The maximum distance for each feature group separately is 2
-                # Therefore, if we have 7 feature groups, the maximum distance is 14
-                # We divide by 2*num_feature_groups to normalize the distance to be in the range [0, 1]
-                distance_matrix[i, j] = distance_matrix[j, i] = np.sum(curr_features_diff) / (2 * num_feature_groups)
+
+                # We divide by max_pairwise_dist to normalize the distance to be in the range [0, 1]
+                distance_matrix[i, j] = distance_matrix[j, i] = np.sum(curr_features_diff) / max_pairwise_dist
 
         return distance_matrix
 
