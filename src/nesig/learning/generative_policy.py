@@ -299,7 +299,7 @@ class PPOPolicy(GenerativePolicy):
         #parser.add_argument(f'--{phase}-critic-class', default='NLMWrapperCritic', type=cls.parse_wrapper_class, help="Class of the model wrapper for the critic.")
         parser.add_argument(f'--{phase}-lr', default=1e-3, type=float, help="Learning rate")
         parser.add_argument(f'--{phase}-PPO-epochs', default=1, type=int, help="For each PPO iteration, how many training epochs to use over the dataset of collected trajectories.")
-        parser.add_argument(f'--{phase}-epsilon', default=0.1, type=float, help="Epsilon parameter used in PPO. The larger it is, the larger policy updates can be.")
+        parser.add_argument(f'--{phase}-epsilon', default=0.2, type=float, help="Epsilon parameter used in PPO. The larger it is, the larger policy updates can be.")
         parser.add_argument(f'--{phase}-entropy-coeffs', default=0.0, type=cls.parse_entropy_coeffs, help=("Coefficients used for the PPO entropy term and annealing it."
                                                                                         "the first element is the initial value of the entropy coeff,"
                                                                                         "the second element its final value, and the third element the"
@@ -516,6 +516,12 @@ class PPOPolicy(GenerativePolicy):
         # We increment it outside the LightningModule, in trainer.py, so that
         # curr_logging_it and curr_train_it are incremented at the same time
         # self.curr_logging_it += 1 # Keep track of the number of trainer.fit() calls
+
+        # REMOVE
+        # Print how much VRAM is being used
+        print("\n----- VRAM usage -----")
+        print(torch.cuda.memory_summary(device=None, abbreviated=False))
+
 
     def training_step(self, train_batch : Dict, batch_idx=0): 
         assert isinstance(train_batch, dict), "train_batch must be a dictionary"

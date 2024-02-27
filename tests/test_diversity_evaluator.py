@@ -7,7 +7,7 @@ from pathlib import Path
 from copy import deepcopy
 
 from lifted_pddl import Parser
-from src.nesig.metrics.diversity import InitStateDiversityEvaluator
+from src.nesig.metrics.diversity import InitGoalDiversityEvaluator
 from src.nesig.symbolic.pddl_state import PDDLState
 from src.nesig.symbolic.pddl_problem import PDDLProblem
 
@@ -33,8 +33,8 @@ class TestConsistencyEvaluator(unittest.TestCase):
         problem_1.end_initial_state_generation_phase()
         problem_list = [deepcopy(problem_1), deepcopy(problem_1), deepcopy(problem_1), deepcopy(problem_1)]
 
-        diversity_evaluator1 = InitStateDiversityEvaluator(use_weighted_average=False)
-        diversity_evaluator2 = InitStateDiversityEvaluator(use_weighted_average=True)
+        diversity_evaluator1 = InitGoalDiversityEvaluator(use_weighted_average=False)
+        diversity_evaluator2 = InitGoalDiversityEvaluator(use_weighted_average=True)
 
         # The diversity of a set of identical problems is 0
         self.assertEqual(diversity_evaluator1.get_diversity(problem_list), ([0.,0.,0.,0.],[0.,0.,0.,0.]))
@@ -59,8 +59,8 @@ class TestConsistencyEvaluator(unittest.TestCase):
         p1.end_initial_state_generation_phase()
         p2.end_initial_state_generation_phase()
 
-        diversity_evaluator1 = InitStateDiversityEvaluator(use_weighted_average=False, r_diversity_weight=0.7)
-        diversity_evaluator2 = InitStateDiversityEvaluator(use_weighted_average=True)
+        diversity_evaluator1 = InitGoalDiversityEvaluator(use_weighted_average=False, r_diversity_weight=0.7)
+        diversity_evaluator2 = InitGoalDiversityEvaluator(use_weighted_average=True)
 
         # [0][0] -> diversity score of problem 0 ([1][0] would be its diversity <reward>)
         self.assertEqual(diversity_evaluator1.get_diversity([p1, p2])[0][0], diversity_evaluator1.get_diversity([p1, p2])[0][1])
@@ -89,8 +89,8 @@ class TestConsistencyEvaluator(unittest.TestCase):
         p2.end_initial_state_generation_phase()
         p3.end_initial_state_generation_phase()
 
-        diversity_evaluator1 = InitStateDiversityEvaluator(use_weighted_average=False)
-        diversity_evaluator2 = InitStateDiversityEvaluator(use_weighted_average=True)
+        diversity_evaluator1 = InitGoalDiversityEvaluator(use_weighted_average=False)
+        diversity_evaluator2 = InitGoalDiversityEvaluator(use_weighted_average=True)
 
         # p3 is the most diverse problem
         diversity_list1 = diversity_evaluator1.get_diversity([p1, p2, p3])

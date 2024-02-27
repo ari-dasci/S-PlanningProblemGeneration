@@ -34,63 +34,103 @@ class DiversityEvaluator(ABC):
     
 
 
-class InitStateDiversityEvaluator(DiversityEvaluator):
+class InitGoalDiversityEvaluator(DiversityEvaluator):
     """
-    Calculates the diversity of a set of problems based only on their initial state.
+    Calculates the diversity of a set of problems based on their initial and goal states.
     To do so, it computes a series of features for each problem, and calculates diversity as the mean distance
     of each problem with the rest, based on these features.
     The features are:
         - Percentage of objects of each type in the initial state
-        - Percentage of atoms of each predicate type in the initial state
+        - Percentage of atoms of each predicate type in the initial state and in the goal state
         - Mean and std of the number of objects of type j each object of type i "relates", i.e., appears on the same
         atom with, according to atoms of predicate type k -> l[obj_type_i][pred_type_k][obj_type_j]
         Example: in some logistics state, each city has an average of 1.2 locations and an std of 0.5 locations.
                 This would correspond to l[city][in-city][location]
-    <Note>: The features used do NOT depend on the size of the initial state (that's why we use percentage of objects/atoms instead of absolute numbers).
-            We do this so that we can fairly compare the diversity among problems of different sizes.
+          This is done for both the initial and goal state.
+        
+    The features used do NOT depend on the size of the initial state (that's why we use percentage of objects/atoms instead of absolute numbers).
+    We do this so that we can fairly compare the diversity among problems of different sizes.
+   
+    <NOTE>:
+    - We don't apply z-score to normalize each feature:
+        - The mean and std is computed per-batch! This is wrong!
+
+    - Features = [n_objs_t, n_atoms_t_init, n_atoms_t_goal, l2_mean_init, l2_std_init, l2_mean_goal, l2_std_goal]
+        - We use both the init and goal states
+        - We use mu and std so that we care how "connections" (i.e., atoms) are split among objects of the same type
+
+    - Each of the 7 feature groups above adds up to 1 for each sample, i.e., we normalize by dividing by the sum for each category
+        - Now each feature is in range [0, 1]
+        - Also, each feature group is normalized to have the same weight
+        - Each feature group contributes to the distance a maximum of 2
+
+    - We calculate distances using L1 instead of L2 norm
+        - L2 norm prefers to distribute the "weight" on a few features, i.e., it prefers [1 0 0 0] and [0 1 0 0] instead of
+        [0.5 0 0 0.5] and [0 0.5 0.5 0]
+
+    - The weight of each feature group is the following:
+        - n_objs_t=2 (we give double weight since we only calculate for the init state, as the goal state has the same objects)
+        - n_atoms_t_init=1
+        - n_atoms_t_goal=1
+        - l2_mean_init=0.5 (we give half weight since we have two l2 features for each state, mean and std)
+        - l2_std_init=0.5
+        - l2_mean_goal=0.5
+        - l2_std_goal=0.5
     """
 
-    def __init__(self, use_weighted_average=True, r_diversity_weight:float=1.0):
+    def __init__(self, r_diversity_weight:float=1.0):
         """
         Parameters:
-            - use_weighted_average: If True, when calculating the distance between problems we make sure that each one of the four
-                                    feature sublists (perc_objects, perc_atoms, mean_rel, std_rel) contributes equally to the distance.
-                                    This is important when the number of features in each of the four sublists is very different because,
-                                    if we don't use a weighted average, the sublist with more features will dominate the distance calculation.
             - r_diversity_weight: Weight/coefficient for which we multiply the diversity reward.
         """
-        self.use_weighted_average = use_weighted_average
         self.r_diversity_weight = r_diversity_weight
 
-    def _get_state_features(self, init_state):
+    def _get_obj_features(self, state) -> np.ndarray:
         """
-        <Note>: we must NOT modify init_state, since it is the initial state of a PDDLProblem
-        It returns both the state features and the feature weights (if self.use_weighted_average is True), used to calculate the distance    
+        Auxiliary method of _get_state_features. It returns the object features, which are the number of objects of each type.
+        Note that the objects in the init and goal state are the same.
+        <NOTE>: the number of objects will be later normalized to obtain the percentage of objects of each type.
         """
-        types = init_state.types
-        predicates = init_state.predicates
-        pred_names = init_state.predicate_names
-        objs = tuple(init_state._objects) # We use ._objects instead of .objects to avoid performing a deep copy
-        atoms = tuple(init_state._atoms)
+        objs = tuple(state._objects) # We use ._objects instead of .objects to avoid performing a deep copy
+        types = state.types
+
+        obj_features = np.array([objs.count(t) for t in types], dtype=float)
+        return obj_features
+
+    def _get_atom_features(self, state) -> np.ndarray:
+        """
+        Auxiliary method of _get_state_features. It returns the atom features, which are the number of atoms of each predicate type.
+        This number of atoms will be later normalized to obtain the percentage of atoms of each predicate type.
+        """
+        pred_names = state.predicate_names
+        atoms = tuple(state._atoms)
         atom_names = tuple([a[0] for a in atoms])
+        
+        atom_features = np.array([atom_names.count(p) for p in pred_names], dtype=float)
+        return atom_features
+
+    def _get_connection_features(self, state) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Auxiliary method of _get_state_features. It returns the l_mean and l_std features, which describe how the objects and atoms are related
+        in the state.
+        If l_mean[type_i][pred_type][type_j]=n, then the objects of type_i are "connected" to an average of "n" objects of type_j via atoms of type pred_type.
+        We say an object is connected to another if they are instantiated on the same atom (regardless of position).
+        l_std describes the standard deviation of the number of objects, instead of the average.
+        """
+        types = state.types
+        predicates = state.predicates
+        pred_names = state.predicate_names
+        objs = tuple(state._objects)
+        atoms = tuple(state._atoms)
+        atom_names = tuple([a[0] for a in atoms])
+        num_atoms = len(atoms)
         num_types = len(types)
         num_preds = len(predicates)
         num_objs = len(objs)
-        num_atoms = len(atoms)
-    
-        # <Number of objects and atoms of each type>
-        
-        # Count percentage of objects of each type
-        perc_objs_each_type = np.array([objs.count(t)/num_objs for t in types], dtype=float)
-
-        # Count percentage of atoms of each predicate type
-        perc_atoms_each_pred = np.array([atom_names.count(p)/num_atoms for p in pred_names], dtype=float)
-
-        # <Mean and std of the number of objects each object relates to>
 
         # Obtain dictionaries that assign a number to every type and predicate
         # Pred names to indices
-        pred_to_ind_dict = init_state._pred_names_to_indices_dict # _pred_names... to avoid deepcopy
+        pred_to_ind_dict = state._pred_names_to_indices_dict # _pred_names... to avoid deepcopy
 
         # (allowed) object types to indices
         type_indices = list(range(len(types)))
@@ -157,25 +197,49 @@ class InitStateDiversityEvaluator(DiversityEvaluator):
         l_mean = l_mean.flatten()
         l_std = l_std.flatten()
 
-        # Concatenate all the features
-        state_features = np.concatenate((perc_objs_each_type, perc_atoms_each_pred, l_mean, l_std))
+        return l_mean, l_std
 
-        # Obtain the weight vector for doing the weighted average of feature differences
-        # The more features in each one of the four previous arrays -> the less weight each feature has
-        # Note: this weith vector is the same for all the initial states of the same domain
-        if self.use_weighted_average:
-            weights_num_objs_each_type = [1/perc_objs_each_type.size]*perc_objs_each_type.size # If perc_objs_each_type.size = 3, then it would be [1/3, 1/3, 1/3]
-            weights_num_atoms_each_pred = [1/perc_atoms_each_pred.size]*perc_atoms_each_pred.size
-            weights_l_mean = [1/l_mean.size]*l_mean.size
-            weights_l_std = [1/l_std.size]*l_std.size
+    def _get_state_features(self, init_state, goal_state) -> np.ndarray:
+        """
+        <Note>: we must NOT modify init_state and goal_state, since they belong to a PDDLProblem.
+        It returns both the state features used to calculate the distance.
+        """
+        
+        # <Obtain the state features>
 
-            weights = tuple(weights_num_objs_each_type + weights_num_atoms_each_pred + weights_l_mean + weights_l_std)
-        else:
-            weights = None
+        obj_features = self._get_obj_features(init_state) # The init and goal state have the same objects, so we can use either
+        init_atom_features = self._get_atom_features(init_state)
+        goal_atom_features = self._get_atom_features(goal_state)
+        init_l_mean, init_l_std = self._get_connection_features(init_state)
+        goal_l_mean, goal_l_std = self._get_connection_features(goal_state)
 
-        return state_features, weights        
+        # <Normalize features>
+        # We normalize each feature group so that, for each sample, all the features in the same group add up to one
+        # Next, we weight each feature group to give them different importance:
+        # - n_objs_t=2 (we give double weight since we only calculate for the init state, as the goal state has the same objects)
+        # - n_atoms_t_init=1
+        # - n_atoms_t_goal=1
+        # - l2_mean_init=0.5 (we give half weight to l2 features since we have two l2 features for each state: mean and std)
+        # - l2_std_init=0.5
+        # - l2_mean_goal=0.5
+        # - l2_std_goal=0.5
 
-    def _calculate_distances(self, feature_matrix, feature_weights):
+        obj_features_norm = (obj_features / np.sum(obj_features)) * 2
+        init_atom_features_norm = init_atom_features / np.sum(init_atom_features)
+        goal_atom_features_norm = goal_atom_features / np.sum(goal_atom_features)
+        init_l_mean_norm = (init_l_mean / np.sum(init_l_mean)) * 0.5
+        init_l_std_norm = (init_l_std / np.sum(init_l_std)) * 0.5
+        goal_l_mean_norm = (goal_l_mean / np.sum(goal_l_mean)) * 0.5
+        goal_l_std_norm = (goal_l_std / np.sum(goal_l_std)) * 0.5
+
+        # <Concatenate all the features>
+        state_features = np.concatenate((obj_features_norm, init_atom_features_norm, goal_atom_features_norm, init_l_mean_norm, init_l_std_norm,
+                                         goal_l_mean_norm, goal_l_std_norm))
+
+        return state_features       
+
+    def _calculate_distances(self, feature_matrix):
+        num_feature_groups = 7 # We have 7 feature groups: n_objs_t, n_atoms_t_init, n_atoms_t_goal, l2_mean_init, l2_std_init, l2_mean_goal, l2_std_goal
         num_states, num_features = feature_matrix.shape
         distance_matrix = np.zeros((num_states,num_states), dtype=np.float32)
 
@@ -185,24 +249,17 @@ class InitStateDiversityEvaluator(DiversityEvaluator):
                 # <Note>: remember that state features do not depend on state size (i.e, num objects/atoms)
                 curr_features_diff = np.abs(feature_matrix[i] - feature_matrix[j])
                     
-                # Weights=None if self.use_weighted_average=False, in which case we perform a standard average
-                distance_matrix[i, j] = distance_matrix[j, i] = np.average(curr_features_diff, weights=feature_weights)
+                # The maximum distance for each feature group separately is 2
+                # Therefore, if we have 7 feature groups, the maximum distance is 14
+                # We divide by 2*num_feature_groups to normalize the distance to be in the range [0, 1]
+                distance_matrix[i, j] = distance_matrix[j, i] = np.sum(curr_features_diff) / (2 * num_feature_groups)
 
         return distance_matrix
-
-    # We use z-score normalization
-    def _normalize_features(self, feature_matrix):
-        means = np.mean(feature_matrix, axis=0)
-        std_devs = np.std(feature_matrix, axis=0)
-        std_devs[std_devs == 0] = 1 # Avoid division by zero
-        feature_matrix_norm = (feature_matrix - means) / std_devs
-        
-        return feature_matrix_norm
 
     def get_diversity(self, problem_list : List[PDDLProblem]) -> Tuple[List[float], List[float]]:
         """
         Returns the diversity for a list of PDDL problems.
-        Before calling this method, the initial state must be completely generated for each problem in the list.
+        Before calling this method, the initial and goal states must be completely generated for each problem in the list.
         <Note>: we assume that all the problems are consistent. Consistency must be checked BEFORE calling this method.
                 Otherwise, we will calculate the diversity also for inconsistent problems, which is not what we want.
         """
@@ -213,19 +270,15 @@ class InitStateDiversityEvaluator(DiversityEvaluator):
         
         for i, problem in enumerate(problem_list):
             assert problem.is_initial_state_generated, f'The initial state of problem {i} has not been completely generated yet'
+            assert problem.is_goal_state_generated, f'The goal state of problem {i} has not been completely generated yet'
 
         # Obtain the state features for each problem
         # We use ._initial_state to avoid obtaining a deep copy of the init state. We can do this since we don't modify the init state
-        feature_and_weights_list = [self._get_state_features(problem._initial_state) for problem in problem_list]
-        feature_matrix = np.array([x[0] for x in feature_and_weights_list], dtype=np.float32) # x[0] to obtain the features but not the weights
-        feature_weights = feature_and_weights_list[0][1] # We obtain the feature weights for the first init_state, since it is the same for all of them
-
-        # Normalize features so that they all have similar scale
-        feature_matrix_norm = self._normalize_features(feature_matrix)
+        feature_matrix = np.array([self._get_state_features(problem._initial_state, problem._goal_state) for problem in problem_list], dtype=np.float32)
 
         # Calculate the pair-wise distances between problems
         # distance_matrix[i][j] is the distance between problems i and j
-        distance_matrix = self._calculate_distances(feature_matrix_norm, feature_weights)
+        distance_matrix = self._calculate_distances(feature_matrix)
 
         # For each problem, calculate its diversity as the average distance between it and the rest of problems
         # diversity_scores = [np.mean(distance_matrix[i,:]) for i in range(len(problem_list))]
@@ -237,10 +290,3 @@ class InitStateDiversityEvaluator(DiversityEvaluator):
         diversity_rewards = [self.r_diversity_weight*score for score in diversity_scores]
 
         return diversity_scores, diversity_rewards
-    
-
-# TODO
-class FeaturesDiversityEvaluator(DiversityEvaluator):
-    @abstractmethod
-    def get_diversity(self, problem_list : List[Union[PDDLProblem,Path]]) -> Tuple[List[float], List[float]]:
-        raise NotImplementedError

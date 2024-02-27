@@ -197,7 +197,7 @@ class PolicyTrainer():
 
         - Common to all phases:          
             - Percentage of problems that are eventual-consistent
-            - Mean problem diversity (calculated with either InitStateDiversityEvaluator or FeaturesDiversityEvaluator)
+            - Mean problem diversity (calculated with either InitGoalDiversityEvaluator)
             - Mean and std problem difficulty
             - Mean and std number of actions for the init and goal phase (without considering TERM_ACTION)        
             - Mean and std number of atoms and objects for each type

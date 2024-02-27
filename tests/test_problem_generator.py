@@ -27,7 +27,7 @@ from src.nesig.symbolic.problem_generator import ProblemGenerator
 from src.nesig.constants import TERM_ACTION
 from src.nesig.metrics.consistency_evaluators.logistics_consistency import ConsistencyEvaluatorLogistics
 from src.nesig.metrics.difficulty import DummyDifficultyEvaluator
-from src.nesig.metrics.diversity import InitStateDiversityEvaluator
+from src.nesig.metrics.diversity import InitGoalDiversityEvaluator
 
 
 class TestProblemGenerator(unittest.TestCase):
@@ -44,7 +44,7 @@ class TestProblemGenerator(unittest.TestCase):
         self.allowed_virtual_objects = ('city', 'location', 'package', 'truck', 'airplane', 'airport')
 
         self.difficulty_evaluator = DummyDifficultyEvaluator()
-        self.diversity_evaluator = InitStateDiversityEvaluator()
+        self.diversity_evaluator = InitGoalDiversityEvaluator()
 
     def assertEqualTensorList(self, l1, l2):
         self.assertEqual(len(l1), len(l2))

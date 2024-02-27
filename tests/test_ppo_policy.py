@@ -20,7 +20,7 @@ from src.nesig.constants import TERM_ACTION, TRAIN_PLANNER_ARGS
 from src.nesig.symbolic.pddl_state import PDDLState
 from src.nesig.symbolic.pddl_problem import PDDLProblem
 from src.nesig.metrics.difficulty import PlannerEvaluator
-from src.nesig.metrics.diversity import InitStateDiversityEvaluator, FeaturesDiversityEvaluator
+from src.nesig.metrics.diversity import InitGoalDiversityEvaluator
 from src.nesig.symbolic.problem_generator import ProblemGenerator
 from src.nesig.metrics.consistency_evaluators.logistics_consistency import ConsistencyEvaluatorLogistics
 from src.nesig.learning.data_utils import CommonDataset, common_collate_fn
@@ -104,7 +104,7 @@ class TestPPOPolicy(unittest.TestCase):
         # Create problem generator
         self.consistency_evaluator = ConsistencyEvaluatorLogistics(self.parser.types, self.parser.type_hierarchy, self.parser.predicates)
         self.difficulty_evaluator = PlannerEvaluator(Path(domain_path), TRAIN_PLANNER_ARGS)
-        self.diversity_evaluator = InitStateDiversityEvaluator(True, 1.0)
+        self.diversity_evaluator = InitGoalDiversityEvaluator(True, 1.0)
         self.problem_generator = ProblemGenerator(self.parser, self.init_policy, self.goal_policy, self.consistency_evaluator,
                                             (('at', ('package','location')),), None,
                                             ('city', 'location', 'airport', 'package', 'truck', 'airplane'),

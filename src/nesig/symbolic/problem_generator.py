@@ -237,11 +237,10 @@ class ProblemGenerator():
             problem_diversity_rewards = [0]*num_problems
 
         # Assign difficulty and diversity reward to each problem's trajectory
+        # They are both assigned to the last sample of the trajectory
         for i in range(num_problems):
             trajectories[i][-1]['difficulty_reward'] = problem_difficulty_rewards[i]
-            
-            # Assign diversity reward to the last sample of the initial state generation phase
-            trajectories[i][init_generation_phase_lengths[i]-1]['diversity_reward'] = problem_diversity_rewards[i]
+            trajectories[i][-1]['diversity_reward'] = problem_diversity_rewards[i]
 
         return problem_difficulties, problem_diversities, trajectories
 

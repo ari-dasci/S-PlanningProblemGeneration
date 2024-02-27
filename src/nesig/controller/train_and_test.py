@@ -102,7 +102,7 @@ from src.nesig.symbolic.pddl_state import PDDLState
 from src.nesig.symbolic.problem_generator import ProblemGenerator
 from src.nesig.metrics.consistency_evaluators.dummy_consistency import DummyConsistencyEvaluator
 from src.nesig.metrics.difficulty import PlannerEvaluator
-from src.nesig.metrics.diversity import InitStateDiversityEvaluator, FeaturesDiversityEvaluator
+from src.nesig.metrics.diversity import InitGoalDiversityEvaluator
 from src.nesig.controller.trainer import PolicyTrainer
 
 def parse_arguments():
@@ -196,12 +196,12 @@ def parse_arguments():
                                                                      "If -1, we only perform validation at the end of training."))
     parser.add_argument('--log-period', type=int, default=10, help="Number of training steps between logging to tensorboard.")
     parser.add_argument('--disc-factor', type=float, default=1.0, help="Discount factor (gamma) for the total reward.")
-    parser.add_argument('--batch-size', type=int, default=32, help="Minibatch size during training.")
+    parser.add_argument('--batch-size', type=int, default=64, help="Minibatch size during training.")
     parser.add_argument('--num-problems-train', type=int, default=25, help=("Number of trajectories (problems) to generate in each training step"
                                                                             "for obtaining the training data."))
     parser.add_argument('--num-problems-val', type=int, default=100, help="Number of problems to generate every time we perform validation.")
     parser.add_argument('--num-problems-test', type=int, default=100, help="Number of problems to generate for each test experiment for each problem size.")                                                                        
-    parser.add_argument('--min-samples-train', type=int, default=16, help=("Minimum number of collected samples in order to perform a PPO step."
+    parser.add_argument('--min-samples-train', type=int, default=32, help=("Minimum number of collected samples in order to perform a PPO step."
                                                                             "If the number of samples is smaller, we skip the current training step for the init/goal policy"))
     parser.add_argument('--critic-loss-weight', type=float, default=0.1, help="Weight for the critic loss when compared to the actor loss. Used so that gradient norm is similar for actor and critic and training is stable.")
     parser.add_argument('--grad-clip', type=float, default=5.0, help="Gradient clipping value. Use -1 for no gradient clipping.")
@@ -263,8 +263,6 @@ def parse_arguments():
     parser.add_argument('--r-diversity-weight', type=float, default=50, help="Weight of the diversity reward in the total reward.")
     parser.add_argument('--diversity-weight-val-score', type=float, default=-1, help=("Weight of the diversity score used for calculating the val score."
                                                                                       "If -1, we use the same weight as in --r-diversity-weight."))
-    parser.add_argument('--weighted-average-diversity', type=str2bool, default=True,
-                         help="If True (default), we use the weighted average the the init_state_diversity.")
     # We keep r_diff_weight to 1
     #parser.add_argument('--r-diff-weight', type=float, default=1.0, help="Weight of the difficulty reward in the total reward.")
     parser.add_argument('--r-terminated-problem-train', type=float, default=1e6, help="Difficulty reward of a problem that has been terminated (either by timeout or memory out) during the training phase.")
@@ -561,13 +559,11 @@ def _create_problem_generator(stage, args, parsed_domain_info, init_policy, goal
     if stage == 'train':
         difficulty_evaluator = PlannerEvaluator(parsed_domain_info['domain_path'], TRAIN_PLANNER_ARGS, args.time_limit_planner_train,
                                                 args.memory_limit_planner_train, args.max_workers_planner_train, args.r_terminated_problem_train)
-        diversity_evaluator = InitStateDiversityEvaluator(args.weighted_average_diversity, args.r_diversity_weight)
+        diversity_evaluator = InitGoalDiversityEvaluator(args.r_diversity_weight)
     else:
         difficulty_evaluator = PlannerEvaluator(parsed_domain_info['domain_path'], TEST_PLANNER_ARGS, args.time_limit_planner_test,
                                                 args.memory_limit_planner_test, args.max_workers_planner_test, args.r_terminated_problem_test)
-        # TODO
-        # Use FeaturesDiversityEvaluator for testing
-        diversity_evaluator = InitStateDiversityEvaluator(args.weighted_average_diversity, args.r_diversity_weight)
+        diversity_evaluator = InitGoalDiversityEvaluator(args.r_diversity_weight)
     
     problem_generator = ProblemGenerator(parsed_domain_info['parser'], init_policy, goal_policy, parsed_domain_info['consistency_evaluator'],
                                             parsed_domain_info['goal_predicates'], parsed_domain_info['init_state_info'],
@@ -743,6 +739,7 @@ Other TODOs:
 
 TODO improvements:
     - Implement FeaturesDiversityEvaluator
+        - NO: we measure diversity using our method based on atoms and objects
     - If resuming training, don't log repeated step values to tensorboard
         - NO need to: it seems that new values substitute the old ones
     - Implement Generalized Advantage Estimation
