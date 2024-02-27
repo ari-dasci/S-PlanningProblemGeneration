@@ -30,7 +30,7 @@ RUN conda install -n nesig pytorch=2.2 pytorch-cuda=12.1 -c pytorch -c nvidia -y
 RUN conda install -n nesig pytorch-lightning=2.1 -c conda-forge -y
 
 # Install additional Python packages
-RUN python -m pip install tensorboard lifted-pddl neural-logic-machine PDDL-Prover
+RUN python -m pip install tensorboard=2.16 lifted-pddl=1.2.2 neural-logic-machine=1.1.0 PDDL-Prover=1.0.0
 
 # Solve perl locale issue
 RUN echo "export LC_ALL=C" >> ~/.bashrc
