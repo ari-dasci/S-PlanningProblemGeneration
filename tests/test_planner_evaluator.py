@@ -2,6 +2,7 @@
 
 import unittest
 import os
+import time
 from os.path import dirname, abspath
 from pathlib import Path
 from math import log
@@ -65,6 +66,41 @@ class TestPlannerEvaluator(unittest.TestCase):
             Path('data/problems/bw_hard.pddl')]
         difficulty = planner.get_difficulty(problem_paths)
         self.assertEqual(difficulty, ([[0, 0, 0], [2, 2, 2], [3, 3, 3], [-1, -1, -1]], [0, 0.5*log(3), 0.5*log(4), 32]))
+
+    def test_parallel_planner(self):
+        """
+        We solve the same problems in sequential and parallel, making sure the difficulties and diff_rewards are the same.
+        This test can also be used for comparing the times of sequential vs parallel solving.
+        We test that parallel time is lower than sequential time.
+        """
+        num_problems = 25
+        planner_sequential = PlannerEvaluator(self.domain_path, self.plan_args, max_workers=1)
+        # The parallel planner has as many workers as problems to solve
+        planner_parallel = PlannerEvaluator(self.domain_path, self.plan_args, max_workers=num_problems)
+
+        # Solve the same problem several times   
+        problem_paths = [Path('data/problems/bw_medium.pddl') for _ in range(num_problems)]
+
+        # Sequential solving
+        start = time.time()
+        difficulty_seq, diff_r_seq = planner_sequential.get_difficulty(problem_paths)
+        end = time.time()
+        time_seq = end - start
+
+        print(f"> Sequential time: {time_seq}s")
+
+        # Parallel solving
+        start = time.time()
+        difficulty_par, diff_r_par = planner_parallel.get_difficulty(problem_paths)
+        end = time.time()
+        time_par = end - start
+
+        print(f"> Parallel time: {time_par}s")
+
+        self.assertEqual(difficulty_seq, difficulty_par)
+        self.assertEqual(diff_r_seq, diff_r_par)
+        # Parallel time must be smaller than sequential time
+        self.assertTrue(time_par < time_seq)
 
 if __name__ == '__main__':
     unittest.main()

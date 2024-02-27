@@ -196,12 +196,12 @@ def parse_arguments():
                                                                      "If -1, we only perform validation at the end of training."))
     parser.add_argument('--log-period', type=int, default=10, help="Number of training steps between logging to tensorboard.")
     parser.add_argument('--disc-factor', type=float, default=1.0, help="Discount factor (gamma) for the total reward.")
-    parser.add_argument('--batch-size', type=int, default=64, help="Minibatch size during training.")
+    parser.add_argument('--batch-size', type=int, default=32, help="Minibatch size during training.")
     parser.add_argument('--num-problems-train', type=int, default=25, help=("Number of trajectories (problems) to generate in each training step"
                                                                             "for obtaining the training data."))
     parser.add_argument('--num-problems-val', type=int, default=100, help="Number of problems to generate every time we perform validation.")
     parser.add_argument('--num-problems-test', type=int, default=100, help="Number of problems to generate for each test experiment for each problem size.")                                                                        
-    parser.add_argument('--min-samples-train', type=int, default=32, help=("Minimum number of collected samples in order to perform a PPO step."
+    parser.add_argument('--min-samples-train', type=int, default=16, help=("Minimum number of collected samples in order to perform a PPO step."
                                                                             "If the number of samples is smaller, we skip the current training step for the init/goal policy"))
     parser.add_argument('--critic-loss-weight', type=float, default=0.1, help="Weight for the critic loss when compared to the actor loss. Used so that gradient norm is similar for actor and critic and training is stable.")
     parser.add_argument('--grad-clip', type=float, default=5.0, help="Gradient clipping value. Use -1 for no gradient clipping.")
