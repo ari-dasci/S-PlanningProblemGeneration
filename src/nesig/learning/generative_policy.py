@@ -519,8 +519,8 @@ class PPOPolicy(GenerativePolicy):
 
         # REMOVE
         # Print how much VRAM is being used
-        print("\n----- VRAM usage -----")
-        print(torch.cuda.memory_summary(device=None, abbreviated=False))
+        #print("\n----- VRAM usage -----")
+        #print(torch.cuda.memory_summary(device=None, abbreviated=False))
 
 
     def training_step(self, train_batch : Dict, batch_idx=0): 

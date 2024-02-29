@@ -11,10 +11,6 @@ import numpy as np
 
 from src.nesig.symbolic.pddl_problem import PDDLProblem
 
-# TODO
-# Also create automatic method to calculate the diversity of a set of problems
-# using the planning-features-based method
-
 class DiversityEvaluator(ABC):
     """
     Abstract class from which particular diversity evaluators (e.g., based on the number of objects and atoms, based on more complex features, etc.)
@@ -37,8 +33,8 @@ class DiversityEvaluator(ABC):
 class InitGoalDiversityEvaluator(DiversityEvaluator):
     """
     Calculates the diversity of a set of problems based on their initial and goal states.
-    To do so, it computes a series of features for each problem, and calculates diversity as the mean distance
-    of each problem with the rest, based on these features.
+    To do so, it computes a series of features for each problem, and calculates diversity from the distances
+    between each problem and the rest, based on these features.
      
     The features used do NOT depend on the size of the initial state, as they are normalized.
     We do this so that we can fairly compare the diversity among problems of different sizes.
@@ -279,7 +275,14 @@ class InitGoalDiversityEvaluator(DiversityEvaluator):
         # diversity_scores = [np.mean(distance_matrix[i,:]) for i in range(len(problem_list))]
         # We don't use the formula above because it also includes the distance between a problem and itself, which is always 0
         # np.delete() removes the i-th element from the array
-        diversity_scores = [float(np.mean(np.delete(distance_matrix[i,:], i))) for i in range(len(problem_list))]
+        # diversity_scores = [float(np.mean(np.delete(distance_matrix[i,:], i))) for i in range(len(problem_list))]
+
+        # <NEW>
+        # The previous formula (average of distances) resulted in a diversity metric which did not discourage enough identical problems
+        # I want a diversity metric which assigns a low score to problems which are identical to many others
+        # For this reason, I calculate the average distance from each problem to the n most similar problems
+        n = 5
+        diversity_scores = [float(np.mean(np.sort(distance_matrix[i,:])[1:n+1])) for i in range(len(problem_list))]
 
         # The diversity reward is the same as the diversity score, but multiplied by self.r_diversity_weight
         diversity_rewards = [self.r_diversity_weight*score for score in diversity_scores]
