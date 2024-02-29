@@ -261,7 +261,7 @@ def parse_arguments():
                               "If 'dummy', we use the dummy consistency evaluator which does not check consistency."))
     parser.add_argument('--r-eventual-consistency', type=float, default=-1, help="Penalization given when a problem violates eventual consistency")
     parser.add_argument('--diversity-threshold', type=float, default=1.0, help=("Diversity threshold used when scaling the difficulty reward by the diversity reward."
-                                                                                "If the diversity reward is lower than the threshold, the difficulty reward is scaled down by a linear factor.
+                                                                                "If the diversity reward is lower than the threshold, the difficulty reward is scaled down by a linear factor."
                                                                                  "If it is higher, the difficulty reward is not scaled."))
     parser.add_argument('--perc-problems-diversity', type=float, default=0.2, help=("When calculating the diversity score/rewards, we calculate the average distance between each problem"
                                                                                     "and the n=perc_problem_diversity % of the problems that are closest to it."))
@@ -714,6 +714,7 @@ def main(args):
     seed_everything(args.seed, workers=True)
 
     experiment_id = get_experiment_id(args)
+    print("\n\n>>> Experiment ID:", experiment_id)
 
     # Parse the domain and obtain its associated info
     parsed_domain_info = parse_domain_and_obtain_info(args)

@@ -85,8 +85,7 @@ class PolicyTrainer():
                                                                                              max_goal_actions_generator)
         return problems, problem_info_list, trajectories
 
-    @staticmethod
-    def _calculate_diff_rescale_factor(diversity_reward:float) -> float:
+    def _calculate_diff_rescale_factor(self, diversity_reward:float) -> float:
         """
         We calculate the rescale factor for the difficulty reward based on the diversity reward.
         If the diversity reward is smaller than the diversity threshold, the rescale factor is div_reward / threshold
