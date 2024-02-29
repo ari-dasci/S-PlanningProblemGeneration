@@ -85,6 +85,15 @@ class PolicyTrainer():
                                                                                              max_goal_actions_generator)
         return problems, problem_info_list, trajectories
 
+    @staticmethod
+    def _calculate_diff_rescale_factor(diversity_reward:float) -> float:
+        """
+        We calculate the rescale factor for the difficulty reward based on the diversity reward.
+        If the diversity reward is smaller than the diversity threshold, the rescale factor is div_reward / threshold
+        If it is larger than the diversity threshold, the rescale factor is 1
+        """
+        return min(diversity_reward / self.args.diversity_threshold, 1.0)
+
     def _calculate_return_trajectories(self, trajectories):
         """
         We modify the trajectories in-place.
@@ -99,9 +108,11 @@ class PolicyTrainer():
                 #                          trajectories[i][j]['diversity_reward']
                 
                 # <NEW>
-                # We multiply the difficulty and diversity rewards
-                total_reward_curr_state = trajectories[i][j]['consistency_reward'] + trajectories[i][j]['difficulty_reward'] * \
-                                          trajectories[i][j]['diversity_reward']
+                # We multiply the difficulty by a rescale factor (in [0,1]) given by the diversity reward
+                # If the diversity reward is smaller than args.diversity_threshold, the rescale factor is div_reward / diversity_threshold
+                # If it is larger than args.diversity_threshold, the rescale factor is 1
+                diff_rescale_factor = self._calculate_diff_rescale_factor(trajectories[i][j]['diversity_reward'])
+                total_reward_curr_state = trajectories[i][j]['consistency_reward'] + trajectories[i][j]['difficulty_reward'] * diff_rescale_factor
 
                 return_curr_state = total_reward_curr_state + self.args.disc_factor*return_curr_state
 
@@ -347,6 +358,7 @@ class PolicyTrainer():
     def calculate_val_scores(self, problem_info_list:List[Dict]) -> Tuple[float, Tuple[float]]:
         """
         Returns the avg_val_score and the val_score for each problem.
+        We calculate the val_score for each problem in the same way we calculate the return using the r_consistency, r_difficulty and r_diversity.
         """
         val_scores = []
 
@@ -358,9 +370,13 @@ class PolicyTrainer():
             else:
                 diff_score = math.log(curr_diff+1)
         
-            diversity_score = p_info['diversity']*self.args.diversity_weight_val_score
+            if p_info['consistency']:
+                diff_rescale_factor = self._calculate_diff_rescale_factor(p_info['diversity'])
+                curr_val_score = diff_score * diff_rescale_factor
+            else:
+                curr_val_score = self.args.r_eventual_consistency # We set the val_score of inconsistent problems to -1
 
-            val_scores.append(diff_score+diversity_score)
+            val_scores.append(curr_val_score)
 
         avg_val_score = sum(val_scores) / len(val_scores)
 
