@@ -8,6 +8,7 @@ from typing import List, Optional, Union, Tuple
 from pathlib import Path
 from abc import ABC, abstractmethod
 import numpy as np
+import math
 
 from src.nesig.symbolic.pddl_problem import PDDLProblem
 
@@ -66,12 +67,17 @@ class InitGoalDiversityEvaluator(DiversityEvaluator):
         - l2_std_goal=0.5
     """
 
-    def __init__(self, r_diversity_weight:float=1.0):
+    def __init__(self, r_diversity_weight:float=1.0, perc_problems_diversity:float=1.0):
         """
         Parameters:
-            - r_diversity_weight: Weight/coefficient for which we multiply the diversity reward.
+            - r_diversity_weight Scale factor for the diversity reward. The diversity reward is the same as the diversity score, but multiplied by this factor.
+            - perc_problems_diversity: How many (%) closest problems to use when calculating the diversity score/reward for a problem.
+                                       If 1.0, the diversity score of a problem is the average pair-wise distance between it and the rest of the problems.
+                                       If 0.5, the diversity score of a problem is the average pair-wise distance between it and the 50% most similar (closest)
+                                       problems.
         """
         self.r_diversity_weight = r_diversity_weight
+        self.perc_problems_diversity = perc_problems_diversity
 
     def _get_obj_features(self, state) -> np.ndarray:
         """
@@ -254,9 +260,10 @@ class InitGoalDiversityEvaluator(DiversityEvaluator):
         <Note>: we assume that all the problems are consistent. Consistency must be checked BEFORE calling this method.
                 Otherwise, we will calculate the diversity also for inconsistent problems, which is not what we want.
         """
-        if len(problem_list) == 0:
+        num_problems = len(problem_list)
+        if num_problems == 0:
             return [], []
-        elif len(problem_list) == 1: # The distance (and, thus, diversity) between a problem and itself is always 0
+        elif num_problems == 1: # The distance (and, thus, diversity) between a problem and itself is always 0
             return [0.0], [0.0]
         
         for i, problem in enumerate(problem_list):
@@ -280,9 +287,10 @@ class InitGoalDiversityEvaluator(DiversityEvaluator):
         # <NEW>
         # The previous formula (average of distances) resulted in a diversity metric which did not discourage enough identical problems
         # I want a diversity metric which assigns a low score to problems which are identical to many others
-        # For this reason, I calculate the average distance from each problem to the n most similar problems
-        n = 5
-        diversity_scores = [float(np.mean(np.sort(distance_matrix[i,:])[1:n+1])) for i in range(len(problem_list))]
+        # For this reason, I calculate the average distance from each problem to the n most similar problems,
+        # where n is given by self.perc_problems_diversity
+        n = math.ceil(self.perc_problems_diversity * num_problems)
+        diversity_scores = [float(np.mean(np.sort(distance_matrix[i,:])[1:n+1])) for i in range(num_problems)]
 
         # The diversity reward is the same as the diversity score, but multiplied by self.r_diversity_weight
         diversity_rewards = [self.r_diversity_weight*score for score in diversity_scores]

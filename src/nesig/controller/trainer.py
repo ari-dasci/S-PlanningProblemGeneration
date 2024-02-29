@@ -93,8 +93,16 @@ class PolicyTrainer():
             return_curr_state = 0 # R_t = r_t + gamma * R_{t+1}
 
             for j in range(len(trajectories[i])-1, -1, -1):
-                total_reward_curr_state = trajectories[i][j]['consistency_reward'] + trajectories[i][j]['difficulty_reward'] + \
+                # <OLD>
+                # Return is equal to the sum of the rewards
+                #total_reward_curr_state = trajectories[i][j]['consistency_reward'] + trajectories[i][j]['difficulty_reward'] + \
+                #                          trajectories[i][j]['diversity_reward']
+                
+                # <NEW>
+                # We multiply the difficulty and diversity rewards
+                total_reward_curr_state = trajectories[i][j]['consistency_reward'] + trajectories[i][j]['difficulty_reward'] * \
                                           trajectories[i][j]['diversity_reward']
+
                 return_curr_state = total_reward_curr_state + self.args.disc_factor*return_curr_state
 
                 trajectories[i][j]['return'] = return_curr_state

@@ -260,9 +260,12 @@ def parse_arguments():
                         help=("If 'domain' (default value) we use the consistency evaluator of the corresponding domain."
                               "If 'dummy', we use the dummy consistency evaluator which does not check consistency."))
     parser.add_argument('--r-eventual-consistency', type=float, default=-1, help="Penalization given when a problem violates eventual consistency")
-    parser.add_argument('--r-diversity-weight', type=float, default=50, help="Weight of the diversity reward in the total reward.")
-    parser.add_argument('--diversity-weight-val-score', type=float, default=-1, help=("Weight of the diversity score used for calculating the val score."
-                                                                                      "If -1, we use the same weight as in --r-diversity-weight."))
+    parser.add_argument('--diversity-threshold', type=float, default=1.0, help=("Diversity threshold used when scaling the difficulty reward by the diversity reward."
+                                                                                "If the diversity reward is lower than the threshold, the difficulty reward is scaled down by a linear factor.
+                                                                                 "If it is higher, the difficulty reward is not scaled."))
+    parser.add_argument('--perc-problems-diversity', type=float, default=0.2, help=("When calculating the diversity score/rewards, we calculate the average distance between each problem"
+                                                                                    "and the n=perc_problem_diversity % of the problems that are closest to it."))
+
     # We keep r_diff_weight to 1
     #parser.add_argument('--r-diff-weight', type=float, default=1.0, help="Weight of the difficulty reward in the total reward.")
     parser.add_argument('--r-terminated-problem-train', type=float, default=1e6, help="Difficulty reward of a problem that has been terminated (either by timeout or memory out) during the training phase.")
@@ -379,10 +382,10 @@ def validate_and_modify_args(args):
         raise ValueError("train-mode and test-mode cannot be both 'skip'")
     if args.r_eventual_consistency > 0:
         raise ValueError("r_eventual_consistency must be a non-positive float")
-    if args.r_diversity_weight < 0:
-        raise ValueError("r_diversity_weight must be a non-negative float")
-    if args.diversity_weight_val_score == -1:
-        args.diversity_weight_val_score = args.r_diversity_weight
+    if args.diversity_threshold < 0 or args.diversity_threshold > 1:
+        raise ValueError("Diversity threshold must be a float in the range [0, 1]")
+    if args.perc_problems_diversity <= 0 or args.perc_problems_diversity > 1:
+        raise ValueError("Percentage of problems used for calculating diversity must be a float in the range (0, 1]")
     
     #if args.r_diff_weight < 0:
     #    raise ValueError("r_diff_weight must be a non-negative float")
@@ -559,11 +562,11 @@ def _create_problem_generator(stage, args, parsed_domain_info, init_policy, goal
     if stage == 'train':
         difficulty_evaluator = PlannerEvaluator(parsed_domain_info['domain_path'], TRAIN_PLANNER_ARGS, args.time_limit_planner_train,
                                                 args.memory_limit_planner_train, args.max_workers_planner_train, args.r_terminated_problem_train)
-        diversity_evaluator = InitGoalDiversityEvaluator(args.r_diversity_weight)
     else:
         difficulty_evaluator = PlannerEvaluator(parsed_domain_info['domain_path'], TEST_PLANNER_ARGS, args.time_limit_planner_test,
                                                 args.memory_limit_planner_test, args.max_workers_planner_test, args.r_terminated_problem_test)
-        diversity_evaluator = InitGoalDiversityEvaluator(args.r_diversity_weight)
+        
+    diversity_evaluator = InitGoalDiversityEvaluator(r_diversity_weight=1.0, perc_problems_diversity=args.perc_problems_diversity)
     
     problem_generator = ProblemGenerator(parsed_domain_info['parser'], init_policy, goal_policy, parsed_domain_info['consistency_evaluator'],
                                             parsed_domain_info['goal_predicates'], parsed_domain_info['init_state_info'],
