@@ -196,6 +196,9 @@ def parse_arguments():
                                                                      "If -1, we only perform validation at the end of training."))
     parser.add_argument('--log-period', type=int, default=10, help="Number of training steps between logging to tensorboard.")
     parser.add_argument('--disc-factor', type=float, default=1.0, help="Discount factor (gamma) for the total reward.")
+    parser.add_argument('--gae-factor', type=float, default=0.95, help=("Generalized advantage estimation factor (lambda)."
+                                                                        "A value of 1 is equivalent to using n-step returns."
+                                                                        "A value of 0 is equivalent to using TD."))
     parser.add_argument('--batch-size', type=int, default=64, help="Minibatch size during training.")
     parser.add_argument('--num-problems-train', type=int, default=25, help=("Number of trajectories (problems) to generate in each training step"
                                                                             "for obtaining the training data."))
@@ -205,7 +208,8 @@ def parse_arguments():
                                                                             "If the number of samples is smaller, we skip the current training step for the init/goal policy"))
     parser.add_argument('--critic-loss-weight', type=float, default=0.1, help="Weight for the critic loss when compared to the actor loss. Used so that gradient norm is similar for actor and critic and training is stable.")
     parser.add_argument('--grad-clip', type=float, default=5.0, help="Gradient clipping value. Use -1 for no gradient clipping.")
-    parser.add_argument('--moving-mean-return-coeff', type=float, default=0.95, help="Coefficient (decay factor) for the moving mean and std of the return. It is used for normalizing returns.")
+    # No longer used, as we now use GAE
+    #parser.add_argument('--moving-mean-return-coeff', type=float, default=0.95, help="Coefficient (decay factor) for the moving mean and std of the return. It is used for normalizing returns.")
     parser.add_argument('--device', type=str, choices=('gpu', 'cpu'), default='gpu', help="Device to run training on: gpu or cpu.")
 
     parser.add_argument('--max-init-actions-train', required=False, default=10, type=parse_max_actions_train, help=("Maximum number of actions that can be executed in the init phase during training."
@@ -352,6 +356,8 @@ def validate_and_modify_args(args):
         raise ValueError("log-period must be a positive integer")
     if args.disc_factor < 0 or args.disc_factor > 1:
         raise ValueError("Discount factor must be a float in the range [0, 1]")
+    if args.gae_factor < 0 or args.gae_factor > 1:
+        raise ValueError("GAE factor (lambda) must be a float in the range [0, 1]")
     if args.batch_size < 1:
         raise ValueError("Batch size must be a positive integer")
     if args.num_problems_train < 1:
@@ -368,8 +374,8 @@ def validate_and_modify_args(args):
         args.grad_clip = None # gradient_clip_val=None in pl.Trainer is equivalent to no gradient clipping
     elif args.grad_clip <= 0:
         raise ValueError("Gradient clip value must be either -1 or a positive float")
-    if args.moving_mean_return_coeff <= 0 or args.moving_mean_return_coeff >= 1:
-        raise ValueError("Moving mean return coefficient must be a float in the range (0, 1)")
+    #if args.moving_mean_return_coeff <= 0 or args.moving_mean_return_coeff >= 1:
+    #    raise ValueError("Moving mean return coefficient must be a float in the range (0, 1)")
     if args.max_init_actions_val == -1:
         args.max_init_actions_val = args.max_init_actions_train
     if args.max_goal_actions_val == -1:

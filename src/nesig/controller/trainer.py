@@ -117,11 +117,12 @@ class PolicyTrainer():
 
                 trajectories[i][j]['return'] = return_curr_state
 
+    """
+    # No longer used, as we now use GAE
     def _normalize_return_trajectories(self, trajectories, problem_info_list, train_init_policy, train_goal_policy) -> \
                                        Tuple[List[List[Dict]], List[List[Dict]]]:
-        """
-        We normalize returns separately for the init and goal generation phase of each trajectory.
-        """  
+        #We normalize returns separately for the init and goal generation phase of each trajectory.
+        
         # We split the trajectories in the init and goal generation phase
         init_phase_lengths = [problem_info['init_phase_length'] for problem_info in problem_info_list]
         init_trajectories = [t[:length] for t, length in zip(trajectories, init_phase_lengths)]
@@ -135,11 +136,12 @@ class PolicyTrainer():
             self.goal_policy.normalize_return_trajectories(goal_trajectories)
 
         return init_trajectories, goal_trajectories
+    """
 
-    def _calculate_advantage_trajectories(self, policy, trajectories):
+    def _calculate_n_step_advantage_trajectories(self, policy, trajectories):
         """
-        Don't calculate the advantage for the samples of the init or goal phase if the corresponding policy is not trained (it is Random).
-        TODO: use Generalized Advantage Estimation (GAE) instead of the simple advantage A(s,a) = R(s,a) - V(s).
+        Old method that calculates the advantage A_t as the n-step return - V(s_t), where n is the number of steps in the trajectory.
+        We now use GAE (Generalized Advantage Estimation). Note that GAE(lambda=1) is equivalent to n-step return.
         """
         for i in range(len(trajectories)):
             if len(trajectories[i]) > 0: # Skip empty trajectories
@@ -151,6 +153,27 @@ class PolicyTrainer():
                 # It is saved as a float value instead of a tensor (we don't need to keep gradient)
                 for j in range(len(trajectories[i])):
                     trajectories[i][j]['advantage'] = trajectories[i][j]['norm_return'] - state_values[j].item()
+
+    def _calculate_advantage_trajectories(self, policy, trajectories):
+        """
+        Calculates the advantage of each sample in the trajectories, using the Generalized Advantage Estimation (GAE) algorithm.
+        """
+        for i in range(len(trajectories)):
+            if len(trajectories[i]) > 0: # Skip empty trajectories
+                # Calculate V(s) in parallel for all the samples of the i-th trajectory
+                internal_states = [sample['internal_state'] for sample in trajectories[i]]
+                state_values, _ = policy.calculate_state_values(internal_states) # It returns a tuple (state_values, internal_states)
+
+                # Calculate the advantage using Generalized Advantage Estimation (GAE)
+                # We use the following formula: A_t = delta_t + (gamma*lambda) * A_{t+1}
+                # where delta_t = r_t + gamma*V(s_{t+1}) - V(s_t) is the TD error
+                # It is saved as a float value instead of a tensor (we don't need to keep gradient)
+                
+                # The advantage for the last sample is r_t - V(s_t) (we set A_{T+1} and V(s_{T+1}) to 0),
+                # which is equal to the n-step return Advantage
+                advantage_curr_state = 
+                
+                for j in range(len(trajectories[i])):
 
     def _process_trajectories(self, trajectories:List[List[Dict]], problem_info_list:List[Dict],
                               train_init_policy:bool, train_goal_policy:bool) -> Tuple[List[List[Dict]], List[List[Dict]]]:
@@ -307,12 +330,13 @@ class PolicyTrainer():
                 log_and_save(writer, log_dict, 'Mean return', mean_return, x_value)
                           
                 # We check if 'norm_return' and 'advantage' are in the sample because they are not calculated if the corresponding policy is Random     
-                norm_returns = [sample['norm_return'] for sample in sample_list if 'norm_return' in sample]
+                # norm_returns = [sample['norm_return'] for sample in sample_list if 'norm_return' in sample]
                 advantages = [sample['advantage'] for sample in sample_list if 'advantage' in sample]
                 
-                if len(norm_returns) > 0:
-                    mean_norm_return = sum(norm_returns) / len(norm_returns)
-                    log_and_save(writer, log_dict, 'Mean norm return', mean_norm_return, x_value)
+                # No longer use norm_return as we now use GAE
+                #if len(norm_returns) > 0:
+                #    mean_norm_return = sum(norm_returns) / len(norm_returns)
+                #    log_and_save(writer, log_dict, 'Mean norm return', mean_norm_return, x_value)
                 if len(advantages) > 0:    
                     mean_advantage = sum(advantages) / len(advantages)
                     log_and_save(writer, log_dict, 'Mean advantage', mean_advantage, x_value)

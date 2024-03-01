@@ -203,10 +203,10 @@ class PPOPolicy(GenerativePolicy):
         # we skip training (trainer.fit() call) if not enough data was obtained for the current it
         self.register_buffer('curr_logging_it', torch.tensor(1, dtype=torch.int32, device=self.device))
 
-        # Variables used for normalizing returns
+        # Variables used for normalizing returns -> No longer needed, as we now use GAE
         # We use buffers in the init and goal policies so that they can be saved and loaded from checkpoints
-        self.register_buffer('moving_mean_return', torch.tensor(-1.0, dtype=torch.float32, device=self.device))
-        self.register_buffer('moving_std_return', torch.tensor(-1.0, dtype=torch.float32, device=self.device))
+        #self.register_buffer('moving_mean_return', torch.tensor(-1.0, dtype=torch.float32, device=self.device))
+        #self.register_buffer('moving_std_return', torch.tensor(-1.0, dtype=torch.float32, device=self.device))
 
         # --entropy_coeffs is a three-element tuple where the first element is the initial value
         # of the entropy coeff, the second element its final value and the third element the number
@@ -337,14 +337,14 @@ class PPOPolicy(GenerativePolicy):
             self.total_norm_actor_sum += total_norm_actor
             self.total_norm_critic_sum += total_norm_critic
 
+    """
+    # We no longer need to normalize returns, as we use GAE
     def normalize_return_trajectories(self, trajectories:List[List[Dict]]):
-        """
-        This method normalizes the returns of the trajectories in-place so that they have mean 0 and std 1.
-        We need to do this inside the policy so that the normalization parameters (mean and std) can be saved and loaded
-        if training resumes.
-        <NOTE>: we assume that the trajectories parameter only contains the samples for the init or goal phase,
-                depending on whether this is the init or goal policy.
-        """
+        #This method normalizes the returns of the trajectories in-place so that they have mean 0 and std 1.
+        #We need to do this inside the policy so that the normalization parameters (mean and std) can be saved and loaded
+        #if training resumes.
+        #<NOTE>: we assume that the trajectories parameter only contains the samples for the init or goal phase,
+        #        depending on whether this is the init or goal policy.
         # Calculate the mean and std of the returns for the trajectories of the current train it
         curr_returns = torch.tensor([sample['return'] for t in trajectories for sample in t], dtype=torch.float32, device=self.device)
         
@@ -370,6 +370,7 @@ class PPOPolicy(GenerativePolicy):
             moving_mean_coeff = self.hparams['moving_mean_return_coeff']
             self.moving_mean_return = moving_mean_coeff*self.moving_mean_return + (1-moving_mean_coeff)*curr_mean_return
             self.moving_std_return = moving_mean_coeff*self.moving_std_return + (1-moving_mean_coeff)*curr_std_return
+    """
 
     def calculate_entropy(self, _action_log_probs:torch.Tensor, applicable_actions:List[Tuple[str, Tuple[int]]]) \
         -> torch.Tensor:

@@ -148,6 +148,8 @@ class TestPPOPolicy(unittest.TestCase):
        
         return init_trajectories, goal_trajectories
 
+    # TODO
+    # We now need to use GAE
     def _calculate_advantage_trajectories(self, policy, trajectories):
         """
         Copied from trainer._calculate_advantage_trajectories.
