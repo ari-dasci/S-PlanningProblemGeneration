@@ -214,6 +214,7 @@ class PolicyTrainer():
             # Note that, for the last state, r_t=R_t
             advantage_curr_state = trajectories[i][-1]['total_reward'] - state_values[-1].item()
             trajectories[i][-1]['advantage'] = advantage_curr_state
+            trajectories[i][-1]['state_value'] = state_values[-1].item() # We save V(s) without gradient
 
             for j in range(len(trajectories[i])-2, -1, -1):
                 # delta_t = r_t + gamma*V(s_{t+1}) - V(s_t)
@@ -221,6 +222,7 @@ class PolicyTrainer():
                 # A_t = delta_t + (gamma*lambda) * A_{t+1}
                 advantage_curr_state = delta_curr_state + (self.args.disc_factor*self.args.gae_factor)*advantage_curr_state
                 trajectories[i][j]['advantage'] = advantage_curr_state
+                trajectories[i][j]['state_value'] = state_values[j].item() # We save V(s) without gradient
 
         return init_trajectories, goal_trajectories
 

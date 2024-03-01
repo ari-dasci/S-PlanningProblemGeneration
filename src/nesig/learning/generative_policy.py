@@ -527,40 +527,31 @@ class PPOPolicy(GenerativePolicy):
     def training_step(self, train_batch : Dict, batch_idx=0): 
         assert isinstance(train_batch, dict), "train_batch must be a dictionary"
 
-        # TODO
-        # If performing several PPO epochs, see if I should recompute the advantages at the beginning of each epoch
-        # Maybe it's not worth the trouble
-        # See https://kshitijkg.github.io/data/RecurrentPPO_Report.pdf, Section 4.3, recompute_advantage
+        # V(s) calculated with the old critic (before calling training_step). Gradients are not propagated through them
+        old_state_value_tensor = torch.tensor(train_batch['state_values'], requires_grad=False, device=self.device)
+        advantage_tensor = torch.tensor(train_batch['advantages'], requires_grad=False, device=self.device) # requires_grad=False because we should not backpropagate through the advantages
 
         # <Critic>
         state_value_list, _ = self.calculate_state_values(train_batch['internal_states']) # We pass internal state to avoid recomputing them from the PDDLProblems
-        state_value_tensor = torch.stack(state_value_list) # Preserves gradients
-        norm_return_tensor = torch.tensor(train_batch['norm_returns'], requires_grad=False, device=self.device) # Actually, requires_grad=False is not necessary
-
+        # V(s) calculated with the most recent critic. Gradients are propagated through them
+        new_state_value_tensor = torch.stack(state_value_list) # Preserves gradients
+        
+        # OLD
         # Critic loss: (V(s) - R(s,.))^2
         # It is weighted by critic_loss_weight
-        critic_loss = torch.mean( (state_value_tensor - norm_return_tensor)**2 )*self.hparams['critic_loss_weight']
+        # norm_return_tensor = torch.tensor(train_batch['norm_returns'], requires_grad=False, device=self.device) # Actually, requires_grad=False is not necessary
+        # critic_loss = torch.mean( (new_state_value_tensor - norm_return_tensor)**2 )*self.hparams['critic_loss_weight']
 
-        # TODO
-        # Use Generalized Advantage Estimation (GAE) instead of the discounted sum of rewards
+        # NEW: critic loss from GAE advantage
+        # Critic loss: (V_new(s) - (V_old(s) + A(s)))^2
+        critic_target = old_state_value_tensor + advantage_tensor
+        critic_loss = torch.mean( (new_state_value_tensor - critic_target)**2 )*self.hparams['critic_loss_weight']
 
         # <Actor>
         # First, we obtain the log_prob (using the current actor weights) for all the applicable actions of each sample
         log_probs_list, _ = self.forward(train_batch['internal_states'], train_batch['applicable_actions_list']) # We pass internal state to avoid recomputing them from the PDDLProblems
         # Second, we obtain the log_prob of the chosen action for each sample, and exponentiate it to obtain the probability
         chosen_actions_probs_curr_policy = torch.exp(torch.stack([t[ind] for t,ind in zip(log_probs_list,train_batch['chosen_action_inds'])])) # Preserves gradients
-
-        # The value obtained with this other method should be the same!
-        # We obtain, with the current actor weights, the log_prob of the chosen action for each batch sample
-        # To do so, we pass as the applicable actions the chosen action of each sample
-        """
-        chosen_actions_tuple = [tuple(a) for a in train_batch['chosen_actions']] # For each sample, the only applicable action is chosen_action
-        log_probs_list, _ = self.forward(train_batch['internal_states'], chosen_actions_tuple) # We pass internal state to avoid recomputing them from the PDDLProblems
-        chosen_actions_probs_curr_policy = torch.exp(torch.cat(log_probs_list)) # Preserves gradients, exp to convert from log_probs to probs
-        """
-
-
-
 
         # Calculate the probability ratios r_t
         # We use requires_grad=False because we should not backpropagate through the old policy action probs (they should remain fixed)
@@ -569,7 +560,6 @@ class PPOPolicy(GenerativePolicy):
         
         # Calculate the PPO loss
         epsilon = self.get_hparam('epsilon')
-        advantage_tensor = torch.tensor(train_batch['advantages'], requires_grad=False, device=self.device) # requires_grad=False because we should not backpropagate through the advantages
         
         # TODO
         # See if we should normalize the advantage_tensor
@@ -586,8 +576,6 @@ class PPOPolicy(GenerativePolicy):
         actor_loss = PPO_loss + entropy_loss
 
         # < Total loss >
-        # TODO
-        # Add weight for the critic loss
         loss = actor_loss + critic_loss
 
         # <Logging>
