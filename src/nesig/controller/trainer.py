@@ -140,6 +140,16 @@ class PolicyTrainer():
         return init_trajectories, goal_trajectories
     """
 
+    def _split_trajectories(self, trajectories, problem_info_list):
+        """
+        We split the trajectories in the init and goal generation phase.
+        """
+        init_phase_lengths = [problem_info['init_phase_length'] for problem_info in problem_info_list]
+        init_trajectories = [t[:length] for t, length in zip(trajectories, init_phase_lengths)]
+        goal_trajectories = [t[length:] for t, length in zip(trajectories, init_phase_lengths)]
+
+        return init_trajectories, goal_trajectories
+
     def _calculate_n_step_advantage_trajectories(self, policy, trajectories):
         """
         Old method that calculates the advantage A_t as the n-step return - V(s_t), where n is the number of steps in the trajectory.
@@ -156,19 +166,22 @@ class PolicyTrainer():
                 for j in range(len(trajectories[i])):
                     trajectories[i][j]['advantage'] = trajectories[i][j]['norm_return'] - state_values[j].item()
 
-    def _calculate_advantage_trajectories(self, init_policy, goal_policy, init_trajectories, goal_trajectories):
+    def _calculate_advantage_trajectories(self, init_policy, goal_policy, trajectories, problem_info_list):
         """
         Calculates the advantage of each sample in the trajectories, using the Generalized Advantage Estimation (GAE) algorithm.
         If init_policy or goal_policy is None, then we can't calculate V(s) for the states s in the init or goal phase, respectively.
         We estimate V(s_t)=R_t (return) for those states for which we can't calculate V(s_t) with a neural network (since the corresponding policy is None).
         """
+        # We split the trajectories in the init and goal generation phase
+        init_trajectories, goal_trajectories = self._split_trajectories(trajectories, problem_info_list)
+
         assert len(init_trajectories) == len(goal_trajectories), "init_trajectories and goal_trajectories must have the same length"
         assert not(init_policy is None and goal_policy is None), "At least one of the policies must be different from None"
         num_trajectories = len(init_trajectories)
 
         for i in range(num_trajectories):
             # The goal trajectories may be empty (if the problem is inconsistent), but the init trajectories must contain at least one sample
-            assert len(init_trajectories[i]) > 0, "The init_trajectories must contain at least one sample"
+            assert len(init_trajectories[i]) > 0, "The init trajectory must contain at least one sample"
             
             # Calculate init trajectory state values
             if init_policy is not None:
@@ -178,32 +191,38 @@ class PolicyTrainer():
                 state_values_init = [sample['return'] for sample in init_trajectories[i]] # We set V(s_t) = R_t since we can't calculate V(s_t) with the init policy
 
             # Calculate goal trajectory state values
-            if goal_policy is not None:
-                internal_states_goal = [sample['internal_state'] for sample in goal_trajectories[i]]
-                state_values_goal, _ = goal_policy.calculate_state_values(internal_states_goal)
+            if len(goal_trajectories[i]) > 0:
+                if goal_policy is not None:
+                    internal_states_goal = [sample['internal_state'] for sample in goal_trajectories[i]]
+                    state_values_goal, _ = goal_policy.calculate_state_values(internal_states_goal)
+                else:
+                    state_values_goal = [sample['return'] for sample in goal_trajectories[i]]
             else:
-                state_values_goal = [sample['return'] for sample in goal_trajectories[i]]
+                state_values_goal = []
 
+            # State values for trajectories[i]
             state_values = state_values_init + state_values_goal
+            assert len(state_values) == len(trajectories[i]), "The number of state values must be equal to the number of samples in the trajectory"
 
-            # TODO
+            # Calculate the advantage using Generalized Advantage Estimation (GAE)
+            # We use the following formula: A_t = delta_t + (gamma*lambda) * A_{t+1}
+            # where delta_t = r_t + gamma*V(s_{t+1}) - V(s_t) is the TD error
+            # It is saved as a float value instead of a tensor (we don't need to keep gradient)
+            
+            # The advantage for the last sample is r_t - V(s_t) (we set A_{T+1} and V(s_{T+1}) to 0),
+            # which is equal to the n-step return Advantage
+            # Note that, for the last state, r_t=R_t
+            advantage_curr_state = trajectories[i][-1]['total_reward'] - state_values[-1].item()
+            trajectories[i][-1]['advantage'] = advantage_curr_state
 
-            # OLD
-            if len(trajectories[i]) > 0: # Skip empty trajectories
-                # Calculate V(s) in parallel for all the samples of the i-th trajectory
-                internal_states = [sample['internal_state'] for sample in trajectories[i]]
-                state_values, _ = policy.calculate_state_values(internal_states) # It returns a tuple (state_values, internal_states)
+            for j in range(len(trajectories[i])-2, -1, -1):
+                # delta_t = r_t + gamma*V(s_{t+1}) - V(s_t)
+                delta_curr_state = trajectories[i][j]['total_reward'] + self.args.disc_factor*state_values[j+1].item() - state_values[j].item()
+                # A_t = delta_t + (gamma*lambda) * A_{t+1}
+                advantage_curr_state = delta_curr_state + (self.args.disc_factor*self.args.gae_factor)*advantage_curr_state
+                trajectories[i][j]['advantage'] = advantage_curr_state
 
-                # Calculate the advantage using Generalized Advantage Estimation (GAE)
-                # We use the following formula: A_t = delta_t + (gamma*lambda) * A_{t+1}
-                # where delta_t = r_t + gamma*V(s_{t+1}) - V(s_t) is the TD error
-                # It is saved as a float value instead of a tensor (we don't need to keep gradient)
-                
-                # The advantage for the last sample is r_t - V(s_t) (we set A_{T+1} and V(s_{T+1}) to 0),
-                # which is equal to the n-step return Advantage
-                advantage_curr_state = 
-                
-                for j in range(len(trajectories[i])):
+        return init_trajectories, goal_trajectories
 
     def _process_trajectories(self, trajectories:List[List[Dict]], problem_info_list:List[Dict],
                               train_init_policy:bool, train_goal_policy:bool) -> Tuple[List[List[Dict]], List[List[Dict]]]:
@@ -224,16 +243,11 @@ class PolicyTrainer():
         # No longer obtain norm_return as we use GAE
         # norm_init_trajectories, norm_goal_trajectories = self._normalize_return_trajectories(trajectories, problem_info_list, train_init_policy, train_goal_policy)       
         
-        # We split the trajectories in the init and goal generation phase
-        init_phase_lengths = [problem_info['init_phase_length'] for problem_info in problem_info_list]
-        init_trajectories = [t[:length] for t, length in zip(trajectories, init_phase_lengths)]
-        goal_trajectories = [t[length:] for t, length in zip(trajectories, init_phase_lengths)]
-
         # If we are not training the init or goal policy, we can't calculate V(s) for the states s in the init or goal phase, respectively
         init_policy = self.init_policy if train_init_policy else None
         goal_policy = self.goal_policy if train_goal_policy else None
 
-        self._calculate_advantage_trajectories(init_policy, goal_policy, init_trajectories, goal_trajectories)
+        init_trajectories, goal_trajectories = self._calculate_advantage_trajectories(init_policy, goal_policy, trajectories, problem_info_list)
 
         """if train_init_policy:
             self._calculate_advantage_trajectories(self.init_policy, init_trajectories)
