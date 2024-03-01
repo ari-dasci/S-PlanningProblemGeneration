@@ -83,6 +83,7 @@ def common_collate_fn(batch : List[Dict]) -> Dict:
     batch_dict['returns'] = [sample['return'] for sample in batch] # discounted sum of rewards R
     # No longer needed, as we now use GAE
     #batch_dict['norm_returns'] = [sample['norm_return'] for sample in batch] # discounted sum of rewards R, normalized to have mean 0 and std 1
+    batch_dict['total_rewards'] = [sample['total_reward'] for sample in batch] # sum of rewards R
     batch_dict['advantages'] = [sample['advantage'] for sample in batch] # A(s,a) = R(s,a) - V(s)
 
     return batch_dict

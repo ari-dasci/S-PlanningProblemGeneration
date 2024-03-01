@@ -110,12 +110,14 @@ class PolicyTrainer():
                 # We multiply the difficulty by a rescale factor (in [0,1]) given by the diversity reward
                 # If the diversity reward is smaller than args.diversity_threshold, the rescale factor is div_reward / diversity_threshold
                 # If it is larger than args.diversity_threshold, the rescale factor is 1
+
                 diff_rescale_factor = self._calculate_diff_rescale_factor(trajectories[i][j]['diversity_reward'])
                 total_reward_curr_state = trajectories[i][j]['consistency_reward'] + trajectories[i][j]['difficulty_reward'] * diff_rescale_factor
 
                 return_curr_state = total_reward_curr_state + self.args.disc_factor*return_curr_state
 
-                trajectories[i][j]['return'] = return_curr_state
+                trajectories[i][j]['total_reward'] = total_reward_curr_state # r_t
+                trajectories[i][j]['return'] = return_curr_state # R_t
 
     """
     # No longer used, as we now use GAE
@@ -154,11 +156,39 @@ class PolicyTrainer():
                 for j in range(len(trajectories[i])):
                     trajectories[i][j]['advantage'] = trajectories[i][j]['norm_return'] - state_values[j].item()
 
-    def _calculate_advantage_trajectories(self, policy, trajectories):
+    def _calculate_advantage_trajectories(self, init_policy, goal_policy, init_trajectories, goal_trajectories):
         """
         Calculates the advantage of each sample in the trajectories, using the Generalized Advantage Estimation (GAE) algorithm.
+        If init_policy or goal_policy is None, then we can't calculate V(s) for the states s in the init or goal phase, respectively.
+        We estimate V(s_t)=R_t (return) for those states for which we can't calculate V(s_t) with a neural network (since the corresponding policy is None).
         """
-        for i in range(len(trajectories)):
+        assert len(init_trajectories) == len(goal_trajectories), "init_trajectories and goal_trajectories must have the same length"
+        assert not(init_policy is None and goal_policy is None), "At least one of the policies must be different from None"
+        num_trajectories = len(init_trajectories)
+
+        for i in range(num_trajectories):
+            # The goal trajectories may be empty (if the problem is inconsistent), but the init trajectories must contain at least one sample
+            assert len(init_trajectories[i]) > 0, "The init_trajectories must contain at least one sample"
+            
+            # Calculate init trajectory state values
+            if init_policy is not None:
+                internal_states_init = [sample['internal_state'] for sample in init_trajectories[i]]
+                state_values_init, _ = init_policy.calculate_state_values(internal_states_init) # It returns a tuple (state_values, internal_states)
+            else:
+                state_values_init = [sample['return'] for sample in init_trajectories[i]] # We set V(s_t) = R_t since we can't calculate V(s_t) with the init policy
+
+            # Calculate goal trajectory state values
+            if goal_policy is not None:
+                internal_states_goal = [sample['internal_state'] for sample in goal_trajectories[i]]
+                state_values_goal, _ = goal_policy.calculate_state_values(internal_states_goal)
+            else:
+                state_values_goal = [sample['return'] for sample in goal_trajectories[i]]
+
+            state_values = state_values_init + state_values_goal
+
+            # TODO
+
+            # OLD
             if len(trajectories[i]) > 0: # Skip empty trajectories
                 # Calculate V(s) in parallel for all the samples of the i-th trajectory
                 internal_states = [sample['internal_state'] for sample in trajectories[i]]
@@ -190,13 +220,27 @@ class PolicyTrainer():
         It returns a tuple with the processed init and goal trajectories.
         """
         self._calculate_return_trajectories(trajectories)
-        norm_init_trajectories, norm_goal_trajectories = self._normalize_return_trajectories(trajectories, problem_info_list, train_init_policy, train_goal_policy)       
-        if train_init_policy:
-            self._calculate_advantage_trajectories(self.init_policy, norm_init_trajectories)
-        if train_goal_policy:
-            self._calculate_advantage_trajectories(self.goal_policy, norm_goal_trajectories)
         
-        return norm_init_trajectories, norm_goal_trajectories
+        # No longer obtain norm_return as we use GAE
+        # norm_init_trajectories, norm_goal_trajectories = self._normalize_return_trajectories(trajectories, problem_info_list, train_init_policy, train_goal_policy)       
+        
+        # We split the trajectories in the init and goal generation phase
+        init_phase_lengths = [problem_info['init_phase_length'] for problem_info in problem_info_list]
+        init_trajectories = [t[:length] for t, length in zip(trajectories, init_phase_lengths)]
+        goal_trajectories = [t[length:] for t, length in zip(trajectories, init_phase_lengths)]
+
+        # If we are not training the init or goal policy, we can't calculate V(s) for the states s in the init or goal phase, respectively
+        init_policy = self.init_policy if train_init_policy else None
+        goal_policy = self.goal_policy if train_goal_policy else None
+
+        self._calculate_advantage_trajectories(init_policy, goal_policy, init_trajectories, goal_trajectories)
+
+        """if train_init_policy:
+            self._calculate_advantage_trajectories(self.init_policy, init_trajectories)
+        if train_goal_policy:
+            self._calculate_advantage_trajectories(self.goal_policy, goal_trajectories)"""
+        
+        return init_trajectories, goal_trajectories
 
     def _perform_train_step(self, policy, trajectories:List[List[Dict]]):
         """
