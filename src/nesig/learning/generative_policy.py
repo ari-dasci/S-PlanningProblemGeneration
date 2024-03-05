@@ -128,13 +128,13 @@ class RandomPolicy(GenerativePolicy):
 
             if num_app_actions == 1:
                 # If there is only one applicable action, we return a probability of 1 for that action
-                log_probs = torch.log(torch.tensor([1.0], device=self.device))
+                log_probs = torch.log(torch.tensor([1.0], requires_grad=False, device=self.device))
 
             elif TERM_ACTION in applicable_actions:
                 cum_prob_no_term_action = 1 - self.term_action_prob
                 prob_no_term = cum_prob_no_term_action / (num_app_actions-1)
                 log_probs = torch.log(torch.tensor([self.term_action_prob if action==TERM_ACTION \
-                                                     else prob_no_term for action in applicable_actions], device=self.device))
+                                                     else prob_no_term for action in applicable_actions], requires_grad=False, device=self.device))
 
             else:
                 log_probs = torch.log(torch.ones(num_app_actions)/num_app_actions)
@@ -201,12 +201,12 @@ class PPOPolicy(GenerativePolicy):
         # Variable to keep track of the current logging iteration
         # This variable may be lower than the actual number of training iterations, since
         # we skip training (trainer.fit() call) if not enough data was obtained for the current it
-        self.register_buffer('curr_logging_it', torch.tensor(1, dtype=torch.int32, device=self.device))
+        self.register_buffer('curr_logging_it', torch.tensor(1, dtype=torch.int32, requires_grad=False, device=self.device))
 
         # Variables used for normalizing returns -> No longer needed, as we now use GAE
         # We use buffers in the init and goal policies so that they can be saved and loaded from checkpoints
-        #self.register_buffer('moving_mean_return', torch.tensor(-1.0, dtype=torch.float32, device=self.device))
-        #self.register_buffer('moving_std_return', torch.tensor(-1.0, dtype=torch.float32, device=self.device))
+        #self.register_buffer('moving_mean_return', torch.tensor(-1.0, dtype=torch.float32, requires_grad=False, device=self.device))
+        #self.register_buffer('moving_std_return', torch.tensor(-1.0, dtype=torch.float32, requires_grad=False, device=self.device))
 
         # --entropy_coeffs is a three-element tuple where the first element is the initial value
         # of the entropy coeff, the second element its final value and the third element the number
@@ -216,13 +216,13 @@ class PPOPolicy(GenerativePolicy):
 
         # No entropy annealing (entropy coeff remains constant)
         if type(entropy_coeffs) == float:
-            self.register_buffer('curr_entropy_coeff', torch.tensor(entropy_coeffs, dtype=torch.float32, device=self.device))
-            self.register_buffer('entropy_reduction_val', torch.tensor(0.0, dtype=torch.float32, device=self.device))
+            self.register_buffer('curr_entropy_coeff', torch.tensor(entropy_coeffs, dtype=torch.float32, requires_grad=False, device=self.device))
+            self.register_buffer('entropy_reduction_val', torch.tensor(0.0, dtype=torch.float32, requires_grad=False, device=self.device))
             self.final_entropy_coeff = entropy_coeffs # The final entropy coeff is equal to the initial one
         else: # Entropy annealing
-            self.register_buffer('curr_entropy_coeff', torch.tensor(entropy_coeffs[0], dtype=torch.float32, device=self.device))
+            self.register_buffer('curr_entropy_coeff', torch.tensor(entropy_coeffs[0], dtype=torch.float32, requires_grad=False, device=self.device))
             self.register_buffer('entropy_reduction_val', torch.tensor((entropy_coeffs[0] - entropy_coeffs[1]) / entropy_coeffs[2], 
-                                                                    dtype=torch.float32, device=self.device)) # (init_coeff - final_coeff) / num_iterations
+                                                                    dtype=torch.float32, requires_grad=False, device=self.device)) # (init_coeff - final_coeff) / num_iterations
             self.final_entropy_coeff = entropy_coeffs[1]
 
     def get_hparam(self, name):
@@ -346,7 +346,7 @@ class PPOPolicy(GenerativePolicy):
         #<NOTE>: we assume that the trajectories parameter only contains the samples for the init or goal phase,
         #        depending on whether this is the init or goal policy.
         # Calculate the mean and std of the returns for the trajectories of the current train it
-        curr_returns = torch.tensor([sample['return'] for t in trajectories for sample in t], dtype=torch.float32, device=self.device)
+        curr_returns = torch.tensor([sample['return'] for t in trajectories for sample in t], requires_grad=False, dtype=torch.float32, device=self.device)
         
         if len(curr_returns) > 0: # If there are no samples, we don't normalize the returns
             curr_mean_return = torch.mean(curr_returns)
@@ -354,7 +354,7 @@ class PPOPolicy(GenerativePolicy):
 
             # torch.std returns NaN for tensors with a single item
             if torch.isnan(curr_std_return):
-                curr_std_return = torch.tensor(0.0, dtype=torch.float32, device=self.device)
+                curr_std_return = torch.tensor(0.0, dtype=torch.float32, requires_grad=False, device=self.device)
 
             # First train it -> initialize moving averages
             if self.moving_mean_return.item() == -1.0:
@@ -582,9 +582,9 @@ class PPOPolicy(GenerativePolicy):
         # We average all log metrics among all samples of the first PPO epoch
         if self.curr_logging_it.item() % self.hparams['log_period'] == 0 and self.current_epoch == 0:
             self.num_samples += len(train_batch['states'])
-            self.critic_loss_sum += critic_loss.item()
-            self.ppo_loss_sum += PPO_loss.item()
-            self.entropy_loss_sum += entropy_loss.item()
-            self.policy_entropy_sum += policy_entropy.item()
+            self.critic_loss_sum += critic_loss.detach().item() # Not entirely sure if detach() is needed here, but just in case
+            self.ppo_loss_sum += PPO_loss.detach().item()
+            self.entropy_loss_sum += entropy_loss.detach().item()
+            self.policy_entropy_sum += policy_entropy.detach().item()
 
         return loss

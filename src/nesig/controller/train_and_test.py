@@ -738,24 +738,3 @@ if __name__ == '__main__':
     args = validate_and_modify_args(args)
 
     main(args)
-
-
-"""
-Other TODOs:
-    - Measure num_expanded_nodes, planning time and memory for hardest problems (in order to find a good value
-      for r_terminated_problem_train, time_limit_planner_train and memory_limit_planner_train)
-    - NLM: prune arities that are not used
-    - Merge refactoring branch with master
-
-TODO improvements:
-    - Implement FeaturesDiversityEvaluator
-        - NO: we measure diversity using our method based on atoms and objects
-    - If resuming training, don't log repeated step values to tensorboard
-        - NO need to: it seems that new values substitute the old ones
-    - Implement Generalized Advantage Estimation
-    - Implemente advantage normalization
-    - Use AdamW (and find a good weight decay value)
-
-    - Should I modify InitStateDiversityEvaluator so that it uses the atoms of both the init and goal state?
-
-"""
