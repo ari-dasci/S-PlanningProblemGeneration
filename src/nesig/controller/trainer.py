@@ -519,38 +519,41 @@ class PolicyTrainer():
             - Update experiment_info.json
 
         It returns best_val_score, best_train_it.
+
+        <NOTE>: this method does not compute tensor gradients (i.e., uses torch.no_grad()).
         """
-        val_problems, val_problem_info_list, val_trajectories = self._generate_problems_and_trajectories(self.args.num_problems_val,
-                                                                                                self.args.max_init_actions_val,
-                                                                                                self.args.max_goal_actions_val)
+        with torch.no_grad():
+            val_problems, val_problem_info_list, val_trajectories = self._generate_problems_and_trajectories(self.args.num_problems_val,
+                                                                                                    self.args.max_init_actions_val,
+                                                                                                    self.args.max_goal_actions_val)
 
-        # Calculate the val score for each problem and the average score
-        avg_val_score, val_scores = self.calculate_val_scores(val_problem_info_list)
-        
-        # Add the score to each problem info
-        for p_info, score in zip(val_problem_info_list, val_scores): # Add the val_score of each problem to its problem_info
-            p_info['score'] = score
+            # Calculate the val score for each problem and the average score
+            avg_val_score, val_scores = self.calculate_val_scores(val_problem_info_list)
+            
+            # Add the score to each problem info
+            for p_info, score in zip(val_problem_info_list, val_scores): # Add the val_score of each problem to its problem_info
+                p_info['score'] = score
 
-        # Log validation metrics
-        val_log_dict = self.log_metrics('val', curr_train_it, val_problems, val_problem_info_list, score=avg_val_score)
-        val_log_dict['Train it'] = curr_train_it # We also save to disk the train_it of the validation epoch
+            # Log validation metrics
+            val_log_dict = self.log_metrics('val', curr_train_it, val_problems, val_problem_info_list, score=avg_val_score)
+            val_log_dict['Train it'] = curr_train_it # We also save to disk the train_it of the validation epoch
 
-        # Save problems and their metrics to disk
-        val_folder_curr_it = self.val_folder / str(curr_train_it)
-        val_folder_curr_it.mkdir(parents=True, exist_ok=True) # We create the folder in case it doesn't exist
-        self.save_problems_and_metrics(val_folder_curr_it, val_problems, val_problem_info_list, val_log_dict)
+            # Save problems and their metrics to disk
+            val_folder_curr_it = self.val_folder / str(curr_train_it)
+            val_folder_curr_it.mkdir(parents=True, exist_ok=True) # We create the folder in case it doesn't exist
+            self.save_problems_and_metrics(val_folder_curr_it, val_problems, val_problem_info_list, val_log_dict)
 
-        # Calculate the best val score and best train it so far and save policies to disk
-        if avg_val_score > best_val_score:
-            best_val_score = avg_val_score
-            best_train_it = curr_train_it
-            self.save_policies(train_init_policy, train_goal_policy, save_best=True)
-        else:
-            self.save_policies(train_init_policy, train_goal_policy, save_best=False)
+            # Calculate the best val score and best train it so far and save policies to disk
+            if avg_val_score > best_val_score:
+                best_val_score = avg_val_score
+                best_train_it = curr_train_it
+                self.save_policies(train_init_policy, train_goal_policy, save_best=True)
+            else:
+                self.save_policies(train_init_policy, train_goal_policy, save_best=False)
 
-        # Update experiment_info.json
-        self.update_experiment_info(self.experiment_info_path, best_train_it=best_train_it, last_train_it=curr_train_it,
-                                    best_val_score=best_val_score)
+            # Update experiment_info.json
+            self.update_experiment_info(self.experiment_info_path, best_train_it=best_train_it, last_train_it=curr_train_it,
+                                        best_val_score=best_val_score)
 
         return best_val_score, best_train_it
 
@@ -586,13 +589,15 @@ class PolicyTrainer():
         while curr_train_it <= end_it:
             print("\n\n>>>>> CURRENT STEP:", curr_train_it)
 
-            # <Generate problems and trajectories>
-            problems, problem_info_list, trajectories = self._generate_problems_and_trajectories(self.args.num_problems_train,
-                                                                                                 self.args.max_init_actions_train,
-                                                                                                 self.args.max_goal_actions_train)
+            # Only _perform_train_step uses gradients, so we set torch.no_grad(), to avoid memory leaks
+            with torch.no_grad():
+                # <Generate problems and trajectories>
+                problems, problem_info_list, trajectories = self._generate_problems_and_trajectories(self.args.num_problems_train,
+                                                                                                    self.args.max_init_actions_train,
+                                                                                                    self.args.max_goal_actions_train)
 
-            # <Process data from trajectories>
-            init_trajectories, goal_trajectories = self._process_trajectories(trajectories, problem_info_list, train_init_policy, train_goal_policy)
+                # <Process data from trajectories>
+                init_trajectories, goal_trajectories = self._process_trajectories(trajectories, problem_info_list, train_init_policy, train_goal_policy)
 
             # <Train init and/or goal policies>
             if train_init_policy:
@@ -600,26 +605,28 @@ class PolicyTrainer():
             if train_goal_policy:
                 self._perform_train_step(self.goal_policy, goal_trajectories)
 
-            # <Logging>
-            if curr_train_it % self.args.log_period == 0: # Log every log_period iterations
-                self.log_metrics('train', curr_train_it, problems, problem_info_list, trajectories=trajectories)
+            with torch.no_grad():
+                # <Logging>
+                if curr_train_it % self.args.log_period == 0: # Log every log_period iterations
+                    self.log_metrics('train', curr_train_it, problems, problem_info_list, trajectories=trajectories)
 
-            # <Perform validation epoch and save checkpoints>
+                # <Perform validation epoch and save checkpoints>
 
-            # Save best_train_it and last_train_it in experiment_info.json only when checkpoints are saved
-            # If args.val_period=-1, we perform validation and save checkpoints only at the end of training
-            if self.args.val_period != -1 and curr_train_it % self.args.val_period == 0:
-                best_val_score, best_train_it = self._run_validation(train_init_policy, train_goal_policy, curr_train_it, best_train_it, best_val_score)
+                # Save best_train_it and last_train_it in experiment_info.json only when checkpoints are saved
+                # If args.val_period=-1, we perform validation and save checkpoints only at the end of training
+                if self.args.val_period != -1 and curr_train_it % self.args.val_period == 0:
+                    best_val_score, best_train_it = self._run_validation(train_init_policy, train_goal_policy, curr_train_it, best_train_it, best_val_score)
 
-            # Increment counters
-            curr_train_it += 1
-            if train_init_policy:
-                self.init_policy.curr_logging_it +=1
-            if train_goal_policy:
-                self.goal_policy.curr_logging_it +=1
+                # Increment counters
+                curr_train_it += 1
+                if train_init_policy:
+                    self.init_policy.curr_logging_it +=1
+                if train_goal_policy:
+                    self.goal_policy.curr_logging_it +=1
 
         # Perform validation after training if args.val_period=-1 or if we didn't do validation at the last training iteration
         if self.args.val_period == -1 or (curr_train_it-1) % self.args.val_period != 0:
+            # No need to do torch.no_grad() as this is done inside _run_validation
             best_val_score, best_train_it = self._run_validation(train_init_policy, train_goal_policy, curr_train_it, best_train_it, best_val_score)
 
     def test(self, folder_curr_experiment:Path, max_init_actions:int, max_goal_actions:int):
@@ -627,24 +634,27 @@ class PolicyTrainer():
         Run a test experiment with the current policies.
         We assume that self.init_policy and self.goal_policy have been loaded from the best ckpts.
         This method generates problems of size (max_init_actions, max_goal_actions), logs the metrics and saves the problems and metrics to disk.
+        
+        <NOTE>: this method does not compute tensor gradients (i.e., uses torch.no_grad()).
         """
-        problems, problem_info_list, trajectories = self._generate_problems_and_trajectories(self.args.num_problems_test,
-                                                                                             max_init_actions,
-                                                                                             max_goal_actions)
+        with torch.no_grad():
+            problems, problem_info_list, trajectories = self._generate_problems_and_trajectories(self.args.num_problems_test,
+                                                                                                max_init_actions,
+                                                                                                max_goal_actions)
 
-        # Calculate the test score for each problem and the average score
-        # At the moment, we use the val_score formula to calculate the test score
-        avg_score, scores = self.calculate_val_scores(problem_info_list)
+            # Calculate the test score for each problem and the average score
+            # At the moment, we use the val_score formula to calculate the test score
+            avg_score, scores = self.calculate_val_scores(problem_info_list)
 
-        # Add the score to each problem info
-        for p_info, score in zip(problem_info_list, scores):
-            p_info['score'] = score
+            # Add the score to each problem info
+            for p_info, score in zip(problem_info_list, scores):
+                p_info['score'] = score
 
-        # Log test metrics
-        # For the log charts, the x value of each metric corresponds to the problem size (measured by max_init_actions)
-        log_dict = self.log_metrics('test', max_init_actions, problems, problem_info_list, score=avg_score)
-        log_dict['Max init actions'] = max_init_actions # We also save the (max) problem size of the experiment
-        log_dict['Max goal actions'] = max_goal_actions
+            # Log test metrics
+            # For the log charts, the x value of each metric corresponds to the problem size (measured by max_init_actions)
+            log_dict = self.log_metrics('test', max_init_actions, problems, problem_info_list, score=avg_score)
+            log_dict['Max init actions'] = max_init_actions # We also save the (max) problem size of the experiment
+            log_dict['Max goal actions'] = max_goal_actions
 
-        # Save problems and their metrics to disk
-        self.save_problems_and_metrics(folder_curr_experiment, problems, problem_info_list, log_dict)
+            # Save problems and their metrics to disk
+            self.save_problems_and_metrics(folder_curr_experiment, problems, problem_info_list, log_dict)

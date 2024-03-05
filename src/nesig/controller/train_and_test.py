@@ -90,7 +90,6 @@ from pytorch_lightning import seed_everything
 import shutil
 import errno
 import json
-import torch
 from copy import deepcopy
 from typing import Tuple, List, Dict, Any, Optional, Union
 from lifted_pddl import Parser

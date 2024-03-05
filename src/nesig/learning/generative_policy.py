@@ -137,7 +137,7 @@ class RandomPolicy(GenerativePolicy):
                                                      else prob_no_term for action in applicable_actions], requires_grad=False, device=self.device))
 
             else:
-                log_probs = torch.log(torch.ones(num_app_actions)/num_app_actions)
+                log_probs = torch.log(torch.ones(num_app_actions, dtype=torch.float32, requires_grad=False, device=self.device) / num_app_actions)
             
             log_probs_list.append(log_probs)
 
