@@ -559,7 +559,7 @@ class PDDLState():
                 else:
                     curr_tensor_shape = [num_objs]*r + [num_preds_each_arity[r]]
 
-                    atoms_list.append(torch.zeros(curr_tensor_shape, dtype=torch.float32, device=device))
+                    atoms_list.append(torch.zeros(curr_tensor_shape, dtype=torch.float32, requires_grad=False, device=device))
                     
             # Change tensor values associated with state atoms
             for atom in self._atoms:
@@ -638,7 +638,7 @@ class PDDLState():
 
             # Add the extra nullary predicates
             if extra_nullary_predicates is not None and len(extra_nullary_predicates) > 0:
-                new_tensor = torch.tensor(extra_nullary_predicates, dtype=torch.float32, device=device)
+                new_tensor = torch.tensor(extra_nullary_predicates, dtype=torch.float32, requires_grad=False, device=device)
 
                 both_states_nlm_encoding[0] = new_tensor if both_states_nlm_encoding[0] is None else \
                                               torch.cat( (both_states_nlm_encoding[0], new_tensor), dim=-1)
@@ -648,7 +648,7 @@ class PDDLState():
             #          since there are no virtual objects.
             if add_object_types:
                 # Concatenate tensor containing extra unary predicates encoding object types
-                new_tensor = torch.zeros((self.num_objects,self.num_types), dtype=torch.float32, device=device)
+                new_tensor = torch.zeros((self.num_objects,self.num_types), dtype=torch.float32, requires_grad=False, device=device)
 
                 both_states_nlm_encoding[1] = new_tensor if both_states_nlm_encoding[1] is None else \
                                               torch.cat( (both_states_nlm_encoding[1], new_tensor), dim=-1)
