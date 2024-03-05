@@ -305,6 +305,7 @@ class PolicyTrainer():
 
         - Training phase:
             - Trajectory information: mean return, norm_return and advantage
+            - memory allocated by tensors
 
         - Validation phase:
             - Validation score (given by score parameter)
@@ -400,6 +401,13 @@ class PolicyTrainer():
                 if len(advantages) > 0:    
                     mean_advantage = sum(advantages) / len(advantages)
                     log_and_save(writer, log_dict, 'Mean advantage', mean_advantage, x_value)
+
+        # Memory allocated by tensors
+        if phase == 'train':
+            mem_allocated = torch.cuda.memory_allocated(self.device) / 2**20 # We divide by 1024^2 to convert bytes to MB
+            max_mem_allocated = torch.cuda.max_memory_allocated(self.device) / 2**20
+            log_and_save(writer, log_dict, 'Allocated Memory (MB)', mem_allocated, x_value)
+            log_and_save(writer, log_dict, 'Max Allocated Memory (MB)', max_mem_allocated, x_value)
 
         # < Validation and test information >
         if score is not None:
