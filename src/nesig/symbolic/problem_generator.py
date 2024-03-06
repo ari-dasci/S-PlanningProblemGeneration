@@ -9,6 +9,7 @@ from typing import List, Tuple, Optional, Union, Dict
 from pathlib import Path
 from copy import deepcopy
 from lifted_pddl import Parser
+import time
 
 from src.nesig.metrics.consistency import ConsistencyEvaluator
 from src.nesig.metrics.difficulty import DifficultyEvaluator
@@ -253,7 +254,7 @@ class ProblemGenerator():
         list_max_goal_actions[i], respectively. If instead of a list/tuple a single value is provided,
         we assume all the problems use the same maximum number of actions.
 
-        It returns a three-element tuple:
+        It returns a four-element tuple:
             - A list of the generated problems, as instances of PDDLProblem.
             - A list of problem-level information, as a dictionary for each problem, with the following keys:
                 - 'init_phase_length': number of actions executed during the initial state generation phase, including TERM_ACTION if executed.
@@ -282,6 +283,8 @@ class ProblemGenerator():
                 - 'diversity_reward': diversity reward of the sample. It is computed once all trajectories have been generated. Inconsistent
                                       trajectories have a diversity reward of 0. Diversity reward is assigned to the last sample of the initial
                                       state generation phase.
+            - The total time (in s) for generating all the problems, without considering the difficulty and diversity calculations.
+              We return a single number because, since problems are generated in parallel, we can't know the time needed to generate each problem.
         """
         assert num_problems > 0, 'num_problems must be greater than 0'
 
@@ -292,6 +295,9 @@ class ProblemGenerator():
         
         assert len(list_max_init_state_actions) == num_problems, 'list_max_init_state_actions must be a list/tuple of length num_problems or a single value'
         assert len(list_max_goal_actions) == num_problems, 'list_max_goal_actions must be a list/tuple of length num_problems or a single value'
+
+        # <Measure time for problem generation>
+        start_time = time.time()
 
         # <Initial state generation phase>
         problems, is_eventual_consistent, trajectories = self._generate_init_state_trajectories(num_problems, list_max_init_state_actions,
@@ -306,6 +312,9 @@ class ProblemGenerator():
         problems, trajectories = self._generate_goal_trajectories(problems, is_eventual_consistent, trajectories, list_max_goal_actions)
         # Calculate the length of the goal generation phase (which takes into account TERM_ACTION, if executed)
         goal_generation_phase_lengths = [len(trajectories[i])-init_generation_phase_lengths[i] for i in range(num_problems)]
+
+        end_time = time.time()
+        total_time = end_time - start_time
 
         # <Calculate difficulty and diversity>
         # Note: trajectories is modified by this method
@@ -322,6 +331,6 @@ class ProblemGenerator():
                                'diversity':problem_diversities[i]} \
                              for i in range(num_problems) ]
 
-        return problems, problem_info_list, trajectories
+        return problems, problem_info_list, trajectories, total_time
 
         

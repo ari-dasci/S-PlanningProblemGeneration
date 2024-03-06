@@ -80,10 +80,10 @@ class PolicyTrainer():
             a, b = max_goal_actions
             max_goal_actions_generator = tuple(randint(a, b) for _ in range(num_trajectories))
 
-        problems, problem_info_list, trajectories = self.problem_generator.generate_problems(num_trajectories,
+        problems, problem_info_list, trajectories, gen_time = self.problem_generator.generate_problems(num_trajectories,
                                                                                              max_init_actions_generator,
                                                                                              max_goal_actions_generator)
-        return problems, problem_info_list, trajectories
+        return problems, problem_info_list, trajectories, gen_time
 
     def _calculate_diff_rescale_factor(self, diversity_reward:float) -> float:
         """
@@ -531,7 +531,7 @@ class PolicyTrainer():
         <NOTE>: this method does not compute tensor gradients (i.e., uses torch.no_grad()).
         """
         with torch.no_grad():
-            val_problems, val_problem_info_list, val_trajectories = self._generate_problems_and_trajectories(self.args.num_problems_val,
+            val_problems, val_problem_info_list, val_trajectories, val_gen_time = self._generate_problems_and_trajectories(self.args.num_problems_val,
                                                                                                     self.args.max_init_actions_val,
                                                                                                     self.args.max_goal_actions_val)
 
@@ -544,7 +544,8 @@ class PolicyTrainer():
 
             # Log validation metrics
             val_log_dict = self.log_metrics('val', curr_train_it, val_problems, val_problem_info_list, score=avg_val_score)
-            val_log_dict['Train it'] = curr_train_it # We also save to disk the train_it of the validation epoch
+            val_log_dict['Train it'] = curr_train_it       # We also save to disk the train_it of the validation epoch
+            val_log_dict['Generation time'] = val_gen_time # and the average time needed to generate the problems (in seconds)
 
             # Save problems and their metrics to disk
             val_folder_curr_it = self.val_folder / str(curr_train_it)
@@ -600,7 +601,7 @@ class PolicyTrainer():
             # Only _perform_train_step uses gradients, so we set torch.no_grad(), to avoid memory leaks
             with torch.no_grad():
                 # <Generate problems and trajectories>
-                problems, problem_info_list, trajectories = self._generate_problems_and_trajectories(self.args.num_problems_train,
+                problems, problem_info_list, trajectories, _ = self._generate_problems_and_trajectories(self.args.num_problems_train,
                                                                                                     self.args.max_init_actions_train,
                                                                                                     self.args.max_goal_actions_train)
 
@@ -646,7 +647,7 @@ class PolicyTrainer():
         <NOTE>: this method does not compute tensor gradients (i.e., uses torch.no_grad()).
         """
         with torch.no_grad():
-            problems, problem_info_list, trajectories = self._generate_problems_and_trajectories(self.args.num_problems_test,
+            problems, problem_info_list, trajectories, gen_time = self._generate_problems_and_trajectories(self.args.num_problems_test,
                                                                                                 max_init_actions,
                                                                                                 max_goal_actions)
 
@@ -663,6 +664,7 @@ class PolicyTrainer():
             log_dict = self.log_metrics('test', max_init_actions, problems, problem_info_list, score=avg_score)
             log_dict['Max init actions'] = max_init_actions # We also save the (max) problem size of the experiment
             log_dict['Max goal actions'] = max_goal_actions
+            log_dict['Generation time'] = gen_time          # and the average time needed to generate the problems (in seconds)
 
             # Save problems and their metrics to disk
             self.save_problems_and_metrics(folder_curr_experiment, problems, problem_info_list, log_dict)

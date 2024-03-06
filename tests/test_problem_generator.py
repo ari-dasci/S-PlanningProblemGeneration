@@ -64,7 +64,9 @@ class TestProblemGenerator(unittest.TestCase):
                                      self.goal_predicates, None, self.allowed_virtual_objects,
                                      self.difficulty_evaluator, self.diversity_evaluator)
 
-        problems, problem_info_list, trajectories = generator.generate_problems(1, 2, 5)
+        problems, problem_info_list, trajectories, time = generator.generate_problems(1, 2, 5)
+
+        self.assertGreaterEqual(time, 0)
 
         self.assertEqual(len(problems), 1)
         self.assertEqual(len(problem_info_list), 1)
@@ -122,7 +124,9 @@ class TestProblemGenerator(unittest.TestCase):
                                      self.goal_predicates, None, self.allowed_virtual_objects,
                                      self.difficulty_evaluator, self.diversity_evaluator)
 
-        problems, problem_info_list, trajectories = generator.generate_problems(3, [1,2,3], [10,20,30])
+        problems, problem_info_list, trajectories, time = generator.generate_problems(3, [1,2,3], [10,20,30])
+
+        self.assertGreaterEqual(time, 0)
 
         self.assertEqual(len(problems), 3)
         self.assertEqual(len(problem_info_list), 3)
@@ -209,7 +213,9 @@ class TestProblemGenerator(unittest.TestCase):
                                      self.goal_predicates, None, self.allowed_virtual_objects,
                                      self.difficulty_evaluator, self.diversity_evaluator)
 
-        problems, problem_info_list, trajectories = generator.generate_problems(2, [10,50], [1,5])
+        problems, problem_info_list, trajectories, time = generator.generate_problems(2, [10,50], [1,5])
+
+        self.assertGreaterEqual(time, 0)
 
         self.assertEqual(len(problems), 2)
         self.assertEqual(len(problem_info_list), 2)
@@ -253,8 +259,10 @@ class TestProblemGenerator(unittest.TestCase):
 
         are_problems_consistent = False
         while not are_problems_consistent:
-            problems, problem_info_list, trajectories = generator.generate_problems(2, [10,8], [2,5])
+            problems, problem_info_list, trajectories, time = generator.generate_problems(2, [10,8], [2,5])
             are_problems_consistent = all([problem_info['consistency'] for problem_info in problem_info_list])
+
+        self.assertGreaterEqual(time, 0)
 
         self.assertEqual(len(problems), 2)
         self.assertEqual(len(problem_info_list), 2)
@@ -338,8 +346,10 @@ class TestProblemGenerator(unittest.TestCase):
 
         are_problems_consistent = False
         while not are_problems_consistent:
-            problems, problem_info_list, trajectories = generator.generate_problems(1, [7], [20])
+            problems, problem_info_list, trajectories, time = generator.generate_problems(1, [7], [20])
             are_problems_consistent = all([problem_info['consistency'] for problem_info in problem_info_list])
+
+        self.assertGreaterEqual(time, 0)
 
         self.assertEqual(len(trajectories[0]), 8)
         self.assertEqual(problem_info_list[0]['init_phase_length'], 7)
