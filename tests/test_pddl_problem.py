@@ -5,6 +5,7 @@ import torch
 import os
 from torch import tensor as t
 from copy import copy, deepcopy
+from pathlib import Path
 
 from src.nesig.symbolic.pddl_problem import PDDLProblem
 from src.nesig.symbolic.pddl_state import PDDLState
@@ -141,6 +142,40 @@ class TestPDDLProblem(unittest.TestCase):
 
         self.assertEqual(problem.goal, tuple(sorted(problem.goal_state.atoms)))
 
+
+    def test_load_from_pddl(self):
+        """
+        We create a problem, save it to disk and load it again. Then, we check that the saved and loaded problems are equal.
+        """
+        # Create problem
+        problem = PDDLProblem(self.parser, None, None, ('block',))
+        problem.apply_action_to_initial_state(('ontable', (0,)))
+        problem.apply_action_to_initial_state(('on', (1,0))) # Virtual objs can be assigned any index as long as it is not used by the state objs
+        problem.apply_action_to_initial_state(('clear', (1,)))
+        problem.apply_action_to_initial_state(('handempty', tuple()))
+        problem.apply_action_to_initial_state(('ontable', (3,))) 
+        problem.apply_action_to_initial_state(('clear', (2,)))
+        problem.end_initial_state_generation_phase()
+
+        problem.apply_action_to_goal_state(('pick-up', (2,)))
+        problem.apply_action_to_goal_state(('stack', (2, 1)))
+        problem.end_goal_state_generation_phase()
+
+        # Save to disk
+        problem_path = Path('temp_problem.pddl')
+        with open(problem_path, 'w') as f:
+            f.write(problem.dump_to_pddl('test_problem'))
+
+        # Load from disk
+        problem2 = PDDLProblem.load_from_pddl(self.parser, problem_path)
+
+        # Remove temp file
+        problem_path.unlink()
+
+        # We make sure that the init state, goal state and goal are the same
+        self.assertEqual(problem.initial_state, problem2.initial_state)
+        self.assertEqual(problem.goal_state, problem2.goal_state)
+        self.assertEqual(set(problem.goal), set(problem2.goal))
 
 if __name__ == '__main__':
     unittest.main()

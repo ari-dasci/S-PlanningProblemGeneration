@@ -5,6 +5,7 @@ Functionality for manipulating PDDL problems during the generation process.
 """
 
 from typing import List, Set, Tuple, Dict, Optional, Union
+from pathlib import Path
 import itertools
 import functools
 from copy import deepcopy
@@ -79,6 +80,40 @@ class PDDLProblem():
         self.is_initial_state_generated = False
         self.is_goal_state_generated = False
 
+    @classmethod
+    def load_from_pddl(cls, _parser, problem_path:Path):
+        """
+        It loads the problem initial state and goal from a PDDL file. Then, it sets self.is_initial_state_generated = True and
+        self.is_goal_state_generated = True.
+
+        NOTE: we assume that the parser has already been initialized with the domain information by doing parser.parse_domain(domain_path).
+        """        
+        # We use the lifted_pddl parser to parse the information from PDDL format into PDDLState
+        parser = deepcopy(_parser)
+        parser.parse_problem(str(problem_path))
+
+        # Initialize an empty problem
+        problem = cls(parser)
+
+        problem._initial_state = PDDLState(parser.types, parser.type_hierarchy, parser.predicates,
+                                        objects=list(parser.object_types),
+                                        atoms=set(parser.atoms))
+
+        # From the PDDL file, we only know the problem goal but not its original goal state
+        # Therefore, we assume the goal and goal state are the same
+        goals = set(goal[1:] for goal in parser.goals)
+        problem._goal_state = PDDLState(parser.types, parser.type_hierarchy, parser.predicates,
+                                         objects=list(parser.object_types),
+                                         atoms=goals)
+        
+        # We cannot modify the problem from this point onwards
+        problem.is_initial_state_generated = True
+        problem.is_goal_state_generated = True
+
+        problem._goal = problem._get_atoms_in_problem_goal() # Since goal_predicates=None, it simply returns the atoms of self._goal_state
+        
+        return problem
+  
     @property
     def initial_state(self) -> PDDLState:
         return deepcopy(self._initial_state)
@@ -492,7 +527,7 @@ class PDDLProblem():
         self.is_goal_state_generated = True
         self.goal = self._get_atoms_in_problem_goal()
 
-    def dump_to_pddl(self, problem_name=None):
+    def dump_to_pddl(self, problem_name=None) -> str:
         """
         Encodes in PDDL format the problem represented by this instance of ProblemState. It returns the problem as a string (str).
         Both initial and goal state generation phases must have concluded.

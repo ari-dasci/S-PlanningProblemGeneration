@@ -112,27 +112,27 @@ class TestDiversityEvaluator(unittest.TestCase):
                        atoms = {('in-city', (1,0)), ('at', (2,1)), ('at', (3,1))})
 
         # Problems with same init state but different goal state
-        p1 = PDDLProblem(self.parser, init_state_info = s1)
+        p1 = PDDLProblem(self.parser, init_state_info = s1)    
         p1.end_initial_state_generation_phase()
-        p1.end_goal_state_generation_phase()
         p1.goal_state = s1
-
+        p1.end_goal_state_generation_phase()
+        
         p2 = PDDLProblem(self.parser, init_state_info = s1)
         p2.end_initial_state_generation_phase()
-        p2.end_goal_state_generation_phase()
         p2.goal_state = s2
-
+        p2.end_goal_state_generation_phase()
+        
         # Problems with same goal state but different init state
-        p3 = PDDLProblem(self.parser, init_state_info = s1)
+        p3 = PDDLProblem(self.parser, init_state_info = s1)      
         p3.end_initial_state_generation_phase()
-        p3.end_goal_state_generation_phase()
         p3.goal_state = s1
-
+        p3.end_goal_state_generation_phase()
+        
         p4 = PDDLProblem(self.parser, init_state_info = s2)
         p4.end_initial_state_generation_phase()
-        p4.end_goal_state_generation_phase()
         p4.goal_state = s1
-
+        p4.end_goal_state_generation_phase()
+        
         diversity_evaluator = InitGoalDiversityEvaluator()
 
         # Distances are valued the same between init and goal states

@@ -11,6 +11,7 @@ import numpy as np
 import math
 
 from src.nesig.symbolic.pddl_problem import PDDLProblem
+from src.nesig.symbolic.pddl_state import PDDLState
 
 class DiversityEvaluator(ABC):
     """
@@ -33,7 +34,8 @@ class DiversityEvaluator(ABC):
 
 class InitGoalDiversityEvaluator(DiversityEvaluator):
     """
-    Calculates the diversity of a set of problems based on their initial and goal states.
+    Calculates the diversity of a set of problems based on their initial state and goal.
+    NOTE: we use the goal instead of the goal state since, after all, the goal is what is saved to the PDDL file.
     To do so, it computes a series of features for each problem, and calculates diversity from the distances
     between each problem and the rest, based on these features.
      
@@ -79,31 +81,26 @@ class InitGoalDiversityEvaluator(DiversityEvaluator):
         self.r_diversity_weight = r_diversity_weight
         self.perc_problems_diversity = perc_problems_diversity
 
-    def _get_obj_features(self, state) -> np.ndarray:
+    def _get_obj_features(self, objs, types) -> np.ndarray:
         """
         Auxiliary method of _get_state_features. It returns the object features, which are the number of objects of each type.
         Note that the objects in the init and goal state are the same.
         <NOTE>: the number of objects will be later normalized to obtain the percentage of objects of each type.
         """
-        objs = tuple(state._objects) # We use ._objects instead of .objects to avoid performing a deep copy
-        types = state.types
-
         obj_features = np.array([objs.count(t) for t in types], dtype=float)
         return obj_features
 
-    def _get_atom_features(self, state) -> np.ndarray:
+    def _get_atom_features(self, predicate_names, atoms) -> np.ndarray:
         """
         Auxiliary method of _get_state_features. It returns the atom features, which are the number of atoms of each predicate type.
         This number of atoms will be later normalized to obtain the percentage of atoms of each predicate type.
         """
-        pred_names = state.predicate_names
-        atoms = tuple(state._atoms)
         atom_names = tuple([a[0] for a in atoms])
         
-        atom_features = np.array([atom_names.count(p) for p in pred_names], dtype=float)
+        atom_features = np.array([atom_names.count(p) for p in predicate_names], dtype=float)
         return atom_features
 
-    def _get_connection_features(self, state) -> Tuple[np.ndarray, np.ndarray]:
+    def _get_connection_features(self, types, predicates, pred_names_to_indices_dict, objects, atoms) -> Tuple[np.ndarray, np.ndarray]:
         """
         Auxiliary method of _get_state_features. It returns the l_mean and l_std features, which describe how the objects and atoms are related
         in the state.
@@ -111,20 +108,13 @@ class InitGoalDiversityEvaluator(DiversityEvaluator):
         We say an object is connected to another if they are instantiated on the same atom (regardless of position).
         l_std describes the standard deviation of the number of objects, instead of the average.
         """
-        types = state.types
-        predicates = state.predicates
-        pred_names = state.predicate_names
-        objs = tuple(state._objects)
-        atoms = tuple(state._atoms)
+        objs = tuple(objects)
+        atoms = tuple(atoms)
         atom_names = tuple([a[0] for a in atoms])
         num_atoms = len(atoms)
         num_types = len(types)
         num_preds = len(predicates)
         num_objs = len(objs)
-
-        # Obtain dictionaries that assign a number to every type and predicate
-        # Pred names to indices
-        pred_to_ind_dict = state._pred_names_to_indices_dict # _pred_names... to avoid deepcopy
 
         # (allowed) object types to indices
         type_indices = list(range(len(types)))
@@ -148,7 +138,7 @@ class InitGoalDiversityEvaluator(DiversityEvaluator):
             list_num_objs_each_type = [types_objs_in_atom.count(ind_to_type_dict[type_ind]) for type_ind in type_indices]
 
             # <For each object curr_atom is instantiated on, sum the number of objects of each type it is instantiated on>
-            curr_pred_ind = pred_to_ind_dict[curr_pred_type]
+            curr_pred_ind = pred_names_to_indices_dict[curr_pred_type]
 
             for curr_obj in curr_atom[1]:
                 l[curr_obj][curr_pred_ind] += np.array(list_num_objs_each_type, dtype=np.uint16)
@@ -193,19 +183,29 @@ class InitGoalDiversityEvaluator(DiversityEvaluator):
 
         return l_mean, l_std
 
-    def _get_state_features(self, init_state, goal_state) -> np.ndarray:
+    def _get_state_features(self, init_state:PDDLState, goal:Tuple) -> np.ndarray:
         """
-        <Note>: we must NOT modify init_state and goal_state, since they belong to a PDDLProblem.
         It returns both the state features used to calculate the distance.
+
+        <NOTE 1>: we must NOT modify init_state, since it belongs to a PDDLProblem.
+        <NOTE 2>: goal corresponds to self._goal for a PDDLProblem, which may be different to goal_state.atoms.
         """
         
         # <Obtain the state features>
+        types = init_state.types
+        predicates = init_state.predicates
+        predicate_names = init_state.predicate_names
+        pred_names_to_indices_dict = init_state._pred_names_to_indices_dict
+        objects = init_state.objects
+        init_atoms = init_state.atoms
+        goal_atoms = goal
 
-        obj_features = self._get_obj_features(init_state) # The init and goal state have the same objects, so we can use either
-        init_atom_features = self._get_atom_features(init_state)
-        goal_atom_features = self._get_atom_features(goal_state)
-        init_l_mean, init_l_std = self._get_connection_features(init_state)
-        goal_l_mean, goal_l_std = self._get_connection_features(goal_state)
+        obj_features = self._get_obj_features(objects, types) # The init and goal state have the same objects, so we can use either
+        init_atom_features = self._get_atom_features(predicate_names, init_atoms)
+        goal_atom_features = self._get_atom_features(predicate_names, goal_atoms)
+        
+        init_l_mean, init_l_std = self._get_connection_features(types, predicates, pred_names_to_indices_dict, objects, init_atoms)
+        goal_l_mean, goal_l_std = self._get_connection_features(types, predicates, pred_names_to_indices_dict, objects, goal_atoms)
 
         # <Normalize features>
         # We normalize each feature group so that, for each sample, all the features in the same group add up to one
@@ -272,7 +272,7 @@ class InitGoalDiversityEvaluator(DiversityEvaluator):
 
         # Obtain the state features for each problem
         # We use ._initial_state to avoid obtaining a deep copy of the init state. We can do this since we don't modify the init state
-        feature_matrix = np.array([self._get_state_features(problem._initial_state, problem._goal_state) for problem in problem_list], dtype=np.float32)
+        feature_matrix = np.array([self._get_state_features(problem._initial_state, problem.goal) for problem in problem_list], dtype=np.float32)
 
         # Calculate the pair-wise distances between problems
         # distance_matrix[i][j] is the distance between problems i and j
