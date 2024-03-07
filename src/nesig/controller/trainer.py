@@ -80,10 +80,10 @@ class PolicyTrainer():
             a, b = max_goal_actions
             max_goal_actions_generator = tuple(randint(a, b) for _ in range(num_trajectories))
 
-        problems, problem_info_list, trajectories, gen_time = self.problem_generator.generate_problems(num_trajectories,
-                                                                                             max_init_actions_generator,
-                                                                                             max_goal_actions_generator)
-        return problems, problem_info_list, trajectories, gen_time
+        problems, problem_info_list, trajectories, gen_time, num_unique_problems = self.problem_generator.generate_problems(num_trajectories,
+                                                                                                    max_init_actions_generator,
+                                                                                                    max_goal_actions_generator)
+        return problems, problem_info_list, trajectories, gen_time, num_unique_problems
 
     def _calculate_diff_rescale_factor(self, diversity_reward:float) -> float:
         """
@@ -290,7 +290,7 @@ class PolicyTrainer():
             if self.device.type == 'cuda':
                 policy.to('cuda')
             
-    def log_metrics(self, phase:str, x_value:int, problems, problem_info_list, trajectories=None, score=None) -> Dict:
+    def log_metrics(self, phase:str, x_value:int, problems, problem_info_list, num_unique_problems, trajectories=None, score=None) -> Dict:
         """
         Log problem related info and metrics for the training, validation and test phases.
         Additionally, it returns a dictionary with all the metrics logged.
@@ -302,6 +302,7 @@ class PolicyTrainer():
             - Mean and std problem difficulty
             - Mean and std number of actions for the init and goal phase (without considering TERM_ACTION)        
             - Mean and std number of atoms and objects for each type
+            - Number of unique (and consistent) problems
 
         - Training phase:
             - Trajectory information: mean return, norm_return and advantage
@@ -381,6 +382,7 @@ class PolicyTrainer():
         log_and_save(writer, log_dict, 'Std num atoms init', std_atoms_dict_init, x_value)
         log_and_save(writer, log_dict, 'Mean num atoms goal', mean_atoms_dict_goal, x_value)
         log_and_save(writer, log_dict, 'Std num atoms goal', std_atoms_dict_goal, x_value)
+        log_and_save(writer, log_dict, 'Num unique consistent problems', num_unique_problems, x_value)
 
         # < Training information >
         if trajectories is not None:   
@@ -531,9 +533,9 @@ class PolicyTrainer():
         <NOTE>: this method does not compute tensor gradients (i.e., uses torch.no_grad()).
         """
         with torch.no_grad():
-            val_problems, val_problem_info_list, val_trajectories, val_gen_time = self._generate_problems_and_trajectories(self.args.num_problems_val,
-                                                                                                    self.args.max_init_actions_val,
-                                                                                                    self.args.max_goal_actions_val)
+            val_problems, val_problem_info_list, val_trajectories, val_gen_time, val_unique_problems = self._generate_problems_and_trajectories(self.args.num_problems_val,
+                                                                                                            self.args.max_init_actions_val,
+                                                                                                            self.args.max_goal_actions_val)
 
             # Calculate the val score for each problem and the average score
             avg_val_score, val_scores = self.calculate_val_scores(val_problem_info_list)
@@ -543,9 +545,9 @@ class PolicyTrainer():
                 p_info['score'] = score
 
             # Log validation metrics
-            val_log_dict = self.log_metrics('val', curr_train_it, val_problems, val_problem_info_list, score=avg_val_score)
-            val_log_dict['Train it'] = curr_train_it       # We also save to disk the train_it of the validation epoch
-            val_log_dict['Generation time'] = val_gen_time # and the average time needed to generate the problems (in seconds)
+            val_log_dict = self.log_metrics('val', curr_train_it, val_problems, val_problem_info_list, num_unique_problems=val_unique_problems, score=avg_val_score)
+            val_log_dict['Train it'] = curr_train_it       # We also save to disk the train_it of the validation epoch,
+            val_log_dict['Generation time'] = val_gen_time # the average time needed to generate the problems (in seconds)
 
             # Save problems and their metrics to disk
             val_folder_curr_it = self.val_folder / str(curr_train_it)
@@ -589,9 +591,9 @@ class PolicyTrainer():
         # Otherwise, self._generate_problems_and_trajectories throws an error since state tensors are on GPU
         # but the policy used to obtain the trajectories are on CPU
         if self.device.type == 'cuda':
-            if train_init_policy:
+            if self.args.init_policy != 'random':
                 self.init_policy.to('cuda')
-            if train_goal_policy:
+            if self.args.goal_policy != 'random':
                 self.goal_policy.to('cuda')
 
         curr_train_it = start_it
@@ -601,9 +603,9 @@ class PolicyTrainer():
             # Only _perform_train_step uses gradients, so we set torch.no_grad(), to avoid memory leaks
             with torch.no_grad():
                 # <Generate problems and trajectories>
-                problems, problem_info_list, trajectories, _ = self._generate_problems_and_trajectories(self.args.num_problems_train,
-                                                                                                    self.args.max_init_actions_train,
-                                                                                                    self.args.max_goal_actions_train)
+                problems, problem_info_list, trajectories, _, num_unique_problems = self._generate_problems_and_trajectories(self.args.num_problems_train,
+                                                                                                            self.args.max_init_actions_train,
+                                                                                                            self.args.max_goal_actions_train)
 
                 # <Process data from trajectories>
                 init_trajectories, goal_trajectories = self._process_trajectories(trajectories, problem_info_list, train_init_policy, train_goal_policy)
@@ -617,7 +619,7 @@ class PolicyTrainer():
             with torch.no_grad():
                 # <Logging>
                 if curr_train_it % self.args.log_period == 0: # Log every log_period iterations
-                    self.log_metrics('train', curr_train_it, problems, problem_info_list, trajectories=trajectories)
+                    self.log_metrics('train', curr_train_it, problems, problem_info_list, num_unique_problems=num_unique_problems, trajectories=trajectories)
 
                 # <Perform validation epoch and save checkpoints>
 
@@ -646,10 +648,19 @@ class PolicyTrainer():
         
         <NOTE>: this method does not compute tensor gradients (i.e., uses torch.no_grad()).
         """
+        # If we are testing on GPU, we move the policies to the GPU at the start
+        # Otherwise, self._generate_problems_and_trajectories throws an error since state tensors are on GPU
+        # but the policy used to obtain the trajectories are on CPU
+        if self.device.type == 'cuda':
+            if self.args.init_policy != 'random':
+                self.init_policy.to('cuda')
+            if self.args.goal_policy != 'random':
+                self.goal_policy.to('cuda')
+
         with torch.no_grad():
-            problems, problem_info_list, trajectories, gen_time = self._generate_problems_and_trajectories(self.args.num_problems_test,
-                                                                                                max_init_actions,
-                                                                                                max_goal_actions)
+            problems, problem_info_list, trajectories, gen_time, num_unique_problems = self._generate_problems_and_trajectories(self.args.num_problems_test,
+                                                                                                    max_init_actions,
+                                                                                                    max_goal_actions)
 
             # Calculate the test score for each problem and the average score
             # At the moment, we use the val_score formula to calculate the test score
@@ -661,7 +672,7 @@ class PolicyTrainer():
 
             # Log test metrics
             # For the log charts, the x value of each metric corresponds to the problem size (measured by max_init_actions)
-            log_dict = self.log_metrics('test', max_init_actions, problems, problem_info_list, score=avg_score)
+            log_dict = self.log_metrics('test', max_init_actions, problems, problem_info_list, num_unique_problems=num_unique_problems, score=avg_score)
             log_dict['Max init actions'] = max_init_actions # We also save the (max) problem size of the experiment
             log_dict['Max goal actions'] = max_goal_actions
             log_dict['Generation time'] = gen_time          # and the average time needed to generate the problems (in seconds)

@@ -38,8 +38,8 @@ class TestDiversityEvaluator(unittest.TestCase):
         diversity_evaluator2 = InitGoalDiversityEvaluator()
 
         # The diversity of a set of identical problems is 0
-        self.assertEqual(diversity_evaluator1.get_diversity(problem_list), ([0.,0.,0.,0.],[0.,0.,0.,0.]))
-        self.assertEqual(diversity_evaluator2.get_diversity(problem_list), ([0.,0.,0.,0.],[0.,0.,0.,0.]))
+        self.assertEqual(diversity_evaluator1.get_diversity(problem_list), ([0.,0.,0.,0.],[0.,0.,0.,0.],1))
+        self.assertEqual(diversity_evaluator2.get_diversity(problem_list), ([0.,0.,0.,0.],[0.,0.,0.,0.],1))
 
         # Also check that diversity calculations do not modify the problems
         for p in problem_list:
@@ -51,10 +51,10 @@ class TestDiversityEvaluator(unittest.TestCase):
         """
         s1 = PDDLState(self.types, self.type_hierarchy, self.predicates,
                        objects = ['city', 'airport', 'truck', 'package'],
-                       atoms = {('in-city', (1,0), ('at', (2,1)), ('in', (3,2)))})
+                       atoms = {('in-city', (1,0)), ('at', (2,1)), ('in', (3,2))})
         s2 = PDDLState(self.types, self.type_hierarchy, self.predicates,
                        objects = ['city', 'airport', 'truck', 'package'],
-                       atoms = {('in-city', (1,0), ('at', (2,1)), ('at', (3,1)))})    
+                       atoms = {('in-city', (1,0)), ('at', (2,1)), ('at', (3,1))})    
         p1 = PDDLProblem(self.parser, init_state_info = s1)
         p2 = PDDLProblem(self.parser, init_state_info = s2)
         p1.end_initial_state_generation_phase()
@@ -71,6 +71,9 @@ class TestDiversityEvaluator(unittest.TestCase):
         # Check that diversity reward is 0.7 * diversity score
         self.assertEqual(0.7*diversity_evaluator.get_diversity([p1, p2])[0][0], diversity_evaluator.get_diversity([p1, p2])[1][0])
         self.assertEqual(0.7*diversity_evaluator.get_diversity([p1, p2])[0][1], diversity_evaluator.get_diversity([p1, p2])[1][1])
+
+        # The number of unique problems should be two
+        self.assertEqual(diversity_evaluator.get_diversity([p1, p2])[2], 2)
 
     def test_diversity_different_problems(self):
         s1 = PDDLState(self.types, self.type_hierarchy, self.predicates,
@@ -102,6 +105,9 @@ class TestDiversityEvaluator(unittest.TestCase):
         # Test the rewards now
         self.assertGreater(diversity_list[1][2], diversity_list[1][0])
         self.assertGreater(diversity_list[1][2], diversity_list[1][1])
+
+        # There should be three unique problems
+        self.assertEqual(diversity_list[2], 3)
 
     def test_diversity_init_and_goal_states(self):
         s1 = PDDLState(self.types, self.type_hierarchy, self.predicates,
@@ -148,6 +154,9 @@ class TestDiversityEvaluator(unittest.TestCase):
         diversity_list_both_different = diversity_evaluator.get_diversity([p2, p4])
         self.assertGreater(diversity_list_both_different[0][0], diversity_list_same_init[0][0])
         self.assertGreater(diversity_list_both_different[0][0], diversity_list_same_goal[0][0])
+
+        # There should be three unique problems
+        self.assertEqual(diversity_evaluator.get_diversity([p1, p2, p3, p4])[2], 3)
 
 if __name__ == '__main__':
     unittest.main()

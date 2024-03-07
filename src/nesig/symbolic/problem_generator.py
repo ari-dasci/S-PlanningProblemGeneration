@@ -189,7 +189,7 @@ class ProblemGenerator():
 
     def _obtain_problem_difficulties_and_diversities(self, problems, is_eventual_consistent, trajectories,
                                                      init_generation_phase_lengths:List[int]) \
-          -> Tuple[List[Union[List[Optional[float]], Optional[float]]],  List[Optional[float]],  List[List[Dict]]]:
+          -> Tuple[List[Union[List[Optional[float]], Optional[float]]],  List[Optional[float]],  List[List[Dict]], int]:
         """
         Auxiliary method that calculates the difficulty and diversity for each problem, including the associated rewards.
         Then, for each problem, it assigns the difficulty reward to the last sample of the trajectory and the diversity reward
@@ -227,7 +227,7 @@ class ProblemGenerator():
 
         # Calculate problem diversities
         if self.diversity_evaluator is not None:
-            consistent_problem_diversities, consistent_problem_diversity_rewards = self.diversity_evaluator.get_diversity(consistent_problems)
+            consistent_problem_diversities, consistent_problem_diversity_rewards, num_unique_problems = self.diversity_evaluator.get_diversity(consistent_problems)
 
             problem_diversities = [consistent_problem_diversities[consistent_inds.index(i)] if i in consistent_inds else 0 \
                                    for i in range(num_problems)]
@@ -236,6 +236,7 @@ class ProblemGenerator():
         else:
             problem_diversities = [None]*num_problems
             problem_diversity_rewards = [0]*num_problems
+            num_unique_problems = -1 # We don't calculate the number of unique problems if there is no diversity evaluator
 
         # Assign difficulty and diversity reward to each problem's trajectory
         # They are both assigned to the last sample of the trajectory
@@ -243,7 +244,7 @@ class ProblemGenerator():
             trajectories[i][-1]['difficulty_reward'] = problem_difficulty_rewards[i]
             trajectories[i][-1]['diversity_reward'] = problem_diversity_rewards[i]
 
-        return problem_difficulties, problem_diversities, trajectories
+        return problem_difficulties, problem_diversities, trajectories, num_unique_problems
 
     def generate_problems(self, num_problems:int, list_max_init_state_actions:Union[Tuple[int],int],
                           list_max_goal_actions:Union[Tuple[int],int]) -> \
@@ -254,7 +255,7 @@ class ProblemGenerator():
         list_max_goal_actions[i], respectively. If instead of a list/tuple a single value is provided,
         we assume all the problems use the same maximum number of actions.
 
-        It returns a four-element tuple:
+        It returns a five-element tuple:
             - A list of the generated problems, as instances of PDDLProblem.
             - A list of problem-level information, as a dictionary for each problem, with the following keys:
                 - 'init_phase_length': number of actions executed during the initial state generation phase, including TERM_ACTION if executed.
@@ -285,6 +286,8 @@ class ProblemGenerator():
                                       state generation phase.
             - The total time (in s) for generating all the problems, without considering the difficulty and diversity calculations.
               We return a single number because, since problems are generated in parallel, we can't know the time needed to generate each problem.
+            - The number of unique problems <that are also consistent>. We calculate this number by removing from the set of eventual-consistent problems
+              those whose diversity features are equal to some other problem in the set, until there is only one problem left for each diversity features combination.
         """
         assert num_problems > 0, 'num_problems must be greater than 0'
 
@@ -318,8 +321,8 @@ class ProblemGenerator():
 
         # <Calculate difficulty and diversity>
         # Note: trajectories is modified by this method
-        problem_difficulties, problem_diversities, trajectories = self._obtain_problem_difficulties_and_diversities(problems, is_eventual_consistent,
-                                                                    trajectories, init_generation_phase_lengths)
+        problem_difficulties, problem_diversities, trajectories, num_unique_problems = self._obtain_problem_difficulties_and_diversities(problems, is_eventual_consistent,
+                                                                                        trajectories, init_generation_phase_lengths)
 
         # <Obtain the problem-level information>
         problem_info_list = [ {'init_phase_length':init_generation_phase_lengths[i],
@@ -331,6 +334,6 @@ class ProblemGenerator():
                                'diversity':problem_diversities[i]} \
                              for i in range(num_problems) ]
 
-        return problems, problem_info_list, trajectories, total_time
+        return problems, problem_info_list, trajectories, total_time, num_unique_problems
 
         

@@ -190,7 +190,7 @@ class InitGoalDiversityEvaluator(DiversityEvaluator):
         <NOTE 1>: we must NOT modify init_state, since it belongs to a PDDLProblem.
         <NOTE 2>: goal corresponds to self._goal for a PDDLProblem, which may be different to goal_state.atoms.
         """
-        
+
         # <Obtain the state features>
         types = init_state.types
         predicates = init_state.predicates
@@ -203,7 +203,7 @@ class InitGoalDiversityEvaluator(DiversityEvaluator):
         obj_features = self._get_obj_features(objects, types) # The init and goal state have the same objects, so we can use either
         init_atom_features = self._get_atom_features(predicate_names, init_atoms)
         goal_atom_features = self._get_atom_features(predicate_names, goal_atoms)
-        
+
         init_l_mean, init_l_std = self._get_connection_features(types, predicates, pred_names_to_indices_dict, objects, init_atoms)
         goal_l_mean, goal_l_std = self._get_connection_features(types, predicates, pred_names_to_indices_dict, objects, goal_atoms)
 
@@ -255,16 +255,16 @@ class InitGoalDiversityEvaluator(DiversityEvaluator):
 
     def get_diversity(self, problem_list : List[PDDLProblem]) -> Tuple[List[float], List[float]]:
         """
-        Returns the diversity for a list of PDDL problems.
+        Returns the diversity scores, diversity rewards and number of unique problems for a list of PDDL problems.
         Before calling this method, the initial and goal states must be completely generated for each problem in the list.
         <Note>: we assume that all the problems are consistent. Consistency must be checked BEFORE calling this method.
                 Otherwise, we will calculate the diversity also for inconsistent problems, which is not what we want.
         """
         num_problems = len(problem_list)
         if num_problems == 0:
-            return [], []
+            return [], [], 0
         elif num_problems == 1: # The distance (and, thus, diversity) between a problem and itself is always 0
-            return [0.0], [0.0]
+            return [0.0], [0.0], 1
         
         for i, problem in enumerate(problem_list):
             assert problem.is_initial_state_generated, f'The initial state of problem {i} has not been completely generated yet'
@@ -273,6 +273,10 @@ class InitGoalDiversityEvaluator(DiversityEvaluator):
         # Obtain the state features for each problem
         # We use ._initial_state to avoid obtaining a deep copy of the init state. We can do this since we don't modify the init state
         feature_matrix = np.array([self._get_state_features(problem._initial_state, problem.goal) for problem in problem_list], dtype=np.float32)
+
+        # Obtain the number of unique problems (after removing duplicates)
+        # We consider two problems to be equal if their feature vectors are equal
+        num_unique_problems = len(np.unique(feature_matrix, axis=0))
 
         # Calculate the pair-wise distances between problems
         # distance_matrix[i][j] is the distance between problems i and j
@@ -295,4 +299,4 @@ class InitGoalDiversityEvaluator(DiversityEvaluator):
         # The diversity reward is the same as the diversity score, but multiplied by self.r_diversity_weight
         diversity_rewards = [self.r_diversity_weight*score for score in diversity_scores]
 
-        return diversity_scores, diversity_rewards
+        return diversity_scores, diversity_rewards, num_unique_problems

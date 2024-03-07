@@ -315,7 +315,7 @@ class TestPPOPolicy(unittest.TestCase):
 
     def test_normalize_return_trajectories(self):
         # Obtain a set of trajectories
-        problems, problem_info_list, trajectories, time = self.problem_generator.generate_problems(25,10,10)
+        problems, problem_info_list, trajectories, time, n_unique_problems = self.problem_generator.generate_problems(25,10,10)
         self.assertEqual(len(trajectories), 25)
         self.assertEqual(len(problem_info_list), 25)
         self.assertEqual(len(problems), 25)
@@ -376,7 +376,7 @@ class TestPPOPolicy(unittest.TestCase):
         is the same as the one computed by training_step inside PPOPolicy (by using the ML model to perform a forward pass and select the
         log_probs given by 'chosen_action_inds').
         """
-        problems, problem_info_list, trajectories, time = self.problem_generator.generate_problems(30,10,10)
+        problems, problem_info_list, trajectories, time, n_unique_problems = self.problem_generator.generate_problems(30,10,10)
 
         for t, p_info in zip(trajectories, problem_info_list):
             # We separate each trajectory in samples of the init and goal phases
@@ -405,7 +405,7 @@ class TestPPOPolicy(unittest.TestCase):
         #    - In PPOPolicy.train_step, the log_prob of the chosen action is the same as the one stored in the dataset ('action_log_prob')
         
         # Generate trajectories
-        problems, problem_info_list, trajectories, time = self.problem_generator.generate_problems(10,10,10)
+        problems, problem_info_list, trajectories, time, n_unique_problems = self.problem_generator.generate_problems(10,10,10)
 
         # Process them (calculate return, norm_return and advantage)
         self._calculate_return_trajectories(trajectories)
