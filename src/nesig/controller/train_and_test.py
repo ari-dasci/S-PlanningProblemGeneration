@@ -195,10 +195,11 @@ def parse_arguments():
                                                                      "If -1, we only perform validation at the end of training."))
     parser.add_argument('--log-period', type=int, default=10, help="Number of training steps between logging to tensorboard.")
     parser.add_argument('--disc-factor', type=float, default=1.0, help="Discount factor (gamma) for the total reward.")
-    parser.add_argument('--gae-factor', type=float, default=0.95, help=("Generalized advantage estimation factor (lambda)."
+    parser.add_argument('--gae-factor', type=float, default=1.0, help=("Generalized advantage estimation factor (lambda)."
                                                                         "A value of 1 is equivalent to using n-step returns."
                                                                         "A value of 0 is equivalent to using TD."))
     parser.add_argument('--batch-size', type=int, default=64, help="Minibatch size during training.")
+    parser.add_argument('--weight-decay', type=float, default=0.0, help="Weight decay for the AdamW optimizer. If 0, we don't use weight decay.")
     parser.add_argument('--num-problems-train', type=int, default=25, help=("Number of trajectories (problems) to generate in each training step"
                                                                             "for obtaining the training data."))
     parser.add_argument('--num-problems-val', type=int, default=100, help="Number of problems to generate every time we perform validation.")
@@ -359,6 +360,8 @@ def validate_and_modify_args(args):
         raise ValueError("GAE factor (lambda) must be a float in the range [0, 1]")
     if args.batch_size < 1:
         raise ValueError("Batch size must be a positive integer")
+    if args.weight_decay < 0:
+        raise ValueError("Weight decay must be a non-negative float")
     if args.num_problems_train < 1:
         raise ValueError("Number of training problems must be a positive integer")
     if args.num_problems_val < 1:

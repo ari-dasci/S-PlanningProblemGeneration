@@ -473,7 +473,10 @@ class PPOPolicy(GenerativePolicy):
     # TODO
     # Add AdamW
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.get_hparam('lr'))
+        # We now use AdamW (i.e., Adam with weight decay)
+        # optimizer = torch.optim.Adam(self.parameters(), lr=self.get_hparam('lr'))
+        optimizer = torch.optim.AdamW(self.parameters(), lr=self.get_hparam('lr'), weight_decay=self.hparams['weight_decay'])
+
         return optimizer
     
     def on_train_end(self):
