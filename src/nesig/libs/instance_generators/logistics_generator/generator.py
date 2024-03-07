@@ -1,17 +1,20 @@
-# This script is used to run the pddl instance generators, select a subset
-# of problems of enough size and obtain their difficulty
+"""
+This script calls the logistics instance generator.
+It generates a single problem and saves it to disk.
+"""
 
 import argparse
 import subprocess
 import os
 import sys
 
+# Path to the actual C generator
 generator_path = './logistics_typed'
 
 def parse_args():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description=("Blocksworld instance generator"))
+        description=("Logistics instance generator"))
 
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--problem-path', type=str, required=True)
