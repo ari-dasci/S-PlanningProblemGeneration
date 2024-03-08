@@ -25,9 +25,9 @@ from pathlib import Path
 from lifted_pddl import Parser
 
 from src.nesig.symbolic.pddl_problem import PDDLProblem
-from src.nesig.constants import DOMAIN_INFO, BW_GENERATOR_PATH, LG_GENERATOR_PATH, SK_GENERATOR_PATH, \
-                                BW_GENERATOR_PROBLEMS_PATH, LG_GENERATOR_PROBLEMS_PATH, SK_GENERATOR_PROBLEMS_PATH, \
-                                PLANNER_SCRIPTS_PATH, remove_if_exists
+from src.nesig.metrics.difficulty import PlannerEvaluator
+from src.nesig.metrics.diversity import InitGoalDiversityEvaluator
+from src.nesig.constants import *
 
 def generate_seeds(start_seed):
     """
@@ -59,6 +59,12 @@ def parse_args():
 
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--num-problems', type=int, required=True)
+    #parser.add_argument('--skip-metrics', action='store_true', help="If set, we generate the problems but do not calculate their metrics.")
+    #parser.add_argument('--skip-generation', action='store_true', help="If set, we assume the problems have already been generated, so we skip generation and calculate the metrics of the problems in the folder."))
+    parser.add_argument('--time-limit-planner', type=int, default=1800, help="Time limit (s) for the planner used for calculating the problem difficulties.") # default = 30 min
+    parser.add_argument('--memory-limit-planner', type=int, default=1048576, help="Memory limit (KB) for the planner used for calculating the problem difficulties.") # default = 1 GB
+    parser.add_argument('--perc-problems-diversity', type=float, default=0.2, help=("When calculating the diversity score, we calculate the average distance between each problem"
+                                                                                    "and the n=perc_problem_diversity % of the problems that are closest to it."))
 
     # Add domain-specific arguments
     subparsers = parser.add_subparsers(title="domain", help="Specifies the domain to generate problems for.")
@@ -82,7 +88,7 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-def is_solvable(problem_path:Path, domain_path:Path, time_limit:int=1800, memory_limit:int=1048576) -> bool:
+def is_solvable(problem_path:Path, domain_path:err_path) -> bool:
     """
     Auxiliary function that, given a PDDL problem, it returns whether it is solvable or not.
     By default, we set the planner time limit to 30 min and memory limit to 1GB.
@@ -99,7 +105,7 @@ def is_solvable(problem_path:Path, domain_path:Path, time_limit:int=1800, memory
 
     # Call the planner
     # We use lama-first as it is one of the fastest planners (and we only care about checking solvability)
-    planner_call = f"""{str(limit_sh_path.absolute())} -t {time_limit} -m {memory_limit} -- "{str(fd_path.absolute())} -o '--alias lama-first'" -- {str(problem_path.absolute())} {str(domain_path.absolute())}"""
+    planner_call = f"""{str(limit_sh_path.absolute())} -t {args.time_limit_planner} -m {args.memory_limit_planner} -- "{str(fd_path.absolute())} -o '--alias lama-first'" -- {str(problem_path.absolute())} {str(domain_path.absolute())}"""
 
     # We redirect stdout and stderr so that they are not printed to the console
     result = subprocess.run(planner_call, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -236,15 +242,7 @@ def generate_sokoban_problem(curr_problem_path:Path, args) -> int:
 
     return total_gen_time
 
-def main(args):
-    # We set the working directory to the base folder of the repository
-    # The path of __file__ is FOLDER_BASE/src/nesig/controller/run_instance_generator.py
-    os.chdir(dirname(dirname(dirname(dirname(abspath(__file__))))))
-
-    # Reproducibility
-    random.seed(args.seed)
-
-    # Problems are stored in a subfolder named "min_atoms_max_atoms" inside the domain's problems folder
+def _get_problem_folder(args) -> Path:
     if args.domain == 'blocksworld':
         problem_folder = Path(BW_GENERATOR_PROBLEMS_PATH)
     elif args.domain == 'logistics':
@@ -262,7 +260,9 @@ def main(args):
     # Create the folder if it does not exist
     problem_folder.mkdir(parents=True, exist_ok=True)
 
-    # Generate the problems
+    return problem_folder
+
+def _generate_problems(problem_folder:Path, args) -> int:
     total_gen_time = 0
 
     for i in range(args.num_problems):
@@ -277,8 +277,45 @@ def main(args):
         else:
             raise ValueError("Invalid domain")
 
+    return total_gen_time
+
+def _save_problem_metrics(problem_folder:Path, total_gen_time:int, args):
+    # Load all the problems into PDDLProblem instances
+    domain_path = DOMAIN_INFO[args.domain]['path']
+    parser = Parser()
+    parser.parse_domain(domain_path)
+
+    problem_paths = list(problem_folder.glob('*.pddl'))
+    problems = [PDDLProblem.load_from_pddl(parser, path) for path in problem_paths]
+       
+    # Calculate the difficulty and diversity of the problems
+    # Note that all the problems generated with the instance generators are eventual-consistent
+    difficulty_evaluator = PlannerEvaluator(domain_path, TEST_PLANNER_ARGS, args.time_limit_planner, args.memory_limit_planner, 1)
+    diversity_evaluator = InitGoalDiversityEvaluator(perc_problems_diversity=args.perc_problems_diversity)
+
+    problem_difficulties = difficulty_evaluator.get_difficulty(problems)[0] # [1] are the diff_rewards
+    diversity_info = diversity_evaluator.get_diversity(problems)
+    problem_diversities = diversity_info[0]
+    num_unique_problems = diversity_info[2]
+
+    
+
+def main(args):
+    # We set the working directory to the base folder of the repository
+    # The path of __file__ is FOLDER_BASE/src/nesig/controller/run_instance_generator.py
+    os.chdir(dirname(dirname(dirname(dirname(abspath(__file__))))))
+
+    # Reproducibility
+    random.seed(args.seed)
+
+    # Problems are stored in a subfolder named "min_atoms_max_atoms" inside the domain's problems folder
+    problem_folder = _get_problem_folder(args)
+
+    # Generate the problems
+    total_gen_time = _generate_problems(problem_folder, args)
+
     # Calculate their metrics and save them to disk
-    # TODO
+    _save_problem_metrics(problem_folder, total_gen_time, args)
 
 if __name__ == '__main__':
     args = parse_args()

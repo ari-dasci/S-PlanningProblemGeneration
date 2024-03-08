@@ -253,7 +253,7 @@ class InitGoalDiversityEvaluator(DiversityEvaluator):
 
         return distance_matrix
 
-    def get_diversity(self, problem_list : List[PDDLProblem]) -> Tuple[List[float], List[float]]:
+    def get_diversity(self, problem_list : List[PDDLProblem]) -> Tuple[List[float], List[float], int]:
         """
         Returns the diversity scores, diversity rewards and number of unique problems for a list of PDDL problems.
         Before calling this method, the initial and goal states must be completely generated for each problem in the list.
