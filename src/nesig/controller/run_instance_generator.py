@@ -65,6 +65,7 @@ def parse_args():
     parser.add_argument('--memory-limit-planner', type=int, default=1048576, help="Memory limit (KB) for the planner used for calculating the problem difficulties.") # default = 1 GB
     parser.add_argument('--perc-problems-diversity', type=float, default=0.2, help=("When calculating the diversity score, we calculate the average distance between each problem"
                                                                                     "and the n=perc_problem_diversity % of the problems that are closest to it."))
+    parser.add_argument('--diversity-threshold', type=float, default=1.0, help="Diversity threshold used when scaling the difficulty reward by the diversity reward, for calculating the test score.")
 
     # Add domain-specific arguments
     subparsers = parser.add_subparsers(title="domain", help="Specifies the domain to generate problems for.")
@@ -279,16 +280,39 @@ def _generate_problems(problem_folder:Path, args) -> int:
 
     return total_gen_time
 
-def _save_problem_metrics(problem_folder:Path, total_gen_time:int, args):
-    # Load all the problems into PDDLProblem instances
+def _calculate_test_scores(difficulty_list, diversity_list, diversity_threshold):
+    """
+    Extracted from calculate_val_scores method in trainer.py
+    """
+    test_scores = []
+
+    for difficulty, diversity in zip(difficulty_list, diversity_list):
+
+        if isinstance(difficulty, list): # Several difficulties (with different planners) for the same problem
+            diff_score = sum([math.log(d+1) for d in difficulty]) / len(difficulty)
+        else:
+            diff_score = math.log(difficulty+1)
+            
+        diff_rescale_factor = min(diversity / diversity_threshold, 1.0)
+        curr_test_score = diff_score * diff_rescale_factor
+
+        test_scores.append(curr_test_score)
+
+    avg_test_score = sum(test_scores) / len(test_scores)
+
+    return avg_test_score, tuple(test_scores)
+
+def _save_problem_metrics(problem_folder:Path, total_gen_time:int, args, metrics_file_name='results.json'):
+    # <Load all the problems into PDDLProblem instances>
     domain_path = DOMAIN_INFO[args.domain]['path']
     parser = Parser()
     parser.parse_domain(domain_path)
 
     problem_paths = list(problem_folder.glob('*.pddl'))
     problems = [PDDLProblem.load_from_pddl(parser, path) for path in problem_paths]
-       
-    # Calculate the difficulty and diversity of the problems
+    num_problems = len(problems)
+
+    # <Calculate the difficulty and diversity of the problems>
     # Note that all the problems generated with the instance generators are eventual-consistent
     difficulty_evaluator = PlannerEvaluator(domain_path, TEST_PLANNER_ARGS, args.time_limit_planner, args.memory_limit_planner, 1)
     diversity_evaluator = InitGoalDiversityEvaluator(perc_problems_diversity=args.perc_problems_diversity)
@@ -298,7 +322,48 @@ def _save_problem_metrics(problem_folder:Path, total_gen_time:int, args):
     problem_diversities = diversity_info[0]
     num_unique_problems = diversity_info[2]
 
-    
+    # <Calculate global metrics>
+    # See log_metrics method in trainer.py
+    perc_consistency = 1.0
+    mean_diversity = sum(problem_diversities) / num_problems
+    problem_diffs = [diff if isinstance(diff, int) else sum(diff) / len(diff) \
+                     for diff in problem_difficulties] # If we are using different planner difficulties, we calculate the mean
+    mean_difficulty = sum(problem_diffs) / num_problems
+    std_difficulty = (sum([(d - mean_difficulty)**2 for d in problem_diffs]) / num_problems)**0.5
+
+    init_actions = [p.num_init_state_actions_executed for p in problems]
+    goal_actions = [p.num_goal_actions_executed for p in problems]
+    mean_init_actions = sum(init_actions) / num_problems
+    mean_goal_actions = sum(goal_actions) / num_problems
+    std_init_actions = (sum([(a - mean_init_actions)**2 for a in init_actions]) / num_problems)**0.5
+    std_goal_actions = (sum([(a - mean_goal_actions)**2 for a in goal_actions]) / num_problems)**0.5
+
+    obj_types = problems[0].initial_state.types
+    pred_types = problems[0].initial_state.predicate_names
+    # Matrix where rows correspond to problems and columns to object types
+    num_objs_each_type_matrix = np.array([p.initial_state.num_objects_each_type for p in problems])
+    mean_num_objs_each_type = num_objs_each_type_matrix.mean(axis=0)
+    std_num_objs_each_type = num_objs_each_type_matrix.std(axis=0)
+    mean_objs_dict = {t : mean_objs for t, mean_objs in zip(obj_types, mean_num_objs_each_type)}
+    std_objs_dict = {t : std_objs for t, std_objs in zip(obj_types, std_num_objs_each_type)}
+    # Matrix where rows correspond to problem initial states and columns to predicate types
+    num_atoms_each_type_matrix_init = np.array([p.initial_state.num_atoms_each_type for p in problems])
+    mean_num_atoms_each_type_init = num_atoms_each_type_matrix_init.mean(axis=0)
+    std_num_atoms_each_type_init = num_atoms_each_type_matrix_init.std(axis=0)
+    mean_atoms_dict_init = {t : mean_atoms for t, mean_atoms in zip(pred_types, mean_num_atoms_each_type_init)}
+    std_atoms_dict_init = {t : std_atoms for t, std_atoms in zip(pred_types, std_num_atoms_each_type_init)}
+    # Same as above, but this time for the goal state
+    num_atoms_each_type_matrix_goal = np.array([p.goal_state.num_atoms_each_type for p in problems if p.goal_state is not None]) # We skip problems without goal state
+    mean_num_atoms_each_type_goal = num_atoms_each_type_matrix_goal.mean(axis=0)
+    std_num_atoms_each_type_goal = num_atoms_each_type_matrix_goal.std(axis=0)
+    mean_atoms_dict_goal = {t : mean_atoms for t, mean_atoms in zip(pred_types, mean_num_atoms_each_type_goal)}
+    std_atoms_dict_goal = {t : std_atoms for t, std_atoms in zip(pred_types, std_num_atoms_each_type_goal)}
+
+    # Test scores
+    avg_test_score, test_scores = _calculate_test_scores(problem_difficulties, problem_diversities, args.diversity_threshold)
+
+    # Save global and problem-specific metrics to disk
+
 
 def main(args):
     # We set the working directory to the base folder of the repository
