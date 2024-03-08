@@ -151,3 +151,13 @@ def remove_if_exists(path : Path):
     # Folder
     elif os.path.isdir(path):
         shutil.rmtree(path) # Remove folder and contents
+
+# Paths to domain-specific instance generators
+BW_GENERATOR_PATH = Path('src/nesig/libs/instance_generators/blocksworld_generator/generator.py')
+LG_GENERATOR_PATH = Path('src/nesig/libs/instance_generators/logistics_generator/generator.py')
+SK_GENERATOR_PATH = Path('src/nesig/libs/instance_generators/sokoban_generator/generator.py')
+
+# Paths to the folders containing the problems generated with the domain-specific instance generators
+BW_GENERATOR_PROBLEMS_PATH = Path('data/instance_generators/blocksworld')
+LG_GENERATOR_PROBLEMS_PATH = Path('data/instance_generators/logistics')
+SK_GENERATOR_PROBLEMS_PATH = Path('data/instance_generators/sokoban')

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 > train_and_test.py
 
@@ -715,7 +713,7 @@ def test(args, parsed_domain_info, experiment_id):
 
 def main(args):
     # We set the working directory to the base folder of the repository
-    # The path of __file__ is FOLDER_BASE/src/nesig/controller/train.py
+    # The path of __file__ is FOLDER_BASE/src/nesig/controller/train_and_test.py
     os.chdir(dirname(dirname(dirname(dirname(abspath(__file__))))))
 
     # Reproducibility
