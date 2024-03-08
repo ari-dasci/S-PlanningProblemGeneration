@@ -362,7 +362,32 @@ def _save_problem_metrics(problem_folder:Path, total_gen_time:int, args, metrics
     # Test scores
     avg_test_score, test_scores = _calculate_test_scores(problem_difficulties, problem_diversities, args.diversity_threshold)
 
-    # Save global and problem-specific metrics to disk
+    # <Save global and problem-specific metrics to disk>
+    metrics_dict = dict()
+
+    # Global metrics
+    metrics_dict['Consistency percentage'] = perc_consistency
+    metrics_dict['Mean diversity'] = mean_diversity
+    metrics_dict['Mean difficulty'] = mean_difficulty
+    metrics_dict['Std difficulty'] = std_difficulty
+    metrics_dict['Mean actions init'] = mean_init_actions
+    metrics_dict['Std actions init'] = std_init_actions
+    metrics_dict['Mean actions goal'] = mean_goal_actions
+    metrics_dict['Std actions goal'] = std_goal_actions
+    metrics_dict['Mean num objects'] = mean_objs_dict
+    metrics_dict['Std num objects'] = std_objs_dict
+    metrics_dict['Mean num atoms init'] = mean_atoms_dict_init
+    metrics_dict['Std num atoms init'] = std_atoms_dict_init
+    metrics_dict['Mean num atoms goal'] = mean_atoms_dict_goal
+    metrics_dict['Std num atoms goal'] = std_atoms_dict_goal
+
+    metrics_dict['Num unique consistent problems'] = num_unique_problems
+    metrics_dict['Average score'] = avg_test_score
+    metrics_dict['Generation time'] = total_gen_time
+
+    # Problem-specific metrics
+    # TODO
+
 
 
 def main(args):
