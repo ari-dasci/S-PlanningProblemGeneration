@@ -309,6 +309,7 @@ def _save_problem_metrics(problem_folder:Path, total_gen_time:int, args, metrics
     parser.parse_domain(domain_path)
 
     problem_paths = list(problem_folder.glob('*.pddl'))
+    problem_names = [p.name for p in problem_paths]
     problems = [PDDLProblem.load_from_pddl(parser, path) for path in problem_paths]
     num_problems = len(problems)
 
@@ -386,9 +387,14 @@ def _save_problem_metrics(problem_folder:Path, total_gen_time:int, args, metrics
     metrics_dict['Generation time'] = total_gen_time
 
     # Problem-specific metrics
-    # TODO
+    metrics_dict['Problem Results'] = dict()
 
+    for name, diff, div in zip(problem_names, problem_difficulties, problem_diversities):
+        metrics_dict['Problem Results'][name] = {'difficulty' : diff, 'diversity' : div}
 
+    # Save the metrics as JSON
+    with open(problem_folder / metrics_file_name, 'w') as f:
+        json.dump(metrics_dict, f, indent=2)
 
 def main(args):
     # We set the working directory to the base folder of the repository
