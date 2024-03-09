@@ -22,6 +22,9 @@ import os
 from os.path import dirname, abspath
 import sys
 from pathlib import Path
+import numpy as np
+import math
+import json
 from lifted_pddl import Parser
 
 from src.nesig.symbolic.pddl_problem import PDDLProblem
@@ -90,7 +93,7 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-def is_solvable(problem_path:Path, domain_path:err_path) -> bool:
+def is_solvable(problem_path:Path, domain_path:Path) -> bool:
     """
     Auxiliary function that, given a PDDL problem, it returns whether it is solvable or not.
     By default, we set the planner time limit to 30 min and memory limit to 1GB.
@@ -306,12 +309,15 @@ def _calculate_test_scores(difficulty_list, diversity_list, diversity_threshold)
 def _save_problem_metrics(problem_folder:Path, total_gen_time:int, args, metrics_file_name='results.json'):
     # <Load all the problems into PDDLProblem instances>
     domain_path = DOMAIN_INFO[args.domain]['path']
-    parser = Parser()
-    parser.parse_domain(domain_path)
-
     problem_paths = list(problem_folder.glob('*.pddl'))
     problem_names = [p.name for p in problem_paths]
-    problems = [PDDLProblem.load_from_pddl(parser, path) for path in problem_paths]
+
+    problems = []
+    for path in problem_paths:
+        new_parser = Parser() # We need to create a fresh parser for each problem, using deepcopy(parser) does not work
+        new_parser.parse_domain(domain_path)
+        problems.append(PDDLProblem.load_from_pddl(new_parser, path))
+ 
     num_problems = len(problems)
 
     # <Calculate the difficulty and diversity of the problems>
