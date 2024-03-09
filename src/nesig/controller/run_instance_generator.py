@@ -63,6 +63,7 @@ def parse_args():
     #parser.add_argument('--skip-generation', action='store_true', help="If set, we assume the problems have already been generated, so we skip generation and calculate the metrics of the problems in the folder."))
     parser.add_argument('--time-limit-planner', type=int, default=1800, help="Time limit (s) for the planner used for calculating the problem difficulties.") # default = 30 min
     parser.add_argument('--memory-limit-planner', type=int, default=1048576, help="Memory limit (KB) for the planner used for calculating the problem difficulties.") # default = 1 GB
+    parser.add_argument('--term-problem-diff', type=float, default=1e7, help="Difficulty of a problem that has been terminated (either by timeout or memory out) by the planner.")
     parser.add_argument('--perc-problems-diversity', type=float, default=0.2, help=("When calculating the diversity score, we calculate the average distance between each problem"
                                                                                     "and the n=perc_problem_diversity % of the problems that are closest to it."))
     parser.add_argument('--diversity-threshold', type=float, default=1.0, help="Diversity threshold used when scaling the difficulty reward by the diversity reward, for calculating the test score.")
@@ -315,7 +316,7 @@ def _save_problem_metrics(problem_folder:Path, total_gen_time:int, args, metrics
 
     # <Calculate the difficulty and diversity of the problems>
     # Note that all the problems generated with the instance generators are eventual-consistent
-    difficulty_evaluator = PlannerEvaluator(domain_path, TEST_PLANNER_ARGS, args.time_limit_planner, args.memory_limit_planner, 1)
+    difficulty_evaluator = PlannerEvaluator(domain_path, TEST_PLANNER_ARGS, args.time_limit_planner, args.memory_limit_planner, 1, args.term_problem_diff)
     diversity_evaluator = InitGoalDiversityEvaluator(perc_problems_diversity=args.perc_problems_diversity)
 
     problem_difficulties = difficulty_evaluator.get_difficulty(problems)[0] # [1] are the diff_rewards
@@ -390,7 +391,7 @@ def _save_problem_metrics(problem_folder:Path, total_gen_time:int, args, metrics
     metrics_dict['Problem Results'] = dict()
 
     for name, diff, div in zip(problem_names, problem_difficulties, problem_diversities):
-        metrics_dict['Problem Results'][name] = {'difficulty' : diff, 'diversity' : div}
+        metrics_dict['Problem Results'][name] = {'consistency' : True, 'difficulty' : diff, 'diversity' : div}
 
     # Save the metrics as JSON
     with open(problem_folder / metrics_file_name, 'w') as f:

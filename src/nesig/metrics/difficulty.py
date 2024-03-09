@@ -76,7 +76,6 @@ class PlannerEvaluator(DifficultyEvaluator):
             - memory_limit: Memory limit for the planner, in KB. -1 means no limit.
             - max_workers: Maximum number of processes for concurrent planner calls.
             - terminated_reward: Difficulty of a problem that has been terminated (either by timeout or memory out).
-                                 This difficulty is NOT multiplied by r_diff_weight.
             - r_diff_weight: Weight/coefficient for which we multiply the difficulty reward 
                              (after performing the rest of the operations like math.log)
         """
@@ -99,8 +98,7 @@ class PlannerEvaluator(DifficultyEvaluator):
         The options used are given by self.plan_args.
         It returns a list of difficulties (and rewards) for each problem, so that diff[i][j] is the difficulty of the
         i-th problem with the j-th planner argument.
-        If for a given problem there was a timeout/memory out, its difficulty (for each planner) is -1 and its difficulty reward
-        is self.terminated_reward.
+        If for a given problem there was a timeout/memory out, its difficulty (for each planner) is self.terminated_reward.
         """
         if len(problem_list) == 0:
             return [], []
@@ -134,7 +132,6 @@ class PlannerEvaluator(DifficultyEvaluator):
         # In the future, we should use more elaborate methods such as normalizing the difficulty for each planner before
         # calculating the log (we don't do this right now because we use a single planner during training)
         diff_rewards = [self.r_diff_weight*sum([math.log(diff+1) for diff in problem_diffs])/len(problem_diffs) \
-                        if -1 not in problem_diffs else self.terminated_reward \
                         for problem_diffs in difficulty]
 
         return difficulty, diff_rewards
@@ -180,9 +177,9 @@ class PlannerEvaluator(DifficultyEvaluator):
             with open(err_path, 'r') as err_file:
                 err_output = err_file.read()
 
-                # Timeout/memory out -> we return a diff of -1
+                # Timeout/memory out -> we return a diff equal to self.terminated_reward
                 if 'Terminated' in err_output:
-                    num_expanded_nodes = -1
+                    num_expanded_nodes = self.terminated_reward
 
                 elif err_output != '':
                     raise Exception(f"> Planner error: {err_output}")

@@ -46,15 +46,17 @@ class TestPlannerEvaluator(unittest.TestCase):
 
     def test_timeout(self):
         # We try to solve a very hard problem with a very low time limit and a very low memory limit
-        # Therefore, a timeout/memory out must be produced and the difficulty must be -1
+        # Therefore, a timeout/memory out must be produced and the difficulty must be termianted_reward
         problem_path = Path('data/problems/bw_hard.pddl')
         planner = PlannerEvaluator(self.domain_path, self.plan_args, time_limit=1, max_workers=self.max_workers)
-        difficulty_1 = planner.get_difficulty([problem_path])
-        self.assertEqual(difficulty_1, ([[-1, -1, -1]], [1e6]))
+        difficulty_1 = planner.get_difficulty([problem_path])     
+        self.assertEqual(difficulty_1[0], [[1e6, 1e6, 1e6]])
+        self.assertAlmostEqual(difficulty_1[1][0], log(1e6 + 1), places=1)
 
         planner = PlannerEvaluator(self.domain_path, self.plan_args, memory_limit=1, max_workers=self.max_workers, terminated_reward=17)
         difficulty_2 = planner.get_difficulty([problem_path])
-        self.assertEqual(difficulty_2, ([[-1, -1, -1]], [17]))
+        self.assertEqual(difficulty_2[0], [[17, 17, 17]])
+        self.assertAlmostEqual(difficulty_2[1][0], log(17 + 1), places=1)
 
     def test_all_problems(self):
         planner = PlannerEvaluator(self.domain_path, self.plan_args, memory_limit=10, max_workers=self.max_workers, r_diff_weight=0.5,
@@ -65,7 +67,14 @@ class TestPlannerEvaluator(unittest.TestCase):
             Path('data/problems/bw_two_action_plan.pddl'),
             Path('data/problems/bw_hard.pddl')]
         difficulty = planner.get_difficulty(problem_paths)
-        self.assertEqual(difficulty, ([[0, 0, 0], [2, 2, 2], [3, 3, 3], [-1, -1, -1]], [0, 0.5*log(3), 0.5*log(4), 32]))
+        
+        correct_diffs = [0, 0, 0], [2, 2, 2], [3, 3, 3], [32, 32, 32]
+        correct_rewards = [0, 0.5*log(3), 0.5*log(4), 0.5*log(32)]
+        
+        for x,y in zip(difficulty[0], correct_diffs):
+            self.assertEqual(x,y)
+        for x,y in zip(difficulty[1], correct_rewards):
+            self.assertAlmostEqual(x,y,places=1)
 
     def test_parallel_planner(self):
         """
