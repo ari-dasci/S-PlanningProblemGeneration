@@ -1,951 +1,951 @@
 {
   "Consistency percentage": 1.0,
-  "Mean diversity": 0.004637942789122463,
-  "Mean difficulty": 83.08333333333331,
-  "Std difficulty": 50.73158943564323,
+  "Mean diversity": 0.00500256601953879,
+  "Mean difficulty": 1202.4466666666665,
+  "Std difficulty": 4074.021439757038,
   "Mean actions init": 0.0,
   "Std actions init": 0.0,
   "Mean actions goal": 0.0,
   "Std actions goal": 0.0,
   "Mean num objects": {
-    "block": 10.02,
+    "loc": 25.0,
     "object": 0.0
   },
   "Std num objects": {
-    "block": 1.0293687385966224,
+    "loc": 0.0,
     "object": 0.0
   },
   "Mean num atoms init": {
-    "clear": 2.87,
-    "handempty": 1.0,
-    "holding": 0.0,
-    "on": 7.15,
-    "ontable": 2.87
+    "at-box": 2.16,
+    "at-robot": 1.0,
+    "at-wall": 3.6,
+    "connected-right": 20.0,
+    "connected-up": 20.0
   },
   "Std num atoms init": {
-    "clear": 0.9659710140578759,
-    "handempty": 0.0,
-    "holding": 0.0,
-    "on": 1.8241436346954698,
-    "ontable": 0.9659710140578759
+    "at-box": 1.6776173580408607,
+    "at-robot": 0.0,
+    "at-wall": 4.054626986542658,
+    "connected-right": 0.0,
+    "connected-up": 0.0
   },
   "Mean num atoms goal": {
-    "clear": 0.0,
-    "handempty": 0.0,
-    "holding": 0.0,
-    "on": 6.88,
-    "ontable": 0.0
+    "at-box": 2.16,
+    "at-robot": 0.0,
+    "at-wall": 0.0,
+    "connected-right": 0.0,
+    "connected-up": 0.0
   },
   "Std num atoms goal": {
-    "clear": 0.0,
-    "handempty": 0.0,
-    "holding": 0.0,
-    "on": 1.5051910177781422,
-    "ontable": 0.0
+    "at-box": 1.6776173580408607,
+    "at-robot": 0.0,
+    "at-wall": 0.0,
+    "connected-right": 0.0,
+    "connected-up": 0.0
   },
-  "Num unique consistent problems": 14,
-  "Average score": 0.019410413038090393,
-  "Generation time": 4.101709842681885,
+  "Num unique consistent problems": 43,
+  "Average score": 0.01797738811864032,
+  "Generation time": 967.9134047031403,
   "Problem Results": {
     "problem_0.pddl": {
       "consistency": true,
       "difficulty": [
-        49,
-        58,
-        56
+        49557,
+        35052,
+        13006
       ],
-      "diversity": 0.0003205128014087677
+      "diversity": 0.006700950209051371
     },
     "problem_1.pddl": {
       "consistency": true,
       "difficulty": [
-        64,
-        83,
-        78
+        1,
+        1,
+        1
       ],
-      "diversity": 0.006330891512334347
+      "diversity": 0.0023519110400229692
     },
     "problem_2.pddl": {
       "consistency": true,
       "difficulty": [
-        46,
-        38,
-        45
+        1,
+        1,
+        1
       ],
-      "diversity": 0.0003205128014087677
+      "diversity": 0.007100097835063934
     },
     "problem_3.pddl": {
-      "consistency": true,
-      "difficulty": [
-        86,
-        90,
-        89
-      ],
-      "diversity": 0.0016788768116384745
-    },
-    "problem_4.pddl": {
-      "consistency": true,
-      "difficulty": [
-        76,
-        64,
-        90
-      ],
-      "diversity": 0.0016788768116384745
-    },
-    "problem_5.pddl": {
-      "consistency": true,
-      "difficulty": [
-        30,
-        31,
-        51
-      ],
-      "diversity": 0.0003205128014087677
-    },
-    "problem_6.pddl": {
-      "consistency": true,
-      "difficulty": [
-        98,
-        75,
-        92
-      ],
-      "diversity": 0.002500001108273864
-    },
-    "problem_7.pddl": {
-      "consistency": true,
-      "difficulty": [
-        28,
-        28,
-        78
-      ],
-      "diversity": 0.0030555569101125
-    },
-    "problem_8.pddl": {
-      "consistency": true,
-      "difficulty": [
-        224,
-        194,
-        257
-      ],
-      "diversity": 0.019719168543815613
-    },
-    "problem_9.pddl": {
-      "consistency": true,
-      "difficulty": [
-        51,
-        58,
-        58
-      ],
-      "diversity": 0.013266177847981453
-    },
-    "problem_10.pddl": {
-      "consistency": true,
-      "difficulty": [
-        49,
-        52,
-        72
-      ],
-      "diversity": 0.0003205128014087677
-    },
-    "problem_11.pddl": {
-      "consistency": true,
-      "difficulty": [
-        49,
-        36,
-        55
-      ],
-      "diversity": 0.0030555569101125
-    },
-    "problem_12.pddl": {
-      "consistency": true,
-      "difficulty": [
-        51,
-        51,
-        51
-      ],
-      "diversity": 0.023037243634462357
-    },
-    "problem_13.pddl": {
-      "consistency": true,
-      "difficulty": [
-        62,
-        53,
-        80
-      ],
-      "diversity": 0.002500001108273864
-    },
-    "problem_14.pddl": {
-      "consistency": true,
-      "difficulty": [
-        114,
-        89,
-        55
-      ],
-      "diversity": 0.0013736255932599306
-    },
-    "problem_15.pddl": {
-      "consistency": true,
-      "difficulty": [
-        74,
-        64,
-        94
-      ],
-      "diversity": 0.0013736255932599306
-    },
-    "problem_16.pddl": {
-      "consistency": true,
-      "difficulty": [
-        37,
-        33,
-        34
-      ],
-      "diversity": 0.00813797302544117
-    },
-    "problem_17.pddl": {
-      "consistency": true,
-      "difficulty": [
-        98,
-        56,
-        74
-      ],
-      "diversity": 0.0003205128014087677
-    },
-    "problem_18.pddl": {
-      "consistency": true,
-      "difficulty": [
-        107,
-        148,
-        108
-      ],
-      "diversity": 0.0013736255932599306
-    },
-    "problem_19.pddl": {
-      "consistency": true,
-      "difficulty": [
-        27,
-        30,
-        64
-      ],
-      "diversity": 0.0003205128014087677
-    },
-    "problem_20.pddl": {
-      "consistency": true,
-      "difficulty": [
-        139,
-        107,
-        133
-      ],
-      "diversity": 0.003861417528241873
-    },
-    "problem_21.pddl": {
-      "consistency": true,
-      "difficulty": [
-        50,
-        56,
-        54
-      ],
-      "diversity": 0.00813797302544117
-    },
-    "problem_22.pddl": {
-      "consistency": true,
-      "difficulty": [
-        74,
-        66,
-        130
-      ],
-      "diversity": 0.0013736255932599306
-    },
-    "problem_23.pddl": {
-      "consistency": true,
-      "difficulty": [
-        63,
-        82,
-        96
-      ],
-      "diversity": 0.017600731924176216
-    },
-    "problem_24.pddl": {
-      "consistency": true,
-      "difficulty": [
-        97,
-        95,
-        102
-      ],
-      "diversity": 0.0013736255932599306
-    },
-    "problem_25.pddl": {
-      "consistency": true,
-      "difficulty": [
-        45,
-        55,
-        119
-      ],
-      "diversity": 0.003861417528241873
-    },
-    "problem_26.pddl": {
-      "consistency": true,
-      "difficulty": [
-        35,
-        29,
-        78
-      ],
-      "diversity": 0.006330891512334347
-    },
-    "problem_27.pddl": {
-      "consistency": true,
-      "difficulty": [
-        83,
-        115,
-        124
-      ],
-      "diversity": 0.006330891512334347
-    },
-    "problem_28.pddl": {
-      "consistency": true,
-      "difficulty": [
-        82,
-        86,
-        104
-      ],
-      "diversity": 0.0013736255932599306
-    },
-    "problem_29.pddl": {
-      "consistency": true,
-      "difficulty": [
-        164,
-        100,
-        106
-      ],
-      "diversity": 0.006330891512334347
-    },
-    "problem_30.pddl": {
-      "consistency": true,
-      "difficulty": [
-        74,
-        61,
-        68
-      ],
-      "diversity": 0.0003205128014087677
-    },
-    "problem_31.pddl": {
-      "consistency": true,
-      "difficulty": [
-        49,
-        93,
-        90
-      ],
-      "diversity": 0.0003205128014087677
-    },
-    "problem_32.pddl": {
-      "consistency": true,
-      "difficulty": [
-        119,
-        72,
-        108
-      ],
-      "diversity": 0.00813797302544117
-    },
-    "problem_33.pddl": {
-      "consistency": true,
-      "difficulty": [
-        74,
-        69,
-        99
-      ],
-      "diversity": 0.0013736255932599306
-    },
-    "problem_34.pddl": {
-      "consistency": true,
-      "difficulty": [
-        21,
-        25,
-        28
-      ],
-      "diversity": 0.03482295200228691
-    },
-    "problem_35.pddl": {
-      "consistency": true,
-      "difficulty": [
-        151,
-        172,
-        206
-      ],
-      "diversity": 0.003861417528241873
-    },
-    "problem_36.pddl": {
-      "consistency": true,
-      "difficulty": [
-        67,
-        44,
-        82
-      ],
-      "diversity": 0.0013736255932599306
-    },
-    "problem_37.pddl": {
-      "consistency": true,
-      "difficulty": [
-        104,
-        113,
-        87
-      ],
-      "diversity": 0.00813797302544117
-    },
-    "problem_38.pddl": {
-      "consistency": true,
-      "difficulty": [
-        43,
-        32,
-        35
-      ],
-      "diversity": 0.023037243634462357
-    },
-    "problem_39.pddl": {
-      "consistency": true,
-      "difficulty": [
-        43,
-        37,
-        50
-      ],
-      "diversity": 0.0003205128014087677
-    },
-    "problem_40.pddl": {
-      "consistency": true,
-      "difficulty": [
-        178,
-        192,
-        166
-      ],
-      "diversity": 0.003861417528241873
-    },
-    "problem_41.pddl": {
-      "consistency": true,
-      "difficulty": [
-        92,
-        103,
-        166
-      ],
-      "diversity": 0.0013736255932599306
-    },
-    "problem_42.pddl": {
-      "consistency": true,
-      "difficulty": [
-        63,
-        58,
-        75
-      ],
-      "diversity": 0.0030555569101125
-    },
-    "problem_43.pddl": {
-      "consistency": true,
-      "difficulty": [
-        94,
-        40,
-        71
-      ],
-      "diversity": 0.0013736255932599306
-    },
-    "problem_44.pddl": {
-      "consistency": true,
-      "difficulty": [
-        52,
-        50,
-        67
-      ],
-      "diversity": 0.0030555569101125
-    },
-    "problem_45.pddl": {
-      "consistency": true,
-      "difficulty": [
-        148,
-        123,
-        108
-      ],
-      "diversity": 0.002500001108273864
-    },
-    "problem_46.pddl": {
-      "consistency": true,
-      "difficulty": [
-        99,
-        118,
-        90
-      ],
-      "diversity": 0.0030555569101125
-    },
-    "problem_47.pddl": {
-      "consistency": true,
-      "difficulty": [
-        40,
-        37,
-        60
-      ],
-      "diversity": 0.0003205128014087677
-    },
-    "problem_48.pddl": {
-      "consistency": true,
-      "difficulty": [
-        184,
-        229,
-        219
-      ],
-      "diversity": 0.0016788768116384745
-    },
-    "problem_49.pddl": {
-      "consistency": true,
-      "difficulty": [
-        137,
-        105,
-        117
-      ],
-      "diversity": 0.0016788768116384745
-    },
-    "problem_50.pddl": {
-      "consistency": true,
-      "difficulty": [
-        70,
-        57,
-        90
-      ],
-      "diversity": 0.0013736255932599306
-    },
-    "problem_51.pddl": {
-      "consistency": true,
-      "difficulty": [
-        69,
-        49,
-        54
-      ],
-      "diversity": 0.006330891512334347
-    },
-    "problem_52.pddl": {
-      "consistency": true,
-      "difficulty": [
-        72,
-        92,
-        92
-      ],
-      "diversity": 0.0003205128014087677
-    },
-    "problem_53.pddl": {
-      "consistency": true,
-      "difficulty": [
-        20,
-        19,
-        22
-      ],
-      "diversity": 0.013266177847981453
-    },
-    "problem_54.pddl": {
       "consistency": true,
       "difficulty": [
         17,
         17,
         17
       ],
-      "diversity": 0.0003205128014087677
+      "diversity": 0.00434937234967947
+    },
+    "problem_4.pddl": {
+      "consistency": true,
+      "difficulty": [
+        969,
+        839,
+        930
+      ],
+      "diversity": 0.0028883046470582485
+    },
+    "problem_5.pddl": {
+      "consistency": true,
+      "difficulty": [
+        31,
+        31,
+        31
+      ],
+      "diversity": 0.0030737174674868584
+    },
+    "problem_6.pddl": {
+      "consistency": true,
+      "difficulty": [
+        20,
+        20,
+        20
+      ],
+      "diversity": 0.00434937234967947
+    },
+    "problem_7.pddl": {
+      "consistency": true,
+      "difficulty": [
+        8,
+        8,
+        8
+      ],
+      "diversity": 0.008890650235116482
+    },
+    "problem_8.pddl": {
+      "consistency": true,
+      "difficulty": [
+        18,
+        15,
+        20
+      ],
+      "diversity": 0.0030737174674868584
+    },
+    "problem_9.pddl": {
+      "consistency": true,
+      "difficulty": [
+        1,
+        1,
+        1
+      ],
+      "diversity": 0.007100097835063934
+    },
+    "problem_10.pddl": {
+      "consistency": true,
+      "difficulty": [
+        42,
+        34,
+        108
+      ],
+      "diversity": 0.0028883046470582485
+    },
+    "problem_11.pddl": {
+      "consistency": true,
+      "difficulty": [
+        5,
+        5,
+        5
+      ],
+      "diversity": 0.0046436963602900505
+    },
+    "problem_12.pddl": {
+      "consistency": true,
+      "difficulty": [
+        2521,
+        4622,
+        510
+      ],
+      "diversity": 0.004858585074543953
+    },
+    "problem_13.pddl": {
+      "consistency": true,
+      "difficulty": [
+        14766,
+        9311,
+        10302
+      ],
+      "diversity": 0.0054145255126059055
+    },
+    "problem_14.pddl": {
+      "consistency": true,
+      "difficulty": [
+        703,
+        548,
+        461
+      ],
+      "diversity": 0.0028883046470582485
+    },
+    "problem_15.pddl": {
+      "consistency": true,
+      "difficulty": [
+        21,
+        21,
+        21
+      ],
+      "diversity": 0.00434937234967947
+    },
+    "problem_16.pddl": {
+      "consistency": true,
+      "difficulty": [
+        5,
+        5,
+        5
+      ],
+      "diversity": 0.0023519110400229692
+    },
+    "problem_17.pddl": {
+      "consistency": true,
+      "difficulty": [
+        17,
+        17,
+        16
+      ],
+      "diversity": 0.0046436963602900505
+    },
+    "problem_18.pddl": {
+      "consistency": true,
+      "difficulty": [
+        5612,
+        3263,
+        3686
+      ],
+      "diversity": 0.0054145255126059055
+    },
+    "problem_19.pddl": {
+      "consistency": true,
+      "difficulty": [
+        1,
+        1,
+        1
+      ],
+      "diversity": 0.006301122717559338
+    },
+    "problem_20.pddl": {
+      "consistency": true,
+      "difficulty": [
+        23,
+        23,
+        760
+      ],
+      "diversity": 0.003597226459532976
+    },
+    "problem_21.pddl": {
+      "consistency": true,
+      "difficulty": [
+        2736,
+        1931,
+        323
+      ],
+      "diversity": 0.0050469799898564816
+    },
+    "problem_22.pddl": {
+      "consistency": true,
+      "difficulty": [
+        2300,
+        4600,
+        7360
+      ],
+      "diversity": 0.007531848736107349
+    },
+    "problem_23.pddl": {
+      "consistency": true,
+      "difficulty": [
+        123,
+        773,
+        468
+      ],
+      "diversity": 0.010315746068954468
+    },
+    "problem_24.pddl": {
+      "consistency": true,
+      "difficulty": [
+        650,
+        4969,
+        2867
+      ],
+      "diversity": 0.007098910864442587
+    },
+    "problem_25.pddl": {
+      "consistency": true,
+      "difficulty": [
+        6565,
+        3449,
+        5393
+      ],
+      "diversity": 0.004632059950381517
+    },
+    "problem_26.pddl": {
+      "consistency": true,
+      "difficulty": [
+        134,
+        147,
+        154
+      ],
+      "diversity": 0.004601416178047657
+    },
+    "problem_27.pddl": {
+      "consistency": true,
+      "difficulty": [
+        13,
+        13,
+        14
+      ],
+      "diversity": 0.0031165338587015867
+    },
+    "problem_28.pddl": {
+      "consistency": true,
+      "difficulty": [
+        1,
+        1,
+        1
+      ],
+      "diversity": 0.006301122717559338
+    },
+    "problem_29.pddl": {
+      "consistency": true,
+      "difficulty": [
+        83,
+        114,
+        69
+      ],
+      "diversity": 0.007947728969156742
+    },
+    "problem_30.pddl": {
+      "consistency": true,
+      "difficulty": [
+        1,
+        1,
+        1
+      ],
+      "diversity": 0.01064937375485897
+    },
+    "problem_31.pddl": {
+      "consistency": true,
+      "difficulty": [
+        20,
+        19,
+        19
+      ],
+      "diversity": 0.0033403425477445126
+    },
+    "problem_32.pddl": {
+      "consistency": true,
+      "difficulty": [
+        10,
+        10,
+        10
+      ],
+      "diversity": 0.0030737174674868584
+    },
+    "problem_33.pddl": {
+      "consistency": true,
+      "difficulty": [
+        10190,
+        3950,
+        1507
+      ],
+      "diversity": 0.004632059950381517
+    },
+    "problem_34.pddl": {
+      "consistency": true,
+      "difficulty": [
+        9,
+        10,
+        10
+      ],
+      "diversity": 0.0030737174674868584
+    },
+    "problem_35.pddl": {
+      "consistency": true,
+      "difficulty": [
+        5,
+        5,
+        5
+      ],
+      "diversity": 0.0028883046470582485
+    },
+    "problem_36.pddl": {
+      "consistency": true,
+      "difficulty": [
+        13,
+        13,
+        13
+      ],
+      "diversity": 0.0023519110400229692
+    },
+    "problem_37.pddl": {
+      "consistency": true,
+      "difficulty": [
+        20,
+        20,
+        20
+      ],
+      "diversity": 0.00434937234967947
+    },
+    "problem_38.pddl": {
+      "consistency": true,
+      "difficulty": [
+        5,
+        5,
+        5
+      ],
+      "diversity": 0.0023519110400229692
+    },
+    "problem_39.pddl": {
+      "consistency": true,
+      "difficulty": [
+        30,
+        29,
+        29
+      ],
+      "diversity": 0.0023519110400229692
+    },
+    "problem_40.pddl": {
+      "consistency": true,
+      "difficulty": [
+        13,
+        12,
+        12
+      ],
+      "diversity": 0.0016649048775434494
+    },
+    "problem_41.pddl": {
+      "consistency": true,
+      "difficulty": [
+        520,
+        523,
+        522
+      ],
+      "diversity": 0.0070904092863202095
+    },
+    "problem_42.pddl": {
+      "consistency": true,
+      "difficulty": [
+        28,
+        28,
+        34
+      ],
+      "diversity": 0.0033403425477445126
+    },
+    "problem_43.pddl": {
+      "consistency": true,
+      "difficulty": [
+        5,
+        5,
+        5
+      ],
+      "diversity": 0.007820953615009785
+    },
+    "problem_44.pddl": {
+      "consistency": true,
+      "difficulty": [
+        15334,
+        28582,
+        13027
+      ],
+      "diversity": 0.013983088545501232
+    },
+    "problem_45.pddl": {
+      "consistency": true,
+      "difficulty": [
+        6,
+        6,
+        6
+      ],
+      "diversity": 0.00757873710244894
+    },
+    "problem_46.pddl": {
+      "consistency": true,
+      "difficulty": [
+        11,
+        10,
+        10
+      ],
+      "diversity": 0.0016649048775434494
+    },
+    "problem_47.pddl": {
+      "consistency": true,
+      "difficulty": [
+        1,
+        1,
+        1
+      ],
+      "diversity": 0.00434937234967947
+    },
+    "problem_48.pddl": {
+      "consistency": true,
+      "difficulty": [
+        2897,
+        2052,
+        335
+      ],
+      "diversity": 0.004858585074543953
+    },
+    "problem_49.pddl": {
+      "consistency": true,
+      "difficulty": [
+        16,
+        14,
+        14
+      ],
+      "diversity": 0.0016649048775434494
+    },
+    "problem_50.pddl": {
+      "consistency": true,
+      "difficulty": [
+        1,
+        1,
+        1
+      ],
+      "diversity": 0.01064937375485897
+    },
+    "problem_51.pddl": {
+      "consistency": true,
+      "difficulty": [
+        3551,
+        3468,
+        6332
+      ],
+      "diversity": 0.0046436963602900505
+    },
+    "problem_52.pddl": {
+      "consistency": true,
+      "difficulty": [
+        14,
+        14,
+        15
+      ],
+      "diversity": 0.0030737174674868584
+    },
+    "problem_53.pddl": {
+      "consistency": true,
+      "difficulty": [
+        1,
+        1,
+        1
+      ],
+      "diversity": 0.012115235440433025
+    },
+    "problem_54.pddl": {
+      "consistency": true,
+      "difficulty": [
+        1,
+        1,
+        1
+      ],
+      "diversity": 0.00856052991002798
     },
     "problem_55.pddl": {
       "consistency": true,
       "difficulty": [
-        50,
-        46,
-        66
+        25,
+        25,
+        25
       ],
-      "diversity": 0.0003205128014087677
+      "diversity": 0.0030737174674868584
     },
     "problem_56.pddl": {
       "consistency": true,
       "difficulty": [
-        55,
-        62,
-        67
+        1,
+        1,
+        1
       ],
-      "diversity": 0.006330891512334347
+      "diversity": 0.0016649048775434494
     },
     "problem_57.pddl": {
       "consistency": true,
       "difficulty": [
-        38,
-        40,
-        41
+        7,
+        10,
+        10
       ],
-      "diversity": 0.0003205128014087677
+      "diversity": 0.0016649048775434494
     },
     "problem_58.pddl": {
       "consistency": true,
       "difficulty": [
-        150,
-        115,
-        86
+        1,
+        1,
+        1
       ],
-      "diversity": 0.002500001108273864
+      "diversity": 0.012115235440433025
     },
     "problem_59.pddl": {
-      "consistency": true,
-      "difficulty": [
-        132,
-        98,
-        117
-      ],
-      "diversity": 0.01816239207983017
-    },
-    "problem_60.pddl": {
-      "consistency": true,
-      "difficulty": [
-        88,
-        79,
-        116
-      ],
-      "diversity": 0.002500001108273864
-    },
-    "problem_61.pddl": {
-      "consistency": true,
-      "difficulty": [
-        39,
-        36,
-        36
-      ],
-      "diversity": 0.0030555569101125
-    },
-    "problem_62.pddl": {
-      "consistency": true,
-      "difficulty": [
-        32,
-        19,
-        34
-      ],
-      "diversity": 0.0003205128014087677
-    },
-    "problem_63.pddl": {
-      "consistency": true,
-      "difficulty": [
-        81,
-        76,
-        72
-      ],
-      "diversity": 0.003861417528241873
-    },
-    "problem_64.pddl": {
-      "consistency": true,
-      "difficulty": [
-        38,
-        37,
-        42
-      ],
-      "diversity": 0.0016788768116384745
-    },
-    "problem_65.pddl": {
-      "consistency": true,
-      "difficulty": [
-        45,
-        51,
-        45
-      ],
-      "diversity": 0.0013736255932599306
-    },
-    "problem_66.pddl": {
-      "consistency": true,
-      "difficulty": [
-        129,
-        349,
-        186
-      ],
-      "diversity": 0.0016788768116384745
-    },
-    "problem_67.pddl": {
-      "consistency": true,
-      "difficulty": [
-        49,
-        50,
-        125
-      ],
-      "diversity": 0.0016788768116384745
-    },
-    "problem_68.pddl": {
-      "consistency": true,
-      "difficulty": [
-        127,
-        110,
-        82
-      ],
-      "diversity": 0.002500001108273864
-    },
-    "problem_69.pddl": {
-      "consistency": true,
-      "difficulty": [
-        55,
-        56,
-        96
-      ],
-      "diversity": 0.0016788768116384745
-    },
-    "problem_70.pddl": {
-      "consistency": true,
-      "difficulty": [
-        50,
-        26,
-        54
-      ],
-      "diversity": 0.002500001108273864
-    },
-    "problem_71.pddl": {
-      "consistency": true,
-      "difficulty": [
-        94,
-        49,
-        114
-      ],
-      "diversity": 0.002500001108273864
-    },
-    "problem_72.pddl": {
-      "consistency": true,
-      "difficulty": [
-        170,
-        598,
-        207
-      ],
-      "diversity": 0.0016788768116384745
-    },
-    "problem_73.pddl": {
-      "consistency": true,
-      "difficulty": [
-        36,
-        41,
-        70
-      ],
-      "diversity": 0.0030555569101125
-    },
-    "problem_74.pddl": {
-      "consistency": true,
-      "difficulty": [
-        91,
-        69,
-        86
-      ],
-      "diversity": 0.0013736255932599306
-    },
-    "problem_75.pddl": {
-      "consistency": true,
-      "difficulty": [
-        40,
-        37,
-        38
-      ],
-      "diversity": 0.0003205128014087677
-    },
-    "problem_76.pddl": {
-      "consistency": true,
-      "difficulty": [
-        108,
-        99,
-        90
-      ],
-      "diversity": 0.0030555569101125
-    },
-    "problem_77.pddl": {
-      "consistency": true,
-      "difficulty": [
-        237,
-        89,
-        184
-      ],
-      "diversity": 0.0030555569101125
-    },
-    "problem_78.pddl": {
-      "consistency": true,
-      "difficulty": [
-        50,
-        26,
-        40
-      ],
-      "diversity": 0.0016788768116384745
-    },
-    "problem_79.pddl": {
-      "consistency": true,
-      "difficulty": [
-        110,
-        76,
-        101
-      ],
-      "diversity": 0.0003205128014087677
-    },
-    "problem_80.pddl": {
-      "consistency": true,
-      "difficulty": [
-        136,
-        184,
-        165
-      ],
-      "diversity": 0.006330891512334347
-    },
-    "problem_81.pddl": {
-      "consistency": true,
-      "difficulty": [
-        105,
-        87,
-        104
-      ],
-      "diversity": 0.0016788768116384745
-    },
-    "problem_82.pddl": {
-      "consistency": true,
-      "difficulty": [
-        33,
-        37,
-        56
-      ],
-      "diversity": 0.0013736255932599306
-    },
-    "problem_83.pddl": {
-      "consistency": true,
-      "difficulty": [
-        19,
-        20,
-        19
-      ],
-      "diversity": 0.006330891512334347
-    },
-    "problem_84.pddl": {
-      "consistency": true,
-      "difficulty": [
-        160,
-        187,
-        175
-      ],
-      "diversity": 0.0030555569101125
-    },
-    "problem_85.pddl": {
-      "consistency": true,
-      "difficulty": [
-        129,
-        127,
-        174
-      ],
-      "diversity": 0.002500001108273864
-    },
-    "problem_86.pddl": {
-      "consistency": true,
-      "difficulty": [
-        25,
-        24,
-        25
-      ],
-      "diversity": 0.00813797302544117
-    },
-    "problem_87.pddl": {
-      "consistency": true,
-      "difficulty": [
-        47,
-        39,
-        59
-      ],
-      "diversity": 0.0016788768116384745
-    },
-    "problem_88.pddl": {
-      "consistency": true,
-      "difficulty": [
-        64,
-        52,
-        48
-      ],
-      "diversity": 0.0003205128014087677
-    },
-    "problem_89.pddl": {
-      "consistency": true,
-      "difficulty": [
-        47,
-        47,
-        52
-      ],
-      "diversity": 0.002500001108273864
-    },
-    "problem_90.pddl": {
-      "consistency": true,
-      "difficulty": [
-        37,
-        39,
-        46
-      ],
-      "diversity": 0.0003205128014087677
-    },
-    "problem_91.pddl": {
-      "consistency": true,
-      "difficulty": [
-        76,
-        62,
-        51
-      ],
-      "diversity": 0.0003205128014087677
-    },
-    "problem_92.pddl": {
-      "consistency": true,
-      "difficulty": [
-        67,
-        73,
-        66
-      ],
-      "diversity": 0.00813797302544117
-    },
-    "problem_93.pddl": {
-      "consistency": true,
-      "difficulty": [
-        147,
-        95,
-        133
-      ],
-      "diversity": 0.002500001108273864
-    },
-    "problem_94.pddl": {
-      "consistency": true,
-      "difficulty": [
-        35,
-        30,
-        41
-      ],
-      "diversity": 0.03482295200228691
-    },
-    "problem_95.pddl": {
       "consistency": true,
       "difficulty": [
         32,
         32,
         32
       ],
-      "diversity": 0.0013736255932599306
+      "diversity": 0.0023519110400229692
+    },
+    "problem_60.pddl": {
+      "consistency": true,
+      "difficulty": [
+        7,
+        7,
+        7
+      ],
+      "diversity": 0.0031165338587015867
+    },
+    "problem_61.pddl": {
+      "consistency": true,
+      "difficulty": [
+        1,
+        1,
+        1
+      ],
+      "diversity": 0.008224384859204292
+    },
+    "problem_62.pddl": {
+      "consistency": true,
+      "difficulty": [
+        1,
+        1,
+        1
+      ],
+      "diversity": 0.005125528667122126
+    },
+    "problem_63.pddl": {
+      "consistency": true,
+      "difficulty": [
+        53,
+        53,
+        40
+      ],
+      "diversity": 0.006004578433930874
+    },
+    "problem_64.pddl": {
+      "consistency": true,
+      "difficulty": [
+        7,
+        7,
+        7
+      ],
+      "diversity": 0.0033403425477445126
+    },
+    "problem_65.pddl": {
+      "consistency": true,
+      "difficulty": [
+        11,
+        10,
+        9
+      ],
+      "diversity": 0.0039055843371897936
+    },
+    "problem_66.pddl": {
+      "consistency": true,
+      "difficulty": [
+        6,
+        5,
+        5
+      ],
+      "diversity": 0.0033403425477445126
+    },
+    "problem_67.pddl": {
+      "consistency": true,
+      "difficulty": [
+        1,
+        1,
+        1
+      ],
+      "diversity": 0.0031165338587015867
+    },
+    "problem_68.pddl": {
+      "consistency": true,
+      "difficulty": [
+        40,
+        40,
+        40
+      ],
+      "diversity": 0.0016649048775434494
+    },
+    "problem_69.pddl": {
+      "consistency": true,
+      "difficulty": [
+        5093,
+        2915,
+        2722
+      ],
+      "diversity": 0.011095758527517319
+    },
+    "problem_70.pddl": {
+      "consistency": true,
+      "difficulty": [
+        11,
+        15,
+        11
+      ],
+      "diversity": 0.0031165338587015867
+    },
+    "problem_71.pddl": {
+      "consistency": true,
+      "difficulty": [
+        1367,
+        1325,
+        1358
+      ],
+      "diversity": 0.0050469799898564816
+    },
+    "problem_72.pddl": {
+      "consistency": true,
+      "difficulty": [
+        9,
+        8,
+        8
+      ],
+      "diversity": 0.0016649048775434494
+    },
+    "problem_73.pddl": {
+      "consistency": true,
+      "difficulty": [
+        8,
+        8,
+        8
+      ],
+      "diversity": 0.00434937234967947
+    },
+    "problem_74.pddl": {
+      "consistency": true,
+      "difficulty": [
+        31,
+        48,
+        109
+      ],
+      "diversity": 0.005011947359889746
+    },
+    "problem_75.pddl": {
+      "consistency": true,
+      "difficulty": [
+        28,
+        90,
+        75
+      ],
+      "diversity": 0.006700950209051371
+    },
+    "problem_76.pddl": {
+      "consistency": true,
+      "difficulty": [
+        1,
+        1,
+        1
+      ],
+      "diversity": 0.012115235440433025
+    },
+    "problem_77.pddl": {
+      "consistency": true,
+      "difficulty": [
+        4,
+        4,
+        4
+      ],
+      "diversity": 0.0016649048775434494
+    },
+    "problem_78.pddl": {
+      "consistency": true,
+      "difficulty": [
+        12,
+        12,
+        12
+      ],
+      "diversity": 0.005125528667122126
+    },
+    "problem_79.pddl": {
+      "consistency": true,
+      "difficulty": [
+        15,
+        15,
+        15
+      ],
+      "diversity": 0.0023519110400229692
+    },
+    "problem_80.pddl": {
+      "consistency": true,
+      "difficulty": [
+        1,
+        1,
+        1
+      ],
+      "diversity": 0.0016649048775434494
+    },
+    "problem_81.pddl": {
+      "consistency": true,
+      "difficulty": [
+        1,
+        1,
+        1
+      ],
+      "diversity": 0.006301122717559338
+    },
+    "problem_82.pddl": {
+      "consistency": true,
+      "difficulty": [
+        3,
+        3,
+        3
+      ],
+      "diversity": 0.00721155758947134
+    },
+    "problem_83.pddl": {
+      "consistency": true,
+      "difficulty": [
+        8,
+        8,
+        8
+      ],
+      "diversity": 0.0016649048775434494
+    },
+    "problem_84.pddl": {
+      "consistency": true,
+      "difficulty": [
+        19,
+        19,
+        21
+      ],
+      "diversity": 0.0016649048775434494
+    },
+    "problem_85.pddl": {
+      "consistency": true,
+      "difficulty": [
+        8697,
+        6363,
+        6083
+      ],
+      "diversity": 0.005364037584513426
+    },
+    "problem_86.pddl": {
+      "consistency": true,
+      "difficulty": [
+        1,
+        1,
+        1
+      ],
+      "diversity": 0.007820953615009785
+    },
+    "problem_87.pddl": {
+      "consistency": true,
+      "difficulty": [
+        17,
+        29,
+        78
+      ],
+      "diversity": 0.00458808708935976
+    },
+    "problem_88.pddl": {
+      "consistency": true,
+      "difficulty": [
+        457,
+        589,
+        306
+      ],
+      "diversity": 0.0050469799898564816
+    },
+    "problem_89.pddl": {
+      "consistency": true,
+      "difficulty": [
+        1,
+        1,
+        1
+      ],
+      "diversity": 0.0023519110400229692
+    },
+    "problem_90.pddl": {
+      "consistency": true,
+      "difficulty": [
+        11713,
+        8760,
+        1408
+      ],
+      "diversity": 0.004858585074543953
+    },
+    "problem_91.pddl": {
+      "consistency": true,
+      "difficulty": [
+        11,
+        11,
+        11
+      ],
+      "diversity": 0.004676421172916889
+    },
+    "problem_92.pddl": {
+      "consistency": true,
+      "difficulty": [
+        32,
+        32,
+        55
+      ],
+      "diversity": 0.005337703041732311
+    },
+    "problem_93.pddl": {
+      "consistency": true,
+      "difficulty": [
+        14,
+        11,
+        14
+      ],
+      "diversity": 0.0016649048775434494
+    },
+    "problem_94.pddl": {
+      "consistency": true,
+      "difficulty": [
+        447,
+        1103,
+        790
+      ],
+      "diversity": 0.00613104272633791
+    },
+    "problem_95.pddl": {
+      "consistency": true,
+      "difficulty": [
+        13,
+        17,
+        12
+      ],
+      "diversity": 0.005125528667122126
     },
     "problem_96.pddl": {
       "consistency": true,
       "difficulty": [
-        104,
-        208,
-        121
+        390,
+        290,
+        29
       ],
-      "diversity": 0.0016788768116384745
+      "diversity": 0.0028883046470582485
     },
     "problem_97.pddl": {
       "consistency": true,
       "difficulty": [
-        122,
-        96,
-        175
+        5,
+        5,
+        5
       ],
-      "diversity": 0.019719168543815613
+      "diversity": 0.003597226459532976
     },
     "problem_98.pddl": {
       "consistency": true,
       "difficulty": [
-        145,
-        138,
-        106
+        1,
+        1,
+        1
       ],
-      "diversity": 0.01816239207983017
+      "diversity": 0.013431394472718239
     },
     "problem_99.pddl": {
       "consistency": true,
       "difficulty": [
-        61,
-        75,
+        56,
+        56,
         56
       ],
-      "diversity": 0.002500001108273864
+      "diversity": 0.005969504825770855
     }
   }
 }

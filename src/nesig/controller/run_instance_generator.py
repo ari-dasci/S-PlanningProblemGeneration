@@ -62,6 +62,8 @@ def parse_args():
 
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--num-problems', type=int, default=100, help="Number of problems to generate")
+    # I tried num-retries but didn't help diversity much in blocskworld
+    #parser.add_argument('--num-retries', type=int, default=5, help="How many times we try to generate a valid problem for each sampled combination of generation parameters.")
     #parser.add_argument('--skip-metrics', action='store_true', help="If set, we generate the problems but do not calculate their metrics.")
     #parser.add_argument('--skip-generation', action='store_true', help="If set, we assume the problems have already been generated, so we skip generation and calculate the metrics of the problems in the folder."))
     parser.add_argument('--time-limit-planner', type=int, default=1800, help="Time limit (s) for the planner used for calculating the problem difficulties.") # default = 30 min
@@ -147,10 +149,12 @@ def generate_blocksworld_problem(curr_problem_path:Path, args) -> int:
     while not generated_valid_problem:
         curr_seed = next(seed_generator)
 
-        # We try to generate a problem with a number of atoms between min_atoms and max_atoms
         curr_num_blocks = random.randint(int(args.max_atoms/3), args.max_atoms)
+
+        # Using the sampled parameter (number of blocks), we try to generate a valid problem (with a number of atoms between min_atoms and max_atoms)
+        # If the problem was not valid, we try again with a different number of blocks
         generator_call = ['python', str(BW_GENERATOR_PATH), '--seed', str(curr_seed), '--problem-path', str(curr_problem_path.absolute()),
-                          '--num-blocks', str(curr_num_blocks)]
+                        '--num-blocks', str(curr_num_blocks)]
         
         start = time.time()
         subprocess.run(generator_call, shell=False, stdout=subprocess.PIPE)
