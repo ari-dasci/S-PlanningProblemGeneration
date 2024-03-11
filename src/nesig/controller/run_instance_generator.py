@@ -314,7 +314,7 @@ def _save_problem_metrics(problem_folder:Path, total_gen_time:int, args, metrics
     # <Load all the problems into PDDLProblem instances>
     domain_path = DOMAIN_INFO[args.domain]['path']
     problem_paths = list(problem_folder.glob('*.pddl'))
-    problem_names = [p.name for p in problem_paths]
+    problem_names = [p.name.stem for p in problem_paths] # .stem to remove the ".pddl" at the end
 
     problems = []
     for path in problem_paths:
@@ -398,10 +398,19 @@ def _save_problem_metrics(problem_folder:Path, total_gen_time:int, args, metrics
     metrics_dict['Generation time'] = total_gen_time
 
     # Problem-specific metrics
+    obj_types = problems[0].initial_state.types
+    pred_types = problems[0].initial_state.predicate_names
     metrics_dict['Problem Results'] = dict()
 
-    for name, diff, div in zip(problem_names, problem_difficulties, problem_diversities):
-        metrics_dict['Problem Results'][name] = {'consistency' : True, 'difficulty' : diff, 'diversity' : div}
+    for problem, name, diff, div in zip(problems, problem_names, problem_difficulties, problem_diversities):
+        num_objects = {t:n for t,n in zip(obj_types, problem.initial_state.num_objects_each_type)}
+        num_atoms_init_state = {p:n for p,n in zip(pred_types, problem.initial_state.num_atoms_each_type)}
+        # Note that, unlike "num_atoms_goal_state" attribute in the problem info returned by the problem generator (used by NeSIG),
+        # the goal_state and goal of the instance generator problems are identical, so we are actually measuring the number of atoms in the goal
+        num_atoms_goal = {p:n for p,n in zip(pred_types, problem.goal_state.num_atoms_each_type)}
+        metrics_dict['Problem Results'][name] = {'num_objects':num_objects, 'num_atoms_init_state':num_atoms_init_state,
+                                                 'num_atoms_goal':num_atoms_goal, 
+                                                 'consistency' : True, 'difficulty' : diff, 'diversity' : div}
 
     # Save the metrics as JSON
     with open(problem_folder / metrics_file_name, 'w') as f:

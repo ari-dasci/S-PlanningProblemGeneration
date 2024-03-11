@@ -325,10 +325,16 @@ class ProblemGenerator():
                                                                                         trajectories, init_generation_phase_lengths)
 
         # <Obtain the problem-level information>
+        obj_types = problems[0].initial_state.types
+        pred_types = problems[0].initial_state.predicate_names
+
         problem_info_list = [ {'init_phase_length':init_generation_phase_lengths[i],
                                'goal_phase_length':goal_generation_phase_lengths[i],
                                'max_init_state_actions':list_max_init_state_actions[i],
                                'max_goal_actions':list_max_goal_actions[i],
+                               'num_objects':{t:n for t,n in zip(obj_types, problems[i].initial_state.num_objects_each_type)},
+                               'num_atoms_init_state':{p:n for p,n in zip(pred_types, problems[i].initial_state.num_atoms_each_type)},
+                               'num_atoms_goal_state':{p:n for p,n in zip(pred_types, problems[i].goal_state.num_atoms_each_type)},
                                'consistency':is_eventual_consistent[i],
                                'difficulty':problem_difficulties[i],
                                'diversity':problem_diversities[i]} \
