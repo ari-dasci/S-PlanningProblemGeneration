@@ -61,7 +61,7 @@ def parse_args():
         description=("Interface to domain-specific instance generators."))
 
     parser.add_argument('--seed', type=int, default=1)
-    parser.add_argument('--num-problems', type=int, required=True)
+    parser.add_argument('--num-problems', type=int, default=100, help="Number of problems to generate")
     #parser.add_argument('--skip-metrics', action='store_true', help="If set, we generate the problems but do not calculate their metrics.")
     #parser.add_argument('--skip-generation', action='store_true', help="If set, we assume the problems have already been generated, so we skip generation and calculate the metrics of the problems in the folder."))
     parser.add_argument('--time-limit-planner', type=int, default=1800, help="Time limit (s) for the planner used for calculating the problem difficulties.") # default = 30 min
@@ -69,8 +69,7 @@ def parse_args():
     parser.add_argument('--term-problem-diff', type=float, default=1e7, help="Difficulty of a problem that has been terminated (either by timeout or memory out) by the planner.")
     parser.add_argument('--perc-problems-diversity', type=float, default=0.2, help=("When calculating the diversity score, we calculate the average distance between each problem"
                                                                                     "and the n=perc_problem_diversity % of the problems that are closest to it."))
-    parser.add_argument('--diversity-threshold', type=float, default=1.0, help="Diversity threshold used when scaling the difficulty reward by the diversity reward, for calculating the test score.")
-
+    
     # Add domain-specific arguments
     subparsers = parser.add_subparsers(title="domain", help="Specifies the domain to generate problems for.")
     subparsers.required = True
@@ -284,7 +283,7 @@ def _generate_problems(problem_folder:Path, args) -> int:
 
     return total_gen_time
 
-def _calculate_test_scores(difficulty_list, diversity_list, diversity_threshold):
+def _calculate_test_scores(difficulty_list, diversity_list):
     """
     Extracted from calculate_val_scores method in trainer.py
     """
@@ -297,8 +296,9 @@ def _calculate_test_scores(difficulty_list, diversity_list, diversity_threshold)
         else:
             diff_score = math.log(difficulty+1)
             
-        diff_rescale_factor = min(diversity / diversity_threshold, 1.0)
-        curr_test_score = diff_score * diff_rescale_factor
+        # During test (for both NeSIG and instance generators), we always use a diversity_threshold of 1.0
+        # By substituting in the formula, it is equivalent to multiplying the difficulty by the diversity
+        curr_test_score = diff_score * diversity 
 
         test_scores.append(curr_test_score)
 
@@ -368,7 +368,7 @@ def _save_problem_metrics(problem_folder:Path, total_gen_time:int, args, metrics
     std_atoms_dict_goal = {t : std_atoms for t, std_atoms in zip(pred_types, std_num_atoms_each_type_goal)}
 
     # Test scores
-    avg_test_score, test_scores = _calculate_test_scores(problem_difficulties, problem_diversities, args.diversity_threshold)
+    avg_test_score, test_scores = _calculate_test_scores(problem_difficulties, problem_diversities)
 
     # <Save global and problem-specific metrics to disk>
     metrics_dict = dict()

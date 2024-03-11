@@ -85,13 +85,14 @@ class PolicyTrainer():
                                                                                                     max_goal_actions_generator)
         return problems, problem_info_list, trajectories, gen_time, num_unique_problems
 
-    def _calculate_diff_rescale_factor(self, diversity_reward:float) -> float:
+    def _calculate_diff_rescale_factor(self, diversity_reward:float, diversity_threshold:float=1.0) -> float:
         """
         We calculate the rescale factor for the difficulty reward based on the diversity reward.
         If the diversity reward is smaller than the diversity threshold, the rescale factor is div_reward / threshold
         If it is larger than the diversity threshold, the rescale factor is 1
+        Note that the diversity can never be larger than 1.0.
         """
-        return min(diversity_reward / self.args.diversity_threshold, 1.0)
+        return min(diversity_reward / diversity_threshold, 1.0)
 
     def _calculate_return_trajectories(self, trajectories):
         """
@@ -111,7 +112,7 @@ class PolicyTrainer():
                 # If the diversity reward is smaller than args.diversity_threshold, the rescale factor is div_reward / diversity_threshold
                 # If it is larger than args.diversity_threshold, the rescale factor is 1
 
-                diff_rescale_factor = self._calculate_diff_rescale_factor(trajectories[i][j]['diversity_reward'])
+                diff_rescale_factor = self._calculate_diff_rescale_factor(trajectories[i][j]['diversity_reward'], self.args.diversity_threshold)
                 total_reward_curr_state = trajectories[i][j]['consistency_reward'] + trajectories[i][j]['difficulty_reward'] * diff_rescale_factor
 
                 return_curr_state = total_reward_curr_state + self.args.disc_factor*return_curr_state
@@ -448,10 +449,11 @@ class PolicyTrainer():
         with open(folder / json_filename, 'w') as f:
             json.dump(info_dict, f, indent=2)
 
-    def calculate_val_scores(self, problem_info_list:List[Dict]) -> Tuple[float, Tuple[float]]:
+    def calculate_val_scores(self, problem_info_list:List[Dict], diversity_threshold:float) -> Tuple[float, Tuple[float]]:
         """
         Returns the avg_val_score and the val_score for each problem.
         We calculate the val_score for each problem in the same way we calculate the return using the r_consistency, r_difficulty and r_diversity.
+        For validation, we use diversity_threshold=self.args.diversity_threshold. For test, we use a diversity_threshold=1.0.
         """
         val_scores = []
 
@@ -464,7 +466,7 @@ class PolicyTrainer():
                 diff_score = math.log(curr_diff+1)
         
             if p_info['consistency']:
-                diff_rescale_factor = self._calculate_diff_rescale_factor(p_info['diversity'])
+                diff_rescale_factor = self._calculate_diff_rescale_factor(p_info['diversity'], diversity_threshold)
                 curr_val_score = diff_score * diff_rescale_factor
             else:
                 curr_val_score = self.args.r_eventual_consistency # We set the val_score of inconsistent problems to -1
@@ -538,7 +540,7 @@ class PolicyTrainer():
                                                                                                             self.args.max_goal_actions_val)
 
             # Calculate the val score for each problem and the average score
-            avg_val_score, val_scores = self.calculate_val_scores(val_problem_info_list)
+            avg_val_score, val_scores = self.calculate_val_scores(val_problem_info_list, self.args.diversity_threshold)
             
             # Add the score to each problem info
             for p_info, score in zip(val_problem_info_list, val_scores): # Add the val_score of each problem to its problem_info
@@ -664,7 +666,7 @@ class PolicyTrainer():
 
             # Calculate the test score for each problem and the average score
             # At the moment, we use the val_score formula to calculate the test score
-            avg_score, scores = self.calculate_val_scores(problem_info_list)
+            avg_score, scores = self.calculate_val_scores(problem_info_list, 1.0)
 
             # Add the score to each problem info
             for p_info, score in zip(problem_info_list, scores):
