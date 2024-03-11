@@ -128,10 +128,10 @@ class PlannerEvaluator(DifficultyEvaluator):
             difficulty = [[future.result() for future in problem_futures] for problem_futures in futures]
 
         # Obtain the difficulty reward associated with each problem
-        # At the moment, this reward is simply the average of the logarithm of each planner difficulty (+1 to avoid log(0))
+        # At the moment, this reward is simply the average of the logarithm of each planner difficulty
         # In the future, we should use more elaborate methods such as normalizing the difficulty for each planner before
         # calculating the log (we don't do this right now because we use a single planner during training)
-        diff_rewards = [self.r_diff_weight*sum([math.log(diff+1) for diff in problem_diffs])/len(problem_diffs) \
+        diff_rewards = [self.r_diff_weight*sum([math.log(diff) for diff in problem_diffs])/len(problem_diffs) \
                         for problem_diffs in difficulty]
 
         return difficulty, diff_rewards
@@ -141,6 +141,7 @@ class PlannerEvaluator(DifficultyEvaluator):
         It gets the difficulty of a single problem using a single planner argument. It is called by the other methods in parallel.
         Note: every limit.sh call needs to use a distinct problem name. That's why we save to disk several times the same problem with different names 
         for different planner arguments.
+        Note2: if the problem has been solved, we add 1 to its difficulty in order to avoid returning a difficulty of 0 and later doing log(0).
         """
 
         """
@@ -195,6 +196,7 @@ class PlannerEvaluator(DifficultyEvaluator):
                         # Problem solved -> we return the number of expanded nodes
                         elif 'Solution found.' in planner_output:
                             num_expanded_nodes = int(re.search(r"Expanded ([0-9]+) state\(s\)\.", planner_output).group(1))
+                            num_expanded_nodes += 1 # We add 1 to the difficulty since we later perform log(diff), in order to avoid log(0)
                         else:
                             raise Exception(f"> Unexpected planner output: {planner_output}")
 
