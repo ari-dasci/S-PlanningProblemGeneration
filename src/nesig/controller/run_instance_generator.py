@@ -43,15 +43,12 @@ def generate_seeds(start_seed):
         yield next_seed
 
 def parse_args():
-    def parse_map_size(s):
+    def parse_tuple(s):
         """
-        Auxiliary function to parse the map size argument for the sokoban domain.
-        The map size must be a two-element tuple of positive integers.
+        Auxiliary function to parse a two element tuple of integers.
         """
         try:
             x, y = map(int, s.split(','))
-            if x <= 0 or y <= 0:
-                raise ValueError
             return x, y
         except:
             raise argparse.ArgumentTypeError("Map size must be a two-element tuple of positive integers")
@@ -69,6 +66,8 @@ def parse_args():
     parser.add_argument('--time-limit-planner', type=int, default=1800, help="Time limit (s) for the planner used for calculating the problem difficulties.") # default = 30 min
     parser.add_argument('--memory-limit-planner', type=int, default=1048576, help="Memory limit (KB) for the planner used for calculating the problem difficulties.") # default = 1 GB
     parser.add_argument('--term-problem-diff', type=float, default=1e7, help="Difficulty of a problem that has been terminated (either by timeout or memory out) by the planner.")
+    # TODO
+    # If we end up using perc_problems_diversity=0.1 for NeSIG, change the default value to 0.1
     parser.add_argument('--perc-problems-diversity', type=float, default=0.2, help=("When calculating the diversity score, we calculate the average distance between each problem"
                                                                                     "and the n=perc_problem_diversity % of the problems that are closest to it."))
     
@@ -78,18 +77,24 @@ def parse_args():
 
     bw_parser = subparsers.add_parser('blocksworld', help="Blocksworld domain")
     bw_parser.set_defaults(domain='blocksworld')
-    bw_parser.add_argument('--min-atoms', type=int, required=True, help="Generated problems will have at least (included) this many atoms in their init state")
-    bw_parser.add_argument('--max-atoms', type=int, required=True, help="Generated problems will have at most (included) this many atoms in their init state")
-    
+    bw_parser.add_argument('--atoms', type=parse_tuple, required=True, help="Generated problems will have a number of atoms between atoms[0] and atoms[1]") # Default value: atoms[1]-2, atoms[1]
+    bw_parser.add_argument('--blocks', type=parse_tuple, required=True, help="Range for the number of blocks") # Default value: max_atoms/3, max_atoms
+ 
     lg_parser = subparsers.add_parser('logistics', help="Logistics domain")
     lg_parser.set_defaults(domain='logistics')
-    lg_parser.add_argument('--min-atoms', type=int, required=True, help="Generated problems will have at least (included) this many atoms in their init state")
-    lg_parser.add_argument('--max-atoms', type=int, required=True, help="Generated problems will have at most (included) this many atoms in their init state")
-    
+    lg_parser.add_argument('--atoms', type=parse_tuple, required=True, help="Generated problems will have a number of atoms between atoms[0] and atoms[1]") # Default value: atoms[1]-2, atoms[1]
+    lg_parser.add_argument('--airplanes', type=parse_tuple, required=True, help="Range for the number of airplanes") # Default value: 1, max_atoms
+    lg_parser.add_argument('--cities', type=parse_tuple, required=True, help="Range for the number of cities") # Default value: 2, max_atoms
+    lg_parser.add_argument('--city-size', type=parse_tuple, required=True, help="Range for the size of the cities") # Default value: 1, max_atoms
+    lg_parser.add_argument('--packages', type=parse_tuple, required=True, help="Range for the number of packages") # Default value: 1, max_atoms
+    lg_parser.add_argument('--extra-trucks', type=parse_tuple, required=True, help="Range for the number of <extra> trucks, in addition to the truck in each city") # Default value: 0, max_atoms
+
     # In sokoban, instead of using min and max atoms, we generate problems for a given map-size
     sk_parser = subparsers.add_parser('sokoban', help="Sokoban domain")
     sk_parser.set_defaults(domain='sokoban')
-    sk_parser.add_argument('--map-size', type=parse_map_size, required=True)
+    sk_parser.add_argument('--map-size', type=parse_tuple, required=True)
+    sk_parser.add_argument('--boxes', type=parse_tuple, required=True, help="Range for the number of boxes") # Default value: 1, map_size[0]*3
+    sk_parser.add_argument('--walls', type=parse_tuple, required=True, help="Range for the number of walls") # Default value: 0, map_size[0]*3
 
     args = parser.parse_args()
     return args
@@ -149,7 +154,7 @@ def generate_blocksworld_problem(curr_problem_path:Path, args) -> int:
     while not generated_valid_problem:
         curr_seed = next(seed_generator)
 
-        curr_num_blocks = random.randint(int(args.max_atoms/3), args.max_atoms)
+        curr_num_blocks = random.randint(args.blocks[0], args.blocks[1])
 
         # Using the sampled parameter (number of blocks), we try to generate a valid problem (with a number of atoms between min_atoms and max_atoms)
         # If the problem was not valid, we try again with a different number of blocks
@@ -165,7 +170,7 @@ def generate_blocksworld_problem(curr_problem_path:Path, args) -> int:
         parser.parse_domain(DOMAIN_INFO['blocksworld']['path'])
         pddl_problem = PDDLProblem.load_from_pddl(parser, curr_problem_path)
 
-        if pddl_problem.initial_state.num_atoms >= args.min_atoms and pddl_problem.initial_state.num_atoms <= args.max_atoms:
+        if pddl_problem.initial_state.num_atoms >= args.atoms[0] and pddl_problem.initial_state.num_atoms <= args.atoms[1]:
             generated_valid_problem = True
         else:
             curr_problem_path.unlink() # We remove the problem
@@ -186,18 +191,18 @@ def generate_logistics_problem(curr_problem_path:Path, args) -> int:
         curr_seed = next(seed_generator)
 
         # We try to generate a problem with a number of atoms between min_atoms and max_atoms
-        curr_airplanes = random.randint(1, args.max_atoms)
-        curr_cities = random.randint(2, args.max_atoms)
-        curr_city_size = random.randint(1, args.max_atoms)
-        curr_packages = random.randint(1, args.max_atoms)
-        curr_extra_trucks = random.randint(0, args.max_atoms) # The minimum number of trucks is equal to the number of cities, so we sample the number
+        curr_airplanes = random.randint(args.airplanes[0], args.airplanes[1])
+        curr_cities = random.randint(args.cities[0], args.cities[1])
+        curr_city_size = random.randint(args.city_size[0], args.city_size[1])
+        curr_packages = random.randint(args.packages[0], args.packages[1])
+        curr_extra_trucks = random.randint(args.extra_trucks[0], args.extra_trucks[1]) # The minimum number of trucks is equal to the number of cities, so we sample the number
         curr_trucks = curr_cities+curr_extra_trucks # of extra trucks and add it to the number of cities, so that this requirement is always satisfied
 
         # From the generator parameters, we can calculate the resulting problem size in advance,
         # to avoid generating it if it is not in the desired range [min_atoms, max_atoms]
         problem_size = curr_cities*curr_city_size + curr_airplanes + curr_packages + curr_trucks
 
-        if problem_size >= args.min_atoms and problem_size <= args.max_atoms:
+        if problem_size >= args.atoms[0] and problem_size <= args.atoms[1]:
             generator_call = ['python', str(LG_GENERATOR_PATH), '--seed', str(curr_seed), '--problem-path', str(curr_problem_path.absolute()),
                             '--airplanes', str(curr_airplanes), '--cities', str(curr_cities), '--city-size', str(curr_city_size),
                             '--packages', str(curr_packages), '--trucks', str(curr_trucks)]
@@ -228,8 +233,8 @@ def generate_sokoban_problem(curr_problem_path:Path, args) -> int:
         curr_seed = next(seed_generator)
 
         # We try to generate a solvable problem with args.map_size
-        curr_boxes = random.randint(1, args.map_size[0]*3)
-        curr_walls = random.randint(0, args.map_size[0]*3)
+        curr_boxes = random.randint(args.boxes[0], args.boxes[1])
+        curr_walls = random.randint(args.walls[0], args.walls[1])
 
         # At least a 25% of the level must be empty, i.e., without robots, walls or boxes
         # args.map_size[0]*args.map_size[1] is the number of cells in the map
@@ -253,17 +258,19 @@ def generate_sokoban_problem(curr_problem_path:Path, args) -> int:
 def _get_problem_folder(args) -> Path:
     if args.domain == 'blocksworld':
         problem_folder = Path(BW_GENERATOR_PROBLEMS_PATH)
+        problem_folder = problem_folder / f'{args.atoms[0]}-{args.atoms[1]}_{args.blocks[0]}-{args.blocks[1]}'
     elif args.domain == 'logistics':
         problem_folder = Path(LG_GENERATOR_PROBLEMS_PATH)
+        problem_folder = problem_folder / f'{args.atoms[0]}-{args.atoms[1]}_{args.airplanes[0]}-{args.airplanes[1]}_{args.cities[0]}-{args.cities[1]}_{args.city_size[0]}-{args.city_size[1]}_{args.packages[0]}-{args.packages[1]}_{args.extra_trucks[0]}-{args.extra_trucks[1]}'
     elif args.domain == 'sokoban':
         problem_folder = Path(SK_GENERATOR_PROBLEMS_PATH)
+        problem_folder = problem_folder / f'{args.map_size[0]}_{args.map_size[1]}_{args.boxes[0]}-{args.boxes[1]}_{args.walls[0]}-{args.walls[1]}'
     else:
         raise ValueError("Invalid domain")
 
-    if args.domain == 'sokoban':
-        problem_folder = problem_folder / f'{args.map_size[0]}_{args.map_size[1]}'
-    else:
-        problem_folder = problem_folder / f'{args.min_atoms}_{args.max_atoms}'
+    # Add the parameters shared between generators
+    extra_params = f'__{args.seed}_{args.num_problems}_{args.time_limit_planner}_{args.memory_limit_planner}_{args.term_problem_diff}_{args.perc_problems_diversity}'
+    problem_folder = Path(str(problem_folder) + extra_params)
 
     # Create the folder if it does not exist
     problem_folder.mkdir(parents=True, exist_ok=True)
@@ -310,11 +317,17 @@ def _calculate_test_scores(difficulty_list, diversity_list):
 
     return avg_test_score, tuple(test_scores)
 
+def _save_parameters(problem_folder:Path, args, params_file_name='params.json'):
+    params_dict = vars(args)
+
+    with open(problem_folder / params_file_name, 'w') as f:
+        json.dump(params_dict, f, indent=2)
+
 def _save_problem_metrics(problem_folder:Path, total_gen_time:int, args, metrics_file_name='results.json'):
     # <Load all the problems into PDDLProblem instances>
     domain_path = DOMAIN_INFO[args.domain]['path']
     problem_paths = list(problem_folder.glob('*.pddl'))
-    problem_names = [p.name.stem for p in problem_paths] # .stem to remove the ".pddl" at the end
+    problem_names = [p.stem for p in problem_paths] # .stem to obtain the name without the ".pddl" at the end
 
     problems = []
     for path in problem_paths:
@@ -426,6 +439,9 @@ def main(args):
 
     # Problems are stored in a subfolder named "min_atoms_max_atoms" inside the domain's problems folder
     problem_folder = _get_problem_folder(args)
+
+    # Save the used generator parameters to disk
+    _save_parameters(problem_folder, args)
 
     # Generate the problems
     total_gen_time = _generate_problems(problem_folder, args)
