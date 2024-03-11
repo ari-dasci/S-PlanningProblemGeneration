@@ -186,17 +186,17 @@ def generate_logistics_problem(curr_problem_path:Path, args) -> int:
         curr_cities = random.randint(2, args.max_atoms)
         curr_city_size = random.randint(1, args.max_atoms)
         curr_packages = random.randint(1, args.max_atoms)
-        curr_extra_trucks = random.randint(0, args.max_atoms)
+        curr_extra_trucks = random.randint(0, args.max_atoms) # The minimum number of trucks is equal to the number of cities, so we sample the number
+        curr_trucks = curr_cities+curr_extra_trucks # of extra trucks and add it to the number of cities, so that this requirement is always satisfied
 
         # From the generator parameters, we can calculate the resulting problem size in advance,
         # to avoid generating it if it is not in the desired range [min_atoms, max_atoms]
-        # (curr_cities+curr_extra_trucks) because each city has a truck and curr_extra_trucks corresponds to the number of extra trucks
-        problem_size = curr_cities*curr_city_size + curr_airplanes + curr_packages + (curr_cities+curr_extra_trucks)
+        problem_size = curr_cities*curr_city_size + curr_airplanes + curr_packages + curr_trucks
 
         if problem_size >= args.min_atoms and problem_size <= args.max_atoms:
             generator_call = ['python', str(LG_GENERATOR_PATH), '--seed', str(curr_seed), '--problem-path', str(curr_problem_path.absolute()),
                             '--airplanes', str(curr_airplanes), '--cities', str(curr_cities), '--city-size', str(curr_city_size),
-                            '--packages', str(curr_packages), '--trucks', str(curr_extra_trucks)]
+                            '--packages', str(curr_packages), '--trucks', str(curr_trucks)]
 
             start = time.time()
             subprocess.run(generator_call, shell=False, stdout=subprocess.PIPE)
