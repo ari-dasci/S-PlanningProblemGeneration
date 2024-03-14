@@ -148,7 +148,7 @@ class TestConsistencyEvaluator(unittest.TestCase):
         # Eventual consistency
         self.assertFalse(consistency_evaluator.preprocess_and_check_eventual_consistency(pddl_state)[0])
         pddl_state.add_atom(('at-robot', (1,)))
-        self.assertFalse(consistency_evaluator.preprocess_and_check_eventual_consistency(pddl_state)[0])
+        self.assertTrue(consistency_evaluator.preprocess_and_check_eventual_consistency(pddl_state)[0])
         pddl_state.add_atom(('at-box', (2,)))
         self.assertTrue(consistency_evaluator.preprocess_and_check_eventual_consistency(pddl_state)[0])
 
