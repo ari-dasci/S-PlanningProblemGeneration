@@ -87,8 +87,11 @@ class ConsistencyEvaluatorSokoban(ConsistencyEvaluator):
         x = Variable('x')
 
         """
-        The initial state must contain one robot and at least one box
+        The initial state must contain one robot
         """
-        formula = (TE(x, at_robot(x)) == 1) & TE(x, at_box(x))
+        # No need to check the problem contains at least one box since, by maximizing difficulty, 
+        # NeSIG will learn to generate problems with at least one box
+        # formula = (TE(x, at_robot(x)) == 1) & TE(x, at_box(x))
+        formula = (TE(x, at_robot(x)) == 1)
 
         return self._evaluate(formula)

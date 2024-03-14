@@ -83,8 +83,8 @@ def parse_args():
     lg_parser = subparsers.add_parser('logistics', help="Logistics domain")
     lg_parser.set_defaults(domain='logistics')
     lg_parser.add_argument('--atoms', type=parse_tuple, required=True, help="Generated problems will have a number of atoms between atoms[0] and atoms[1]") # Default value: atoms[1]-2, atoms[1]
-    lg_parser.add_argument('--airplanes', type=parse_tuple, required=True, help="Range for the number of airplanes") # Default value: 1, max_atoms
-    lg_parser.add_argument('--cities', type=parse_tuple, required=True, help="Range for the number of cities") # Default value: 2, max_atoms
+    lg_parser.add_argument('--airplanes', type=parse_tuple, required=True, help="Range for the number of airplanes") # Default value: 1, max_atoms -> problems with no airplanes could be unsolvable!!!
+    lg_parser.add_argument('--cities', type=parse_tuple, required=True, help="Range for the number of cities") # Default value: 2, max_atoms -> We generate problems with at least two cities!
     lg_parser.add_argument('--city-size', type=parse_tuple, required=True, help="Range for the size of the cities") # Default value: 1, max_atoms
     lg_parser.add_argument('--packages', type=parse_tuple, required=True, help="Range for the number of packages") # Default value: 1, max_atoms
     lg_parser.add_argument('--extra-trucks', type=parse_tuple, required=True, help="Range for the number of <extra> trucks, in addition to the truck in each city") # Default value: 0, max_atoms

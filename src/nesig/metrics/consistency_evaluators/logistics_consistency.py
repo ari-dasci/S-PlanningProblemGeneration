@@ -25,11 +25,15 @@ class ConsistencyEvaluatorLogistics(ConsistencyEvaluator):
         (in-city ?loc - location ?city - city)
             - loc is new
             - if city is new, then loc must be of type airport (the first location of every city is always an airport)
+            - if city is NOT new, then loc must be of type location (since each city contains one and only one airport)
         """
         if atom_pred == 'in-city':
             loc, city = atom_obj_consts
 
-            formula = virtual(loc) & (virtual(city) >> _type(loc,airport))
+            # formula = virtual(loc) & (virtual(city) >> _type(loc,airport))
+            # The location must be an airport if and only if the city is new (otherwise, it must be of type location)
+            # ** symbolic is equivalent to "if and only if" (<->)
+            formula = virtual(loc) & (_type(loc,airport) ** virtual(city))
 
             return self._evaluate(formula)
 
@@ -78,13 +82,19 @@ class ConsistencyEvaluatorLogistics(ConsistencyEvaluator):
         z = Variable('z')
 
         # The problem must contain at least one airplane and one package
-        formula_1 = TE(x, _type(x, airplane)) & TE(x, _type(x, package))
+        # No need to check, since NeSIG will learn to generate problems with at least one package
+        # in order to maximize difficulty
+        # formula_1 = TE(x, _type(x, airplane)) & TE(x, _type(x, package))
+        formula_1 = TE(x, _type(x, airplane)) # Problems with no airplanes could be unsolvable!
+                                              # Also, for the domain-specific generator, we use at least one airplane
 
         # The problem must contain at least two cities
         formula_2 = TE(x, _type(x, city)) >= 2
 
         # Every city must contain at least one truck
         # x -> city, y -> location/airport in the city, z -> truck at the location/airport
+        # Meaning of the formula: "For every city x, there must exist a location/airport y in the city x,
+        # so that there exists a truck z at the location/airport y"
         formula_3 = FA(x, _type(x, city) >> TE(y, in_city(y, x) & TE(z, _type(z, truck) & at(z, y) ) ) )
 
         return self._evaluate(formula_1 & formula_2 & formula_3)
