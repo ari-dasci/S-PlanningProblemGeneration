@@ -345,7 +345,10 @@ def _save_problem_metrics(problem_folder:Path, total_gen_time:int, args, metrics
     problem_difficulties = difficulty_evaluator.get_difficulty(problems)[0] # [1] are the diff_rewards
     diversity_info = diversity_evaluator.get_diversity(problems)
     problem_diversities = diversity_info[0]
-    num_unique_problems = diversity_info[2]
+    # We no longer save the number of unique consistent problems. The reason is that two problems having the same features
+    # is not enough to guarantee they are the same problem (checking if two problems are equal is equivalent to graph 
+    # isomorphism, which is NP-complete)
+    # num_unique_problems = diversity_info[2]
 
     # <Calculate global metrics>
     # See log_metrics method in trainer.py
@@ -406,7 +409,7 @@ def _save_problem_metrics(problem_folder:Path, total_gen_time:int, args, metrics
     metrics_dict['Mean num atoms goal'] = mean_atoms_dict_goal
     metrics_dict['Std num atoms goal'] = std_atoms_dict_goal
 
-    metrics_dict['Num unique consistent problems'] = num_unique_problems
+    # metrics_dict['Num unique consistent problems'] = num_unique_problems
     metrics_dict['Average score'] = avg_test_score
     metrics_dict['Generation time'] = total_gen_time
 

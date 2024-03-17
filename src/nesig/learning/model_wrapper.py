@@ -285,6 +285,10 @@ class NLMWrapperActor(NLMWrapper):
 
         list_state_encodings = [s[0] for s in internal_state_list]
         list_num_objs = [s[1] for s in internal_state_list]
+
+        # The states cannot have 0 objects, otherwise the NLM will raise an Exception when trying to perform the reduction operation
+        assert all([n>0 for n in list_num_objs]), "States cannot have 0 objects!"
+
         batch_state_encoding = self.stack_state_encodings(list_state_encodings, list_num_objs)
 
         # NLM forward pass

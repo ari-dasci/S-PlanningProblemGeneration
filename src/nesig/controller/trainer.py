@@ -383,7 +383,10 @@ class PolicyTrainer():
         log_and_save(writer, log_dict, 'Std num atoms init', std_atoms_dict_init, x_value)
         log_and_save(writer, log_dict, 'Mean num atoms goal', mean_atoms_dict_goal, x_value)
         log_and_save(writer, log_dict, 'Std num atoms goal', std_atoms_dict_goal, x_value)
-        log_and_save(writer, log_dict, 'Num unique consistent problems', num_unique_problems, x_value)
+        # We no longer save the number of unique consistent problems. The reason is that two problems having the same features
+        # is not enough to guarantee they are the same problem (checking if two problems are equal is equivalent to graph 
+        # isomorphism, which is NP-complete)
+        # log_and_save(writer, log_dict, 'Num unique consistent problems', num_unique_problems, x_value)
 
         # < Training information >
         if trajectories is not None:   

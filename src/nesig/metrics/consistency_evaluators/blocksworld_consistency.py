@@ -14,6 +14,7 @@ class ConsistencyEvaluatorBlocksworld(ConsistencyEvaluator):
         holding = self.holding
 
         virtual = self.virtual
+        _type = self.type
 
         # Define variables to be used
         x = Variable('x')
@@ -102,7 +103,10 @@ class ConsistencyEvaluatorBlocksworld(ConsistencyEvaluator):
         handempty = self.handempty
         holding = self.holding
 
+        block = self.block
+
         virtual = self.virtual
+        _type = self.type
 
         # Define variables to be used
         x = Variable('x')
@@ -123,14 +127,14 @@ class ConsistencyEvaluatorBlocksworld(ConsistencyEvaluator):
         return self._evaluate(formula_0 & formula_1 & formula_2)
         """
 
-        # No need to use a consistency rule like "The problem must contain at least one block"
-        # since, by maximizing difficulty, NeSIG will learn to generate problems with many blocks
+        # The problem must contain at least two blocks (otherwise, they can't be stacked)
+        formula_1 = TE(x, _type(x, block)) >= 2
 
         # The problem must have an atom handempty
-        formula_1 = handempty()
+        formula_2 = handempty()
 
         # For all objects x there must exist clear(x), unless they have another block y on top
         #formula_2 = FA(x, ( ~TE(y, on(y,x)) ) >> clear(x) )
-        formula_2 = FA(x, clear(x) | TE(y, on(y,x)))
+        formula_3 = FA(x, clear(x) | TE(y, on(y,x)))
 
-        return self._evaluate(formula_1 & formula_2)
+        return self._evaluate(formula_1 & formula_2 & formula_3)
