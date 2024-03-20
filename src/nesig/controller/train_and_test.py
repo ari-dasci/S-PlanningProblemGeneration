@@ -274,9 +274,9 @@ def parse_arguments():
     parser.add_argument('--time-limit-planner-train', type=int, default=300, help="Time limit for each problem in seconds during the training phase. -1 means no time limit.") # default = 5 min
     parser.add_argument('--memory-limit-planner-train', type=int, default=512000, help="Memory limit for each problem in KB during the training phase. -1 means no memory limit.") # default = 500 MB
     parser.add_argument('--max-workers-planner-train', type=int, default=25, help="Number of parallel workers for the difficulty evaluator during the training phase.")
-    parser.add_argument('--r-terminated-problem-test', type=float, default=1e7, help="Same as the analogous option above but for the test phase. If -1, we use the same value as for training.")
+    parser.add_argument('--r-terminated-problem-test', type=float, default=1e8, help="Same as the analogous option above but for the test phase. If -1, we use the same value as for training.")
     parser.add_argument('--time-limit-planner-test', type=int, default=1800, help="Same as the analogous option above but for the test phase. If -1, we use the same value as for training.") # default = 30 min
-    parser.add_argument('--memory-limit-planner-test', type=int, default=1048576, help="Same as the analogous option above but for the test phase. If -1, we use the same value as for training.") # default = 1 GB
+    parser.add_argument('--memory-limit-planner-test', type=int, default=8500000, help="Same as the analogous option above but for the test phase. If -1, we use the same value as for training.") # default = 8 GB (approx.)
     parser.add_argument('--max-workers-planner-test', type=int, default=20, help="Same as the analogous option above but for the test phase. If -1, we use the same value as for training.") # default = we use 20 workers since memory limit is higher than in training
 
     # Subparsers

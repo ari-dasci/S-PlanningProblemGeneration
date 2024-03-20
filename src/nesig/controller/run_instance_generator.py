@@ -64,8 +64,8 @@ def parse_args():
     #parser.add_argument('--skip-metrics', action='store_true', help="If set, we generate the problems but do not calculate their metrics.")
     #parser.add_argument('--skip-generation', action='store_true', help="If set, we assume the problems have already been generated, so we skip generation and calculate the metrics of the problems in the folder."))
     parser.add_argument('--time-limit-planner', type=int, default=1800, help="Time limit (s) for the planner used for calculating the problem difficulties.") # default = 30 min
-    parser.add_argument('--memory-limit-planner', type=int, default=1048576, help="Memory limit (KB) for the planner used for calculating the problem difficulties.") # default = 1 GB
-    parser.add_argument('--term-problem-diff', type=float, default=1e7, help="Difficulty of a problem that has been terminated (either by timeout or memory out) by the planner.")
+    parser.add_argument('--memory-limit-planner', type=int, default=8500000, help="Memory limit (KB) for the planner used for calculating the problem difficulties.") # default = 8 GB approx.
+    parser.add_argument('--term-problem-diff', type=float, default=1e8, help="Difficulty of a problem that has been terminated (either by timeout or memory out) by the planner.")
     parser.add_argument('--perc-problems-diversity', type=float, default=1.0, help=("When calculating the diversity score, we calculate the average distance between each problem"
                                                                                     "and the n=perc_problem_diversity % of the problems that are closest to it."))
     

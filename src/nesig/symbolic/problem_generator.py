@@ -299,7 +299,7 @@ class ProblemGenerator():
         assert len(list_max_init_state_actions) == num_problems, 'list_max_init_state_actions must be a list/tuple of length num_problems or a single value'
         assert len(list_max_goal_actions) == num_problems, 'list_max_goal_actions must be a list/tuple of length num_problems or a single value'
 
-        # <Measure time for problem generation>
+        # <Measure [total] time for problem generation>
         start_time = time.time()
 
         # <Initial state generation phase>

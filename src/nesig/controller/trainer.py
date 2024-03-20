@@ -552,7 +552,7 @@ class PolicyTrainer():
             # Log validation metrics
             val_log_dict = self.log_metrics('val', curr_train_it, val_problems, val_problem_info_list, num_unique_problems=val_unique_problems, score=avg_val_score)
             val_log_dict['Train it'] = curr_train_it       # We also save to disk the train_it of the validation epoch,
-            val_log_dict['Generation time'] = val_gen_time # the average time needed to generate the problems (in seconds)
+            val_log_dict['Generation time'] = val_gen_time # the TOTAL time needed to generate the problems (in seconds)
 
             # Save problems and their metrics to disk
             val_folder_curr_it = self.val_folder / str(curr_train_it)
@@ -680,7 +680,7 @@ class PolicyTrainer():
             log_dict = self.log_metrics('test', max_init_actions, problems, problem_info_list, num_unique_problems=num_unique_problems, score=avg_score)
             log_dict['Max init actions'] = max_init_actions # We also save the (max) problem size of the experiment
             log_dict['Max goal actions'] = max_goal_actions
-            log_dict['Generation time'] = gen_time          # and the average time needed to generate the problems (in seconds)
+            log_dict['Generation time'] = gen_time          # and the TOTAL time needed to generate the problems (in seconds)
 
             # Save problems and their metrics to disk
             self.save_problems_and_metrics(folder_curr_experiment, problems, problem_info_list, log_dict)

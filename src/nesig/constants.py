@@ -121,7 +121,10 @@ EXCLUDED_ARGS_ID = {
     'test_mode',
     'raise_error_test',
     'max_workers_planner_train',
-    'max_workers_planner_test'
+    'max_workers_planner_test',
+    'r_terminated_problem_test',
+    'time_limit_planner_test',
+    'memory_limit_planner_test'
 }
 # We skip max_init_actions_test and max_goal_actions_test because modifying the test parameters
 # does not modify the training or the model with the best val score
