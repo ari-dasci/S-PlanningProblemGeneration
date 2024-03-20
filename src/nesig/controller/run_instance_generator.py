@@ -66,9 +66,7 @@ def parse_args():
     parser.add_argument('--time-limit-planner', type=int, default=1800, help="Time limit (s) for the planner used for calculating the problem difficulties.") # default = 30 min
     parser.add_argument('--memory-limit-planner', type=int, default=1048576, help="Memory limit (KB) for the planner used for calculating the problem difficulties.") # default = 1 GB
     parser.add_argument('--term-problem-diff', type=float, default=1e7, help="Difficulty of a problem that has been terminated (either by timeout or memory out) by the planner.")
-    # TODO
-    # If we end up using perc_problems_diversity=0.1 for NeSIG, change the default value to 0.1
-    parser.add_argument('--perc-problems-diversity', type=float, default=0.2, help=("When calculating the diversity score, we calculate the average distance between each problem"
+    parser.add_argument('--perc-problems-diversity', type=float, default=1.0, help=("When calculating the diversity score, we calculate the average distance between each problem"
                                                                                     "and the n=perc_problem_diversity % of the problems that are closest to it."))
     
     # Add domain-specific arguments

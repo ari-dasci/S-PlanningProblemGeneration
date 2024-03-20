@@ -265,7 +265,7 @@ def parse_arguments():
     parser.add_argument('--diversity-threshold', type=float, default=1.0, help=("Diversity threshold used when scaling the difficulty reward by the diversity reward."
                                                                                 "If the diversity reward is lower than the threshold, the difficulty reward is scaled down by a linear factor."
                                                                                  "If it is higher, the difficulty reward is not scaled."))
-    parser.add_argument('--perc-problems-diversity', type=float, default=0.2, help=("When calculating the diversity score/rewards, we calculate the average distance between each problem"
+    parser.add_argument('--perc-problems-diversity', type=float, default=1.0, help=("When calculating the diversity score/rewards, we calculate the average distance between each problem"
                                                                                     "and the n=perc_problem_diversity % of the problems that are closest to it."))
 
     # We keep r_diff_weight to 1
