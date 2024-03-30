@@ -40,7 +40,8 @@ TEST_FOLDER_NAME = 'test'
 # - goal_predicates
 # - allowed_virtual_objects
 
-sokoban_init_state_info = (['loc']*25,
+# 7x7 map
+sokoban_init_state_info_5_5 = (['loc']*25,
     { ('connected-right', (0, 1)), ('connected-right', (1, 2)), ('connected-right', (2, 3)), ('connected-right', (3, 4)),
     ('connected-right', (5, 6)), ('connected-right', (6, 7)), ('connected-right', (7, 8)), ('connected-right', (8, 9)),
     ('connected-right', (10, 11)), ('connected-right', (11, 12)), ('connected-right', (12, 13)), ('connected-right', (13, 14)),		
@@ -52,6 +53,25 @@ sokoban_init_state_info = (['loc']*25,
     ('connected-up', (15, 10)), ('connected-up', (16, 11)), ('connected-up', (17, 12)), ('connected-up', (18, 13)), ('connected-up', (19, 14)),
     ('connected-up', (20, 15)), ('connected-up', (21, 16)), ('connected-up', (22, 17)), ('connected-up', (23, 18)), ('connected-up', (24, 19)),
     })
+
+# 6x6 map
+sokoban_init_state_info_6_6 = (['loc']*36,
+    {('connected-right', (0, 1)), ('connected-right', (1, 2)), ('connected-right', (2, 3)), ('connected-right', (3, 4)), 
+    ('connected-right', (4, 5)), ('connected-right', (6, 7)), ('connected-right', (7, 8)), ('connected-right', (8, 9)), 
+    ('connected-right', (9, 10)), ('connected-right', (10, 11)), ('connected-right', (12, 13)), ('connected-right', (13, 14)), 
+    ('connected-right', (14, 15)), ('connected-right', (15, 16)), ('connected-right', (16, 17)), ('connected-right', (18, 19)), 
+    ('connected-right', (19, 20)), ('connected-right', (20, 21)), ('connected-right', (21, 22)), ('connected-right', (22, 23)), 
+    ('connected-right', (24, 25)), ('connected-right', (25, 26)), ('connected-right', (26, 27)), ('connected-right', (27, 28)), 
+    ('connected-right', (28, 29)), ('connected-right', (30, 31)), ('connected-right', (31, 32)), ('connected-right', (32, 33)), 
+    ('connected-right', (33, 34)), ('connected-right', (34, 35)),
+    
+     ('connected-up', (6, 0)), ('connected-up', (7, 1)), ('connected-up', (8, 2)), ('connected-up', (9, 3)), ('connected-up', (10, 4)), 
+     ('connected-up', (11, 5)), ('connected-up', (12, 6)), ('connected-up', (13, 7)), ('connected-up', (14, 8)), ('connected-up', (15, 9)), 
+     ('connected-up', (16, 10)), ('connected-up', (17, 11)), ('connected-up', (18, 12)), ('connected-up', (19, 13)), 
+     ('connected-up', (20, 14)), ('connected-up', (21, 15)), ('connected-up', (22, 16)), ('connected-up', (23, 17)), 
+     ('connected-up', (24, 18)), ('connected-up', (25, 19)), ('connected-up', (26, 20)), ('connected-up', (27, 21)), 
+     ('connected-up', (28, 22)), ('connected-up', (29, 23)), ('connected-up', (30, 24)), ('connected-up', (31, 25)), 
+     ('connected-up', (32, 26)), ('connected-up', (33, 27)), ('connected-up', (34, 28)), ('connected-up', (35, 29))})
 
 # >>> Add to DOMAIN_INFO the information about new domains
 # Note: goal_predicates must be given as a tuple instead of as a set
