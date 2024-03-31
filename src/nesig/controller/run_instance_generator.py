@@ -219,7 +219,8 @@ def generate_sokoban_problem(curr_problem_path:Path, args) -> int:
     This time does NOT consider the time wasted generating problems with a number of atoms outside the [min_atoms, max_atoms] range.
     However, we DO consider the time wasted generating problems that are NOT solvable.
     """
-    assert args.map_size[0] == args.map_size[1], "Right now, we assume the map is square."
+    # The map can be rectangular
+    #assert args.map_size[0] == args.map_size[1], "Right now, we assume the map is square."
     
     generated_valid_problem = False
     total_gen_time = 0
