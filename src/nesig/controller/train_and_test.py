@@ -188,8 +188,8 @@ def parse_arguments():
     parser.add_argument('--domain', type=str, required=True, choices=tuple(DOMAIN_INFO.keys()), help="Domain name to train the model on.")
     parser.add_argument('--seed', type=int, default=1, help="Seed for reproducibility.")
     parser.add_argument('--run-id', type=int, default=0, help="Extra id used for repeating the experiment when all other arguments are the same.")
-    parser.add_argument('--steps', type=int, default=20000, help="Number of steps for training the model.")
-    parser.add_argument('--val-period', type=int, default=500, help=("Number of training steps between validation phases and saving the 'best' checkpoint."
+    parser.add_argument('--steps', type=int, default=5000, help="Number of steps for training the model.")
+    parser.add_argument('--val-period', type=int, default=250, help=("Number of training steps between validation phases and saving the 'best' checkpoint."
                                                                      "If -1, we only perform validation at the end of training."))
     parser.add_argument('--log-period', type=int, default=10, help="Number of training steps between logging to tensorboard.")
     parser.add_argument('--disc-factor', type=float, default=1.0, help="Discount factor (gamma) for the total reward.")
