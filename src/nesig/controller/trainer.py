@@ -188,6 +188,7 @@ class PolicyTrainer():
             if init_policy is not None:
                 internal_states_init = [sample['internal_state'] for sample in init_trajectories[i]]
                 state_values_init, _ = init_policy.calculate_state_values(internal_states_init) # It returns a tuple (state_values, internal_states)
+                state_values_init = [v.item() for v in state_values_init] # Store as a list of floats
             else:
                 state_values_init = [sample['return'] for sample in init_trajectories[i]] # We set V(s_t) = R_t since we can't calculate V(s_t) with the init policy
 
@@ -196,6 +197,7 @@ class PolicyTrainer():
                 if goal_policy is not None:
                     internal_states_goal = [sample['internal_state'] for sample in goal_trajectories[i]]
                     state_values_goal, _ = goal_policy.calculate_state_values(internal_states_goal)
+                    state_values_goal = [v.item() for v in state_values_goal] # Store as a list of floats
                 else:
                     state_values_goal = [sample['return'] for sample in goal_trajectories[i]]
             else:
@@ -213,17 +215,17 @@ class PolicyTrainer():
             # The advantage for the last sample is r_t - V(s_t) (we set A_{T+1} and V(s_{T+1}) to 0),
             # which is equal to the n-step return Advantage
             # Note that, for the last state, r_t=R_t
-            advantage_curr_state = trajectories[i][-1]['total_reward'] - state_values[-1].item()
+            advantage_curr_state = trajectories[i][-1]['total_reward'] - state_values[-1]
             trajectories[i][-1]['advantage'] = advantage_curr_state
-            trajectories[i][-1]['state_value'] = state_values[-1].item() # We save V(s) without gradient
+            trajectories[i][-1]['state_value'] = state_values[-1] # We save V(s) without gradient
 
             for j in range(len(trajectories[i])-2, -1, -1):
                 # delta_t = r_t + gamma*V(s_{t+1}) - V(s_t)
-                delta_curr_state = trajectories[i][j]['total_reward'] + self.args.disc_factor*state_values[j+1].item() - state_values[j].item()
+                delta_curr_state = trajectories[i][j]['total_reward'] + self.args.disc_factor*state_values[j+1] - state_values[j]
                 # A_t = delta_t + (gamma*lambda) * A_{t+1}
                 advantage_curr_state = delta_curr_state + (self.args.disc_factor*self.args.gae_factor)*advantage_curr_state
                 trajectories[i][j]['advantage'] = advantage_curr_state
-                trajectories[i][j]['state_value'] = state_values[j].item() # We save V(s) without gradient
+                trajectories[i][j]['state_value'] = state_values[j] # We save V(s) without gradient
 
         return init_trajectories, goal_trajectories
 
