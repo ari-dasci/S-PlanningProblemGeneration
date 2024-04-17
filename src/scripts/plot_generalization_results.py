@@ -103,5 +103,5 @@ plt.title(title)
 plt.legend()
 
 # Save the plot to a file
-plt.savefig(filename, format='jpg')
+plt.savefig(filename, format='jpg', dpi=500)
 plt.close()  # Close the plotting window
