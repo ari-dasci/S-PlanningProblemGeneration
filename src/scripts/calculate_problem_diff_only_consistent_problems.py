@@ -17,6 +17,9 @@ def process_json_file(file_path):
     if "Mean difficulty" not in data:
         raise ValueError('Mean difficulty field is missing in JSON file')
 
+    if "Std difficulty" not in data:
+        raise ValueError('Std difficulty field is missing in JSON file')
+
     difficulties = []
     for problem_id, problem_info in data['Problem Results'].items():
         if problem_info.get('consistency', True):
@@ -31,10 +34,13 @@ def process_json_file(file_path):
 
     if difficulties:
         mean_overall_difficulty = sum(difficulties) / len(difficulties)
+        std_overall_difficulty = (sum([(d - mean_overall_difficulty)**2 for d in difficulties]) / len(difficulties))**0.5
     else:
-        mean_overall_difficulty = 0 # If there are no consistent problems, we assume mean difficulty is 0
+        mean_overall_difficulty = 0 # If there are no consistent problems, we assume mean and std difficulty are 0
+        std_overall_difficulty = 0
 
     data['Mean difficulty'] = mean_overall_difficulty
+    data['Std difficulty'] = std_overall_difficulty
 
     with open(file_path, 'w') as file:
         json.dump(data, file, indent=2)
