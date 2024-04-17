@@ -156,7 +156,7 @@ DOMAIN_INFO = {
     'sokoban' :
             {'path' : Path('data/domains/sokoban-domain.pddl'),
              'consistency_evaluator' : ConsistencyEvaluatorSokoban,
-             'init_state_info' : sokoban_init_state_info_6_7,
+             'init_state_info' : sokoban_init_state_info_5_5,
              'goal_predicates' : (('at-box', ('loc',)),),
              'allowed_virtual_objects' : tuple()},
 } # Right now, we need to manually set the init_state_info to some NxM map for sokoban
