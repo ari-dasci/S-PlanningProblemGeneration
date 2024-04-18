@@ -1,5 +1,5 @@
-# Script for updating the difficulty of the results.json files using the new mean difficulty formula, which ignores inconsistent problems
-# This problem receives either a results.json file or a folder. In the latter case, it recursively finds and modifies the "Mean difficulty"
+# Script for updating the difficulty and diversity of the results.json files using the new mean difficulty and diversity formula, which ignores inconsistent problems
+# This problem receives either a results.json file or a folder. In the latter case, it recursively finds and modifies the "Mean difficulty" and "Mean diversity"
 # field of all the results.json files.
 
 import os
@@ -13,17 +13,21 @@ def process_json_file(file_path):
     if 'Problem Results' not in data:
         raise ValueError('No Problem Results in JSON file')
 
-    # Check if the original Mean difficulty exists, if not, raise an exception
     if "Mean difficulty" not in data:
         raise ValueError('Mean difficulty field is missing in JSON file')
 
     if "Std difficulty" not in data:
         raise ValueError('Std difficulty field is missing in JSON file')
 
+    if "Mean diversity" not in data:
+        raise ValueError('Mean diversity field is missing in JSON file')
+
     difficulties = []
+    diversities = []
     for problem_id, problem_info in data['Problem Results'].items():
         if problem_info.get('consistency', True):
             difficulty = problem_info.get('difficulty')
+            diversity = problem_info.get('diversity')
             
             if isinstance(difficulty, list):
                 mean_difficulty = sum(difficulty) / len(difficulty)
@@ -31,6 +35,7 @@ def process_json_file(file_path):
                 mean_difficulty = difficulty
             
             difficulties.append(mean_difficulty)
+            diversities.append(diversity)
 
     if difficulties:
         mean_overall_difficulty = sum(difficulties) / len(difficulties)
@@ -39,8 +44,14 @@ def process_json_file(file_path):
         mean_overall_difficulty = 0 # If there are no consistent problems, we assume mean and std difficulty are 0
         std_overall_difficulty = 0
 
+    if diversities:
+        mean_overall_diversity = sum(diversities) / len(diversities)
+    else:
+        mean_overall_diversity = 0
+
     data['Mean difficulty'] = mean_overall_difficulty
     data['Std difficulty'] = std_overall_difficulty
+    data['Mean diversity'] = mean_overall_diversity
 
     with open(file_path, 'w') as file:
         json.dump(data, file, indent=2)
