@@ -333,9 +333,12 @@ class PolicyTrainer():
 
         # <Common information>
         perc_consistency = [p_info['consistency'] for p_info in problem_info_list].count(True) / num_problems
-        mean_diversity = sum([p_info['diversity'] for p_info in problem_info_list]) / num_problems    
-        # When calculating the mean difficulty, ignore inconsistent problems
-        # If every problem is inconsistent, we assume the mean difficulty is 0
+        
+        # When calculating the mean diversity and difficulty, we ignore inconsistent problems
+        # If every problem is inconsistent, we assume the mean diversity and difficulty are 0
+        problem_diversities = [p_info['diversity'] for p_info in problem_info_list if p_info['consistency']]
+        mean_diversity = sum(problem_diversities) / len(problem_diversities) if len(problem_diversities) > 0 else 0
+
         problem_diffs = [p_info['difficulty'] if isinstance(p_info['difficulty'], int) else sum(p_info['difficulty']) / len(p_info['difficulty']) \
                          for p_info in problem_info_list if p_info['consistency']] # If we are using different planner difficulties, we calculate the mean
         mean_difficulty = sum(problem_diffs) / len(problem_diffs) if len(problem_diffs) > 0 else 0
