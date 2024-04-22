@@ -1,5 +1,5 @@
 """
-Random sokoban generator created by Carlos Núñez Molina. 
+Random sokoban generator.
 It creates a random sokoban initial state by placing objects (boxes, walls and the player)
 at random. Then, it re-places the boxes at random to form the goal state. Since such a problem (initial_state, goal) may not be solvable,
 a planner needs to be used to check its solvability.
