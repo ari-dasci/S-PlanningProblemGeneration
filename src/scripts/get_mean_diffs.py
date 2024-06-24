@@ -2,20 +2,20 @@
 Script that obtains the mean difficulty of a series of experiments
 It receives as input the path to a file containing the experiments in the following format:
 
-experiment\1
+experiment/1
 12
 12
 48
 0
 5
 
-experiment\2\a
+experiment/2/a
 1.0
 0.5598
 3566.8
 89
 
-where each experiment id is any string containing at least one '\'.
+where each experiment id is any string containing at least one '/'.
 
 Then, it outputs the mean of the difficulties for each experiment.
 """
@@ -32,7 +32,7 @@ def parse_log_file(file_path):
     current_section = None
     for line in content:
         line = line.strip()
-        if re.match(r'^.+\\.+$', line): # Section title is any string which contains one '\' (or more)
+        if re.match(r'^.+/.+$', line): # Section title is any string which contains one '\' (or more)
             current_section = line
             sections[current_section] = []
         elif current_section is not None and re.match(r'^-?\d+(\.\d+)?$', line):  # Matching numbers (decimals or integers)
