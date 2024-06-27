@@ -489,8 +489,7 @@ def parse_domain_and_obtain_info(args) -> Dict:
     elif isinstance(init_state_info, dict):
         parsed_domain_info['init_state_info'] = {k : PDDLState(parser.types, parser.type_hierarchy, parser.predicates,
                                                     objects=v[0],
-                                                    atoms=v[1]) \ 
-                                                 for k,v in init_state_info.items()}       
+                                                    atoms=v[1]) for k,v in init_state_info.items()}       
     else:
         raise ValueError(f"Invalid value for 'init_state_info' (of type {type(init_state_info)}) in DOMAIN_INFO")
 
