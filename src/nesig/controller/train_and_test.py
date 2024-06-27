@@ -236,7 +236,7 @@ def parse_arguments():
                 choices=("skip","supersede","missing"),
                 default="missing",
                 help=("What to do in the test phase:"
-                        "skip: redo tests that already exist."
+                        "skip: do not test."
                         "We only remove test folders for problem sizes which are in the new test experiments."
                         "Those for other problem sizes are kept."
                         "supersede: if the experiment contained test information, remove that folder and test again."
@@ -476,10 +476,23 @@ def parse_domain_and_obtain_info(args) -> Dict:
     parsed_domain_info['goal_predicates'] = DOMAIN_INFO[args.domain]['goal_predicates']
     parsed_domain_info['allowed_virtual_objects'] = DOMAIN_INFO[args.domain]['allowed_virtual_objects']
 
-    parsed_domain_info['init_state_info'] = None if DOMAIN_INFO[args.domain]['init_state_info'] is None else \
-                                            PDDLState(parser.types, parser.type_hierarchy, parser.predicates,
-                                                        objects=DOMAIN_INFO[args.domain]['init_state_info'][0],
-                                                        atoms=DOMAIN_INFO[args.domain]['init_state_info'][1])   
+    # init_state_info can be None, a tuple (objects,atoms) or a dictionary assigning a different (object,atoms) pairs 
+    # to each problem size (max_actions_init,max_actions_goal)
+    init_state_info = DOMAIN_INFO[args.domain]['init_state_info']
+
+    if init_state_info is None:
+        parsed_domain_info['init_state_info'] = None
+    elif isinstance(init_state_info, tuple):
+        parsed_domain_info['init_state_info'] = PDDLState(parser.types, parser.type_hierarchy, parser.predicates,
+                                                        objects=init_state_info[0],
+                                                        atoms=init_state_info[1])
+    elif isinstance(init_state_info, dict):
+        parsed_domain_info['init_state_info'] = {k : PDDLState(parser.types, parser.type_hierarchy, parser.predicates,
+                                                    objects=v[0],
+                                                    atoms=v[1]) \ 
+                                                 for k,v in init_state_info.items()}       
+    else:
+        raise ValueError(f"Invalid value for 'init_state_info' (of type {type(init_state_info)}) in DOMAIN_INFO")
 
     return parsed_domain_info
 
@@ -559,9 +572,11 @@ def _get_policies_to_train(args, experiment_folder_path, parsed_domain_info, las
 
     return init_policy, goal_policy
 
-def _create_problem_generator(stage, args, parsed_domain_info, init_policy, goal_policy):
+def _create_problem_generator(stage, args, parsed_domain_info, init_policy, goal_policy, max_init_actions, max_goal_actions):
     """
     We differentiate between the problem generator used for training and the one used for testing.
+
+    Note: max_init_actions and max_goal_actions are used to select the init_state_info in case we use a different initial_state for each problem size.
     """
     assert stage in ('train', 'test'), "stage must be either 'train' or 'test'"
 
@@ -574,8 +589,11 @@ def _create_problem_generator(stage, args, parsed_domain_info, init_policy, goal
         
     diversity_evaluator = InitGoalDiversityEvaluator(r_diversity_weight=1.0, perc_problems_diversity=args.perc_problems_diversity)
     
+    init_state_info = parsed_domain_info['init_state_info'] if not isinstance(parsed_domain_info['init_state_info'], dict) \
+                      else parsed_domain_info['init_state_info'][(max_init_actions, max_goal_actions)]
+
     problem_generator = ProblemGenerator(parsed_domain_info['parser'], init_policy, goal_policy, parsed_domain_info['consistency_evaluator'],
-                                            parsed_domain_info['goal_predicates'], parsed_domain_info['init_state_info'],
+                                            parsed_domain_info['goal_predicates'], init_state_info,
                                             parsed_domain_info['allowed_virtual_objects'], difficulty_evaluator, diversity_evaluator)
     return problem_generator
 
@@ -625,7 +643,7 @@ def train_and_val(args, parsed_domain_info, experiment_id):
     init_policy, goal_policy = _get_policies_to_train(args, experiment_folder_path, parsed_domain_info, last_train_it)
 
     # Create policy trainer
-    problem_generator = _create_problem_generator('train', args, parsed_domain_info, init_policy, goal_policy)
+    problem_generator = _create_problem_generator('train', args, parsed_domain_info, init_policy, goal_policy, args.max_init_actions_train, args.max_goal_actions_train)
     train_init_policy = (args.init_policy != 'random')
     train_goal_policy = (args.goal_policy != 'random')
     policy_trainer = PolicyTrainer(args, experiment_folder_path, problem_generator, init_policy, goal_policy)
@@ -690,10 +708,6 @@ def test(args, parsed_domain_info, experiment_id):
             raise Exception("Cannot perform test because training was not finished")
         else:
             return
-        
-    # Initialize policy trainer
-    problem_generator = _create_problem_generator('test', args, parsed_domain_info, best_init_policy, best_goal_policy)
-    policy_trainer = PolicyTrainer(args, experiment_folder_path, problem_generator, best_init_policy, best_goal_policy)
 
     # Perform test experiments for each problem size (depending on args.test_mode)
     for max_init_actions, max_goal_actions in zip(args.max_init_actions_test, args.max_goal_actions_test):
@@ -708,6 +722,11 @@ def test(args, parsed_domain_info, experiment_id):
         if not test_folder_path_curr_size.exists(): # if test_mode="supersede", we will have removed the folder and exists() will return False
             # We need to create the folder before saving problems and info to it
             test_folder_path_curr_size.mkdir(parents=True, exist_ok=True)
+
+            # Initialize policy trainer
+            # We initialize a new policy trainer for each problem size in case we use a different initial_state_info for each problem size
+            problem_generator = _create_problem_generator('test', args, parsed_domain_info, best_init_policy, best_goal_policy, max_init_actions, max_goal_actions)
+            policy_trainer = PolicyTrainer(args, experiment_folder_path, problem_generator, best_init_policy, best_goal_policy)
 
             policy_trainer.test(test_folder_path_curr_size, max_init_actions, max_goal_actions)
 

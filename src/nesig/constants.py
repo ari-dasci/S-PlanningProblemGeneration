@@ -40,6 +40,15 @@ TEST_FOLDER_NAME = 'test'
 # - goal_predicates
 # - allowed_virtual_objects
 
+# 4x4 map
+sokoban_init_state_info_4_4 = (['loc']*16,
+   {('connected-right', (0, 1)), ('connected-right', (1, 2)), ('connected-right', (2, 3)), ('connected-right', (4, 5)), 
+   ('connected-right', (5, 6)), ('connected-right', (6, 7)), ('connected-right', (8, 9)), ('connected-right', (9, 10)), 
+   ('connected-right', (10, 11)), ('connected-right', (12, 13)), ('connected-right', (13, 14)), ('connected-right', (14, 15)), 
+   ('connected-up', (4, 0)), ('connected-up', (5, 1)), ('connected-up', (6, 2)), ('connected-up', (7, 3)), ('connected-up', (8, 4)), 
+   ('connected-up', (9, 5)), ('connected-up', (10, 6)), ('connected-up', (11, 7)), ('connected-up', (12, 8)), ('connected-up', (13, 9)), 
+   ('connected-up', (14, 10)), ('connected-up', (15, 11))}) 
+
 # 5x5 map
 sokoban_init_state_info_5_5 = (['loc']*25,
     { ('connected-right', (0, 1)), ('connected-right', (1, 2)), ('connected-right', (2, 3)), ('connected-right', (3, 4)),
@@ -137,6 +146,9 @@ sokoban_init_state_info_7_7 = (['loc']*49,
     ('connected-up', (45, 38)), ('connected-up', (46, 39)), ('connected-up', (47, 40)), ('connected-up', (48, 41))})
 
 # >>> Add to DOMAIN_INFO the information about new domains
+# init_state_info can be None, a tuple (objects, atoms) or a dictionary where keys represent tuple (max_init_actions, max_goal_actions)
+# and values are tuples (objects, atoms). In this latter case, we use a different init state for each problem size.
+# <<In other words, if init_state_info is a dictionary, the initial state to use depends on max_init_actions and max_goal_actions.>>
 # Note: goal_predicates must be given as a tuple instead of as a set
 DOMAIN_INFO = {
     'blocksworld' :
@@ -156,7 +168,14 @@ DOMAIN_INFO = {
     'sokoban' :
             {'path' : Path('data/domains/sokoban-domain.pddl'),
              'consistency_evaluator' : ConsistencyEvaluatorSokoban,
-             'init_state_info' : sokoban_init_state_info_5_5,
+             'init_state_info' : {
+                (10,50) : sokoban_init_state_info_4_4,
+                (15,75) : sokoban_init_state_info_5_5,
+                (18,90) : sokoban_init_state_info_5_6,
+                (21,105) : sokoban_init_state_info_6_6,
+                (25,125) : sokoban_init_state_info_6_7,
+                (30,150) : sokoban_init_state_info_7_7
+             },
              'goal_predicates' : (('at-box', ('loc',)),),
              'allowed_virtual_objects' : tuple()},
 } # Right now, we need to manually set the init_state_info to some NxM map for sokoban
