@@ -183,10 +183,35 @@ DOMAIN_INFO = {
 
 # Planner args
 LAMA_FIRST_ARG = '--alias lama-first'
-LAZY_GREEDY_FF_ARG = '--evaluator h=ff(transform=adapt_costs(one)) --search lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)'
-LAZY_GREEDY_ADD_ARG = '--evaluator h=add(transform=adapt_costs(one)) --search lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)'
+#LAZY_GREEDY_FF_ARG = '--evaluator h=ff(transform=adapt_costs(one)) --search lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)'
+#LAZY_GREEDY_ADD_ARG = '--evaluator h=add(transform=adapt_costs(one)) --search lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)'
 TRAIN_PLANNER_ARGS = [LAMA_FIRST_ARG]
-TEST_PLANNER_ARGS = [LAMA_FIRST_ARG, LAZY_GREEDY_FF_ARG, LAZY_GREEDY_ADD_ARG]
+# TEST_PLANNER_ARGS = [LAMA_FIRST_ARG, LAZY_GREEDY_FF_ARG, LAZY_GREEDY_ADD_ARG]
+
+#TODO
+# Add the search-time-limit to portfolios depending on --time-limit-planner-test,
+# so that the portfolio is asigned MORE time than this limit (in order to obtain a timeout)
+# when the portfolio can't find a plan in the given time limit
+
+# For timeout it is all the same
+# For error, use all the same 'Search stopped without finding a solution'
+
+FD_FOUND = 'Solution found.'
+M_FOUND = 'PLAN FOUND'
+FD_RESOURCES = r"Expanded ([0-9]+) state\(s\)\."
+FDSS_RESOURCES = r"Planner time: (\d+\.\d+)s"
+M_RESOURCES = r"total time (\d+\.\d+)"
+
+PLANNER_OPTIONS = {
+    'lama_first' : ('fd-latest-clean', LAMA_FIRST_ARG, FD_FOUND, FD_RESOURCES),
+    'lazy_greedy_ff' : ('fd-latest-clean', '--evaluator h=ff(transform=adapt_costs(one)) --search lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)', FD_FOUND, FD_RESOURCES),
+    'lazy_greedy_add' : ('fd-latest-clean', '--evaluator h=add(transform=adapt_costs(one)) --search lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)', FD_FOUND, FD_RESOURCES),
+    'astar_lmcut' : ('fd-latest-clean', '--search astar(lmcut())', FD_FOUND, FD_RESOURCES),
+    'fdss_opt' : ('fd-latest-clean', '--alias seq-opt-fdss-1 --search-time-limit', FD_FOUND, FDSS_RESOURCES),
+    'm' : ('m-clean', '', M_FOUND, M_RESOURCES),
+    'mp' : ('mp-clean', '', M_FOUND, M_RESOURCES),
+    'mpc' : ('mpc-clean', '', M_FOUND, M_RESOURCES)
+}
 
 # Termination condition action, which signals the end of the (initial state or goal) generation phase
 TERM_ACTION = "END"
@@ -223,6 +248,7 @@ EXCLUDED_ARGS_ID = {
     'test_mode',
     'raise_error_test',
     'max_workers_planner_train',
+    'planners_test',
     'max_workers_planner_test',
     'r_terminated_problem_test',
     'time_limit_planner_test',

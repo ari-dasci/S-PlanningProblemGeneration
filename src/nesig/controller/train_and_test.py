@@ -168,6 +168,33 @@ def parse_arguments():
         except ValueError:
             raise argparse.ArgumentTypeError("Max num actions must be either a single value or a tuple of integers")
 
+    def parse_elem_or_tuple(value, t):
+        """
+        We parse either a single value of type t or several ones.
+        """
+        if ',' in value:
+            parts = value.split(',')
+            try:
+                val = tuple(t(p) for p in parts)
+                return val
+            except ValueError:
+                raise argparse.ArgumentTypeError("Incorrect type for argument")
+        else:
+            try:
+                val = t(value)
+                return (val,)
+            else:
+                raise argparse.ArgumentTypeError("Incorrect type for argument")
+
+    def parse_elem_or_tuple_str(value):
+        parse_elem_or_tuple(value, str)
+
+    def parse_elem_or_tuple_float(value):
+        parse_elem_or_tuple(value, float)
+
+    def parse_elem_or_tuple_int(value):
+        parse_elem_or_tuple(value, int)
+
     def str2bool(v):
         if isinstance(v, bool):
             return v
@@ -274,10 +301,12 @@ def parse_arguments():
     parser.add_argument('--time-limit-planner-train', type=int, default=300, help="Time limit for each problem in seconds during the training phase. -1 means no time limit.") # default = 5 min
     parser.add_argument('--memory-limit-planner-train', type=int, default=512000, help="Memory limit for each problem in KB during the training phase. -1 means no memory limit.") # default = 500 MB
     parser.add_argument('--max-workers-planner-train', type=int, default=25, help="Number of parallel workers for the difficulty evaluator during the training phase.")
-    parser.add_argument('--r-terminated-problem-test', type=float, default=1e8, help="Same as the analogous option above but for the test phase. If -1, we use the same value as for training.")
-    parser.add_argument('--time-limit-planner-test', type=int, default=1800, help="Same as the analogous option above but for the test phase. If -1, we use the same value as for training.") # default = 30 min
-    parser.add_argument('--memory-limit-planner-test', type=int, default=8500000, help="Same as the analogous option above but for the test phase. If -1, we use the same value as for training.") # default = 8 GB (approx.)
-    parser.add_argument('--max-workers-planner-test', type=int, default=20, help="Same as the analogous option above but for the test phase. If -1, we use the same value as for training.") # default = we use 20 workers since memory limit is higher than in training
+    
+    parser.add_argument('--planners-test', type=parse_elem_or_tuple_str, default=('lama_first',), help="The planner(s) to use for evaluating the difficulty of the test problems.")
+    parser.add_argument('--r-terminated-problem-test', type=parse_elem_or_tuple_float, default=(1e8,), help="Same as the analogous option above but for each planner of the test phase.")
+    parser.add_argument('--time-limit-planner-test', type=parse_elem_or_tuple_int, default=(1800,), help="Same as the analogous option above but for each planner of the test phase.") # default = 30 min
+    parser.add_argument('--memory-limit-planner-test', type=parse_elem_or_tuple_int, default=(8500000,), help="Same as the analogous option above but for each planner of the test phase.") # default = 8 GB (approx.)
+    parser.add_argument('--max-workers-planner-test', type=parse_elem_or_tuple_int, default=(20,), help="Same as the analogous option above but for each planner of the test phase.") # default = we use 20 workers since memory limit is higher than in training
 
     # Subparsers
     # Init and goal policy may require different arguments (e.g., init policy is random but goal policy is PPO)
@@ -403,14 +432,14 @@ def validate_and_modify_args(args):
         raise ValueError("memory_limit_planner_train must be either -1 or a positive integer")
     if args.max_workers_planner_train < 1:
         raise ValueError("max_workers_planner_train must be a positive integer")
-    if args.r_terminated_problem_test == -1:
-        args.r_terminated_problem_test = args.r_terminated_problem_train
-    if args.time_limit_planner_test == -1:
-        args.time_limit_planner_test = args.time_limit_planner_train
-    if args.memory_limit_planner_test == -1:
-        args.memory_limit_planner_test = args.memory_limit_planner_train
-    if args.max_workers_planner_test == -1:
-        args.max_workers_planner_test = args.max_workers_planner_train
+
+    same_size_test_args = len(args.planners_test) == len(args.r_terminated_problem_test) == len(args.time_limit_planner_test) == len(args.memory_limit_planner_test) == len(args.max_workers_planner_test)
+    if not same_size_test_args:
+        raise ValueError("The number of elements in the test arguments (planners, r_terminated, time and memory limits and max workers) must be the same")
+
+    for planner in args.planners_test:
+        if planner not in PLANNER_OPTIONS:
+            raise ValueError(f"Invalid test planner name '{planner}'")
 
     if args.init_policy=='random' and args.goal_policy=='random' and (args.train_mode!="skip" or args.test_mode=="skip"):
         raise ValueError("If both init and goal policies are random, then train_mode must be 'skip' and test_mode cannot be 'skip'")

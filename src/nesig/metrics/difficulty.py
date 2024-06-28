@@ -68,7 +68,7 @@ class PlannerEvaluator(DifficultyEvaluator):
         The constructor receives the information needed for calling the planner.
         Parameters:
             - domain_path: Path to the PDDL domain file.
-            - plan_args: List of arguments to be passed to the planner (e.g., ['--search astar(lmcut())']).
+            - plan_args: Planner to use with its search arguments (e.g., [('fd-latest-clean', '--search astar(lmcut())')]).
                         We obtain the difficulty by calling the planner with each of the arguments.
                         Therefore, the length of the difficulty list returned by get_difficulty() is equal
                         to the length of plan_args.
