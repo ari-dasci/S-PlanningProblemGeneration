@@ -609,10 +609,10 @@ def _create_problem_generator(stage, args, parsed_domain_info, init_policy, goal
     assert stage in ('train', 'test'), "stage must be either 'train' or 'test'"
 
     if stage == 'train':
-        difficulty_evaluator = PlannerEvaluator(parsed_domain_info['domain_path'], TRAIN_PLANNER_ARGS, args.time_limit_planner_train,
-                                                args.memory_limit_planner_train, args.max_workers_planner_train, args.r_terminated_problem_train)
+        difficulty_evaluator = PlannerEvaluator(parsed_domain_info['domain_path'], TRAIN_PLANNER_ARGS, (args.time_limit_planner_train,),
+                                                (args.memory_limit_planner_train,), args.max_workers_planner_train, (args.r_terminated_problem_train,))
     else:
-        difficulty_evaluator = PlannerEvaluator(parsed_domain_info['domain_path'], TEST_PLANNER_ARGS, args.time_limit_planner_test,
+        difficulty_evaluator = PlannerEvaluator(parsed_domain_info['domain_path'], args.planners_test, args.time_limit_planner_test,
                                                 args.memory_limit_planner_test, args.max_workers_planner_test, args.r_terminated_problem_test)
         
     diversity_evaluator = InitGoalDiversityEvaluator(r_diversity_weight=1.0, perc_problems_diversity=args.perc_problems_diversity)

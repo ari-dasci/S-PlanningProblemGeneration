@@ -339,11 +339,6 @@ class PolicyTrainer():
         problem_diversities = [p_info['diversity'] for p_info in problem_info_list if p_info['consistency']]
         mean_diversity = sum(problem_diversities) / len(problem_diversities) if len(problem_diversities) > 0 else 0
 
-        problem_diffs = [p_info['difficulty'] if isinstance(p_info['difficulty'], int) else sum(p_info['difficulty']) / len(p_info['difficulty']) \
-                         for p_info in problem_info_list if p_info['consistency']] # If we are using different planner difficulties, we calculate the mean
-        mean_difficulty = sum(problem_diffs) / len(problem_diffs) if len(problem_diffs) > 0 else 0
-        std_difficulty = (sum([(d - mean_difficulty)**2 for d in problem_diffs]) / len(problem_diffs))**0.5 if len(problem_diffs) > 0 else 0
-
         init_actions = [p.num_init_state_actions_executed for p in problems]
         goal_actions = [p.num_goal_actions_executed for p in problems]
         mean_init_actions = sum(init_actions) / num_problems
@@ -378,8 +373,6 @@ class PolicyTrainer():
 
         log_and_save(writer, log_dict, 'Consistency percentage', perc_consistency, x_value)
         log_and_save(writer, log_dict, 'Mean diversity', mean_diversity, x_value)
-        log_and_save(writer, log_dict, 'Mean difficulty', mean_difficulty, x_value)
-        log_and_save(writer, log_dict, 'Std difficulty', std_difficulty, x_value)
         log_and_save(writer, log_dict, 'Mean actions init', mean_init_actions, x_value)
         log_and_save(writer, log_dict, 'Std actions init', std_init_actions, x_value)
         log_and_save(writer, log_dict, 'Mean actions goal', mean_goal_actions, x_value)
@@ -394,6 +387,32 @@ class PolicyTrainer():
         # is not enough to guarantee they are the same problem (checking if two problems are equal is equivalent to graph 
         # isomorphism, which is NP-complete)
         # log_and_save(writer, log_dict, 'Num unique consistent problems', num_unique_problems, x_value)
+
+        # < Problem difficulty >
+        # For training and validation, we save the mean difficulty among all planners (actually, we are using a single planner at the moment)
+        # For test, we calculate the mean and std difficulty among problems for each test planner separately
+        if phase in ('train', 'val'):  
+            problem_diffs = [sum(p_info['difficulty']) / len(p_info['difficulty']) if type(p_info['difficulty']) in (list, tuple) else p_info['difficulty'] \
+                             for p_info in problem_info_list if p_info['consistency']] # If we are using different planner difficulties, we calculate the mean  
+            mean_difficulty = sum(problem_diffs) / len(problem_diffs) if len(problem_diffs) > 0 else 0
+            std_difficulty = (sum([(d - mean_difficulty)**2 for d in problem_diffs]) / len(problem_diffs))**0.5 if len(problem_diffs) > 0 else 0
+
+            log_and_save(writer, log_dict, 'Mean difficulty', mean_difficulty, x_value)
+            log_and_save(writer, log_dict, 'Std difficulty', std_difficulty, x_value)
+        else:
+            mean_difficulty_dict = dict()
+            std_difficulty_dict = dict()
+
+            for ind, name in enumerate(self.args.planners_test):
+                problem_diffs = [p_info['difficulty'][ind] for p_info in problem_info_list if p_info['consistency']]
+                mean_difficulty = sum(problem_diffs) / len(problem_diffs) if len(problem_diffs) > 0 else 0
+                std_difficulty = (sum([(d - mean_difficulty)**2 for d in problem_diffs]) / len(problem_diffs))**0.5 if len(problem_diffs) > 0 else 0
+
+                mean_difficulty_dict[name] = mean_difficulty
+                std_difficulty_dict[name] = std_difficulty
+
+            log_and_save(writer, log_dict, 'Mean difficulty', mean_difficulty_dict, x_value)
+            log_and_save(writer, log_dict, 'Std difficulty', std_difficulty_dict, x_value)
 
         # < Training information >
         if trajectories is not None:   
@@ -430,13 +449,18 @@ class PolicyTrainer():
 
         return log_dict
 
-    def save_problems_and_metrics(self, folder:Path, problems:List[PDDLProblem], problem_info_list:List[Dict],
+    def save_problems_and_metrics(self, phase, folder:Path, problems:List[PDDLProblem], problem_info_list:List[Dict],
                                   global_info:Dict, problem_names:Optional[List[str]]=None):
         """
         We save to folder the generated problems along with their info (problem_info_list and global_info) in results.json.
         If a problem is inconsistent, we don't save it to disk (but we still save its info to results.json).
         If problem_names is not provided, problem names are indexed like problem_0, problem_1, etc.
+
+        NOTE: If phase=='test' we also save the test info: (planners_test, r_terminated_problem_test, time_limit_planner_test and memory_limit_planner_test)
+              as this info is not in experiment_info.json and can be different for each test experiment (i.e., test problem size)
         """
+        assert phase in ('val', 'test'), "phase must be either 'validation' or 'test'"
+
         json_filename = 'results.json'
         assert problem_names is None or len(problem_names) == len(problems), "problem_names must have the same length as problems or be None"
 
@@ -450,8 +474,14 @@ class PolicyTrainer():
 
         # Save the problem and global info to results.json
         info_dict = deepcopy(global_info)
-        info_dict['Problem Results'] = dict()
 
+        if phase == 'test':
+            info_dict['planners_test'] = self.args.planners_test
+            info_dict['r_terminated_problem_test'] = self.args.r_terminated_problem_test
+            info_dict['time_limit_planner_test'] = self.args.time_limit_planner_test
+            info_dict['memory_limit_planner_test'] = self.args.memory_limit_planner_test
+
+        info_dict['Problem Results'] = dict()
         for p_info, name in zip(problem_info_list, problem_names):
             info_dict['Problem Results'][name] = p_info
 
@@ -470,7 +500,7 @@ class PolicyTrainer():
         for p_info in problem_info_list:
             curr_diff = p_info['difficulty']
 
-            if isinstance(curr_diff, list): # Same formula as for calculating r_difficulty (except that we multiply by r_diff_weight)
+            if type(curr_diff) in (list, tuple): # Same formula as for calculating r_difficulty (except that we multiply by r_diff_weight)
                 diff_score = sum([math.log(d+1) for d in curr_diff]) / len(curr_diff)
             else:
                 diff_score = math.log(curr_diff+1)
@@ -564,7 +594,7 @@ class PolicyTrainer():
             # Save problems and their metrics to disk
             val_folder_curr_it = self.val_folder / str(curr_train_it)
             val_folder_curr_it.mkdir(parents=True, exist_ok=True) # We create the folder in case it doesn't exist
-            self.save_problems_and_metrics(val_folder_curr_it, val_problems, val_problem_info_list, val_log_dict)
+            self.save_problems_and_metrics('val', val_folder_curr_it, val_problems, val_problem_info_list, val_log_dict)
 
             # Calculate the best val score and best train it so far and save policies to disk
             if avg_val_score > best_val_score:
@@ -690,4 +720,4 @@ class PolicyTrainer():
             log_dict['Generation time'] = gen_time          # and the TOTAL time needed to generate the problems (in seconds)
 
             # Save problems and their metrics to disk
-            self.save_problems_and_metrics(folder_curr_experiment, problems, problem_info_list, log_dict)
+            self.save_problems_and_metrics('test', folder_curr_experiment, problems, problem_info_list, log_dict)

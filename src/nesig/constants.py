@@ -182,11 +182,12 @@ DOMAIN_INFO = {
 # No virtual objects can be added for sokoban (all objects are present from the start)
 
 # Planner args
-LAMA_FIRST_ARG = '--alias lama-first'
-#LAZY_GREEDY_FF_ARG = '--evaluator h=ff(transform=adapt_costs(one)) --search lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)'
-#LAZY_GREEDY_ADD_ARG = '--evaluator h=add(transform=adapt_costs(one)) --search lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)'
-TRAIN_PLANNER_ARGS = [LAMA_FIRST_ARG]
+# LAMA_FIRST_ARG = '--alias lama-first'
+# LAZY_GREEDY_FF_ARG = '--evaluator h=ff(transform=adapt_costs(one)) --search lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)'
+# LAZY_GREEDY_ADD_ARG = '--evaluator h=add(transform=adapt_costs(one)) --search lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)'
+# TRAIN_PLANNER_ARGS = [LAMA_FIRST_ARG]
 # TEST_PLANNER_ARGS = [LAMA_FIRST_ARG, LAZY_GREEDY_FF_ARG, LAZY_GREEDY_ADD_ARG]
+TRAIN_PLANNER_ARGS = ['lama_first']
 
 #TODO
 # Add the search-time-limit to portfolios depending on --time-limit-planner-test,
@@ -205,7 +206,7 @@ M_RESOURCES = r"total time (\d+\.\d+)"
 # The last element of each tuple is a boolean indicating whether we should add +1 to the used resources (as in used nodes, to avoid log(0)) or not (as when using time)
 # NOTE: for 'fdss_opt' we add the --search-time-limit option at runtime, so that it is slightly (1min) larger than the time_limit used for timeouts
 PLANNER_OPTIONS = {
-    'lama_first' : ('fd-latest-clean', LAMA_FIRST_ARG, FD_FOUND, FD_RESOURCES, True),
+    'lama_first' : ('fd-latest-clean', '--alias lama-first', FD_FOUND, FD_RESOURCES, True),
     'lazy_greedy_ff' : ('fd-latest-clean', '--evaluator h=ff(transform=adapt_costs(one)) --search lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)', FD_FOUND, FD_RESOURCES, True),
     'lazy_greedy_add' : ('fd-latest-clean', '--evaluator h=add(transform=adapt_costs(one)) --search lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)', FD_FOUND, FD_RESOURCES, True),
     'astar_lmcut' : ('fd-latest-clean', '--search astar(lmcut())', FD_FOUND, FD_RESOURCES, True),

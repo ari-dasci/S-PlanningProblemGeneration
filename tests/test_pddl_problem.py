@@ -58,8 +58,7 @@ class TestPDDLProblem(unittest.TestCase):
         problem2.apply_action_to_initial_state(('on', (2,1)))
 
         init_state_actions = sorted(problem2.get_continuous_consistent_init_state_actions(consistency_evaluator))
-        expected_init_state_actions = sorted([('ontable', (3,)), ('clear', (2,)), ('on', (3,2)),
-                                              ('holding', (3,)), ('handempty', ())])
+        expected_init_state_actions = sorted([('ontable', (3,)), ('clear', (2,)), ('on', (3,2)), ('handempty', ())])
         
         self.assertEqual(init_state_actions, expected_init_state_actions)
 
