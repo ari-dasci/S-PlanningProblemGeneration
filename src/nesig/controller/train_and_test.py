@@ -260,13 +260,15 @@ def parse_arguments():
                             "resume: if the experiment already exists, we resume training from the last ckpt, in case training was unfinished."
                             ))
     parser.add_argument('--test-mode',
-                choices=("skip","supersede","missing"),
+                choices=("skip","supersede_all", "supersede_planner", "missing"),
                 default="missing",
                 help=("What to do in the test phase:"
                         "skip: do not test."
                         "We only remove test folders for problem sizes which are in the new test experiments."
                         "Those for other problem sizes are kept."
-                        "supersede: if the experiment contained test information, remove that folder and test again."
+                        "supersede_all: if the experiment folder contained test information, remove all the problems and info and test again."
+                        "supersede_planner: if difficulty for the current test planner(s) already exists, overwrite it with the new one."
+                        "                   The problems and rest of the test info (e.g., other planners difficulties) is kept."
                         "missing: we skip the tests that already exist, performing those that do not."
                         "         Tests are compared on a problem-size basis. For example, if for some experiment"
                         "         we have performed tests for problems of size (10,10) and we want to perform tests for problems"
@@ -739,14 +741,21 @@ def test(args, parsed_domain_info, experiment_id):
 
     # Perform test experiments for each problem size (depending on args.test_mode)
     for max_init_actions, max_goal_actions in zip(args.max_init_actions_test, args.max_goal_actions_test):
-        # Check if the experiment for that problem size already exists
-        # If it does, we skip the test (if args.test_mode="missing") or remove it and perform the test again
-        # (if args.test_mode="supersede")
         test_folder_path_curr_size = test_folder_path / f"{max_init_actions}_{max_goal_actions}"
 
-        if args.test_mode=="supersede":
+        # If the test experiment already existed, we remove the test info for the current problem size
+        if args.test_mode=="supersede_all":
             remove_if_exists(test_folder_path_curr_size)
 
+        # Initialize policy trainer
+        # We initialize a new policy trainer for each problem size in case we use a different initial_state_info for each problem size
+        problem_generator = _create_problem_generator('test', args, parsed_domain_info, best_init_policy, best_goal_policy, max_init_actions, max_goal_actions)
+        policy_trainer = PolicyTrainer(args, experiment_folder_path, problem_generator, best_init_policy, best_goal_policy)
+
+        # TODO
+        policy_trainer.test(test_folder_path_curr_size, max_init_actions, max_goal_actions, overwrite_diff=(args.test_mode == "supersede_planner"))
+
+        """
         if not test_folder_path_curr_size.exists(): # if test_mode="supersede", we will have removed the folder and exists() will return False
             # We need to create the folder before saving problems and info to it
             test_folder_path_curr_size.mkdir(parents=True, exist_ok=True)
@@ -757,6 +766,7 @@ def test(args, parsed_domain_info, experiment_id):
             policy_trainer = PolicyTrainer(args, experiment_folder_path, problem_generator, best_init_policy, best_goal_policy)
 
             policy_trainer.test(test_folder_path_curr_size, max_init_actions, max_goal_actions)
+        """
 
 def main(args):
     # We set the working directory to the base folder of the repository

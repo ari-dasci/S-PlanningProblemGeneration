@@ -129,13 +129,15 @@ class PlannerEvaluator(DifficultyEvaluator):
             for fs in futures:
                 wait(fs)
 
-            difficulty = [[future.result() for future in problem_futures] for problem_futures in futures]
+            #difficulty = [[future.result() for future in problem_futures] for problem_futures in futures]
+            # Now the difficulties for each problem are represented as a dictionary where keys are the planner arguments
+            difficulty = [{planner:future.result() for future, planner in zip(problem_futures, self.plan_args)} for problem_futures in futures]
 
         # Obtain the difficulty reward associated with each problem
         # At the moment, this reward is simply the average of the logarithm of each planner difficulty
         # In the future, we should use more elaborate methods such as normalizing the difficulty for each planner before
         # calculating the log (we don't do this right now because we use a single planner during training)
-        diff_rewards = [self.r_diff_weight*sum([math.log(diff) for diff in problem_diffs])/len(problem_diffs) \
+        diff_rewards = [self.r_diff_weight*sum([math.log(diff) for diff in problem_diffs.values()])/len(problem_diffs) \
                         for problem_diffs in difficulty]
 
         return difficulty, diff_rewards

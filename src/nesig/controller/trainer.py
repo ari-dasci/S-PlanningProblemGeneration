@@ -313,9 +313,6 @@ class PolicyTrainer():
 
         - Validation phase:
             - Validation score (given by score parameter)
-
-        - Test phase:
-            - Test score (given by score parameter)
         """    
 
         def log_and_save(writer, log_dict, name, y_val:Union[int,float,Dict], x_val):
@@ -389,30 +386,20 @@ class PolicyTrainer():
         # log_and_save(writer, log_dict, 'Num unique consistent problems', num_unique_problems, x_value)
 
         # < Problem difficulty >
-        # For training and validation, we save the mean difficulty among all planners (actually, we are using a single planner at the moment)
-        # For test, we calculate the mean and std difficulty among problems for each test planner separately
-        if phase in ('train', 'val'):  
-            problem_diffs = [sum(p_info['difficulty']) / len(p_info['difficulty']) if type(p_info['difficulty']) in (list, tuple) else p_info['difficulty'] \
-                             for p_info in problem_info_list if p_info['consistency']] # If we are using different planner difficulties, we calculate the mean  
+        # We calculate the mean and std difficulty among problems for each planner separately
+        mean_difficulty_dict = dict()
+        std_difficulty_dict = dict()
+
+        for planner in self.args.planners_test:
+            problem_diffs = [p_info['difficulty'][planner] for p_info in problem_info_list if p_info['consistency']]
             mean_difficulty = sum(problem_diffs) / len(problem_diffs) if len(problem_diffs) > 0 else 0
             std_difficulty = (sum([(d - mean_difficulty)**2 for d in problem_diffs]) / len(problem_diffs))**0.5 if len(problem_diffs) > 0 else 0
 
-            log_and_save(writer, log_dict, 'Mean difficulty', mean_difficulty, x_value)
-            log_and_save(writer, log_dict, 'Std difficulty', std_difficulty, x_value)
-        else:
-            mean_difficulty_dict = dict()
-            std_difficulty_dict = dict()
+            mean_difficulty_dict[planner] = mean_difficulty
+            std_difficulty_dict[planner] = std_difficulty
 
-            for ind, name in enumerate(self.args.planners_test):
-                problem_diffs = [p_info['difficulty'][ind] for p_info in problem_info_list if p_info['consistency']]
-                mean_difficulty = sum(problem_diffs) / len(problem_diffs) if len(problem_diffs) > 0 else 0
-                std_difficulty = (sum([(d - mean_difficulty)**2 for d in problem_diffs]) / len(problem_diffs))**0.5 if len(problem_diffs) > 0 else 0
-
-                mean_difficulty_dict[name] = mean_difficulty
-                std_difficulty_dict[name] = std_difficulty
-
-            log_and_save(writer, log_dict, 'Mean difficulty', mean_difficulty_dict, x_value)
-            log_and_save(writer, log_dict, 'Std difficulty', std_difficulty_dict, x_value)
+        log_and_save(writer, log_dict, 'Mean difficulty', mean_difficulty_dict, x_value)
+        log_and_save(writer, log_dict, 'Std difficulty', std_difficulty_dict, x_value)
 
         # < Training information >
         if trajectories is not None:   
@@ -441,7 +428,7 @@ class PolicyTrainer():
             log_and_save(writer, log_dict, 'Allocated Memory (MB)', mem_allocated, x_value)
             log_and_save(writer, log_dict, 'Max Allocated Memory (MB)', max_mem_allocated, x_value)
 
-        # < Validation and test information >
+        # < Validation information >
         if score is not None:
             log_and_save(writer, log_dict, 'Average score', score, x_value)
 
@@ -457,7 +444,7 @@ class PolicyTrainer():
         If problem_names is not provided, problem names are indexed like problem_0, problem_1, etc.
 
         NOTE: If phase=='test' we also save the test info: (planners_test, r_terminated_problem_test, time_limit_planner_test and memory_limit_planner_test)
-              as this info is not in experiment_info.json and can be different for each test experiment (i.e., test problem size)
+              as this info is not in experiment_info.json and can be different for each test experiment (i.e., test problem size).
         """
         assert phase in ('val', 'test'), "phase must be either 'validation' or 'test'"
 
@@ -494,14 +481,16 @@ class PolicyTrainer():
         Returns the avg_val_score and the val_score for each problem.
         We calculate the val_score for each problem in the same way we calculate the return using the r_consistency, r_difficulty and r_diversity.
         For validation, we use diversity_threshold=self.args.diversity_threshold. For test, we use a diversity_threshold=1.0.
+
+        NOTE: at the moment, we don't calculate the val_score during the test phase.
         """
         val_scores = []
 
         for p_info in problem_info_list:
             curr_diff = p_info['difficulty']
 
-            if type(curr_diff) in (list, tuple): # Same formula as for calculating r_difficulty (except that we multiply by r_diff_weight)
-                diff_score = sum([math.log(d+1) for d in curr_diff]) / len(curr_diff)
+            if isinstance(curr_diff, dict):
+                diff_score = sum([math.log(d+1) for d in curr_diff.values()]) / len(curr_diff)
             else:
                 diff_score = math.log(curr_diff+1)
         
@@ -682,12 +671,15 @@ class PolicyTrainer():
             # No need to do torch.no_grad() as this is done inside _run_validation
             best_val_score, best_train_it = self._run_validation(train_init_policy, train_goal_policy, curr_train_it, best_train_it, best_val_score)
 
-    def test(self, folder_curr_experiment:Path, max_init_actions:int, max_goal_actions:int):
+    #TODO
+    def test(self, folder_curr_experiment:Path, max_init_actions:int, max_goal_actions:int, overwrite_diff:bool):
         """
         Run a test experiment with the current policies.
         We assume that self.init_policy and self.goal_policy have been loaded from the best ckpts.
-        This method generates problems of size (max_init_actions, max_goal_actions), logs the metrics and saves the problems and metrics to disk.
-        
+        This method first checks if the problems have already been generated. If they already exists, they are not generated again.
+        If problems already exists, it checks if difficulties exist for each planner in args.test_planners. If overwrite_diff is True,
+        it overwrites the difficulties. Otherwise, it uses the existing difficulties.
+
         <NOTE>: this method does not compute tensor gradients (i.e., uses torch.no_grad()).
         """
         # If we are testing on GPU, we move the policies to the GPU at the start
@@ -706,15 +698,19 @@ class PolicyTrainer():
 
             # Calculate the test score for each problem and the average score
             # At the moment, we use the val_score formula to calculate the test score
+
+            # NOTE: We don't calculate the score in the test phase since, in test, we can repeat the same experiment (problem size) with different planners
+            # and "score" would only be valid for the planners used in the last test experiment
+            """
             avg_score, scores = self.calculate_val_scores(problem_info_list, 1.0)
 
-            # Add the score to each problem info
             for p_info, score in zip(problem_info_list, scores):
                 p_info['score'] = score
+            """
 
             # Log test metrics
             # For the log charts, the x value of each metric corresponds to the problem size (measured by max_init_actions)
-            log_dict = self.log_metrics('test', max_init_actions, problems, problem_info_list, num_unique_problems=num_unique_problems, score=avg_score)
+            log_dict = self.log_metrics('test', max_init_actions, problems, problem_info_list, num_unique_problems=num_unique_problems)
             log_dict['Max init actions'] = max_init_actions # We also save the (max) problem size of the experiment
             log_dict['Max goal actions'] = max_goal_actions
             log_dict['Generation time'] = gen_time          # and the TOTAL time needed to generate the problems (in seconds)
