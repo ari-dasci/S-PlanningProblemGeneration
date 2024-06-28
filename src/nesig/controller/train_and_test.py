@@ -306,7 +306,7 @@ def parse_arguments():
     parser.add_argument('--r-terminated-problem-test', type=parse_elem_or_tuple_float, default=(1e8,), help="Same as the analogous option above but for each planner of the test phase.")
     parser.add_argument('--time-limit-planner-test', type=parse_elem_or_tuple_int, default=(1800,), help="Same as the analogous option above but for each planner of the test phase.") # default = 30 min
     parser.add_argument('--memory-limit-planner-test', type=parse_elem_or_tuple_int, default=(8500000,), help="Same as the analogous option above but for each planner of the test phase.") # default = 8 GB (approx.)
-    parser.add_argument('--max-workers-planner-test', type=parse_elem_or_tuple_int, default=(20,), help="Same as the analogous option above but for each planner of the test phase.") # default = we use 20 workers since memory limit is higher than in training
+    parser.add_argument('--max-workers-planner-test', type=int, default=20, help="Same as the analogous option above but for each planner of the test phase.") # default = we use 20 workers since memory limit is higher than in training
 
     # Subparsers
     # Init and goal policy may require different arguments (e.g., init policy is random but goal policy is PPO)
@@ -433,7 +433,7 @@ def validate_and_modify_args(args):
     if args.max_workers_planner_train < 1:
         raise ValueError("max_workers_planner_train must be a positive integer")
 
-    same_size_test_args = len(args.planners_test) == len(args.r_terminated_problem_test) == len(args.time_limit_planner_test) == len(args.memory_limit_planner_test) == len(args.max_workers_planner_test)
+    same_size_test_args = len(args.planners_test) == len(args.r_terminated_problem_test) == len(args.time_limit_planner_test) == len(args.memory_limit_planner_test)
     if not same_size_test_args:
         raise ValueError("The number of elements in the test arguments (planners, r_terminated, time and memory limits and max workers) must be the same")
 

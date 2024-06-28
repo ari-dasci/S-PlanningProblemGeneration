@@ -15,7 +15,7 @@ import re
 import math
 
 from src.nesig.symbolic.pddl_problem import PDDLProblem
-from src.nesig.constants import PLANNER_SCRIPTS_PATH, remove_if_exists
+from src.nesig.constants import PLANNER_SCRIPTS_PATH, PLANNER_OPTIONS, remove_if_exists
 
 class DifficultyEvaluator(ABC):
     """
@@ -53,52 +53,56 @@ class PlannerEvaluator(DifficultyEvaluator):
     Obtains the difficulty by solving the problem with a planner. We use FastDownward.
     """
 
-    # TODO
-    # See if I can limit the number of expanded nodes instead of memory/time
-    # This is useful for two things:
-    # 1) We can safely run several planners in parallel without exhausting the memory or spending too much solving time
-    # 2) Limiting the number of nodes can increase diversity, by preventing the model from generating problems that are too difficult
-    #    disregarding diversity (above a certain threshold, all problems are equally difficult, so the model can focus on diversity instead)
-    # See FD discord message ...I would like to know if there exists some rough,easy equivalence between...
-    def __init__(self, domain_path : Path, plan_args : List[str],
-                 time_limit : int = -1, memory_limit : int = -1,
-                 max_workers : int = 1, terminated_reward : float = 1e6,
+    def __init__(self, domain_path : Path, plan_args : Tuple[str],
+                 time_limit : Tuple[int] = (-1,), memory_limit : Tuple[int] = (-1,),
+                 max_workers : int = 1, terminated_reward : Tuple[float] = (1e6,),
                  r_diff_weight : float = 1.0):     
         """
         The constructor receives the information needed for calling the planner.
         Parameters:
             - domain_path: Path to the PDDL domain file.
-            - plan_args: Planner to use with its search arguments (e.g., [('fd-latest-clean', '--search astar(lmcut())')]).
-                        We obtain the difficulty by calling the planner with each of the arguments.
-                        Therefore, the length of the difficulty list returned by get_difficulty() is equal
-                        to the length of plan_args.
+            - plan_args: Planner(s) to use for obtaining the difficulty.
+                         Given as a list of the keys in PLANNER_OPTIONS in constants.py.
+                         The length of the difficulty list returned by get_difficulty() is equal
+                         to the length of plan_args.
             - time_limit: Time limit for the planner, in seconds. -1 means no limit.
             - memory_limit: Memory limit for the planner, in KB. -1 means no limit.
             - max_workers: Maximum number of processes for concurrent planner calls.
             - terminated_reward: Difficulty of a problem that has been terminated (either by timeout or memory out).
             - r_diff_weight: Weight/coefficient for which we multiply the difficulty reward 
                              (after performing the rest of the operations like math.log)
+
+            time_limit, memory_limit and terminated_reward can be given as a single-element tuple
+            (in which case we assume we use the same value for all planners) or as a list of values (in which case we use
+            the i-th value for the i-th planner argument).
         """
         self.domain_path = domain_path
-        self.plan_args = plan_args
-        self.time_limit = time_limit
-        self.memory_limit = memory_limit
-        self.max_workers = max_workers
-        self.terminated_reward = terminated_reward
+        self.plan_args = tuple(plan_args)
         self.r_diff_weight = r_diff_weight
+        self.max_workers = max_workers
+
+        self.time_limit = tuple(time_limit*len(plan_args)) if len(time_limit) == 1 else tuple(time_limit)
+        self.memory_limit = tuple(memory_limit*len(plan_args)) if len(memory_limit) == 1 else tuple(memory_limit)
+        self.terminated_reward = tuple(terminated_reward*len(plan_args)) if len(terminated_reward) == 1 else tuple(terminated_reward)
+
+        assert len(self.plan_args) == len(self.time_limit) == len(self.memory_limit) == len(self.terminated_reward), \
+            "The number of elements in time_limit, memory_limit and terminated_reward must be equal to the number of planner arguments"
         
+        for planner_arg in self.plan_args:
+            assert planner_arg in PLANNER_OPTIONS, f"Planner argument {planner_arg} not found in PLANNER_OPTIONS"
+
     @property
     def num_plan_args(self) -> int:
         return len(self.plan_args)
 
     def get_difficulty(self, problem_list : List[Union[PDDLProblem,Path]]) -> Tuple[List[List[float]], List[float]]:
         """
-        Calculates the difficulty and difficulty reward for a list of problems, as the number of nodes expanded by the planner.
+        Calculates the difficulty and difficulty reward for a list of problems, as the number of nodes expanded by the planner or planning time.
         The problems can be given either as intances of PDDLProblem or as paths to PDDL problem files.
         The options used are given by self.plan_args.
         It returns a list of difficulties (and rewards) for each problem, so that diff[i][j] is the difficulty of the
         i-th problem with the j-th planner argument.
-        If for a given problem there was a timeout/memory out, its difficulty (for each planner) is self.terminated_reward.
+        If for a given problem there was a timeout/memory out, its difficulty (for each planner) is given by self.terminated_reward.
         """
         if len(problem_list) == 0:
             return [], []
@@ -118,8 +122,8 @@ class PlannerEvaluator(DifficultyEvaluator):
                 else:
                     raise Exception(f"Found object of type {type(problem)} in problem_list")
                               
-                futures.append([executor.submit(self._get_difficulty_one_problem_one_arg, curr_pddl_desc, planner_arg) \
-                                for planner_arg in self.plan_args])
+                futures.append([executor.submit(self._get_difficulty_one_problem_one_arg, curr_pddl_desc, planner_arg, tl, ml, term_r) \
+                                for planner_arg, tl, ml, term_r in zip(self.plan_args, self.time_limit, self.memory_limit, self.terminated_reward)])
             
             # Wait for all futures to complete and collect results
             for fs in futures:
@@ -136,12 +140,12 @@ class PlannerEvaluator(DifficultyEvaluator):
 
         return difficulty, diff_rewards
 
-    def _get_difficulty_one_problem_one_arg(self, pddl_description : str, planner_arg : str) -> float:
+    def _get_difficulty_one_problem_one_arg(self, pddl_description : str, planner_arg : str, time_limit : int, memory_limit : int, terminated_reward : float) -> float:
         """
         It gets the difficulty of a single problem using a single planner argument. It is called by the other methods in parallel.
         Note: every limit.sh call needs to use a distinct problem name. That's why we save to disk several times the same problem with different names 
         for different planner arguments.
-        Note2: if the problem has been solved, we add 1 to its difficulty in order to avoid returning a difficulty of 0 and later doing log(0).
+        Note2: if the problem has been solved, we may add 1 (if add_one is True) to its difficulty in order to avoid returning a difficulty of 0 and later doing log(0).
         """
 
         """
@@ -149,7 +153,14 @@ class PlannerEvaluator(DifficultyEvaluator):
             - From command line: ./planner-scripts/limit.sh -t -1 -m -1 -- "planner-scripts/fd-latest-clean -o '--search astar(lmcut())'" -- ../../../data/problems/bw_two_action_plan.pddl ../../../data/domains/blocks-domain.pddl
 
         """
-         
+        planner_path, search_options, found_str, resources_regex, add_one = PLANNER_OPTIONS[planner_arg]
+
+        # For the FDSS portfolio, we set --search-time-limit so that it is slightly (1min) larger than time_limit
+        # We do this so that there is a timeout in case the portfolio can't find a plan
+        if planner_arg == 'fdss_opt':
+            search_time_limit = (time_limit // 60) + 1
+            search_options += f' --search-time-limit {search_time_limit}m'
+
         with tempfile.NamedTemporaryFile(suffix='.pddl', mode='w+') as tmp_file:
             # Save the problem to disk
             tmp_file.write(pddl_description)
@@ -164,13 +175,14 @@ class PlannerEvaluator(DifficultyEvaluator):
 
             # Obtain the paths of the scripts needed to call the planner           
             limit_sh_path = Path(PLANNER_SCRIPTS_PATH, 'limit.sh')
-            fd_path = Path(PLANNER_SCRIPTS_PATH, 'fd-latest-clean')
+            full_planner_path = Path(PLANNER_SCRIPTS_PATH, planner_path)
+
             # We make sure that the paths exist
             assert limit_sh_path.exists(), f"Path {limit_sh_path} does not exist"
-            assert fd_path.exists(), f"Path {fd_path} does not exist"
+            assert full_planner_path.exists(), f"Path {full_planner_path} does not exist"
 
             # Call the planner
-            planner_call = f"""{limit_sh_path} -t {self.time_limit} -m {self.memory_limit} -- "{fd_path} -o '{planner_arg}'" -- {problem_path} {self.domain_path}"""
+            planner_call = f"""{limit_sh_path} -t {time_limit} -m {memory_limit} -- "{full_planner_path} -o '{search_options}'" -- {problem_path} {self.domain_path}"""
 
             # We redirect stdout and stderr so that they are not printed to the console
             result = subprocess.run(planner_call, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -178,15 +190,15 @@ class PlannerEvaluator(DifficultyEvaluator):
             with open(err_path, 'r') as err_file:
                 err_output = err_file.read()
 
-                # Timeout/memory out -> we return a diff equal to self.terminated_reward
+                # Timeout/memory out -> we return a diff equal to terminated_reward
                 if 'Terminated' in err_output:
-                    num_expanded_nodes = self.terminated_reward
+                    used_resources = terminated_reward
 
                 elif err_output != '':
                     raise Exception(f"> Planner error: {err_output}")
 
                 else:
-                    # Parse log_path to obtain the difficulty (number of expanded nodes)
+                    # Parse log_path to obtain the difficulty (number of expanded nodes or used time)
                     with open(log_path, 'r') as log_file:
                         planner_output = log_file.read()
 
@@ -194,9 +206,10 @@ class PlannerEvaluator(DifficultyEvaluator):
                         if 'Search stopped without finding a solution' in planner_output:
                             raise Exception(f"> Unsolvable problem: {problem_path}")
                         # Problem solved -> we return the number of expanded nodes
-                        elif 'Solution found.' in planner_output:
-                            num_expanded_nodes = int(re.search(r"Expanded ([0-9]+) state\(s\)\.", planner_output).group(1))
-                            num_expanded_nodes += 1 # We add 1 to the difficulty since we later perform log(diff), in order to avoid log(0)
+                        elif found_str in planner_output:
+                            used_resources = float(re.search(resources_regex, planner_output).group(1))
+                            if add_one:
+                                used_resources += 1 # We add 1 to the difficulty since we later perform log(diff), in order to avoid log(0)
                         else:
                             raise Exception(f"> Unexpected planner output: {planner_output}")
 
@@ -207,4 +220,4 @@ class PlannerEvaluator(DifficultyEvaluator):
         remove_if_exists(plan_path)
         remove_if_exists(negative_path)
 
-        return num_expanded_nodes
+        return used_resources

@@ -202,15 +202,17 @@ FD_RESOURCES = r"Expanded ([0-9]+) state\(s\)\."
 FDSS_RESOURCES = r"Planner time: (\d+\.\d+)s"
 M_RESOURCES = r"total time (\d+\.\d+)"
 
+# The last element of each tuple is a boolean indicating whether we should add +1 to the used resources (as in used nodes, to avoid log(0)) or not (as when using time)
+# NOTE: for 'fdss_opt' we add the --search-time-limit option at runtime, so that it is slightly (1min) larger than the time_limit used for timeouts
 PLANNER_OPTIONS = {
-    'lama_first' : ('fd-latest-clean', LAMA_FIRST_ARG, FD_FOUND, FD_RESOURCES),
-    'lazy_greedy_ff' : ('fd-latest-clean', '--evaluator h=ff(transform=adapt_costs(one)) --search lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)', FD_FOUND, FD_RESOURCES),
-    'lazy_greedy_add' : ('fd-latest-clean', '--evaluator h=add(transform=adapt_costs(one)) --search lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)', FD_FOUND, FD_RESOURCES),
-    'astar_lmcut' : ('fd-latest-clean', '--search astar(lmcut())', FD_FOUND, FD_RESOURCES),
-    'fdss_opt' : ('fd-latest-clean', '--alias seq-opt-fdss-1 --search-time-limit', FD_FOUND, FDSS_RESOURCES),
-    'm' : ('m-clean', '', M_FOUND, M_RESOURCES),
-    'mp' : ('mp-clean', '', M_FOUND, M_RESOURCES),
-    'mpc' : ('mpc-clean', '', M_FOUND, M_RESOURCES)
+    'lama_first' : ('fd-latest-clean', LAMA_FIRST_ARG, FD_FOUND, FD_RESOURCES, True),
+    'lazy_greedy_ff' : ('fd-latest-clean', '--evaluator h=ff(transform=adapt_costs(one)) --search lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)', FD_FOUND, FD_RESOURCES, True),
+    'lazy_greedy_add' : ('fd-latest-clean', '--evaluator h=add(transform=adapt_costs(one)) --search lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)', FD_FOUND, FD_RESOURCES, True),
+    'astar_lmcut' : ('fd-latest-clean', '--search astar(lmcut())', FD_FOUND, FD_RESOURCES, True),
+    'fdss_opt' : ('fd-latest-clean', '--alias seq-opt-fdss-1', FD_FOUND, FDSS_RESOURCES, False),
+    'm' : ('m-clean', '', M_FOUND, M_RESOURCES, False),
+    'mp' : ('mp-clean', '', M_FOUND, M_RESOURCES, False),
+    'mpc' : ('mpc-clean', '', M_FOUND, M_RESOURCES, False)
 }
 
 # Termination condition action, which signals the end of the (initial state or goal) generation phase
@@ -259,8 +261,7 @@ EXCLUDED_ARGS_ID = {
 
 # Dictionary with additional variables/constants to store in experiment_info.json
 ADDITIONAL_EXPERIMENT_INFO = {
-    'TRAIN_PLANNER_ARGS' : TRAIN_PLANNER_ARGS,
-    'TEST_PLANNER_ARGS' : TEST_PLANNER_ARGS
+    'TRAIN_PLANNER_ARGS' : TRAIN_PLANNER_ARGS
 }
 
 ID_LENGTH = 10 # Number of characters of the hash to use as experiment id
