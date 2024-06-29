@@ -724,9 +724,20 @@ class PolicyTrainer():
             time_limit_dict[planner] = self.args.time_limit_planner_test[idx]
             memory_limit_dict[planner] = self.args.memory_limit_planner_test[idx]
 
-        experiment_info['r_terminated_problem_test'].update(r_term_dict)
-        experiment_info['time_limit_planner_test'].update(time_limit_dict)
-        experiment_info['memory_limit_planner_test'].update(memory_limit_dict)
+        if "r_terminated_problem_test" in experiment_info:
+            experiment_info['r_terminated_problem_test'].update(r_term_dict)
+        else: # Old results.json format, where this argument was not saved to results.json
+            experiment_info['r_terminated_problem_test'] = r_term_dict
+
+        if "time_limit_planner_test" in experiment_info:
+            experiment_info['time_limit_planner_test'].update(time_limit_dict)
+        else:
+            experiment_info['time_limit_planner_test'] = time_limit_dict
+        
+        if "memory_limit_planner_test" in experiment_info:
+            experiment_info['memory_limit_planner_test'].update(memory_limit_dict)
+        else:
+            experiment_info['memory_limit_planner_test'] = memory_limit_dict
 
     def test(self, folder_curr_experiment:Path, max_init_actions:int, max_goal_actions:int):
         """
@@ -758,7 +769,7 @@ class PolicyTrainer():
 
                 # Solve problems with new planners
                 # NOTE: since inconsistent problems are not saved to disk, we never try to solve them
-                problem_paths = [Path(p) for p in glob.glob(folder_curr_experiment / '*.pddl')]
+                problem_paths = [Path(p) for p in glob.glob( str(folder_curr_experiment / '*.pddl') )]
                 new_diffs, _ = self.problem_generator.difficulty_evaluator.get_difficulty(problem_paths)
 
                 # <Update experiment_info with new test metrics>

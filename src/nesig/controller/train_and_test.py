@@ -183,17 +183,17 @@ def parse_arguments():
             try:
                 val = t(value)
                 return (val,)
-            else:
+            except ValueError:
                 raise argparse.ArgumentTypeError("Incorrect type for argument")
 
     def parse_elem_or_tuple_str(value):
-        parse_elem_or_tuple(value, str)
+        return parse_elem_or_tuple(value, str)
 
     def parse_elem_or_tuple_float(value):
-        parse_elem_or_tuple(value, float)
+        return parse_elem_or_tuple(value, float)
 
     def parse_elem_or_tuple_int(value):
-        parse_elem_or_tuple(value, int)
+        return parse_elem_or_tuple(value, int)
 
     def str2bool(v):
         if isinstance(v, bool):
@@ -435,9 +435,16 @@ def validate_and_modify_args(args):
     if args.max_workers_planner_train < 1:
         raise ValueError("max_workers_planner_train must be a positive integer")
 
-    same_size_test_args = len(args.planners_test) == len(args.r_terminated_problem_test) == len(args.time_limit_planner_test) == len(args.memory_limit_planner_test)
-    if not same_size_test_args:
-        raise ValueError("The number of elements in the test arguments (planners, r_terminated, time and memory limits and max workers) must be the same")
+    num_planners = len(args.planners_test)
+    if len(args.r_terminated_problem_test) == 1:
+        args.r_terminated_problem_test = args.r_terminated_problem_test*num_planners
+    if len(args.time_limit_planner_test) == 1:
+        args.time_limit_planner_test = args.time_limit_planner_test*num_planners
+    if len(args.memory_limit_planner_test) == 1:
+        args.memory_limit_planner_test = args.memory_limit_planner_test*num_planners
+
+    if not (num_planners == len(args.r_terminated_problem_test) == len(args.time_limit_planner_test) == len(args.memory_limit_planner_test)):
+        raise ValueError("The number of elements in r_terminated_problem_test, time_limit_planner_test and memory_limit_planner_test must be the same as the number of test planners")
 
     for planner in args.planners_test:
         if planner not in PLANNER_OPTIONS:
@@ -614,8 +621,14 @@ def _create_problem_generator(stage, args, parsed_domain_info, init_policy, goal
         difficulty_evaluator = PlannerEvaluator(parsed_domain_info['domain_path'], planners, (args.time_limit_planner_train,),
                                                 (args.memory_limit_planner_train,), args.max_workers_planner_train, (args.r_terminated_problem_train,))
     else:
-        difficulty_evaluator = PlannerEvaluator(parsed_domain_info['domain_path'], planners, args.time_limit_planner_test,
-                                                args.memory_limit_planner_test, args.max_workers_planner_test, args.r_terminated_problem_test)
+        # Since planners in the test_phase may be a subset of args.planners_test, we need to pass the corresponding time and memory limits and r_term
+        idx_planners = [args.planners_test.index(planner) for planner in planners]
+        time_limit_planners = [args.time_limit_planner_test[i] for i in idx_planners]
+        memory_limit_planners = [args.memory_limit_planner_test[i] for i in idx_planners]
+        r_term = [args.r_terminated_problem_test[i] for i in idx_planners]
+
+        difficulty_evaluator = PlannerEvaluator(parsed_domain_info['domain_path'], planners, time_limit_planners,
+                                                memory_limit_planners, args.max_workers_planner_test, r_term)
         
     diversity_evaluator = InitGoalDiversityEvaluator(r_diversity_weight=1.0, perc_problems_diversity=args.perc_problems_diversity)
     
@@ -759,7 +772,7 @@ def test(args, parsed_domain_info, experiment_id):
                     experiment_info = json.load(f)
 
             past_planners = experiment_info['Mean difficulty'].keys() \
-                if 'Mean difficulty' in experiment_info and isintance(experiment_info['Mean difficulty'],dict) \
+                if 'Mean difficulty' in experiment_info and isinstance(experiment_info['Mean difficulty'],dict) \
                 else tuple()
             test_planners = [planner for planner in args.planners_test if planner not in past_planners]
 
@@ -772,7 +785,6 @@ def test(args, parsed_domain_info, experiment_id):
         problem_generator = _create_problem_generator('test', args, parsed_domain_info, best_init_policy, best_goal_policy, max_init_actions, max_goal_actions, test_planners)
         policy_trainer = PolicyTrainer(args, experiment_folder_path, problem_generator, best_init_policy, best_goal_policy)
 
-        # TODO CAMBIAR Mean Difficulty a Old Mean difficulty en los json de todos los experimentos
         policy_trainer.test(test_folder_path_curr_size, max_init_actions, max_goal_actions)
 
 def main(args):
