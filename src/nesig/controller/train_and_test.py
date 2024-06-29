@@ -260,14 +260,14 @@ def parse_arguments():
                             "resume: if the experiment already exists, we resume training from the last ckpt, in case training was unfinished."
                             ))
     parser.add_argument('--test-mode',
-                choices=("skip","supersede_all", "supersede_planner", "missing"),
+                choices=("skip","supersede_all", "supersede_diff", "missing"),
                 default="missing",
                 help=("What to do in the test phase:"
                         "skip: do not test."
                         "We only remove test folders for problem sizes which are in the new test experiments."
                         "Those for other problem sizes are kept."
                         "supersede_all: if the experiment folder contained test information, remove all the problems and info and test again."
-                        "supersede_planner: if difficulty for the current test planner(s) already exists, overwrite it with the new one."
+                        "supersede_diff: if difficulty for the current test planner(s) already exists, overwrite it with the new one."
                         "                   The problems and rest of the test info (e.g., other planners difficulties) is kept."
                         "missing: we skip the tests that already exist, performing those that do not."
                         "         Tests are compared on a problem-size basis. For example, if for some experiment"
@@ -602,7 +602,7 @@ def _get_policies_to_train(args, experiment_folder_path, parsed_domain_info, las
 
     return init_policy, goal_policy
 
-def _create_problem_generator(stage, args, parsed_domain_info, init_policy, goal_policy, max_init_actions, max_goal_actions):
+def _create_problem_generator(stage, args, parsed_domain_info, init_policy, goal_policy, max_init_actions, max_goal_actions, planners):
     """
     We differentiate between the problem generator used for training and the one used for testing.
 
@@ -611,10 +611,10 @@ def _create_problem_generator(stage, args, parsed_domain_info, init_policy, goal
     assert stage in ('train', 'test'), "stage must be either 'train' or 'test'"
 
     if stage == 'train':
-        difficulty_evaluator = PlannerEvaluator(parsed_domain_info['domain_path'], TRAIN_PLANNER_ARGS, (args.time_limit_planner_train,),
+        difficulty_evaluator = PlannerEvaluator(parsed_domain_info['domain_path'], planners, (args.time_limit_planner_train,),
                                                 (args.memory_limit_planner_train,), args.max_workers_planner_train, (args.r_terminated_problem_train,))
     else:
-        difficulty_evaluator = PlannerEvaluator(parsed_domain_info['domain_path'], args.planners_test, args.time_limit_planner_test,
+        difficulty_evaluator = PlannerEvaluator(parsed_domain_info['domain_path'], planners, args.time_limit_planner_test,
                                                 args.memory_limit_planner_test, args.max_workers_planner_test, args.r_terminated_problem_test)
         
     diversity_evaluator = InitGoalDiversityEvaluator(r_diversity_weight=1.0, perc_problems_diversity=args.perc_problems_diversity)
@@ -673,7 +673,7 @@ def train_and_val(args, parsed_domain_info, experiment_id):
     init_policy, goal_policy = _get_policies_to_train(args, experiment_folder_path, parsed_domain_info, last_train_it)
 
     # Create policy trainer
-    problem_generator = _create_problem_generator('train', args, parsed_domain_info, init_policy, goal_policy, args.max_init_actions_train, args.max_goal_actions_train)
+    problem_generator = _create_problem_generator('train', args, parsed_domain_info, init_policy, goal_policy, args.max_init_actions_train, args.max_goal_actions_train, TRAIN_PLANNER_ARGS)
     train_init_policy = (args.init_policy != 'random')
     train_goal_policy = (args.goal_policy != 'random')
     policy_trainer = PolicyTrainer(args, experiment_folder_path, problem_generator, init_policy, goal_policy)
@@ -747,13 +747,33 @@ def test(args, parsed_domain_info, experiment_id):
         if args.test_mode=="supersede_all":
             remove_if_exists(test_folder_path_curr_size)
 
+        # Obtain the planners to use for test
+        # If "supersede_diff" or the experiment does not exist, we use all the planners in args.planners_test
+        # Else, we only use the planners that were not previously used in the experiment
+        results_path = test_folder_path_curr_size / 'results.json'
+
+        if args.test_mode=="supersede_diff" or not os.path.isfile(results_path):
+            test_planners = args.planners_test
+        else:
+            with open(results_path, 'r') as f:
+                    experiment_info = json.load(f)
+
+            past_planners = experiment_info['Mean difficulty'].keys() \
+                if 'Mean difficulty' in experiment_info and isintance(experiment_info['Mean difficulty'],dict) \
+                else tuple()
+            test_planners = [planner for planner in args.planners_test if planner not in past_planners]
+
+        # If there are no planners to test, we skip the test experiment for the current size
+        if len(test_planners) == 0:
+            continue
+
         # Initialize policy trainer
         # We initialize a new policy trainer for each problem size in case we use a different initial_state_info for each problem size
-        problem_generator = _create_problem_generator('test', args, parsed_domain_info, best_init_policy, best_goal_policy, max_init_actions, max_goal_actions)
+        problem_generator = _create_problem_generator('test', args, parsed_domain_info, best_init_policy, best_goal_policy, max_init_actions, max_goal_actions, test_planners)
         policy_trainer = PolicyTrainer(args, experiment_folder_path, problem_generator, best_init_policy, best_goal_policy)
 
-        # TODO
-        policy_trainer.test(test_folder_path_curr_size, max_init_actions, max_goal_actions, overwrite_diff=(args.test_mode == "supersede_planner"))
+        # TODO CAMBIAR Mean Difficulty a Old Mean difficulty en los json de todos los experimentos
+        policy_trainer.test(test_folder_path_curr_size, max_init_actions, max_goal_actions)
 
         """
         if not test_folder_path_curr_size.exists(): # if test_mode="supersede", we will have removed the folder and exists() will return False

@@ -7,6 +7,8 @@ from pathlib import Path
 from typing import Tuple, List, Dict, Union, Optional
 from random import randint
 from copy import deepcopy
+import os
+import glob
 import json
 import numpy as np
 import math
@@ -444,7 +446,7 @@ class PolicyTrainer():
         If problem_names is not provided, problem names are indexed like problem_0, problem_1, etc.
 
         NOTE: If phase=='test' we also save the test info: (planners_test, r_terminated_problem_test, time_limit_planner_test and memory_limit_planner_test)
-              as this info is not in experiment_info.json and can be different for each test experiment (i.e., test problem size).
+              as this info is not in experiment_info.json and can be different for each test experiment (i.e., test problem size) and planner.
         """
         assert phase in ('val', 'test'), "phase must be either 'validation' or 'test'"
 
@@ -463,10 +465,18 @@ class PolicyTrainer():
         info_dict = deepcopy(global_info)
 
         if phase == 'test':
-            info_dict['planners_test'] = self.args.planners_test
-            info_dict['r_terminated_problem_test'] = self.args.r_terminated_problem_test
-            info_dict['time_limit_planner_test'] = self.args.time_limit_planner_test
-            info_dict['memory_limit_planner_test'] = self.args.memory_limit_planner_test
+            r_term_dict, time_limit_dict, memory_limit_dict = dict(), dict(), dict()
+
+            for planner, tl, ml, term_r in zip(self.args.planners_test, self.args.time_limit_planner_test,
+                self.args.memory_limit_planner_test, self.args.r_terminated_problem_test):
+                r_term_dict[planner] = term_r
+                time_limit_dict[planner] = tl
+                memory_limit_dict[planner] = ml
+
+            info_dict['r_terminated_problem_test'] = r_term_dict
+            info_dict['time_limit_planner_test'] = time_limit_dict
+            info_dict['memory_limit_planner_test'] = memory_limit_dict
+
 
         info_dict['Problem Results'] = dict()
         for p_info, name in zip(problem_info_list, problem_names):
@@ -671,14 +681,12 @@ class PolicyTrainer():
             # No need to do torch.no_grad() as this is done inside _run_validation
             best_val_score, best_train_it = self._run_validation(train_init_policy, train_goal_policy, curr_train_it, best_train_it, best_val_score)
 
-    #TODO
-    def test(self, folder_curr_experiment:Path, max_init_actions:int, max_goal_actions:int, overwrite_diff:bool):
+    def test(self, folder_curr_experiment:Path, max_init_actions:int, max_goal_actions:int):
         """
         Run a test experiment with the current policies.
         We assume that self.init_policy and self.goal_policy have been loaded from the best ckpts.
         This method first checks if the problems have already been generated. If they already exists, they are not generated again.
-        If problems already exists, it checks if difficulties exist for each planner in args.test_planners. If overwrite_diff is True,
-        it overwrites the difficulties. Otherwise, it uses the existing difficulties.
+        Only difficulty is calculated in this case.
 
         <NOTE>: this method does not compute tensor gradients (i.e., uses torch.no_grad()).
         """
@@ -692,6 +700,83 @@ class PolicyTrainer():
                 self.goal_policy.to('cuda')
 
         with torch.no_grad():
+            results_path = folder_curr_experiment / 'results.json'
+
+            # If the problems have already been generated, we do not regenerate them and just solve them
+            # The planners to use depend on the planners used in past experiments and whether overwrite_diff is True
+            if os.path.isfile(results_path):
+                # Load past experiment info
+                with open(results_path, 'r') as f:
+                    experiment_info = json.load(f)
+
+                # Solve problems with new planners
+                # NOTE: since inconsistent problems are not saved to disk, we never try to solve them
+                problem_paths = [Path(p) for p in glob.glob(folder_curr_experiment / '*.pddl')]
+                new_diffs, _ = self.problem_generator.difficulty_evaluator.get_difficulty(problem_paths)
+
+                # <Update experiment_info with new test metrics>
+
+                # Difficulties for each problem
+                for problem_path, diff_dict in zip(problem_paths, new_diffs):
+                    problem_name = problem_path.stem
+                    old_diff = experiment_info['Problem Results'][problem_name]['difficulty']
+
+                    if isinstance(experiment_info['Problem Results'][problem_name]['difficulty'],dict):
+                        experiment_info['Problem Results'][problem_name]['difficulty'].update(diff_dict)
+                    else: # If it is not a dict, it contains the old difficulty format, so we overwrite it
+                        experiment_info['Problem Results'][problem_name]['difficulty'] = diff_dict
+
+                # Mean and std difficulty
+                # HERE
+
+                # Planner arguments
+
+
+
+                
+
+                """
+                    'Std difficulty'
+                    'Mean difficulty'
+                    info_dict['Problem Results'][name] = p_info
+
+                    r_term_dict, time_limit_dict, memory_limit_dict = dict(), dict(), dict()
+
+                    for planner, tl, ml, term_r in zip(self.args.planners_test, self.args.time_limit_planner_test,
+                        self.args.memory_limit_planner_test, self.args.r_terminated_problem_test):
+                        r_term_dict[planner] = term_r
+                        time_limit_dict[planner] = tl
+                        memory_limit_dict[planner] = ml
+
+                    info_dict['r_terminated_problem_test'] = r_term_dict
+                    info_dict['time_limit_planner_test'] = time_limit_dict
+                    info_dict['memory_limit_planner_test'] = memory_limit_dict
+                """
+
+                # 
+
+                # BE CAREFUL WITH PROBLEM IDS
+
+
+            else: # No problems have been generated yet, so we generate and solve them
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            # OLD
             problems, problem_info_list, trajectories, gen_time, num_unique_problems = self._generate_problems_and_trajectories(self.args.num_problems_test,
                                                                                                     max_init_actions,
                                                                                                     max_goal_actions)
