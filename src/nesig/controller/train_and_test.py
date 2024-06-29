@@ -775,19 +775,6 @@ def test(args, parsed_domain_info, experiment_id):
         # TODO CAMBIAR Mean Difficulty a Old Mean difficulty en los json de todos los experimentos
         policy_trainer.test(test_folder_path_curr_size, max_init_actions, max_goal_actions)
 
-        """
-        if not test_folder_path_curr_size.exists(): # if test_mode="supersede", we will have removed the folder and exists() will return False
-            # We need to create the folder before saving problems and info to it
-            test_folder_path_curr_size.mkdir(parents=True, exist_ok=True)
-
-            # Initialize policy trainer
-            # We initialize a new policy trainer for each problem size in case we use a different initial_state_info for each problem size
-            problem_generator = _create_problem_generator('test', args, parsed_domain_info, best_init_policy, best_goal_policy, max_init_actions, max_goal_actions)
-            policy_trainer = PolicyTrainer(args, experiment_folder_path, problem_generator, best_init_policy, best_goal_policy)
-
-            policy_trainer.test(test_folder_path_curr_size, max_init_actions, max_goal_actions)
-        """
-
 def main(args):
     # We set the working directory to the base folder of the repository
     # The path of __file__ is FOLDER_BASE/src/nesig/controller/train_and_test.py

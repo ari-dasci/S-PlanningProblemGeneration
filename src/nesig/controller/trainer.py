@@ -681,6 +681,53 @@ class PolicyTrainer():
             # No need to do torch.no_grad() as this is done inside _run_validation
             best_val_score, best_train_it = self._run_validation(train_init_policy, train_goal_policy, curr_train_it, best_train_it, best_val_score)
 
+    def _update_test_metrics(self, experiment_info, problem_paths, new_diffs):
+        """
+        Auxiliary method used by test.
+        It updates the experiment_info of last experiment with the info obtained with the new planners (difficulties and other planner-related metrics).
+        """
+        # Difficulties for each problem
+        for problem_path, diff_dict in zip(problem_paths, new_diffs):
+            problem_name = problem_path.stem
+
+            if isinstance(experiment_info['Problem Results'][problem_name]['difficulty'],dict):
+                experiment_info['Problem Results'][problem_name]['difficulty'].update(diff_dict)
+            else: # If it is not a dict, it contains the old difficulty format, so we overwrite it
+                experiment_info['Problem Results'][problem_name]['difficulty'] = diff_dict
+
+        # Mean and std difficulty
+        mean_difficulty_dict = dict()
+        std_difficulty_dict = dict()
+        new_planners = new_diffs[0].keys() # We obtain the planners for which we calculated difficulties
+
+        for planner in new_planners:
+            problem_diffs = [x[planner] for x in new_diffs]
+            mean_difficulty = sum(problem_diffs) / len(problem_diffs) if len(problem_diffs) > 0 else 0
+            std_difficulty = (sum([(d - mean_difficulty)**2 for d in problem_diffs]) / len(problem_diffs))**0.5 if len(problem_diffs) > 0 else 0
+
+            mean_difficulty_dict[planner] = mean_difficulty
+            std_difficulty_dict[planner] = std_difficulty
+
+        if "Mean difficulty" in experiment_info:
+            experiment_info['Mean difficulty'].update(mean_difficulty_dict)
+            experiment_info['Std difficulty'].update(std_difficulty_dict)               
+        else: # if no "Mean difficulty" fields exists, that's because the file contains the old diff results in "Old Mean Difficulty"
+            experiment_info['Mean difficulty'] = mean_difficulty_dict
+            experiment_info['Std difficulty'] = std_difficulty_dict
+
+        # Planner arguments
+        r_term_dict, time_limit_dict, memory_limit_dict = dict(), dict(), dict()
+
+        for planner in new_planners:
+            idx = self.args.planners_test.index(planner)
+            r_term_dict[planner] = self.args.r_terminated_problem_test[idx]
+            time_limit_dict[planner] = self.args.time_limit_planner_test[idx]
+            memory_limit_dict[planner] = self.args.memory_limit_planner_test[idx]
+
+        experiment_info['r_terminated_problem_test'].update(r_term_dict)
+        experiment_info['time_limit_planner_test'].update(time_limit_dict)
+        experiment_info['memory_limit_planner_test'].update(memory_limit_dict)
+
     def test(self, folder_curr_experiment:Path, max_init_actions:int, max_goal_actions:int):
         """
         Run a test experiment with the current policies.
@@ -715,90 +762,32 @@ class PolicyTrainer():
                 new_diffs, _ = self.problem_generator.difficulty_evaluator.get_difficulty(problem_paths)
 
                 # <Update experiment_info with new test metrics>
+                self._update_test_metrics(experiment_info, problem_paths, new_diffs)
 
-                # Difficulties for each problem
-                for problem_path, diff_dict in zip(problem_paths, new_diffs):
-                    problem_name = problem_path.stem
-                    old_diff = experiment_info['Problem Results'][problem_name]['difficulty']
-
-                    if isinstance(experiment_info['Problem Results'][problem_name]['difficulty'],dict):
-                        experiment_info['Problem Results'][problem_name]['difficulty'].update(diff_dict)
-                    else: # If it is not a dict, it contains the old difficulty format, so we overwrite it
-                        experiment_info['Problem Results'][problem_name]['difficulty'] = diff_dict
-
-                # Mean and std difficulty
-                # HERE
-
-                # Planner arguments
-
-
-
-                
-
-                """
-                    'Std difficulty'
-                    'Mean difficulty'
-                    info_dict['Problem Results'][name] = p_info
-
-                    r_term_dict, time_limit_dict, memory_limit_dict = dict(), dict(), dict()
-
-                    for planner, tl, ml, term_r in zip(self.args.planners_test, self.args.time_limit_planner_test,
-                        self.args.memory_limit_planner_test, self.args.r_terminated_problem_test):
-                        r_term_dict[planner] = term_r
-                        time_limit_dict[planner] = tl
-                        memory_limit_dict[planner] = ml
-
-                    info_dict['r_terminated_problem_test'] = r_term_dict
-                    info_dict['time_limit_planner_test'] = time_limit_dict
-                    info_dict['memory_limit_planner_test'] = memory_limit_dict
-                """
-
-                # 
-
-                # BE CAREFUL WITH PROBLEM IDS
-
+                # <Update info in results.json>
+                with open(results_path, 'w') as f:
+                    json.dump(experiment_info, f, indent=2)
 
             else: # No problems have been generated yet, so we generate and solve them
+                problems, problem_info_list, trajectories, gen_time, num_unique_problems = self._generate_problems_and_trajectories(self.args.num_problems_test,
+                                                                                                        max_init_actions,
+                                                                                                        max_goal_actions)
 
+                # NOTE: We don't calculate the score in the test phase since, in test, we can repeat the same experiment (problem size) with different planners
+                # and "score" would only be valid for the planners used in the last test experiment
+                """
+                avg_score, scores = self.calculate_val_scores(problem_info_list, 1.0)
 
+                for p_info, score in zip(problem_info_list, scores):
+                    p_info['score'] = score
+                """
 
+                # Log test metrics
+                # For the log charts, the x value of each metric corresponds to the problem size (measured by max_init_actions)
+                log_dict = self.log_metrics('test', max_init_actions, problems, problem_info_list, num_unique_problems=num_unique_problems)
+                log_dict['Max init actions'] = max_init_actions # We also save the (max) problem size of the experiment
+                log_dict['Max goal actions'] = max_goal_actions
+                log_dict['Generation time'] = gen_time          # and the TOTAL time needed to generate the problems (in seconds)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-            # OLD
-            problems, problem_info_list, trajectories, gen_time, num_unique_problems = self._generate_problems_and_trajectories(self.args.num_problems_test,
-                                                                                                    max_init_actions,
-                                                                                                    max_goal_actions)
-
-            # Calculate the test score for each problem and the average score
-            # At the moment, we use the val_score formula to calculate the test score
-
-            # NOTE: We don't calculate the score in the test phase since, in test, we can repeat the same experiment (problem size) with different planners
-            # and "score" would only be valid for the planners used in the last test experiment
-            """
-            avg_score, scores = self.calculate_val_scores(problem_info_list, 1.0)
-
-            for p_info, score in zip(problem_info_list, scores):
-                p_info['score'] = score
-            """
-
-            # Log test metrics
-            # For the log charts, the x value of each metric corresponds to the problem size (measured by max_init_actions)
-            log_dict = self.log_metrics('test', max_init_actions, problems, problem_info_list, num_unique_problems=num_unique_problems)
-            log_dict['Max init actions'] = max_init_actions # We also save the (max) problem size of the experiment
-            log_dict['Max goal actions'] = max_goal_actions
-            log_dict['Generation time'] = gen_time          # and the TOTAL time needed to generate the problems (in seconds)
-
-            # Save problems and their metrics to disk
-            self.save_problems_and_metrics('test', folder_curr_experiment, problems, problem_info_list, log_dict)
+                # Save problems and their metrics to disk
+                self.save_problems_and_metrics('test', folder_curr_experiment, problems, problem_info_list, log_dict)
