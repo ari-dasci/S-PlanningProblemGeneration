@@ -1,5 +1,5 @@
 # Script for updating the difficulty and diversity of the results.json files using the new mean difficulty and diversity formula, which ignores inconsistent problems
-# This problem receives either a results.json file or a folder. In the latter case, it recursively finds and modifies the "Mean difficulty" and "Mean diversity"
+# This script receives either a results.json file or a folder. In the latter case, it recursively finds and modifies the "Mean difficulty" and "Mean diversity"
 # field of all the results.json files.
 
 import os
@@ -13,11 +13,11 @@ def process_json_file(file_path):
     if 'Problem Results' not in data:
         raise ValueError('No Problem Results in JSON file')
 
-    if "Mean difficulty" not in data:
-        raise ValueError('Mean difficulty field is missing in JSON file')
+    if "Old mean difficulty" not in data:
+        raise ValueError('Old mean difficulty field is missing in JSON file')
 
-    if "Std difficulty" not in data:
-        raise ValueError('Std difficulty field is missing in JSON file')
+    if "Old std difficulty" not in data:
+        raise ValueError('Old std difficulty field is missing in JSON file')
 
     if "Mean diversity" not in data:
         raise ValueError('Mean diversity field is missing in JSON file')
@@ -49,8 +49,8 @@ def process_json_file(file_path):
     else:
         mean_overall_diversity = 0
 
-    data['Mean difficulty'] = mean_overall_difficulty
-    data['Std difficulty'] = std_overall_difficulty
+    data['Old mean difficulty'] = mean_overall_difficulty
+    data['Old std difficulty'] = std_overall_difficulty
     data['Mean diversity'] = mean_overall_diversity
 
     with open(file_path, 'w') as file:
