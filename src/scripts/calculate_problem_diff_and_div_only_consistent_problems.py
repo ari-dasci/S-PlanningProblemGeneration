@@ -39,6 +39,8 @@ def process_json_file(file_path):
             
             if isinstance(difficulty, list):
                 mean_difficulty = sum(difficulty) / len(difficulty)
+            elif isinstance(difficulty, dict):
+                mean_difficulty = sum(difficulty.values()) / len(difficulty)
             else:
                 mean_difficulty = difficulty
             
