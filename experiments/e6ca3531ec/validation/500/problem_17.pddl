@@ -1,0 +1,37 @@
+(define (problem problem_17)
+
+(:domain logistics)
+
+(:objects
+	obj0 obj7 obj9 - airport
+	obj1 obj8 obj10 - city
+	obj2 obj3 obj5 obj12 obj17 - package
+	obj4 obj15 obj16 - location
+	obj6 obj11 obj13 - truck
+	obj14 - airplane
+)
+
+(:init
+	(at obj2 obj0)
+	(at obj3 obj0)
+	(at obj5 obj0)
+	(at obj6 obj0)
+	(at obj11 obj9)
+	(at obj12 obj7)
+	(at obj13 obj7)
+	(at obj14 obj7)
+	(at obj17 obj9)
+	(in-city obj0 obj1)
+	(in-city obj4 obj1)
+	(in-city obj7 obj8)
+	(in-city obj9 obj10)
+	(in-city obj15 obj8)
+	(in-city obj16 obj10)
+)
+
+(:goal (and
+	(at obj2 obj0)
+	(at obj3 obj0)
+	(at obj17 obj9)
+))
+)

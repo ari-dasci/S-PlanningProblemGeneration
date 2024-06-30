@@ -1,0 +1,70 @@
+(define (problem problem_21)
+
+(:domain logistics)
+
+(:objects
+	obj0 obj2 obj6 obj9 - airport
+	obj1 obj3 obj7 obj10 - city
+	obj4 obj5 obj8 obj11 obj26 obj31 obj33 obj35 obj37 - location
+	obj12 obj13 obj14 obj15 - truck
+	obj16 obj17 obj18 obj19 obj20 obj21 obj22 obj23 obj24 obj25 obj27 obj28 obj29 obj30 obj34 obj38 - package
+	obj32 obj36 - airplane
+)
+
+(:init
+	(at obj12 obj2)
+	(at obj13 obj6)
+	(at obj14 obj9)
+	(at obj15 obj0)
+	(at obj16 obj9)
+	(at obj17 obj2)
+	(at obj18 obj0)
+	(at obj19 obj6)
+	(at obj20 obj6)
+	(at obj21 obj2)
+	(at obj22 obj9)
+	(at obj23 obj6)
+	(at obj24 obj6)
+	(at obj25 obj6)
+	(at obj27 obj0)
+	(at obj28 obj26)
+	(at obj29 obj9)
+	(at obj30 obj0)
+	(at obj32 obj2)
+	(at obj34 obj26)
+	(at obj36 obj9)
+	(at obj38 obj11)
+	(in-city obj0 obj1)
+	(in-city obj2 obj3)
+	(in-city obj4 obj3)
+	(in-city obj5 obj1)
+	(in-city obj6 obj7)
+	(in-city obj8 obj7)
+	(in-city obj9 obj10)
+	(in-city obj11 obj10)
+	(in-city obj26 obj10)
+	(in-city obj31 obj1)
+	(in-city obj33 obj3)
+	(in-city obj35 obj1)
+	(in-city obj37 obj3)
+)
+
+(:goal (and
+	(at obj16 obj6)
+	(at obj17 obj9)
+	(at obj18 obj6)
+	(at obj19 obj5)
+	(at obj20 obj31)
+	(at obj21 obj11)
+	(at obj22 obj6)
+	(at obj23 obj9)
+	(at obj24 obj9)
+	(at obj25 obj26)
+	(at obj27 obj4)
+	(at obj28 obj11)
+	(at obj29 obj6)
+	(at obj30 obj8)
+	(at obj34 obj11)
+	(at obj38 obj26)
+))
+)
