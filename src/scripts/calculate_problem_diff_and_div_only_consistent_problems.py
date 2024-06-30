@@ -13,11 +13,19 @@ def process_json_file(file_path):
     if 'Problem Results' not in data:
         raise ValueError('No Problem Results in JSON file')
 
-    if "Old mean difficulty" not in data:
-        raise ValueError('Old mean difficulty field is missing in JSON file')
+    if "Old mean difficulty" in data:
+        diff_key = "Old mean difficulty"
+    elif "Mean difficulty" in data:
+        diff_key = "Mean difficulty"
+    else:
+        raise ValueError('Mean difficulty field is missing in JSON file')
 
-    if "Old std difficulty" not in data:
-        raise ValueError('Old std difficulty field is missing in JSON file')
+    if "Old std difficulty" in data:
+        std_key = "Old std difficulty"
+    elif "Std difficulty" in data:
+        std_key = "Std difficulty"
+    else:
+        raise ValueError('Std difficulty field is missing in JSON file')
 
     if "Mean diversity" not in data:
         raise ValueError('Mean diversity field is missing in JSON file')
@@ -49,8 +57,8 @@ def process_json_file(file_path):
     else:
         mean_overall_diversity = 0
 
-    data['Old mean difficulty'] = mean_overall_difficulty
-    data['Old std difficulty'] = std_overall_difficulty
+    data[diff_key] = mean_overall_difficulty
+    data[std_key] = std_overall_difficulty
     data['Mean diversity'] = mean_overall_diversity
 
     with open(file_path, 'w') as file:
