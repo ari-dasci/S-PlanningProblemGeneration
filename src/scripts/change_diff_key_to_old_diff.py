@@ -20,15 +20,15 @@ def update_json_keys(folder_path):
                         data = json.load(f)
                     
                     # Update the keys
-                    if 'Mean difficulty' in data:
+                    if 'Mean difficulty' in data and not isinstance(data['Mean difficulty'], dict):
                         data['Old mean difficulty'] = data.pop('Mean difficulty')
-                    if 'Std difficulty' in data:
+                        print(f"Updated {file_path}")
+                    if 'Std difficulty' in data and not isinstance(data['Std difficulty'], dict):
                         data['Old std difficulty'] = data.pop('Std difficulty')
 
                     # Write back to the JSON file
                     with open(file_path, 'w') as f:
                         json.dump(data, f, indent=2)
-                    print(f"Updated {file_path}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Resursively update keys in results.json files inside test folders.")
