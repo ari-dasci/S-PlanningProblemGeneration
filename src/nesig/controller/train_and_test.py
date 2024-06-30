@@ -760,6 +760,9 @@ def test(args, parsed_domain_info, experiment_id):
         if args.test_mode=="supersede_all":
             remove_if_exists(test_folder_path_curr_size)
 
+        # If the experiment folder does not exist, create an empty folder
+        test_folder_path_curr_size.mkdir(parents=True, exist_ok=True)
+
         # Obtain the planners to use for test
         # If "supersede_diff" or the experiment does not exist, we use all the planners in args.planners_test
         # Else, we only use the planners that were not previously used in the experiment
