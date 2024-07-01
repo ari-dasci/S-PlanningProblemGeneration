@@ -560,9 +560,6 @@ def main(args):
     # If an experiment already exists, they are updated with the new planner info
     _save_parameters(problem_folder, args, new_planners)
 
-    # TODO
-    #Change instance generator folder names
-
 if __name__ == '__main__':
     args = parse_args()
     main(args)
