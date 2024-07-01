@@ -6,14 +6,6 @@ This script serves as an interface to the domain-specific instance generators.
 It generates a certain number of problems for a given domain and saves them to disk, along with their metrics.
 """
 
-# TODO
-"""
-Check that the problem is between min and max num atoms
-For sokoban, check that the goal is attainable
-Also for sokoban, check that least a 25% of the level must be empty, i.e., without robots, walls or boxes
-
-"""
-
 import argparse
 import time
 import random
@@ -27,6 +19,7 @@ import math
 import json
 from lifted_pddl import Parser
 
+from src.nesig.controller.train_and_test import parse_elem_or_tuple_str, parse_elem_or_tuple_float, parse_elem_or_tuple_int
 from src.nesig.symbolic.pddl_problem import PDDLProblem
 from src.nesig.metrics.difficulty import PlannerEvaluator
 from src.nesig.metrics.diversity import InitGoalDiversityEvaluator
@@ -58,16 +51,24 @@ def parse_args():
         description=("Interface to domain-specific instance generators."))
 
     parser.add_argument('--seed', type=int, default=1)
+    parser.add_argument('--mode', choices=('missing','supersede_all','supersede_diff'), default='missing', 
+                        help=("Execution mode:"
+                        "missing: we only obtain difficulties for planners not previously used in the current experiment."
+                        "supersede_all: if the experiment folder contained test information, remove all the problems and info and solve again."
+                        "supersede_diff: if difficulty for the current planner(s) already exists, overwrite it with the new one (but do not re-generate problems)."))
     parser.add_argument('--num-problems', type=int, default=100, help="Number of problems to generate")
     # I tried num-retries but didn't help diversity much in blocskworld
     #parser.add_argument('--num-retries', type=int, default=5, help="How many times we try to generate a valid problem for each sampled combination of generation parameters.")
     #parser.add_argument('--skip-metrics', action='store_true', help="If set, we generate the problems but do not calculate their metrics.")
     #parser.add_argument('--skip-generation', action='store_true', help="If set, we assume the problems have already been generated, so we skip generation and calculate the metrics of the problems in the folder."))
-    parser.add_argument('--time-limit-planner', type=int, default=1800, help="Time limit (s) for the planner used for calculating the problem difficulties.") # default = 30 min
-    parser.add_argument('--memory-limit-planner', type=int, default=8500000, help="Memory limit (KB) for the planner used for calculating the problem difficulties.") # default = 8 GB approx.
-    parser.add_argument('--term-problem-diff', type=float, default=1e8, help="Difficulty of a problem that has been terminated (either by timeout or memory out) by the planner.")
     parser.add_argument('--perc-problems-diversity', type=float, default=1.0, help=("When calculating the diversity score, we calculate the average distance between each problem"
-                                                                                    "and the n=perc_problem_diversity % of the problems that are closest to it."))
+                                                                                "and the n=perc_problem_diversity % of the problems that are closest to it."))
+    
+    parser.add_argument('--planners', type=parse_elem_or_tuple_str, default=('lama_first',), help="The planner(s) to use for evaluating the difficulty of the problems.")
+    parser.add_argument('--time-limit-planner', type=int, default=(1800,), help="Time limit (s) for the planner used for calculating the problem difficulties.") # default = 30 min
+    parser.add_argument('--memory-limit-planner', type=int, default=(8500000,), help="Memory limit (KB) for the planner used for calculating the problem difficulties.") # default = 8 GB approx.
+    parser.add_argument('--term-problem-diff', type=float, default=(1e8,), help="Difficulty of a problem that has been terminated (either by timeout or memory out) by the planner.")
+
     
     # Add domain-specific arguments
     subparsers = parser.add_subparsers(title="domain", help="Specifies the domain to generate problems for.")
@@ -95,6 +96,19 @@ def parse_args():
     sk_parser.add_argument('--walls', type=parse_tuple, required=True, help="Range for the number of walls") # Default value: 0, map_size[0]*3
 
     args = parser.parse_args()
+
+    # We make sure the length of the planner arguments is the same as the number of planners
+    num_planners = len(args.planners)
+    if len(args.term_problem_diff) == 1:
+        args.term_problem_diff = args.term_problem_diff*num_planners
+    if len(args.time_limit_planner) == 1:
+        args.time_limit_planner = args.time_limit_planner*num_planners
+    if len(args.memory_limit_planner) == 1:
+        args.memory_limit_planner = args.memory_limit_planner*num_planners
+
+    if not (num_planners == len(args.term_problem_diff) == len(args.time_limit_planner) == len(args.memory_limit_planner)):
+        raise ValueError("The number of elements in term_problem_diff, time_limit_planner and memory_limit_planner must be the same as the number of planners")
+
     return args
 
 def is_solvable(problem_path:Path, domain_path:Path) -> bool:
@@ -268,7 +282,9 @@ def _get_problem_folder(args) -> Path:
         raise ValueError("Invalid domain")
 
     # Add the parameters shared between generators
-    extra_params = f'__{args.seed}_{args.num_problems}_{args.time_limit_planner}_{args.memory_limit_planner}_{args.term_problem_diff}_{args.perc_problems_diversity}'
+    # extra_params = f'__{args.seed}_{args.num_problems}_{args.time_limit_planner}_{args.memory_limit_planner}_{args.term_problem_diff}_{args.perc_problems_diversity}'
+    extra_params = f'__{args.seed}_{args.num_problems}_{args.perc_problems_diversity}' # We remove from the folder name the planner-dependent info since we can now have several planners
+                                                                                       # This planner-dependent info is saved in params.json
     problem_folder = Path(str(problem_folder) + extra_params)
 
     # Create the folder if it does not exist
@@ -431,6 +447,22 @@ def _save_problem_metrics(problem_folder:Path, total_gen_time:int, args, metrics
     with open(problem_folder / metrics_file_name, 'w') as f:
         json.dump(metrics_dict, f, indent=2)
 
+def _obtain_planners_to_use(args, problem_folder:Path) -> list:
+    results_path = problem_folder / 'results.json'
+    
+    if args.mode=="supersede_diff" or not os.path.isfile(results_path):
+        new_planners = args.planners
+    else:
+        with open(results_path, 'r') as f:
+                experiment_info = json.load(f)
+
+        past_planners = experiment_info['Mean difficulty'].keys() \
+            if 'Mean difficulty' in experiment_info and isinstance(experiment_info['Mean difficulty'],dict) \
+            else tuple() # For old results, we assume no planners were used, so we re-run experiments with all planners
+        new_planners = [planner for planner in args.planners if planner not in past_planners]
+
+    return new_planners
+
 def main(args):
     # We set the working directory to the base folder of the repository
     # The path of __file__ is FOLDER_BASE/src/nesig/controller/run_instance_generator.py
@@ -442,6 +474,19 @@ def main(args):
     # Problems are stored in a subfolder named "min_atoms_max_atoms" inside the domain's problems folder
     problem_folder = _get_problem_folder(args)
 
+    # If mode == supersede_all, we remove the contents of the folder, just in case
+    if args.mode == 'supersede_all':
+        for file in problem_folder.glob('*'):
+            file.unlink()
+
+    # Obtain planners for which obtain the new difficulties
+    # If mode==supersede_diff, we obtain the difficulties for all planners in args.planners
+    # Else, we only obtain the difficulties for planners not previously used in the current experiment
+    new_planners = _obtain_planners_to_use(args, problem_folder)
+
+    if len(new_planners) == 0: # No new planners to evaluate, so we exit
+        return
+
     # Save the used generator parameters to disk
     _save_parameters(problem_folder, args)
 
@@ -450,6 +495,9 @@ def main(args):
 
     # Calculate their metrics and save them to disk
     _save_problem_metrics(problem_folder, total_gen_time, args)
+
+    # TODO
+    #~Change instance generator folder names
 
 if __name__ == '__main__':
     args = parse_args()

@@ -103,109 +103,108 @@ from src.nesig.metrics.difficulty import PlannerEvaluator
 from src.nesig.metrics.diversity import InitGoalDiversityEvaluator
 from src.nesig.controller.trainer import PolicyTrainer
 
-def parse_arguments():
+def parse_max_actions_train(value):
+    """
+    Parse either a single integer or a tuple of two integers.
+    """
+    try:
+        val = int(value)
+        if val <= 0:
+            raise argparse.ArgumentTypeError("Max num actions must be larger than zero")
+        return val
+    except ValueError:
+        pass
 
-    def parse_max_actions_train(value):
-        """
-        Parse either a single integer or a tuple of two integers.
-        """
-        try:
-            val = int(value)
-            if val <= 0:
-                raise argparse.ArgumentTypeError("Max num actions must be larger than zero")
-            return val
-        except ValueError:
-            pass
-
-        try:
-            parts = value.split(',')
-            if len(parts) == 2:
-                val =  tuple(int(p) for p in parts)
-
-                if val[0] <= 0 or val[1] <= 0:
-                    raise argparse.ArgumentTypeError("Max num actions must be larger than zero")
-                if val[0] >= val[1]:
-                    raise argparse.ArgumentTypeError("The first element of the tuple must be smaller the the second one")
-
-                return val
-            else:
-                raise argparse.ArgumentTypeError("Max num actions must be either a single integer or a tuple of two integers")
-        except ValueError:
-            raise argparse.ArgumentTypeError("Max num actions must be either a single integer or a tuple of two integers")
-
-    def parse_max_actions_val(value):
-        # If a value of "-1" is passed, we will use the same max_actions for training and val
-        # Otherwise, we need to parse the actual max_actions_val
-        try:
-            val = int(value)
-            if val == -1:
-                return val
-        except ValueError:
-            pass
-
-        return parse_max_actions_train(value)
-     
-    def parse_max_actions_test(value):
-        """
-        Parse either a single integer or a tuple of several integers.
-        """
-        try:
-            val = int(value)
-            if val <= 0:
-                raise argparse.ArgumentTypeError("Max num actions must be larger than zero")
-            return (val,)
-        except ValueError:
-            pass
-
-        try:
-            parts = value.split(',')
+    try:
+        parts = value.split(',')
+        if len(parts) == 2:
             val =  tuple(int(p) for p in parts)
 
-            for v in val:
-                if v <= 0:
-                    raise argparse.ArgumentTypeError("Max num actions must be larger than zero")
+            if val[0] <= 0 or val[1] <= 0:
+                raise argparse.ArgumentTypeError("Max num actions must be larger than zero")
+            if val[0] >= val[1]:
+                raise argparse.ArgumentTypeError("The first element of the tuple must be smaller the the second one")
 
             return val
+        else:
+            raise argparse.ArgumentTypeError("Max num actions must be either a single integer or a tuple of two integers")
+    except ValueError:
+        raise argparse.ArgumentTypeError("Max num actions must be either a single integer or a tuple of two integers")
+
+def parse_max_actions_val(value):
+    # If a value of "-1" is passed, we will use the same max_actions for training and val
+    # Otherwise, we need to parse the actual max_actions_val
+    try:
+        val = int(value)
+        if val == -1:
+            return val
+    except ValueError:
+        pass
+
+    return parse_max_actions_train(value)
+    
+def parse_max_actions_test(value):
+    """
+    Parse either a single integer or a tuple of several integers.
+    """
+    try:
+        val = int(value)
+        if val <= 0:
+            raise argparse.ArgumentTypeError("Max num actions must be larger than zero")
+        return (val,)
+    except ValueError:
+        pass
+
+    try:
+        parts = value.split(',')
+        val =  tuple(int(p) for p in parts)
+
+        for v in val:
+            if v <= 0:
+                raise argparse.ArgumentTypeError("Max num actions must be larger than zero")
+
+        return val
+    except ValueError:
+        raise argparse.ArgumentTypeError("Max num actions must be either a single value or a tuple of integers")
+
+def parse_elem_or_tuple(value, t):
+    """
+    We parse either a single value of type t or several ones.
+    """
+    if ',' in value:
+        parts = value.split(',')
+        try:
+            val = tuple(t(p) for p in parts)
+            return val
         except ValueError:
-            raise argparse.ArgumentTypeError("Max num actions must be either a single value or a tuple of integers")
+            raise argparse.ArgumentTypeError("Incorrect type for argument")
+    else:
+        try:
+            val = t(value)
+            return (val,)
+        except ValueError:
+            raise argparse.ArgumentTypeError("Incorrect type for argument")
 
-    def parse_elem_or_tuple(value, t):
-        """
-        We parse either a single value of type t or several ones.
-        """
-        if ',' in value:
-            parts = value.split(',')
-            try:
-                val = tuple(t(p) for p in parts)
-                return val
-            except ValueError:
-                raise argparse.ArgumentTypeError("Incorrect type for argument")
-        else:
-            try:
-                val = t(value)
-                return (val,)
-            except ValueError:
-                raise argparse.ArgumentTypeError("Incorrect type for argument")
+def parse_elem_or_tuple_str(value):
+    return parse_elem_or_tuple(value, str)
 
-    def parse_elem_or_tuple_str(value):
-        return parse_elem_or_tuple(value, str)
+def parse_elem_or_tuple_float(value):
+    return parse_elem_or_tuple(value, float)
 
-    def parse_elem_or_tuple_float(value):
-        return parse_elem_or_tuple(value, float)
+def parse_elem_or_tuple_int(value):
+    return parse_elem_or_tuple(value, int)
 
-    def parse_elem_or_tuple_int(value):
-        return parse_elem_or_tuple(value, int)
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 
-    def str2bool(v):
-        if isinstance(v, bool):
-            return v
-        if v.lower() in ('yes', 'true', 't', 'y', '1'):
-            return True
-        elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-            return False
-        else:
-            raise argparse.ArgumentTypeError('Boolean value expected.')
-
+def parse_arguments():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description=("It trains, validates and tests a model, saving the information to disk."))
