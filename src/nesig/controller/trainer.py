@@ -35,7 +35,8 @@ class PolicyTrainer():
     """
 
     def __init__(self, args, experiment_folder_path:Path, problem_generator:ProblemGenerator,
-                 init_policy:GenerativePolicy, goal_policy:GenerativePolicy):
+                 init_policy:GenerativePolicy, goal_policy:GenerativePolicy,
+                 device):
         self.args = args
         self.init_policy = init_policy
         self.goal_policy = goal_policy
@@ -50,7 +51,7 @@ class PolicyTrainer():
 
         # Obtain the corresponding torch.device from the args.device string
         # TODO: adapt this code to settings with multiple devices
-        self.device = torch.device("cuda") if self.args.device=='gpu' else torch.device("cpu")
+        self.device = device
 
 
 

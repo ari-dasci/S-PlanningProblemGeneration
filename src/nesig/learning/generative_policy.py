@@ -169,10 +169,13 @@ class PPOPolicy(GenerativePolicy):
     """
     
     def __init__(self, phase, args:argparse.Namespace, actor_class, actor_arguments,
-                 critic_class, critic_arguments):
+                 critic_class, critic_arguments, device):
         """
         phase argument is 'init' for the initial state generation policy and 'goal' for the goal generation policy.
         We need this argument so that the init and goal policies can have different hyperparameter values (e.g., different entropy coeffs).
+
+        NOTE: device is used because we can't use args['device'] (as we may want to use a different device from the one saved in args),
+              and we can't use self.device as the model can be moved from CPU/GPU after calling this constructor.
         """
         assert phase in self.PHASES, f"phase must be one of {self.PHASES}"
 
@@ -183,8 +186,8 @@ class PPOPolicy(GenerativePolicy):
         self.phase = phase
         #self.actor = self.get_hparam('actor_class')(args, actor_arguments)
         #self.critic = self.get_hparam('critic_class')(args, critic_arguments)
-        self.actor = actor_class(args, actor_arguments)
-        self.critic = critic_class(args, critic_arguments)
+        self.actor = actor_class(args, actor_arguments, device)
+        self.critic = critic_class(args, critic_arguments, device)
 
         # Variables used to sum metrics over each batch to log them at the start of the training iteration (i.e., on_train_end())
         self.total_norm_actor_sum  = 0.0

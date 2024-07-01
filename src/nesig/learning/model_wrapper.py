@@ -72,15 +72,13 @@ class NLMWrapper(ModelWrapper):
     or the domain actions (for the goal phase).
     """
 
-    def __init__(self, args:Union[argparse.Namespace, dict], model_arguments:dict):
+    def __init__(self, args:Union[argparse.Namespace, dict], model_arguments:dict, device):
         super().__init__(args, model_arguments)
 
         # If in the initial generation phase, this state will be PDDLState(obj_types, type_hierarchy, predicates)
         # If in the goal generation phase, it will be PDDLState(obj_types, type_hierarchy, actions)
         self.dummy_pddl_state = model_arguments["dummy_pddl_state"]
-        # TODO
-        # Adapt this code to settings with multiple GPUs 
-        self.device = torch.device("cuda") if self.args['device']=='gpu' else torch.device("cpu")
+        self.device = device
 
         # Initialize NLM
         hidden_features = [[self.args['hidden_features']]*(self.args['breadth']+1)]*(self.args['depth']-1)

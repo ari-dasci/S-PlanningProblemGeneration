@@ -82,6 +82,7 @@ import argparse
 import hashlib
 import sys
 import os
+import torch
 from os.path import dirname, abspath
 from pathlib import Path
 from pytorch_lightning import seed_everything
@@ -570,6 +571,7 @@ def _get_policies_to_train(args, experiment_folder_path, parsed_domain_info, las
     # Obtain ML model arguments
     init_actor_class, init_actor_arguments, init_critic_class, init_critic_arguments = _get_ML_model_arguments('init', args, parsed_domain_info)
     goal_actor_class, goal_actor_arguments, goal_critic_class, goal_critic_arguments = _get_ML_model_arguments('goal', args, parsed_domain_info)
+    device = torch.device("cuda") if args.device=='gpu' else torch.device("cpu")
 
     # Obtain init policy
     if args.init_policy=='random':
@@ -577,15 +579,15 @@ def _get_policies_to_train(args, experiment_folder_path, parsed_domain_info, las
     elif args.init_policy == 'PPO':
         # train-mode=supersede -> we initialize the policy from scratch
         # We also do this if there are no ckpts
-        if args.train_mode == "supersede" or last_train_it==0:
+        if args.train_mode == "supersede" or last_train_it==0:     
             init_policy = PPOPolicy(phase='init', args=args, actor_class=init_actor_class, actor_arguments=init_actor_arguments,
-                                    critic_class=init_critic_class, critic_arguments=init_critic_arguments)
+                                    critic_class=init_critic_class, critic_arguments=init_critic_arguments, device=device)
         # train-mode=resume -> if training is finished, we load the best ckpt.
         # Otherwise, we load the last ckpt
         elif args.train_mode == "resume":
             init_last_ckpt_path = experiment_folder_path / CKPTS_FOLDER_NAME / "init_last.ckpt"
             init_policy = PPOPolicy.load_from_checkpoint(init_last_ckpt_path, phase='init', actor_class=init_actor_class, actor_arguments=init_actor_arguments,
-                                                        critic_class=init_critic_class, critic_arguments=init_critic_arguments)
+                                                        critic_class=init_critic_class, critic_arguments=init_critic_arguments, device=device)
         else:
             raise ValueError("Invalid value for 'args.train_mode' argument")
     else:
@@ -597,11 +599,11 @@ def _get_policies_to_train(args, experiment_folder_path, parsed_domain_info, las
     elif args.goal_policy == 'PPO':
         if args.train_mode == "supersede" or last_train_it==0:
             goal_policy = PPOPolicy(phase='goal', args=args, actor_class=goal_actor_class, actor_arguments=goal_actor_arguments,
-                                    critic_class=goal_critic_class, critic_arguments=goal_critic_arguments)
+                                    critic_class=goal_critic_class, critic_arguments=goal_critic_arguments, device=device)
         elif args.train_mode == "resume":
             goal_last_ckpt_path = experiment_folder_path / CKPTS_FOLDER_NAME / "goal_last.ckpt"
             goal_policy = PPOPolicy.load_from_checkpoint(goal_last_ckpt_path, phase='goal', actor_class=goal_actor_class, actor_arguments=goal_actor_arguments,
-                                                        critic_class=goal_critic_class, critic_arguments=goal_critic_arguments)
+                                                        critic_class=goal_critic_class, critic_arguments=goal_critic_arguments, device=device)
         else:
             raise ValueError("Invalid value for 'args.train_mode' argument")
     else:
@@ -689,7 +691,8 @@ def train_and_val(args, parsed_domain_info, experiment_id):
     problem_generator = _create_problem_generator('train', args, parsed_domain_info, init_policy, goal_policy, args.max_init_actions_train, args.max_goal_actions_train, TRAIN_PLANNER_ARGS)
     train_init_policy = (args.init_policy != 'random')
     train_goal_policy = (args.goal_policy != 'random')
-    policy_trainer = PolicyTrainer(args, experiment_folder_path, problem_generator, init_policy, goal_policy)
+    device = torch.device("cuda") if args.device=='gpu' else torch.device("cpu")
+    policy_trainer = PolicyTrainer(args, experiment_folder_path, problem_generator, init_policy, goal_policy, device=device)
 
     # Train
     policy_trainer.train_and_val(train_init_policy, train_goal_policy, last_train_it+1, args.steps)
@@ -698,6 +701,7 @@ def _get_policies_to_test(args, experiment_folder_path, parsed_domain_info):
     # Obtain ML model arguments
     init_actor_class, init_actor_arguments, init_critic_class, init_critic_arguments = _get_ML_model_arguments('init', args, parsed_domain_info)
     goal_actor_class, goal_actor_arguments, goal_critic_class, goal_critic_arguments = _get_ML_model_arguments('goal', args, parsed_domain_info)
+    device = torch.device("cuda") if args.device=='gpu' else torch.device("cpu")
 
     # Obtain init policy    
     if args.init_policy=='random':
@@ -706,7 +710,7 @@ def _get_policies_to_test(args, experiment_folder_path, parsed_domain_info):
         init_best_ckpt_path = experiment_folder_path / CKPTS_FOLDER_NAME / "init_best.ckpt"
         if init_best_ckpt_path.exists():
             init_policy = PPOPolicy.load_from_checkpoint(init_best_ckpt_path, phase='init', actor_class=init_actor_class, actor_arguments=init_actor_arguments,
-                                                        critic_class=init_critic_class, critic_arguments=init_critic_arguments)
+                                                        critic_class=init_critic_class, critic_arguments=init_critic_arguments, device=device)
         else:
             init_policy = None
     else:
@@ -719,7 +723,7 @@ def _get_policies_to_test(args, experiment_folder_path, parsed_domain_info):
         goal_best_ckpt_path = experiment_folder_path / CKPTS_FOLDER_NAME / "goal_best.ckpt"
         if goal_best_ckpt_path.exists():
             goal_policy = PPOPolicy.load_from_checkpoint(goal_best_ckpt_path, phase='goal', actor_class=goal_actor_class, actor_arguments=goal_actor_arguments,
-                                                        critic_class=goal_critic_class, critic_arguments=goal_critic_arguments)
+                                                        critic_class=goal_critic_class, critic_arguments=goal_critic_arguments, device=device)
         else:
             goal_policy = None
     else:
@@ -786,7 +790,8 @@ def test(args, parsed_domain_info, experiment_id):
         # Initialize policy trainer
         # We initialize a new policy trainer for each problem size in case we use a different initial_state_info for each problem size
         problem_generator = _create_problem_generator('test', args, parsed_domain_info, best_init_policy, best_goal_policy, max_init_actions, max_goal_actions, test_planners)
-        policy_trainer = PolicyTrainer(args, experiment_folder_path, problem_generator, best_init_policy, best_goal_policy)
+        device = torch.device("cuda") if args.device=='gpu' else torch.device("cpu")
+        policy_trainer = PolicyTrainer(args, experiment_folder_path, problem_generator, best_init_policy, best_goal_policy, device=device)
 
         policy_trainer.test(test_folder_path_curr_size, max_init_actions, max_goal_actions)
 
