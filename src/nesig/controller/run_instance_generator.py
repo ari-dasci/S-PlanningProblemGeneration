@@ -67,9 +67,9 @@ def parse_args():
     parser.add_argument('--max-workers', type=int, default=1, help="Maximum number of workers to use for parallel problem solving.")
 
     parser.add_argument('--planners', type=parse_elem_or_tuple_str, default=('lama_first',), help="The planner(s) to use for evaluating the difficulty of the problems.")
-    parser.add_argument('--time-limit-planner', type=int, default=(1800,), help="Time limit (s) for the planner used for calculating the problem difficulties.") # default = 30 min
-    parser.add_argument('--memory-limit-planner', type=int, default=(8500000,), help="Memory limit (KB) for the planner used for calculating the problem difficulties.") # default = 8 GB approx.
-    parser.add_argument('--term-problem-diff', type=float, default=(1e8,), help="Difficulty of a problem that has been terminated (either by timeout or memory out) by the planner.")
+    parser.add_argument('--time-limit-planner', type=parse_elem_or_tuple_int, default=(1800,), help="Time limit (s) for the planner used for calculating the problem difficulties.") # default = 30 min
+    parser.add_argument('--memory-limit-planner', type=parse_elem_or_tuple_int, default=(8500000,), help="Memory limit (KB) for the planner used for calculating the problem difficulties.") # default = 8 GB approx.
+    parser.add_argument('--term-problem-diff', type=parse_elem_or_tuple_float, default=(1e8,), help="Difficulty of a problem that has been terminated (either by timeout or memory out) by the planner.")
 
     
     # Add domain-specific arguments
@@ -130,7 +130,7 @@ def is_solvable(problem_path:Path, domain_path:Path) -> bool:
 
     # Call the planner
     # We use lama-first as it is one of the fastest planners (and we only care about checking solvability)
-    planner_call = f"""{str(limit_sh_path.absolute())} -t {args.time_limit_planner} -m {args.memory_limit_planner} -- "{str(fd_path.absolute())} -o '--alias lama-first'" -- {str(problem_path.absolute())} {str(domain_path.absolute())}"""
+    planner_call = f"""{str(limit_sh_path.absolute())} -t 1800 -m 8500000 -- "{str(fd_path.absolute())} -o '--alias lama-first'" -- {str(problem_path.absolute())} {str(domain_path.absolute())}"""
 
     # We redirect stdout and stderr so that they are not printed to the console
     result = subprocess.run(planner_call, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -244,7 +244,7 @@ def generate_sokoban_problem(curr_problem_path:Path, args) -> int:
     # For every problem generation attempt, we use a different seed
     seed_generator = generate_seeds(args.seed)
 
-    while not generated_valid_problem:
+    while not generated_valid_problem: 
         curr_seed = next(seed_generator)
 
         # We try to generate a solvable problem with args.map_size
@@ -559,6 +559,8 @@ def main(args):
     # Save the used generator parameters to disk
     # If an experiment already exists, they are updated with the new planner info
     _save_parameters(problem_folder, args, new_planners)
+
+    print(">>> Problems generated and metrics saved to disk.", flush=True)
 
 if __name__ == '__main__':
     args = parse_args()
