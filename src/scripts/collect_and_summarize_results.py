@@ -84,7 +84,9 @@ def update_df_from_dict_list(df, *dict_list):
     for d in dict_list:
         row_dict.update(d)
     
-    df = pd.concat([df, pd.DataFrame([row_dict])], ignore_index=True)
+    other_df = pd.DataFrame([row_dict])
+    df = df.copy() if other_df.empty else other_df.copy() if df.empty else pd.concat([df, other_df])
+
     return df
 
 def get_dataframe_nesig(base_folder : Path, df_data):
