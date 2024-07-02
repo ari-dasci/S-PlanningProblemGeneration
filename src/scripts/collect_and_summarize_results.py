@@ -32,12 +32,12 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('base_folder_nesig', type=str, help='The path to the folder containing all the NeSIG experiments')
     parser.add_argument('base_folder_adhoc', type=str, help='The path to the folder containing all the ad hoc experiments')
-    parser.add_argument('--filter_query', type=parse_filter_query, default="", help=('A string containing a comma-separated list of keys-value pairs to filer.'
+    parser.add_argument('--filter-query', type=parse_filter_query, default="", help=('A string containing a comma-separated list of keys-value pairs to filer.'
                                                                                      'Example: "domain=blocksword,init_policy=PPO"'))
-    parser.add_argument('--group_fields', type=parse_tuple, default="", help=('A string containing a comma-separated list of fields to group by.'
+    parser.add_argument('--group-fields', type=parse_tuple, default="", help=('A string containing a comma-separated list of fields to group by.'
                                                                               'Example: "domain,init_policy,goal_policy,seed"'))
     parser.add_argument('--show-field', type=str, default="Mean difficulty", help='The field to show in the summary (e.g., Mean difficulty)')
-    parser.add_argument('--group_op', choices=('list', 'mean'), default='list', help='How to aggregate the grouped values in --show-field. Default: just show a list of values ("list").')
+    parser.add_argument('--group-op', choices=('list', 'mean'), default='list', help='How to aggregate the grouped values in --show-field. Default: just show a list of values ("list").')
 
     args = parser.parse_args()
 
@@ -68,11 +68,11 @@ def get_dataframe_nesig(base_folder : Path, df_data):
         # Load experiment_info.json
         try:
             experiment_info = load_json(experiment_folder / 'experiment_info.json')
-            experiment_info_vals = {'experiment_id' : experiment_info['experiment_id'],
+            experiment_info_vals = {'experiment_id' : str(experiment_info['experiment_id']),
                                     'domain' : experiment_info['domain'],
                                     'init_policy' : experiment_info['init_policy'],
                                     'goal_policy' : experiment_info['goal_policy'],
-                                    'seed' : experiment_info['seed']}
+                                    'seed' : str(experiment_info['seed'])} # We use str so that these fields are stored as strings and not integers
         except:
             continue # We skip the current experiment if the folder does not contain experiment data
 
@@ -86,23 +86,23 @@ def get_dataframe_nesig(base_folder : Path, df_data):
 
             # Add a different df row for each planner in results.json
             if 'Old mean difficulty' in curr_results: # Old results format
-                curr_results_vals = {'size' : curr_size,
-                                        'planner' : 'old',
-                                        'Consistency percentage' : curr_results['Consistency percentage'],
-                                        'Mean diversity' : curr_results['Mean diversity'],
-                                        'Mean difficulty' : curr_results['Old mean difficulty'],
-                                        'Std difficulty' : curr_results['Old std difficulty']}
+                curr_results_vals = {'size' : str(curr_size),
+                                     'planner' : 'old',
+                                     'Consistency percentage' : curr_results['Consistency percentage'],
+                                     'Mean diversity' : curr_results['Mean diversity'],
+                                     'Mean difficulty' : curr_results['Old mean difficulty'],
+                                     'Std difficulty' : curr_results['Old std difficulty']}
                 
                 df_data = update_df_from_dict_list(df_data, experiment_info_vals, curr_results_vals)
 
             if 'Mean difficulty' in curr_results and isinstance(curr_results['Mean difficulty'], dict):
                 for planner in curr_results['Mean difficulty']:
-                    curr_results_vals = {'size' : curr_size,
-                                            'planner' : planner,
-                                            'Consistency percentage' : curr_results['Consistency percentage'],
-                                            'Mean diversity' : curr_results['Mean diversity'],
-                                            'Mean difficulty' : curr_results['Mean difficulty'][planner],
-                                            'Std difficulty' : curr_results['Std difficulty'][planner]}
+                    curr_results_vals = {'size' : str(curr_size),
+                                         'planner' : planner,
+                                         'Consistency percentage' : curr_results['Consistency percentage'],
+                                         'Mean diversity' : curr_results['Mean diversity'],
+                                         'Mean difficulty' : curr_results['Mean difficulty'][planner],
+                                         'Std difficulty' : curr_results['Std difficulty'][planner]}
                     
                     df_data = update_df_from_dict_list(df_data, experiment_info_vals, curr_results_vals)
 
@@ -126,8 +126,8 @@ def get_dataframe_adhoc(base_folder : Path, df_data):
                                 'domain' : params_info['domain'],
                                 'init_policy' : 'adhoc',
                                 'goal_policy' : 'adhoc',
-                                'seed' : params_info['seed'],
-                                'size' : size_folder.stem}
+                                'seed' : str(params_info['seed']),
+                                'size' : str(size_folder.stem)}
             
             # Add a different df row for each planner in results.json
             if 'Old mean difficulty' in results_info: # Old results format
@@ -161,6 +161,14 @@ def main(args):
     df_data = get_dataframe_adhoc(args.base_folder_adhoc, df_data)
 
     # Filter them
+    if len(args.filter_query) == 0:
+        df_filtered = df_data
+    else:
+        filter_cond = True
+        for col,val in args.filter_query.items():
+            filter_cond = filter_cond & (df_data[col] == val)
+
+        df_filtered = df_data[filter_cond]
 
     # Group them
 
