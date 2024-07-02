@@ -1,6 +1,20 @@
 {
   "seed": 1,
   "num_problems": 100,
+  "perc_problems_diversity": 1.0,
+  "map_size": [
+    4,
+    4
+  ],
+  "boxes": [
+    1,
+    10
+  ],
+  "walls": [
+    0,
+    10
+  ],
+  "domain": "sokoban",
   "time_limit_planner": {
     "astar_lmcut": 1800,
     "fdss_opt": 590
@@ -12,19 +26,5 @@
   "term_problem_diff": {
     "astar_lmcut": 100000000.0,
     "fdss_opt": 601.0
-  },
-  "perc_problems_diversity": 1.0,
-  "map_size": [
-    7,
-    7
-  ],
-  "boxes": [
-    1,
-    29
-  ],
-  "walls": [
-    0,
-    29
-  ],
-  "domain": "sokoban"
+  }
 }
