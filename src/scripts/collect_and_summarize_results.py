@@ -49,6 +49,15 @@ def parse_arguments():
 
     return args
 
+def update_df_from_dict_list(df, *dict_list):
+    # Merge all the dicts into a single dict, representing the row to add
+    row_dict = dict()
+    for d in dict_list:
+        row_dict.update(d)
+    
+    df = pd.concat([df, pd.DataFrame([row_dict])], ignore_index=True)
+    return df
+
 def get_dataframe_nesig(base_folder : Path, df_data):
     """
     Directory structure of experiments:
@@ -83,10 +92,8 @@ def get_dataframe_nesig(base_folder : Path, df_data):
                                         'Mean diversity' : curr_results['Mean diversity'],
                                         'Mean difficulty' : curr_results['Old mean difficulty'],
                                         'Std difficulty' : curr_results['Old std difficulty']}
-                new_df = dict()
-                new_df.update(experiment_info_vals)
-                new_df.update(curr_results_vals)
-                df_data = pd.concat([df_data, pd.DataFrame([new_df])], ignore_index=True)
+                
+                df_data = update_df_from_dict_list(df_data, experiment_info_vals, curr_results_vals)
 
             if 'Mean difficulty' in curr_results and isinstance(curr_results['Mean difficulty'], dict):
                 for planner in curr_results['Mean difficulty']:
@@ -96,10 +103,51 @@ def get_dataframe_nesig(base_folder : Path, df_data):
                                             'Mean diversity' : curr_results['Mean diversity'],
                                             'Mean difficulty' : curr_results['Mean difficulty'][planner],
                                             'Std difficulty' : curr_results['Std difficulty'][planner]}
-                    new_df = dict()
-                    new_df.update(experiment_info_vals)
-                    new_df.update(curr_results_vals)
-                    df_data = pd.concat([df_data, pd.DataFrame([new_df])], ignore_index=True) 
+                    
+                    df_data = update_df_from_dict_list(df_data, experiment_info_vals, curr_results_vals)
+
+    return df_data
+
+def get_dataframe_adhoc(base_folder : Path, df_data):
+    """
+    Directory structure of experiments:
+        base_folder/<domain>/<size>/params.json
+        base_folder/<domain>/<size>/results.json
+    """
+    for domain_folder in base_folder.glob('*'):
+        for size_folder in domain_folder.glob('*'):
+            try:
+                params_info = load_json(size_folder / 'params.json')
+                results_info = load_json(size_folder / 'results.json')
+            except:
+                continue # We skip the current size if either params.json or results.json do not exist
+
+            params_info_vals = {'experiment_id' : None,
+                                'domain' : params_info['domain'],
+                                'init_policy' : 'adhoc',
+                                'goal_policy' : 'adhoc',
+                                'seed' : params_info['seed'],
+                                'size' : size_folder.stem}
+            
+            # Add a different df row for each planner in results.json
+            if 'Old mean difficulty' in results_info: # Old results format
+                results_info_vals = {'planner' : 'old',
+                                     'Consistency percentage' : results_info['Consistency percentage'],
+                                     'Mean diversity' : results_info['Mean diversity'],
+                                     'Mean difficulty' : results_info['Old mean difficulty'],
+                                     'Std difficulty' : results_info['Old std difficulty']}
+                
+                df_data = update_df_from_dict_list(df_data, params_info_vals, results_info_vals)
+
+            if 'Mean difficulty' in results_info and isinstance(results_info['Mean difficulty'], dict):
+                for planner in results_info['Mean difficulty']:
+                    results_info_vals = {'planner' : planner,
+                                         'Consistency percentage' : results_info['Consistency percentage'],
+                                         'Mean diversity' : results_info['Mean diversity'],
+                                         'Mean difficulty' : results_info['Mean difficulty'][planner],
+                                         'Std difficulty' : results_info['Std difficulty'][planner]}
+                    
+                    df_data = update_df_from_dict_list(df_data, params_info_vals, results_info_vals)
 
     return df_data
 
@@ -110,6 +158,7 @@ def main(args):
     df_data = pd.DataFrame(columns=col_names)
 
     df_data = get_dataframe_nesig(args.base_folder_nesig, df_data)
+    df_data = get_dataframe_adhoc(args.base_folder_adhoc, df_data)
 
     # Filter them
 
