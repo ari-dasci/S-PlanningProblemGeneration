@@ -3,8 +3,16 @@ This scripts collects the results from all the experiments (mainly from results.
 """
 
 import argparse
+import pandas as pd
+pd.set_option('display.max_rows', None)
+from pathlib import Path
+import json
 
+def load_json(file_path : Path):
+    with open(file_path, 'r') as file:
+        content = json.load(file)
 
+    return content
 
 def parse_arguments():
     def parse_filter_query(val):
@@ -28,15 +36,86 @@ def parse_arguments():
                                                                                      'Example: "domain=blocksword,init_policy=PPO"'))
     parser.add_argument('--group_fields', type=parse_tuple, default="", help=('A string containing a comma-separated list of fields to group by.'
                                                                               'Example: "domain,init_policy,goal_policy,seed"'))
-    parser.add_argument('--show-field', type="str", default="Mean difficulty", help='The field to show in the summary (e.g., Mean difficulty)')
-    parser.add_argument('group_op', choices=('list', 'mean'), default='list', help='How to aggregate the grouped values in --show-field. Default: just show a list of values ("list").')
+    parser.add_argument('--show-field', type=str, default="Mean difficulty", help='The field to show in the summary (e.g., Mean difficulty)')
+    parser.add_argument('--group_op', choices=('list', 'mean'), default='list', help='How to aggregate the grouped values in --show-field. Default: just show a list of values ("list").')
 
     args = parser.parse_args()
 
+    args.base_folder_nesig = Path(args.base_folder_nesig)
+    args.base_folder_adhoc = Path(args.base_folder_adhoc)
+
+    assert args.base_folder_nesig.is_dir(), f"Folder {args.base_folder_nesig} is not a directory"
+    assert args.base_folder_adhoc.is_dir(), f"Folder {args.base_folder_adhoc} is not a directory"
+
     return args
 
+def get_dataframe_nesig(base_folder : Path, df_data):
+    """
+    Directory structure of experiments:
+        base_folder/<id>/experiment_info.json
+        base_folder/<id>/test/<size>/results.json
+    """
+    for experiment_folder in base_folder.glob('*'):
+        # Load experiment_info.json
+        try:
+            experiment_info = load_json(experiment_folder / 'experiment_info.json')
+            experiment_info_vals = {'experiment_id' : experiment_info['experiment_id'],
+                                    'domain' : experiment_info['domain'],
+                                    'init_policy' : experiment_info['init_policy'],
+                                    'goal_policy' : experiment_info['goal_policy'],
+                                    'seed' : experiment_info['seed']}
+        except:
+            continue # We skip the current experiment if the folder does not contain experiment data
+
+        # Load results.json for each problem size
+        for size_folder in (experiment_folder / 'test').glob('*'): # If test folder does not exist, glob() will yield an empty iterator
+            curr_size = size_folder.stem
+            try:
+                curr_results = load_json(size_folder / 'results.json')
+            except:
+                continue # If results.json does not exist, we skip the current size
+
+            # Add a different df row for each planner in results.json
+            if 'Old mean difficulty' in curr_results: # Old results format
+                curr_results_vals = {'size' : curr_size,
+                                        'planner' : 'old',
+                                        'Consistency percentage' : curr_results['Consistency percentage'],
+                                        'Mean diversity' : curr_results['Mean diversity'],
+                                        'Mean difficulty' : curr_results['Old mean difficulty'],
+                                        'Std difficulty' : curr_results['Old std difficulty']}
+                new_df = dict()
+                new_df.update(experiment_info_vals)
+                new_df.update(curr_results_vals)
+                df_data = pd.concat([df_data, pd.DataFrame([new_df])], ignore_index=True)
+
+            if 'Mean difficulty' in curr_results and isinstance(curr_results['Mean difficulty'], dict):
+                for planner in curr_results['Mean difficulty']:
+                    curr_results_vals = {'size' : curr_size,
+                                            'planner' : planner,
+                                            'Consistency percentage' : curr_results['Consistency percentage'],
+                                            'Mean diversity' : curr_results['Mean diversity'],
+                                            'Mean difficulty' : curr_results['Mean difficulty'][planner],
+                                            'Std difficulty' : curr_results['Std difficulty'][planner]}
+                    new_df = dict()
+                    new_df.update(experiment_info_vals)
+                    new_df.update(curr_results_vals)
+                    df_data = pd.concat([df_data, pd.DataFrame([new_df])], ignore_index=True) 
+
+    return df_data
+
 def main(args):
-    pass
+    # Obtain dataframes with all data
+    col_names = ['experiment_id','domain','init_policy','goal_policy','seed',
+                 'size','planner','Consistency percentage','Mean diversity','Mean difficulty','Std difficulty']
+    df_data = pd.DataFrame(columns=col_names)
+
+    df_data = get_dataframe_nesig(args.base_folder_nesig, df_data)
+
+    # Filter them
+
+    # Group them
+
+    # Show the results
 
 if __name__ == '__main__':
     args = parse_arguments()
