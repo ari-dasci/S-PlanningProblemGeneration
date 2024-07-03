@@ -202,18 +202,21 @@ M_FOUND = 'PLAN FOUND'
 FD_RESOURCES = r"Expanded ([0-9]+) state\(s\)\."
 FDSS_RESOURCES = r"Planner time: (\d+\.\d+)s"
 M_RESOURCES = r"total time (\d+\.\d+)"
+FDSS_TIME_LIMIT = 'Time limit has been reached.'
 
 # The last element of each tuple is a boolean indicating whether we should add +1 to the used resources (as in used nodes, to avoid log(0)) or not (as when using time)
 # NOTE: for 'fdss_opt' we add the --search-time-limit option at runtime, so that it is slightly (1min) larger than the time_limit used for timeouts
+# NOTE: the penultimate position contains the string to detect timeouts. Currently, we only use it for the FDSS portfolio (as it contains a time-limit inside the planner).
+#       For the other planners, time limit is handled by timelimit.sh. A value of None means that we don't need to check for timeouts inside the planner output.   
 PLANNER_OPTIONS = {
-    'lama_first' : ('fd-latest-clean', '--alias lama-first', FD_FOUND, FD_RESOURCES, True),
-    'lazy_greedy_ff' : ('fd-latest-clean', '--evaluator h=ff(transform=adapt_costs(one)) --search lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)', FD_FOUND, FD_RESOURCES, True),
-    'lazy_greedy_add' : ('fd-latest-clean', '--evaluator h=add(transform=adapt_costs(one)) --search lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)', FD_FOUND, FD_RESOURCES, True),
-    'astar_lmcut' : ('fd-latest-clean', '--search astar(lmcut())', FD_FOUND, FD_RESOURCES, True),
-    'fdss_opt' : ('fd-latest-clean', '--alias seq-opt-fdss-1', FD_FOUND, FDSS_RESOURCES, False),
-    'm' : ('m-clean', '', M_FOUND, M_RESOURCES, False),
-    'mp' : ('mp-clean', '', M_FOUND, M_RESOURCES, False),
-    'mpc' : ('mpc-clean', '', M_FOUND, M_RESOURCES, False)
+    'lama_first' : ('fd-latest-clean', '--alias lama-first', FD_FOUND, FD_RESOURCES, None, True),
+    'lazy_greedy_ff' : ('fd-latest-clean', '--evaluator h=ff(transform=adapt_costs(one)) --search lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)', FD_FOUND, FD_RESOURCES, None, True),
+    'lazy_greedy_add' : ('fd-latest-clean', '--evaluator h=add(transform=adapt_costs(one)) --search lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)', FD_FOUND, FD_RESOURCES, None, True),
+    'astar_lmcut' : ('fd-latest-clean', '--search astar(lmcut())', FD_FOUND, FD_RESOURCES, None, True),
+    'fdss_opt' : ('fd-latest-clean', '--alias seq-opt-fdss-1', FD_FOUND, FDSS_RESOURCES, FDSS_TIME_LIMIT, False),
+    'm' : ('m-clean', '', M_FOUND, M_RESOURCES, None, False),
+    'mp' : ('mp-clean', '', M_FOUND, M_RESOURCES, None, False),
+    'mpc' : ('mpc-clean', '', M_FOUND, M_RESOURCES, None, False)
 }
 
 # Termination condition action, which signals the end of the (initial state or goal) generation phase

@@ -92,6 +92,8 @@ def solve_problem(planner, planner_arg, domain_path, problem_path, time_limit, m
             with open(log_path, 'r') as log_file:
                 planner_output = log_file.read()
 
+                print(planner_output)
+
                 if planner == 'fd':
                     
                     if 'fdss' in planner_arg: # FDSS portfolio

@@ -155,7 +155,7 @@ class PlannerEvaluator(DifficultyEvaluator):
             - From command line: ./planner-scripts/limit.sh -t -1 -m -1 -- "planner-scripts/fd-latest-clean -o '--search astar(lmcut())'" -- ../../../data/problems/bw_two_action_plan.pddl ../../../data/domains/blocks-domain.pddl
 
         """
-        planner_path, search_options, found_str, resources_regex, add_one = PLANNER_OPTIONS[planner_arg]
+        planner_path, search_options, found_str, resources_regex, time_limit_str, add_one = PLANNER_OPTIONS[planner_arg]
 
         # For the FDSS portfolio, we set --search-time-limit so that it is slightly (1min) larger than time_limit
         # We do this so that there is a timeout in case the portfolio can't find a plan
@@ -204,8 +204,11 @@ class PlannerEvaluator(DifficultyEvaluator):
                     with open(log_path, 'r') as log_file:
                         planner_output = log_file.read()
 
+                        # Timeout
+                        if time_limit_str is not None and time_limit_str in planner_output:
+                            used_resources = terminated_reward
                         # Unsolvable problem -> we raise an exception
-                        if 'Search stopped without finding a solution' in planner_output:
+                        elif 'Search stopped without finding a solution' in planner_output:
                             raise Exception(f"> Unsolvable problem: {problem_path}")
                         # Problem solved -> we return the number of expanded nodes
                         elif found_str in planner_output:
