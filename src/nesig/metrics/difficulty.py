@@ -157,10 +157,9 @@ class PlannerEvaluator(DifficultyEvaluator):
         """
         planner_path, search_options, found_str, resources_regex, time_limit_str, add_one = PLANNER_OPTIONS[planner_arg]
 
-        # For the FDSS portfolio, we set --search-time-limit so that it is slightly (1min) larger than time_limit
-        # We do this so that there is a timeout in case the portfolio can't find a plan
+        # For the FDSS portfolio, we set --search-time-limit so that it is the same as time_limit
         if planner_arg == 'fdss_opt':
-            search_time_limit = (time_limit // 60) + 1
+            search_time_limit = time_limit // 60
             search_options += f' --search-time-limit {search_time_limit}m'
 
         with tempfile.NamedTemporaryFile(suffix='.pddl', mode='w+') as tmp_file:
