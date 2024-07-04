@@ -191,12 +191,16 @@ class PlannerEvaluator(DifficultyEvaluator):
             with open(err_path, 'r') as err_file:
                 err_output = err_file.read()
 
+                # Does not support axioms -> goal is empty, so we return the minimimum possible difficulty
+                if 'This configuration does not support axioms!' in err_output:
+                    used_resources = 1 if add_one else 1e-4 # We don't use 0 to avoid log(0)
+
                 # Timeout/memory out -> we return a diff equal to terminated_reward
-                if 'Terminated' in err_output:
+                elif 'Terminated' in err_output:
                     used_resources = terminated_reward
 
-                elif err_output != '':
-                    raise Exception(f"> Planner error: {err_output}")
+                elif err_output != '':         
+                    raise Exception(f">> Planner error: {err_output} \n\n >> PDDL description: {pddl_description} \n\n >> Planner: {planner_arg} \n\n >> Time limit: {time_limit} \n\n >> Memory limit: {memory_limit}")
 
                 else:
                     # Parse log_path to obtain the difficulty (number of expanded nodes or used time)
