@@ -1,9 +1,18 @@
 {
   "seed": 1,
   "num_problems": 100,
-  "time_limit_planner": 1800,
-  "memory_limit_planner": 8500000,
-  "term_problem_diff": 100000000.0,
+  "time_limit_planner": {
+    "lama_first": 1800,
+    "lazy_greedy_ff": 1800
+  },
+  "memory_limit_planner": {
+    "lama_first": 8500000,
+    "lazy_greedy_ff": 8500000
+  },
+  "term_problem_diff": {
+    "lama_first": 100000000.0,
+    "lazy_greedy_ff": 100000000.0
+  },
   "perc_problems_diversity": 1.0,
   "atoms": [
     23,

@@ -27,7 +27,7 @@ It uses pandas dataframes and their operations, filter (--filter-query), groupby
         # We use --agg-fields to avoid many extra columns in the output
 
         
-python collect_and_summarize_results.py ../../experiments ../../data/instance_generators --filter-query "domain=sokoban,init_policy=PPO,goal_policy=PPO" --agg-fields planner,Mean_difficulty --group-fields experiment_id,domain,init_policy,goal_policy,seed,size
+python collect_and_summarize_results.py ../../experiments ../../data/instance_generators --filter-query "domain=sokoban,init_policy=PPO,goal_policy=PPO,planner=lazy_greedy_ff" --agg-fields size,Mean_difficulty --group-fields experiment_id,domain,init_policy,goal_policy,seed > output.txt
 
 """
 
