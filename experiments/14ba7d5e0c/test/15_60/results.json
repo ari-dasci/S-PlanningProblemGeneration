@@ -826,11 +826,12 @@
         "ontable": 1
       },
       "consistency": true,
-      "difficulty": [
-        110,
-        73,
-        108
-      ],
+      "difficulty": {
+        "lama_first": 110.0,
+        "lazy_greedy_ff": 73.0,
+        "astar_lmcut": 1326.0,
+        "fdss_opt": 0.35
+      },
       "diversity": 0.012962962500751019,
       "score": 0.05921888815835912
     },
@@ -1446,11 +1447,12 @@
         "ontable": 1
       },
       "consistency": true,
-      "difficulty": [
-        98,
-        97,
-        63
-      ],
+      "difficulty": {
+        "lama_first": 98.0,
+        "lazy_greedy_ff": 97.0,
+        "astar_lmcut": 1491.0,
+        "fdss_opt": 0.32
+      },
       "diversity": 0.012962962500751019,
       "score": 0.05763752441717337
     },
@@ -1786,11 +1788,12 @@
         "ontable": 1
       },
       "consistency": true,
-      "difficulty": [
-        153,
-        106,
-        136
-      ],
+      "difficulty": {
+        "lama_first": 153.0,
+        "lazy_greedy_ff": 106.0,
+        "astar_lmcut": 7661.0,
+        "fdss_opt": 0.42
+      },
       "diversity": 0.014814813621342182,
       "score": 0.07224573424266045
     },
@@ -2126,11 +2129,12 @@
         "ontable": 1
       },
       "consistency": true,
-      "difficulty": [
-        193,
-        336,
-        239
-      ],
+      "difficulty": {
+        "lama_first": 193.0,
+        "lazy_greedy_ff": 336.0,
+        "astar_lmcut": 75193.0,
+        "fdss_opt": 2.59
+      },
       "diversity": 0.035185184329748154,
       "score": 0.19432284727702
     },
@@ -2298,11 +2302,12 @@
         "ontable": 1
       },
       "consistency": true,
-      "difficulty": [
-        94,
-        94,
-        83
-      ],
+      "difficulty": {
+        "lama_first": 94.0,
+        "lazy_greedy_ff": 94.0,
+        "astar_lmcut": 1532.0,
+        "fdss_opt": 0.36
+      },
       "diversity": 0.012962962500751019,
       "score": 0.058499994256270796
     },
@@ -2358,11 +2363,12 @@
         "ontable": 1
       },
       "consistency": true,
-      "difficulty": [
-        110,
-        102,
-        140
-      ],
+      "difficulty": {
+        "lama_first": 110.0,
+        "lazy_greedy_ff": 102.0,
+        "astar_lmcut": 5667.0,
+        "fdss_opt": 0.41
+      },
       "diversity": 0.014814813621342182,
       "score": 0.07058280458510151
     },
@@ -2418,11 +2424,12 @@
         "ontable": 1
       },
       "consistency": true,
-      "difficulty": [
-        132,
-        99,
-        141
-      ],
+      "difficulty": {
+        "lama_first": 132.0,
+        "lazy_greedy_ff": 99.0,
+        "astar_lmcut": 3571.0,
+        "fdss_opt": 0.36
+      },
       "diversity": 0.014814813621342182,
       "score": 0.07136466769194703
     },
@@ -2506,11 +2513,12 @@
         "ontable": 1
       },
       "consistency": true,
-      "difficulty": [
-        89,
-        81,
-        90
-      ],
+      "difficulty": {
+        "lama_first": 89.0,
+        "lazy_greedy_ff": 81.0,
+        "astar_lmcut": 513.0,
+        "fdss_opt": 0.36
+      },
       "diversity": 0.012962962500751019,
       "score": 0.05797636766658882
     },
@@ -2566,11 +2574,12 @@
         "ontable": 1
       },
       "consistency": true,
-      "difficulty": [
-        92,
-        62,
-        143
-      ],
+      "difficulty": {
+        "lama_first": 92.0,
+        "lazy_greedy_ff": 62.0,
+        "astar_lmcut": 114.0,
+        "fdss_opt": 0.25
+      },
       "diversity": 0.012962962500751019,
       "score": 0.058962240264192965
     },
@@ -2598,11 +2607,12 @@
         "ontable": 1
       },
       "consistency": true,
-      "difficulty": [
-        87,
-        74,
-        82
-      ],
+      "difficulty": {
+        "lama_first": 87.0,
+        "lazy_greedy_ff": 74.0,
+        "astar_lmcut": 517.0,
+        "fdss_opt": 0.29
+      },
       "diversity": 0.012962962500751019,
       "score": 0.05709608361272854
     },
@@ -2742,11 +2752,12 @@
         "ontable": 1
       },
       "consistency": true,
-      "difficulty": [
-        99,
-        142,
-        94
-      ],
+      "difficulty": {
+        "lama_first": 99.0,
+        "lazy_greedy_ff": 142.0,
+        "astar_lmcut": 1334.0,
+        "fdss_opt": 0.31
+      },
       "diversity": 0.012962962500751019,
       "score": 0.06102051754950247
     },
@@ -2830,11 +2841,12 @@
         "ontable": 1
       },
       "consistency": true,
-      "difficulty": [
-        284,
-        139,
-        114
-      ],
+      "difficulty": {
+        "lama_first": 284.0,
+        "lazy_greedy_ff": 139.0,
+        "astar_lmcut": 3944.0,
+        "fdss_opt": 0.4
+      },
       "diversity": 0.014814816415309906,
       "score": 0.07574847105369233
     },
@@ -2890,15 +2902,46 @@
         "ontable": 1
       },
       "consistency": true,
-      "difficulty": [
-        99,
-        151,
-        117
-      ],
+      "difficulty": {
+        "lama_first": 99.0,
+        "lazy_greedy_ff": 151.0,
+        "astar_lmcut": 30365.0,
+        "fdss_opt": 0.88
+      },
       "diversity": 0.014814813621342182,
       "score": 0.071109798376622
     }
   },
   "Old mean difficulty": 121.6923076923077,
-  "Old std difficulty": 46.2535674832868
+  "Old std difficulty": 46.2535674832868,
+  "Mean difficulty": {
+    "lama_first": 126.15384615384616,
+    "lazy_greedy_ff": 119.6923076923077,
+    "astar_lmcut": 10248.307692307691,
+    "fdss_opt": 0.5615384615384615
+  },
+  "Std difficulty": {
+    "lama_first": 54.09513863249302,
+    "lazy_greedy_ff": 67.84414788592207,
+    "astar_lmcut": 20264.450332785756,
+    "fdss_opt": 0.6040994079409086
+  },
+  "r_terminated_problem_test": {
+    "lama_first": 100000000.0,
+    "lazy_greedy_ff": 100000000.0,
+    "astar_lmcut": 100000000.0,
+    "fdss_opt": 1801.0
+  },
+  "time_limit_planner_test": {
+    "lama_first": 1800,
+    "lazy_greedy_ff": 1800,
+    "astar_lmcut": 3600,
+    "fdss_opt": 1800
+  },
+  "memory_limit_planner_test": {
+    "lama_first": 8500000,
+    "lazy_greedy_ff": 8500000,
+    "astar_lmcut": 8500000,
+    "fdss_opt": 8500000
+  }
 }

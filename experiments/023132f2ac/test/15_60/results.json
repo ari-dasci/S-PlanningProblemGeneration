@@ -406,11 +406,12 @@
         "ontable": 3
       },
       "consistency": true,
-      "difficulty": [
-        98,
-        84,
-        59
-      ],
+      "difficulty": {
+        "lama_first": 98.0,
+        "lazy_greedy_ff": 84.0,
+        "astar_lmcut": 4897.0,
+        "fdss_opt": 0.44
+      },
       "diversity": 0.03444444388151169,
       "score": 0.1507761404003737
     },
@@ -970,11 +971,12 @@
         "ontable": 1
       },
       "consistency": true,
-      "difficulty": [
-        50,
-        66,
-        85
-      ],
+      "difficulty": {
+        "lama_first": 50.0,
+        "lazy_greedy_ff": 66.0,
+        "astar_lmcut": 24.0,
+        "fdss_opt": 0.25
+      },
       "diversity": 0.11499999463558197,
       "score": 0.48264982350658187
     },
@@ -1030,11 +1032,12 @@
         "ontable": 1
       },
       "consistency": true,
-      "difficulty": [
-        140,
-        78,
-        83
-      ],
+      "difficulty": {
+        "lama_first": 140.0,
+        "lazy_greedy_ff": 78.0,
+        "astar_lmcut": 29365.0,
+        "fdss_opt": 0.92
+      },
       "diversity": 0.03444444388151169,
       "score": 0.15785916808390554
     },
@@ -1286,11 +1289,12 @@
         "ontable": 2
       },
       "consistency": true,
-      "difficulty": [
-        171,
-        171,
-        129
-      ],
+      "difficulty": {
+        "lama_first": 171.0,
+        "lazy_greedy_ff": 171.0,
+        "astar_lmcut": 119615.0,
+        "fdss_opt": 3.19
+      },
       "diversity": 0.04999999329447746,
       "score": 0.252708689510494
     },
@@ -1878,11 +1882,12 @@
         "ontable": 1
       },
       "consistency": true,
-      "difficulty": [
-        130,
-        115,
-        135
-      ],
+      "difficulty": {
+        "lama_first": 130.0,
+        "lazy_greedy_ff": 115.0,
+        "astar_lmcut": 13350.0,
+        "fdss_opt": 0.44
+      },
       "diversity": 0.03444444388151169,
       "score": 0.16695729890151176
     },
@@ -2162,11 +2167,12 @@
         "ontable": 1
       },
       "consistency": true,
-      "difficulty": [
-        45,
-        53,
-        53
-      ],
+      "difficulty": {
+        "lama_first": 45.0,
+        "lazy_greedy_ff": 53.0,
+        "astar_lmcut": 21.0,
+        "fdss_opt": 0.24
+      },
       "diversity": 0.11499999463558197,
       "score": 0.45258667599014674
     },
@@ -2222,11 +2228,12 @@
         "ontable": 2
       },
       "consistency": true,
-      "difficulty": [
-        110,
-        95,
-        96
-      ],
+      "difficulty": {
+        "lama_first": 110.0,
+        "lazy_greedy_ff": 95.0,
+        "astar_lmcut": 11755.0,
+        "fdss_opt": 0.89
+      },
       "diversity": 0.03444444388151169,
       "score": 0.15900231981242519
     },
@@ -2450,11 +2457,12 @@
         "ontable": 2
       },
       "consistency": true,
-      "difficulty": [
-        76,
-        74,
-        92
-      ],
+      "difficulty": {
+        "lama_first": 76.0,
+        "lazy_greedy_ff": 74.0,
+        "astar_lmcut": 556.0,
+        "fdss_opt": 0.3
+      },
       "diversity": 0.041111111640930176,
       "score": 0.18080520309164397
     },
@@ -2510,11 +2518,12 @@
         "ontable": 1
       },
       "consistency": true,
-      "difficulty": [
-        72,
-        65,
-        81
-      ],
+      "difficulty": {
+        "lama_first": 72.0,
+        "lazy_greedy_ff": 65.0,
+        "astar_lmcut": 745.0,
+        "fdss_opt": 0.27
+      },
       "diversity": 0.041111111640930176,
       "score": 0.17659734928561724
     },
@@ -2626,11 +2635,12 @@
         "ontable": 1
       },
       "consistency": true,
-      "difficulty": [
-        90,
-        65,
-        96
-      ],
+      "difficulty": {
+        "lama_first": 90.0,
+        "lazy_greedy_ff": 65.0,
+        "astar_lmcut": 11589.0,
+        "fdss_opt": 0.78
+      },
       "diversity": 0.03444444388151169,
       "score": 0.15241925011581228
     },
@@ -2742,11 +2752,12 @@
         "ontable": 5
       },
       "consistency": true,
-      "difficulty": [
-        103,
-        101,
-        57
-      ],
+      "difficulty": {
+        "lama_first": 103.0,
+        "lazy_greedy_ff": 101.0,
+        "astar_lmcut": 13138.0,
+        "fdss_opt": 2.39
+      },
       "diversity": 0.04999999329447746,
       "score": 0.22216341558842792
     },
@@ -2892,5 +2903,35 @@
     }
   },
   "Old mean difficulty": 91.45454545454544,
-  "Old std difficulty": 28.052358235470436
+  "Old std difficulty": 28.052358235470436,
+  "Mean difficulty": {
+    "lama_first": 98.63636363636364,
+    "lazy_greedy_ff": 87.9090909090909,
+    "astar_lmcut": 18641.363636363636,
+    "fdss_opt": 0.9190909090909091
+  },
+  "Std difficulty": {
+    "lama_first": 36.45488551190293,
+    "lazy_greedy_ff": 31.50022956757486,
+    "astar_lmcut": 33023.004249855134,
+    "fdss_opt": 0.9299702296843559
+  },
+  "r_terminated_problem_test": {
+    "lama_first": 100000000.0,
+    "lazy_greedy_ff": 100000000.0,
+    "astar_lmcut": 100000000.0,
+    "fdss_opt": 1801.0
+  },
+  "time_limit_planner_test": {
+    "lama_first": 1800,
+    "lazy_greedy_ff": 1800,
+    "astar_lmcut": 3600,
+    "fdss_opt": 1800
+  },
+  "memory_limit_planner_test": {
+    "lama_first": 8500000,
+    "lazy_greedy_ff": 8500000,
+    "astar_lmcut": 8500000,
+    "fdss_opt": 8500000
+  }
 }

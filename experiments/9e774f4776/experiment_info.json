@@ -54,11 +54,6 @@
   "last_train_it": 5000,
   "best_val_score": 3.3702833826583234,
   "TRAIN_PLANNER_ARGS": [
-    "--alias lama-first"
-  ],
-  "TEST_PLANNER_ARGS": [
-    "--alias lama-first",
-    "--evaluator h=ff(transform=adapt_costs(one)) --search lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)",
-    "--evaluator h=add(transform=adapt_costs(one)) --search lazy_greedy([h],preferred=[h],cost_type=one,reopen_closed=false)"
+    "lama_first"
   ]
 }
