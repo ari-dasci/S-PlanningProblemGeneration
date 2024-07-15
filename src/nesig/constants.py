@@ -178,7 +178,7 @@ DOMAIN_INFO = {
              },
              'goal_predicates' : (('at-box', ('loc',)),),
              'allowed_virtual_objects' : tuple()},
-} # Right now, we need to manually set the init_state_info to some NxM map for sokoban
+}
 # No virtual objects can be added for sokoban (all objects are present from the start)
 
 # Planner args
@@ -188,11 +188,6 @@ DOMAIN_INFO = {
 # TRAIN_PLANNER_ARGS = [LAMA_FIRST_ARG]
 # TEST_PLANNER_ARGS = [LAMA_FIRST_ARG, LAZY_GREEDY_FF_ARG, LAZY_GREEDY_ADD_ARG]
 TRAIN_PLANNER_ARGS = ['lama_first']
-
-#TODO
-# Add the search-time-limit to portfolios depending on --time-limit-planner-test,
-# so that the portfolio is asigned MORE time than this limit (in order to obtain a timeout)
-# when the portfolio can't find a plan in the given time limit
 
 # For timeout it is all the same
 # For error, use all the same 'Search stopped without finding a solution'
