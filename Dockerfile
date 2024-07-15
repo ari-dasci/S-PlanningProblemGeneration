@@ -44,6 +44,9 @@ RUN git config --global core.autocrlf input
 # Copy current directory into image context
 COPY . /PlanningProblemGeneration
 
+# We make sure CMakeCache is removed before building fastdownward
+RUN rm -f PlanningProblemGeneration/src/nesig/libs/downward/builds/release/CMakeCache.txt
+
 # Compile fast-downward
 # Note: FD must be in a directory called "downward" for planner-scripts to work
 RUN cd PlanningProblemGeneration/src/nesig/libs && python downward/build.py release
