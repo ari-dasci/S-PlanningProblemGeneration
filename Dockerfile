@@ -2,7 +2,7 @@
 FROM ubuntu:22.04
 
 # Install necessary packages and dependencies
-RUN apt-get update && apt-get install -y wget nano git cmake software-properties-common
+RUN apt-get update && apt-get install -y g++-11 wget nano git cmake software-properties-common
 
 # Install Anaconda
 RUN wget https://repo.anaconda.com/archive/Anaconda3-2023.09-0-Linux-x86_64.sh \
@@ -46,6 +46,9 @@ COPY . /PlanningProblemGeneration
 
 # We make sure CMakeCache is removed before building fastdownward
 RUN rm -f PlanningProblemGeneration/src/nesig/libs/downward/builds/release/CMakeCache.txt
+
+# Tell Cmake to use g++-11
+ENV CXX=/usr/bin/g++-11
 
 # Compile fast-downward
 # Note: FD must be in a directory called "downward" for planner-scripts to work
