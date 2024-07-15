@@ -1,5 +1,5 @@
 # Use Ubuntu as the base image
-FROM nvidia/cuda:12.1.0-runtime-ubuntu22.04
+FROM ubuntu:22.04
 
 # Install necessary packages and dependencies
 RUN apt-get update && apt-get install -y g++-11 wget nano git cmake software-properties-common
@@ -20,6 +20,7 @@ ENV CONDA_DEFAULT_ENV=nesig
 ENV PATH /opt/conda/envs/nesig/bin:$PATH
 
 # Install PyTorch with CUDA support
+# >>> Make sure local drivers and cuda version are compatible!!
 RUN conda install -n nesig pytorch=2.2 pytorch-cuda=12.1 -c pytorch -c nvidia -y
 # Pytorch with CPU-only
 #RUN conda install -n nesig pytorch=2.1 cpuonly -c pytorch -y
