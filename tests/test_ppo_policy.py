@@ -71,9 +71,9 @@ class TestPPOPolicy(unittest.TestCase):
                                   '--moving-mean-return-coeff', '0.9', '--critic-loss-weight', '0.1', '--log-period', '1000'])
 
         self.init_policy = PPOPolicy('init', self.args, NLMWrapperActor, {'dummy_pddl_state':self.dummy_init_state}, NLMWrapperCritic,
-                                     {'dummy_pddl_state':self.dummy_init_state})
+                                     {'dummy_pddl_state':self.dummy_init_state}, device=torch.device("cpu"))
         self.goal_policy = PPOPolicy('goal', self.args, NLMWrapperActor, {'dummy_pddl_state':self.dummy_goal_state}, NLMWrapperCritic,
-                                     {'dummy_pddl_state':self.dummy_goal_state})
+                                     {'dummy_pddl_state':self.dummy_goal_state}, device=torch.device("cpu"))
 
         # Create problems in the init generation phase
         self.problem1_state = PDDLState(self.parser.types, self.parser.type_hierarchy, self.parser.predicates,
@@ -185,7 +185,7 @@ class TestPPOPolicy(unittest.TestCase):
         args = parser.parse_args(['--device','cpu', '--init-entropy-coeffs', '0.57', '--goal-entropy-coeffs', '0.78'])
 
         self.policy_no_entropy_annealing = PPOPolicy('init', args, NLMWrapperActor, {'dummy_pddl_state':self.dummy_init_state},
-                                                     NLMWrapperCritic, {'dummy_pddl_state':self.dummy_init_state})
+                                                     NLMWrapperCritic, {'dummy_pddl_state':self.dummy_init_state}, device=torch.device("cpu"))
         
         # No entropy annealing
         self.assertEqual(self.policy_no_entropy_annealing.get_hparam('entropy_coeffs'), 0.57)
