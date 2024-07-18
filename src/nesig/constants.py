@@ -14,6 +14,7 @@ from src.nesig.metrics.consistency_evaluators.dummy_consistency import DummyCons
 from src.nesig.metrics.consistency_evaluators.blocksworld_consistency import ConsistencyEvaluatorBlocksworld
 from src.nesig.metrics.consistency_evaluators.logistics_consistency import ConsistencyEvaluatorLogistics
 from src.nesig.metrics.consistency_evaluators.sokoban_consistency import ConsistencyEvaluatorSokoban
+from src.nesig.metrics.consistency_evaluators.satellite_consistency import ConsistencyEvaluatorSatellite
 
 # NOTE, when calling the different scripts, we must first change the working directory to the parent folder
 # of the repository (in this case, S-planningproblemgeneration)
@@ -178,7 +179,14 @@ DOMAIN_INFO = {
              },
              'goal_predicates' : (('at-box', ('loc',)),),
              'allowed_virtual_objects' : tuple()},
-}
+    
+    'satellite' :
+            {'path' : Path('data/domains/satellite-domain.pddl'),
+            'consistency_evaluator' : ConsistencyEvaluatorSatellite,
+            'init_state_info' : None,
+            'goal_predicates' : (('have_image', ('direction','mode')),),
+            'allowed_virtual_objects' : None},
+    }
 # No virtual objects can be added for sokoban (all objects are present from the start)
 
 # Planner args
@@ -287,8 +295,10 @@ def remove_if_exists(path : Path):
 BW_GENERATOR_PATH = Path('src/nesig/libs/instance_generators/blocksworld_generator/generator.py')
 LG_GENERATOR_PATH = Path('src/nesig/libs/instance_generators/logistics_generator/generator.py')
 SK_GENERATOR_PATH = Path('src/nesig/libs/instance_generators/sokoban_generator/generator.py')
+SAT_GENERATOR_PATH = Path('src/nesig/libs/instance_generators/satellite_generator/generator.py')
 
 # Paths to the folders containing the problems generated with the domain-specific instance generators
 BW_GENERATOR_PROBLEMS_PATH = Path('data/instance_generators/blocksworld')
 LG_GENERATOR_PROBLEMS_PATH = Path('data/instance_generators/logistics')
 SK_GENERATOR_PROBLEMS_PATH = Path('data/instance_generators/sokoban')
+SAT_GENERATOR_PROBLEMS_PATH = Path('data/instance_generators/satellite')

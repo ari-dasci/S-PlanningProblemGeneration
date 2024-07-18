@@ -26,10 +26,9 @@ from src.nesig.metrics.difficulty import PlannerEvaluator
 from src.nesig.metrics.diversity import InitGoalDiversityEvaluator
 from src.nesig.constants import *
 
-def generate_seeds(start_seed):
+def generate_seeds():
     """
-    Function that, starting from some seed, generates a series of seed deterministically.
-    Example: start_seed=1 
+    Function that generates a series of seed deterministically.
     """
     while True:
         # Generate next seed
@@ -97,6 +96,18 @@ def parse_args():
     sk_parser.add_argument('--boxes', type=parse_tuple, required=True, help="Range for the number of boxes") # Default value: 1, map_size[0]*3
     sk_parser.add_argument('--walls', type=parse_tuple, required=True, help="Range for the number of walls") # Default value: 0, map_size[0]*3
 
+    # Note: for satellite parameters, we choose a range 1,ceil(D/2) instead of 1,D because, with the latter, it is very unlikely to generate a problem with a number of atoms between D-2,D
+    #       and, also, most problems had only 1 satellite
+    # Note2: for --observations, we use 1,D, since this represents the number of goals (and correlates very strongly with problem difficulty)
+    sat_parser = subparsers.add_parser('satellite', help="Satellite domain")
+    sat_parser.set_defaults(domain='satellite')
+    sat_parser.add_argument('--atoms', type=parse_tuple, required=True, help="Generated problems will have a number of atoms between atoms[0] and atoms[1]") # Default value: atoms[1]-2, atoms[1]
+    sat_parser.add_argument('--satellites', type=parse_tuple, required=True, help="Range for the number of satellites") # Default value: 1, ceil(D/2) -> D is atoms[1]
+    sat_parser.add_argument('--max-inst-sat', type=parse_tuple, required=True, help="Range for the maximum number of instruments per satellite") # Default value: 1, ceil(D/2)
+    sat_parser.add_argument('--modes', type=parse_tuple, required=True, help="Range for the number of modes") # Default value: 1, ceil(D/2)
+    sat_parser.add_argument('--targets', type=parse_tuple, required=True, help="Range for the number of targets") # Default value: 1, ceil(D/2)
+    sat_parser.add_argument('--observations', type=parse_tuple, required=True, help="Range for the number of observations") # Default value: 1, D
+
     args = parser.parse_args()
 
     # We make sure the length of the planner arguments is the same as the number of planners
@@ -163,7 +174,7 @@ def generate_blocksworld_problem(curr_problem_path:Path, args) -> int:
     generated_valid_problem = False
 
     # For every problem generation attempt, we use a different seed
-    seed_generator = generate_seeds(args.seed)
+    seed_generator = generate_seeds()
 
     while not generated_valid_problem:
         curr_seed = next(seed_generator)
@@ -199,7 +210,7 @@ def generate_logistics_problem(curr_problem_path:Path, args) -> int:
     generated_valid_problem = False
 
     # For every problem generation attempt, we use a different seed
-    seed_generator = generate_seeds(args.seed)
+    seed_generator = generate_seeds()
 
     while not generated_valid_problem:
         curr_seed = next(seed_generator)
@@ -242,7 +253,7 @@ def generate_sokoban_problem(curr_problem_path:Path, args) -> int:
     total_gen_time = 0
 
     # For every problem generation attempt, we use a different seed
-    seed_generator = generate_seeds(args.seed)
+    seed_generator = generate_seeds()
 
     while not generated_valid_problem: 
         curr_seed = next(seed_generator)
@@ -270,6 +281,49 @@ def generate_sokoban_problem(curr_problem_path:Path, args) -> int:
 
     return total_gen_time
 
+def generate_satellite_problem(curr_problem_path:Path, args) -> int:
+    """
+    It returns the generation time in seconds.
+    This time does NOT consider the time wasted generating problems with a number of atoms outside the [min_atoms, max_atoms] range.
+    """
+    generated_valid_problem = False
+
+    # For every problem generation attempt, we use a different seed
+    seed_generator = generate_seeds()
+
+    while not generated_valid_problem:
+        curr_seed = next(seed_generator)
+
+        print(">> curr_seed:", curr_seed)
+
+        # We try to generate a problem with a number of atoms between min_atoms and max_atoms
+        curr_satellites = random.randint(args.satellites[0], args.satellites[1])
+        curr_max_inst_sat = random.randint(args.max_inst_sat[0], args.max_inst_sat[1])
+        curr_modes = random.randint(args.modes[0], args.modes[1])
+        curr_targets = random.randint(args.targets[0], args.targets[1])
+        curr_observations = random.randint(args.observations[0], args.observations[1])
+
+        generator_call = ['python', str(SAT_GENERATOR_PATH), '--seed', str(curr_seed), '--problem-path', str(curr_problem_path.absolute()),
+                        '--satellites', str(curr_satellites), '--max-inst-sat', str(curr_max_inst_sat), '--modes', str(curr_modes),
+                        '--targets', str(curr_targets), '--observations', str(curr_observations)]
+
+        start = time.time()
+        subprocess.run(generator_call, shell=False, stdout=subprocess.PIPE)
+        gen_time = time.time() - start
+
+        # If the atoms in the problem init state are not in [min_atoms, max_atoms], we try again
+        parser = Parser()
+        parser.parse_domain(DOMAIN_INFO['satellite']['path'])
+        pddl_problem = PDDLProblem.load_from_pddl(parser, curr_problem_path)
+
+        if pddl_problem.initial_state.num_atoms >= args.atoms[0] and pddl_problem.initial_state.num_atoms <= args.atoms[1]:
+            generated_valid_problem = True
+        else:
+            curr_problem_path.unlink() # We remove the problem
+
+    return gen_time
+
+
 def _get_problem_folder(args) -> Path:
     if args.domain == 'blocksworld':
         problem_folder = Path(BW_GENERATOR_PROBLEMS_PATH)
@@ -280,6 +334,9 @@ def _get_problem_folder(args) -> Path:
     elif args.domain == 'sokoban':
         problem_folder = Path(SK_GENERATOR_PROBLEMS_PATH)
         problem_folder = problem_folder / f'{args.map_size[0]}_{args.map_size[1]}_{args.boxes[0]}-{args.boxes[1]}_{args.walls[0]}-{args.walls[1]}'
+    elif args.domain == 'satellite':
+        problem_folder = Path(SAT_GENERATOR_PROBLEMS_PATH)
+        problem_folder = problem_folder / f'{args.atoms[0]}-{args.atoms[1]}_{args.satellites[0]}-{args.satellites[1]}_{args.max_inst_sat[0]}-{args.max_inst_sat[1]}_{args.modes[0]}-{args.modes[1]}_{args.targets[0]}-{args.targets[1]}_{args.observations[0]}-{args.observations[1]}'
     else:
         raise ValueError("Invalid domain")
 
@@ -306,6 +363,8 @@ def _generate_problems(problem_folder:Path, args) -> int:
             total_gen_time += generate_logistics_problem(curr_problem_path, args)
         elif args.domain == 'sokoban':
             total_gen_time += generate_sokoban_problem(curr_problem_path, args)
+        elif args.domain == 'satellite':
+            total_gen_time += generate_satellite_problem(curr_problem_path, args)
         else:
             raise ValueError("Invalid domain")
 

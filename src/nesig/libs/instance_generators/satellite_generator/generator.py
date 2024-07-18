@@ -62,6 +62,8 @@ def main(args):
     # Remove pointing atoms from the goal
     pddl_problem = remove_pointing_atoms_from_goal(pddl_problem)
 
+    print(pddl_problem)
+
     # Save the PDDL problem to disk
     with open(args.problem_path, 'w') as f:
         f.write(pddl_problem)
