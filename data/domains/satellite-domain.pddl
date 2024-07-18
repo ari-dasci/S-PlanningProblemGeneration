@@ -15,6 +15,8 @@
 ;; (switch_off other_inst sat) (switch_on inst sat) (turn_to sat calibration_dir old_dir) (calibrate sat inst calibration_dir) 
 ;; (turn_to sat new_dir calibration_dir) (take_image sat new_dir inst mode)
 ;; NOTE: often, the direction used to calibrate an instrument is different to the direction to take images with that instrument (see calibration_dir and new_dir above).
+;; NOTE2: we add a dummy predicate "dummy" for adding directions which are not instantiated in any atom of the init state.
+;;        This makes possible to have directions which only appear in "have_image" atoms in the goal (but no atom in the init state).
 
 (define (domain satellite)
   (:requirements :strips :typing)
@@ -27,7 +29,8 @@
 	(power_on ?i - instrument)
 	(calibrated ?i - instrument)
 	(have_image ?d - direction ?m - mode)
-	(calibration_target ?i - instrument ?d - direction))
+	(calibration_target ?i - instrument ?d - direction)
+  (dummy ?d - direction))
  
   (:action turn_to
    :parameters (?s - satellite ?d_new - direction ?d_prev - direction)
