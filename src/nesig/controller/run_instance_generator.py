@@ -75,11 +75,13 @@ def parse_args():
     subparsers = parser.add_subparsers(title="domain", help="Specifies the domain to generate problems for.")
     subparsers.required = True
 
+    # Blocksworld
     bw_parser = subparsers.add_parser('blocksworld', help="Blocksworld domain")
     bw_parser.set_defaults(domain='blocksworld')
     bw_parser.add_argument('--atoms', type=parse_tuple, required=True, help="Generated problems will have a number of atoms between atoms[0] and atoms[1]") # Default value: atoms[1]-2, atoms[1]
     bw_parser.add_argument('--blocks', type=parse_tuple, required=True, help="Range for the number of blocks") # Default value: max_atoms/3, max_atoms
  
+    # Logistics
     lg_parser = subparsers.add_parser('logistics', help="Logistics domain")
     lg_parser.set_defaults(domain='logistics')
     lg_parser.add_argument('--atoms', type=parse_tuple, required=True, help="Generated problems will have a number of atoms between atoms[0] and atoms[1]") # Default value: atoms[1]-2, atoms[1]
@@ -107,6 +109,13 @@ def parse_args():
     sat_parser.add_argument('--modes', type=parse_tuple, required=True, help="Range for the number of modes") # Default value: 1, ceil(D/2)
     sat_parser.add_argument('--targets', type=parse_tuple, required=True, help="Range for the number of targets") # Default value: 1, ceil(D/2)
     sat_parser.add_argument('--observations', type=parse_tuple, required=True, help="Range for the number of observations") # Default value: 1, D
+
+    # Miconic
+    mic_parser = subparsers.add_parser('miconic', help="Miconic domain")
+    mic_parser.set_defaults(domain='miconic')
+    mic_parser.add_argument('--atoms', type=parse_tuple, required=True, help="Generated problems will have a number of atoms between atoms[0] and atoms[1]") # Default value: atoms[1]-2, atoms[1]
+    mic_parser.add_argument('--floors', type=parse_tuple, required=True, help="Range for the number of floors (min 2)") # Default value: 2, D -> D is atoms[1]
+    mic_parser.add_argument('--passengers', type=parse_tuple, required=True, help="Range for the number of passengers (min 1)") # Default value: 1, D
 
     args = parser.parse_args()
 
@@ -321,6 +330,39 @@ def generate_satellite_problem(curr_problem_path:Path, args) -> int:
 
     return gen_time
 
+def generate_miconic_problem(curr_problem_path:Path, args) -> int:
+    """
+    It returns the generation time in seconds.
+    This time does NOT consider the time wasted generating problems with a number of atoms outside the [min_atoms, max_atoms] range.
+    """
+    generated_valid_problem = False
+
+    # For every problem generation attempt, we use a different seed
+    seed_generator = generate_seeds()
+
+    while not generated_valid_problem:
+        curr_seed = next(seed_generator)
+
+        # We try to generate a problem with a number of atoms between min_atoms and max_atoms
+        curr_floors = random.randint(args.floors[0], args.floors[1])
+        curr_passengers = random.randint(args.passengers[0], args.passengers[1])
+
+        # From the generator parameters, we can calculate the resulting problem size in advance,
+        # to avoid generating it if it is not in the desired range [min_atoms, max_atoms]
+        problem_size = (curr_floors-1) + curr_passengers + 2
+
+        if problem_size >= args.atoms[0] and problem_size <= args.atoms[1]:
+            generator_call = ['python', str(MIC_GENERATOR_PATH), '--seed', str(curr_seed), '--problem-path', str(curr_problem_path.absolute()),
+                              '--floors', str(curr_floors), '--passengers', str(curr_passengers)]
+
+            start = time.time()
+            subprocess.run(generator_call, shell=False, stdout=subprocess.PIPE)
+            gen_time = time.time() - start
+
+            generated_valid_problem = True
+
+    return gen_time
+
 
 def _get_problem_folder(args) -> Path:
     if args.domain == 'blocksworld':
@@ -335,6 +377,9 @@ def _get_problem_folder(args) -> Path:
     elif args.domain == 'satellite':
         problem_folder = Path(SAT_GENERATOR_PROBLEMS_PATH)
         problem_folder = problem_folder / f'{args.atoms[0]}-{args.atoms[1]}_{args.satellites[0]}-{args.satellites[1]}_{args.max_inst_sat[0]}-{args.max_inst_sat[1]}_{args.modes[0]}-{args.modes[1]}_{args.targets[0]}-{args.targets[1]}_{args.observations[0]}-{args.observations[1]}'
+    elif args.domain == 'miconic':
+        problem_folder = Path(MIC_GENERATOR_PROBLEMS_PATH)
+        problem_folder = problem_folder / f'{args.atoms[0]}-{args.atoms[1]}_{args.floors[0]}-{args.floors[1]}_{args.passengers[0]}-{args.passengers[1]}'
     else:
         raise ValueError("Invalid domain")
 
@@ -363,6 +408,8 @@ def _generate_problems(problem_folder:Path, args) -> int:
             total_gen_time += generate_sokoban_problem(curr_problem_path, args)
         elif args.domain == 'satellite':
             total_gen_time += generate_satellite_problem(curr_problem_path, args)
+        elif args.domain == 'miconic':
+            total_gen_time += generate_miconic_problem(curr_problem_path, args)
         else:
             raise ValueError("Invalid domain")
 

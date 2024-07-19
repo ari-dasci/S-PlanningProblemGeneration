@@ -15,6 +15,7 @@ from src.nesig.metrics.consistency_evaluators.blocksworld_consistency import Con
 from src.nesig.metrics.consistency_evaluators.logistics_consistency import ConsistencyEvaluatorLogistics
 from src.nesig.metrics.consistency_evaluators.sokoban_consistency import ConsistencyEvaluatorSokoban
 from src.nesig.metrics.consistency_evaluators.satellite_consistency import ConsistencyEvaluatorSatellite
+#from src.nesig.metrics.consistency_evaluators.miconic_consistency import ConsistencyEvaluatorMiconic
 
 # NOTE, when calling the different scripts, we must first change the working directory to the parent folder
 # of the repository (in this case, S-planningproblemgeneration)
@@ -186,6 +187,13 @@ DOMAIN_INFO = {
             'init_state_info' : None,
             'goal_predicates' : (('have_image', ('direction','mode')),),
             'allowed_virtual_objects' : None},
+
+    'miconic' :
+        {'path' : Path('data/domains/miconic-domain.pddl'),
+        'consistency_evaluator' : None,
+        'init_state_info' : None,
+        'goal_predicates' : (('at', ('passenger','floor')),),
+        'allowed_virtual_objects' : None}
     }
 # No virtual objects can be added for sokoban (all objects are present from the start)
 
@@ -296,9 +304,11 @@ BW_GENERATOR_PATH = Path('src/nesig/libs/instance_generators/blocksworld_generat
 LG_GENERATOR_PATH = Path('src/nesig/libs/instance_generators/logistics_generator/generator.py')
 SK_GENERATOR_PATH = Path('src/nesig/libs/instance_generators/sokoban_generator/generator.py')
 SAT_GENERATOR_PATH = Path('src/nesig/libs/instance_generators/satellite_generator/generator.py')
+MIC_GENERATOR_PATH = Path('src/nesig/libs/instance_generators/miconic_generator/generator.py')
 
 # Paths to the folders containing the problems generated with the domain-specific instance generators
 BW_GENERATOR_PROBLEMS_PATH = Path('data/instance_generators/blocksworld')
 LG_GENERATOR_PROBLEMS_PATH = Path('data/instance_generators/logistics')
 SK_GENERATOR_PROBLEMS_PATH = Path('data/instance_generators/sokoban')
 SAT_GENERATOR_PROBLEMS_PATH = Path('data/instance_generators/satellite')
+MIC_GENERATOR_PROBLEMS_PATH = Path('data/instance_generators/miconic')
