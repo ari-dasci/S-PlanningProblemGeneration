@@ -294,8 +294,6 @@ def generate_satellite_problem(curr_problem_path:Path, args) -> int:
     while not generated_valid_problem:
         curr_seed = next(seed_generator)
 
-        print(">> curr_seed:", curr_seed)
-
         # We try to generate a problem with a number of atoms between min_atoms and max_atoms
         curr_satellites = random.randint(args.satellites[0], args.satellites[1])
         curr_max_inst_sat = random.randint(args.max_inst_sat[0], args.max_inst_sat[1])
