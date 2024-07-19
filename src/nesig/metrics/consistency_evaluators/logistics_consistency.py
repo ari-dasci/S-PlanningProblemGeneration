@@ -81,12 +81,8 @@ class ConsistencyEvaluatorLogistics(ConsistencyEvaluator):
         y = Variable('y')
         z = Variable('z')
 
-        # The problem must contain at least one airplane and one package
-        # No need to check, since NeSIG will learn to generate problems with at least one package
-        # in order to maximize difficulty
-        # formula_1 = TE(x, _type(x, airplane)) & TE(x, _type(x, package))
-        formula_1 = TE(x, _type(x, airplane)) # Problems with no airplanes could be unsolvable!
-                                              # Also, for the domain-specific generator, we use at least one airplane
+        # For the domain-specific generator, we use at least one airplane
+        formula_1 = TE(x, _type(x, airplane)) # For the domain-specific generator, we use at least one airplane
 
         # The problem must contain at least two cities
         formula_2 = TE(x, _type(x, city)) >= 2

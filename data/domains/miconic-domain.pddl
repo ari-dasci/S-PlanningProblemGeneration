@@ -13,7 +13,7 @@
   (at ?p - passenger ?f - floor)
   (above ?f1 - floor  ?f2 - floor)
   (boarded ?p - passenger)
-  (lift_at ?floor - floor)
+  (lift_at ?f - floor)
   (lift_empty)
 )
 

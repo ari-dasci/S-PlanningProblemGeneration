@@ -15,7 +15,7 @@ from src.nesig.metrics.consistency_evaluators.blocksworld_consistency import Con
 from src.nesig.metrics.consistency_evaluators.logistics_consistency import ConsistencyEvaluatorLogistics
 from src.nesig.metrics.consistency_evaluators.sokoban_consistency import ConsistencyEvaluatorSokoban
 from src.nesig.metrics.consistency_evaluators.satellite_consistency import ConsistencyEvaluatorSatellite
-#from src.nesig.metrics.consistency_evaluators.miconic_consistency import ConsistencyEvaluatorMiconic
+from src.nesig.metrics.consistency_evaluators.miconic_consistency import ConsistencyEvaluatorMiconic
 
 # NOTE, when calling the different scripts, we must first change the working directory to the parent folder
 # of the repository (in this case, S-planningproblemgeneration)
@@ -190,7 +190,7 @@ DOMAIN_INFO = {
 
     'miconic' :
         {'path' : Path('data/domains/miconic-domain.pddl'),
-        'consistency_evaluator' : None,
+        'consistency_evaluator' : ConsistencyEvaluatorMiconic,
         'init_state_info' : None,
         'goal_predicates' : (('at', ('passenger','floor')),),
         'allowed_virtual_objects' : None}
