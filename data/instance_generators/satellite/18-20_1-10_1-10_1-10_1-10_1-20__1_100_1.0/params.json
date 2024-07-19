@@ -1,0 +1,42 @@
+{
+  "seed": 1,
+  "num_problems": 100,
+  "perc_problems_diversity": 1.0,
+  "atoms": [
+    18,
+    20
+  ],
+  "satellites": [
+    1,
+    10
+  ],
+  "max_inst_sat": [
+    1,
+    10
+  ],
+  "modes": [
+    1,
+    10
+  ],
+  "targets": [
+    1,
+    10
+  ],
+  "observations": [
+    1,
+    20
+  ],
+  "domain": "satellite",
+  "time_limit_planner": {
+    "lama_first": 1800,
+    "lazy_greedy_ff": 1800
+  },
+  "memory_limit_planner": {
+    "lama_first": 8500000,
+    "lazy_greedy_ff": 8500000
+  },
+  "term_problem_diff": {
+    "lama_first": 100000000.0,
+    "lazy_greedy_ff": 100000000.0
+  }
+}

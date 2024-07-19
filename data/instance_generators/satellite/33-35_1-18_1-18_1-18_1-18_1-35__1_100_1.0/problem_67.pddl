@@ -1,0 +1,139 @@
+(define (problem strips-sat-x-1)
+(:domain satellite)
+(:objects
+	satellite0 - satellite
+	instrument0 - instrument
+	satellite1 - satellite
+	instrument1 - instrument
+	satellite2 - satellite
+	instrument2 - instrument
+	satellite3 - satellite
+	instrument3 - instrument
+	satellite4 - satellite
+	instrument4 - instrument
+	thermograph7 - mode
+	image1 - mode
+	thermograph6 - mode
+	spectrograph5 - mode
+	infrared0 - mode
+	image4 - mode
+	image3 - mode
+	infrared2 - mode
+	Star1 - direction
+	GroundStation2 - direction
+	GroundStation3 - direction
+	GroundStation0 - direction
+	Phenomenon4 - direction
+	Phenomenon5 - direction
+	Star6 - direction
+	Star7 - direction
+	Star8 - direction
+	Planet9 - direction
+	Phenomenon10 - direction
+	Planet11 - direction
+	Phenomenon12 - direction
+	Phenomenon13 - direction
+	Star14 - direction
+	Phenomenon15 - direction
+	Planet16 - direction
+	Phenomenon17 - direction
+	Planet18 - direction
+	Phenomenon19 - direction
+	Phenomenon20 - direction
+	Phenomenon21 - direction
+	Planet22 - direction
+	Planet23 - direction
+	Star24 - direction
+	Star25 - direction
+	Planet26 - direction
+	Phenomenon27 - direction
+	Planet28 - direction
+	Planet29 - direction
+	Planet30 - direction
+	Star31 - direction
+	Phenomenon32 - direction
+	Planet33 - direction
+	Star34 - direction
+)
+(:init
+	(supports instrument0 image1)
+	(supports instrument0 thermograph7)
+	(calibration_target instrument0 GroundStation3)
+	(on_board instrument0 satellite0)
+	(power_avail satellite0)
+	(pointing satellite0 Planet26)
+	(supports instrument1 image3)
+	(supports instrument1 image1)
+	(supports instrument1 infrared2)
+	(supports instrument1 spectrograph5)
+	(calibration_target instrument1 GroundStation2)
+	(on_board instrument1 satellite1)
+	(power_avail satellite1)
+	(pointing satellite1 Phenomenon21)
+	(supports instrument2 thermograph6)
+	(supports instrument2 image3)
+	(calibration_target instrument2 GroundStation3)
+	(on_board instrument2 satellite2)
+	(power_avail satellite2)
+	(pointing satellite2 Star25)
+	(supports instrument3 image3)
+	(supports instrument3 image1)
+	(supports instrument3 infrared0)
+	(supports instrument3 image4)
+	(calibration_target instrument3 GroundStation0)
+	(on_board instrument3 satellite3)
+	(power_avail satellite3)
+	(pointing satellite3 GroundStation2)
+	(supports instrument4 image1)
+	(supports instrument4 thermograph6)
+	(supports instrument4 thermograph7)
+	(calibration_target instrument4 GroundStation0)
+	(on_board instrument4 satellite4)
+	(power_avail satellite4)
+	(pointing satellite4 Star34)
+)
+(:goal (and
+	(have_image Phenomenon4 image4)
+	(have_image Phenomenon5 infrared2)
+	(have_image Star6 spectrograph5)
+	(have_image Star6 image3)
+	(have_image Star7 infrared2)
+	(have_image Star8 infrared2)
+	(have_image Planet9 spectrograph5)
+	(have_image Planet9 thermograph6)
+	(have_image Phenomenon10 thermograph7)
+	(have_image Planet11 image4)
+	(have_image Phenomenon12 spectrograph5)
+	(have_image Phenomenon13 image3)
+	(have_image Phenomenon13 image4)
+	(have_image Star14 thermograph7)
+	(have_image Phenomenon15 image4)
+	(have_image Planet16 infrared0)
+	(have_image Planet16 thermograph7)
+	(have_image Phenomenon17 thermograph7)
+	(have_image Phenomenon17 image1)
+	(have_image Planet18 thermograph6)
+	(have_image Planet18 image4)
+	(have_image Phenomenon19 image4)
+	(have_image Phenomenon19 image3)
+	(have_image Phenomenon20 image1)
+	(have_image Phenomenon21 image1)
+	(have_image Planet22 image1)
+	(have_image Planet22 thermograph7)
+	(have_image Planet23 thermograph6)
+	(have_image Planet23 infrared2)
+	(have_image Star24 spectrograph5)
+	(have_image Star25 thermograph6)
+	(have_image Planet26 image4)
+	(have_image Planet26 thermograph7)
+	(have_image Phenomenon27 spectrograph5)
+	(have_image Planet28 infrared2)
+	(have_image Planet29 infrared0)
+	(have_image Planet30 image1)
+	(have_image Planet30 image3)
+	(have_image Star31 thermograph6)
+	(have_image Phenomenon32 image1)
+	(have_image Planet33 spectrograph5)
+	(have_image Star34 infrared0)
+))
+)

@@ -1,0 +1,42 @@
+
+(define (problem miconic-instance)
+  (:domain miconic)
+  (:objects
+    f9 f8 f7 f6 f5 f4 f3 f2 f1 - floor
+    p1 p2 p3 p4 p5 p6 p7 p8 p9 - passenger
+  )
+  (:init
+    (above f9 f8)
+    (above f8 f7)
+    (above f7 f6)
+    (above f6 f5)
+    (above f5 f4)
+    (above f4 f3)
+    (above f3 f2)
+    (above f2 f1)
+    (lift_empty)
+    (lift_at f9)
+    (at p1 f1)
+    (at p2 f4)
+    (at p3 f4)
+    (at p4 f8)
+    (at p5 f6)
+    (at p6 f8)
+    (at p7 f3)
+    (at p8 f8)
+    (at p9 f4)
+  )
+  (:goal
+    (and
+      (at p1 f5)
+      (at p2 f6)
+      (at p3 f5)
+      (at p4 f5)
+      (at p5 f9)
+      (at p6 f3)
+      (at p7 f7)
+      (at p8 f3)
+      (at p9 f7)
+    )
+  )
+)

@@ -1,0 +1,104 @@
+(define (problem strips-sat-x-1)
+(:domain satellite)
+(:objects
+	satellite0 - satellite
+	instrument0 - instrument
+	instrument1 - instrument
+	instrument2 - instrument
+	instrument3 - instrument
+	spectrograph11 - mode
+	thermograph4 - mode
+	infrared5 - mode
+	image6 - mode
+	image7 - mode
+	spectrograph9 - mode
+	spectrograph10 - mode
+	thermograph1 - mode
+	thermograph2 - mode
+	spectrograph0 - mode
+	image3 - mode
+	thermograph8 - mode
+	Star1 - direction
+	GroundStation0 - direction
+	GroundStation2 - direction
+	Planet3 - direction
+	Phenomenon4 - direction
+	Star5 - direction
+	Star6 - direction
+	Planet7 - direction
+	Star8 - direction
+	Planet9 - direction
+	Planet10 - direction
+	Phenomenon11 - direction
+	Phenomenon12 - direction
+	Star13 - direction
+	Phenomenon14 - direction
+	Star15 - direction
+)
+(:init
+	(supports instrument0 thermograph8)
+	(supports instrument0 spectrograph10)
+	(supports instrument0 thermograph2)
+	(supports instrument0 infrared5)
+	(supports instrument0 spectrograph11)
+	(calibration_target instrument0 GroundStation0)
+	(supports instrument1 thermograph8)
+	(supports instrument1 spectrograph0)
+	(supports instrument1 spectrograph9)
+	(calibration_target instrument1 GroundStation0)
+	(supports instrument2 image6)
+	(supports instrument2 thermograph4)
+	(calibration_target instrument2 GroundStation0)
+	(supports instrument3 thermograph1)
+	(supports instrument3 image6)
+	(supports instrument3 image7)
+	(supports instrument3 image3)
+	(calibration_target instrument3 GroundStation2)
+	(on_board instrument0 satellite0)
+	(on_board instrument1 satellite0)
+	(on_board instrument2 satellite0)
+	(on_board instrument3 satellite0)
+	(power_avail satellite0)
+	(pointing satellite0 Star5)
+)
+(:goal (and
+	(have_image Planet3 thermograph8)
+	(have_image Planet3 infrared5)
+	(have_image Planet3 thermograph2)
+	(have_image Phenomenon4 thermograph4)
+	(have_image Phenomenon4 thermograph2)
+	(have_image Star5 spectrograph0)
+	(have_image Star6 infrared5)
+	(have_image Star6 thermograph1)
+	(have_image Star6 image3)
+	(have_image Star6 thermograph2)
+	(have_image Planet7 spectrograph10)
+	(have_image Planet7 thermograph1)
+	(have_image Planet7 spectrograph0)
+	(have_image Planet7 spectrograph11)
+	(have_image Star8 thermograph1)
+	(have_image Star8 thermograph4)
+	(have_image Star8 thermograph8)
+	(have_image Star8 image6)
+	(have_image Planet9 spectrograph9)
+	(have_image Planet9 thermograph1)
+	(have_image Planet9 spectrograph0)
+	(have_image Planet9 image6)
+	(have_image Planet10 image7)
+	(have_image Planet10 spectrograph0)
+	(have_image Planet10 spectrograph10)
+	(have_image Phenomenon11 image6)
+	(have_image Phenomenon11 spectrograph11)
+	(have_image Phenomenon11 thermograph2)
+	(have_image Phenomenon12 thermograph4)
+	(have_image Star13 spectrograph0)
+	(have_image Star13 thermograph8)
+	(have_image Star13 infrared5)
+	(have_image Star13 spectrograph9)
+	(have_image Phenomenon14 image6)
+	(have_image Phenomenon14 spectrograph10)
+	(have_image Star15 image3)
+	(have_image Star15 thermograph8)
+	(have_image Star15 spectrograph0)
+))
+)

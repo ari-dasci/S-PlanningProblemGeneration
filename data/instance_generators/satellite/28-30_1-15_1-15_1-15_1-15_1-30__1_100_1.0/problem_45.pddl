@@ -1,0 +1,102 @@
+(define (problem strips-sat-x-1)
+(:domain satellite)
+(:objects
+	satellite0 - satellite
+	instrument0 - instrument
+	instrument1 - instrument
+	instrument2 - instrument
+	instrument3 - instrument
+	instrument4 - instrument
+	instrument5 - instrument
+	instrument6 - instrument
+	instrument7 - instrument
+	thermograph3 - mode
+	infrared4 - mode
+	thermograph0 - mode
+	spectrograph5 - mode
+	infrared1 - mode
+	thermograph2 - mode
+	GroundStation0 - direction
+	Planet1 - direction
+	Phenomenon2 - direction
+	Planet3 - direction
+	Planet4 - direction
+	Star5 - direction
+	Planet6 - direction
+	Planet7 - direction
+	Star8 - direction
+	Phenomenon9 - direction
+	Star10 - direction
+	Star11 - direction
+	Planet12 - direction
+	Phenomenon13 - direction
+	Star14 - direction
+	Star15 - direction
+	Phenomenon16 - direction
+	Star17 - direction
+)
+(:init
+	(supports instrument0 thermograph3)
+	(calibration_target instrument0 GroundStation0)
+	(supports instrument1 thermograph3)
+	(calibration_target instrument1 GroundStation0)
+	(supports instrument2 thermograph3)
+	(supports instrument2 thermograph0)
+	(calibration_target instrument2 GroundStation0)
+	(supports instrument3 infrared1)
+	(supports instrument3 thermograph3)
+	(calibration_target instrument3 GroundStation0)
+	(supports instrument4 thermograph3)
+	(calibration_target instrument4 GroundStation0)
+	(supports instrument5 infrared4)
+	(supports instrument5 thermograph0)
+	(supports instrument5 infrared1)
+	(calibration_target instrument5 GroundStation0)
+	(supports instrument6 spectrograph5)
+	(calibration_target instrument6 GroundStation0)
+	(supports instrument7 thermograph2)
+	(calibration_target instrument7 GroundStation0)
+	(on_board instrument0 satellite0)
+	(on_board instrument1 satellite0)
+	(on_board instrument2 satellite0)
+	(on_board instrument3 satellite0)
+	(on_board instrument4 satellite0)
+	(on_board instrument5 satellite0)
+	(on_board instrument6 satellite0)
+	(on_board instrument7 satellite0)
+	(power_avail satellite0)
+	(pointing satellite0 Phenomenon16)
+)
+(:goal (and
+	(have_image Planet1 thermograph2)
+	(have_image Planet1 spectrograph5)
+	(have_image Phenomenon2 thermograph2)
+	(have_image Phenomenon2 thermograph3)
+	(have_image Planet3 infrared1)
+	(have_image Planet3 infrared4)
+	(have_image Planet4 thermograph3)
+	(have_image Planet4 spectrograph5)
+	(have_image Star5 thermograph2)
+	(have_image Planet6 spectrograph5)
+	(have_image Planet6 thermograph0)
+	(have_image Planet7 thermograph0)
+	(have_image Planet7 infrared4)
+	(have_image Star8 infrared4)
+	(have_image Star8 infrared1)
+	(have_image Phenomenon9 thermograph3)
+	(have_image Phenomenon9 infrared1)
+	(have_image Star10 infrared1)
+	(have_image Star10 thermograph2)
+	(have_image Star11 thermograph0)
+	(have_image Planet12 infrared1)
+	(have_image Phenomenon13 thermograph3)
+	(have_image Phenomenon13 thermograph2)
+	(have_image Star14 thermograph0)
+	(have_image Star14 thermograph3)
+	(have_image Star15 infrared1)
+	(have_image Star15 infrared4)
+	(have_image Phenomenon16 thermograph0)
+	(have_image Star17 thermograph0)
+	(have_image Star17 thermograph2)
+))
+)

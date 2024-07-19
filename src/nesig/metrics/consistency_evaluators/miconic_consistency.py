@@ -27,7 +27,7 @@ class ConsistencyEvaluatorMiconic(ConsistencyEvaluator):
         if atom_pred == 'above':
             f1, f2 = atom_obj_consts
 
-            # ~virtual(x) needed so that virtual objects are not considered when testing if the init state already contains a floor
+            # ~virtual(x) is needed so that virtual objects are not considered when testing if the init state already contains a floor
             formula = TE(x, _type(x, floor) & ~virtual(x)) >> ( virtual(f1) & ~virtual(f2) & ~TE(y, above(y,f2)) )
 
             return self._evaluate(formula)

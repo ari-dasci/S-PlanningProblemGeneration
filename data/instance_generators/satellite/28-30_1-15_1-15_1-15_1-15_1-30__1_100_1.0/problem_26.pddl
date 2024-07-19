@@ -1,0 +1,130 @@
+(define (problem strips-sat-x-1)
+(:domain satellite)
+(:objects
+	satellite0 - satellite
+	instrument0 - instrument
+	satellite1 - satellite
+	instrument1 - instrument
+	satellite2 - satellite
+	instrument2 - instrument
+	satellite3 - satellite
+	instrument3 - instrument
+	infrared6 - mode
+	thermograph9 - mode
+	image4 - mode
+	infrared5 - mode
+	image3 - mode
+	thermograph1 - mode
+	spectrograph8 - mode
+	image2 - mode
+	infrared0 - mode
+	infrared7 - mode
+	GroundStation0 - direction
+	Star4 - direction
+	GroundStation6 - direction
+	GroundStation7 - direction
+	Star3 - direction
+	Star2 - direction
+	GroundStation1 - direction
+	GroundStation5 - direction
+	Star8 - direction
+	Phenomenon9 - direction
+	Phenomenon10 - direction
+	Star11 - direction
+	Planet12 - direction
+	Star13 - direction
+	Phenomenon14 - direction
+	Star15 - direction
+	Star16 - direction
+	Phenomenon17 - direction
+	Star18 - direction
+	Phenomenon19 - direction
+	Planet20 - direction
+	Planet21 - direction
+	Planet22 - direction
+	Star23 - direction
+	Star24 - direction
+	Star25 - direction
+	Planet26 - direction
+	Planet27 - direction
+	Planet28 - direction
+	Planet29 - direction
+)
+(:init
+	(supports instrument0 infrared0)
+	(supports instrument0 image3)
+	(supports instrument0 spectrograph8)
+	(calibration_target instrument0 GroundStation1)
+	(on_board instrument0 satellite0)
+	(power_avail satellite0)
+	(pointing satellite0 Planet22)
+	(supports instrument1 infrared6)
+	(supports instrument1 image2)
+	(supports instrument1 thermograph9)
+	(calibration_target instrument1 Star2)
+	(calibration_target instrument1 Star3)
+	(on_board instrument1 satellite1)
+	(power_avail satellite1)
+	(pointing satellite1 Star2)
+	(supports instrument2 image3)
+	(supports instrument2 infrared7)
+	(supports instrument2 thermograph1)
+	(supports instrument2 image4)
+	(calibration_target instrument2 GroundStation1)
+	(on_board instrument2 satellite2)
+	(power_avail satellite2)
+	(pointing satellite2 Planet21)
+	(supports instrument3 infrared5)
+	(calibration_target instrument3 GroundStation5)
+	(on_board instrument3 satellite3)
+	(power_avail satellite3)
+	(pointing satellite3 Planet28)
+)
+(:goal (and
+	(have_image Star8 image2)
+	(have_image Star8 thermograph9)
+	(have_image Star8 thermograph1)
+	(have_image Phenomenon9 infrared7)
+	(have_image Phenomenon9 thermograph9)
+	(have_image Phenomenon10 image2)
+	(have_image Phenomenon10 image3)
+	(have_image Star11 infrared6)
+	(have_image Star11 image3)
+	(have_image Planet12 thermograph1)
+	(have_image Planet12 image3)
+	(have_image Star13 image4)
+	(have_image Phenomenon14 image2)
+	(have_image Phenomenon14 image4)
+	(have_image Star15 thermograph9)
+	(have_image Star15 infrared7)
+	(have_image Star15 image4)
+	(have_image Star16 image4)
+	(have_image Star16 image3)
+	(have_image Star16 infrared0)
+	(have_image Phenomenon17 infrared7)
+	(have_image Star18 thermograph1)
+	(have_image Star18 spectrograph8)
+	(have_image Phenomenon19 image3)
+	(have_image Phenomenon19 image2)
+	(have_image Phenomenon19 infrared6)
+	(have_image Planet20 image2)
+	(have_image Planet20 infrared5)
+	(have_image Planet20 thermograph9)
+	(have_image Planet21 thermograph1)
+	(have_image Planet21 infrared7)
+	(have_image Planet22 infrared7)
+	(have_image Planet22 image2)
+	(have_image Planet22 image4)
+	(have_image Star23 spectrograph8)
+	(have_image Star24 infrared0)
+	(have_image Star24 image3)
+	(have_image Star25 thermograph1)
+	(have_image Planet26 infrared0)
+	(have_image Planet26 image4)
+	(have_image Planet27 thermograph9)
+	(have_image Planet27 thermograph1)
+	(have_image Planet27 image4)
+	(have_image Planet28 spectrograph8)
+	(have_image Planet29 infrared6)
+))
+)
