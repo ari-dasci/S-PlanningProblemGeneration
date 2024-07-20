@@ -135,16 +135,19 @@ class ConsistencyEvaluatorSatellite(ConsistencyEvaluator):
         x = Variable('x')
         y = Variable('y')
 
+        # There exists at least one satellite
+        formula_1 = TE(x, _type(x, satellite))
+
         # Each satellite needs to have power available
-        formula_1 = FA(x, _type(x, satellite) >> power_avail(x))
+        formula_2 = FA(x, _type(x, satellite) >> power_avail(x))
 
         # Each satellite needs to have at least one instrument on board
-        formula_2 = FA(x, _type(x, satellite) >> TE(y, on_board(y, x)))
+        formula_3 = FA(x, _type(x, satellite) >> TE(y, on_board(y, x)))
         
         # Each instrument needs to support at least one mode
-        formula_3 = FA(x, _type(x, instrument) >> TE(y, supports(x, y)))
+        formula_4 = FA(x, _type(x, instrument) >> TE(y, supports(x, y)))
         
         # Each instrument needs to have at least one calibration target
-        formula_4 = FA(x, _type(x, instrument) >> TE(y, calibration_target(x, y)))
+        formula_5 = FA(x, _type(x, instrument) >> TE(y, calibration_target(x, y)))
         
-        return self._evaluate(formula_1 & formula_2 & formula_3 & formula_4)
+        return self._evaluate(formula_1 & formula_2 & formula_3 & formula_4 & formula_5)
