@@ -1,4 +1,4 @@
-;; Extracted from: https://github.com/AI-Planning/pddl-generators/blob/main/satellite/domain.pddl
+;; Adapted from: https://github.com/AI-Planning/pddl-generators/blob/main/satellite/domain.pddl
 ;; Satellite domain
 ;; There are a series of satellites, each with a series of instruments. The goal is to take a series of images of directions (stars, planets, etc.) in a series
 ;; of modes (image, spectrograph, etc.), where each instrument supports a series of modes. Each satellite only has energy for one instrument at the same time.
@@ -17,6 +17,7 @@
 ;; NOTE: often, the direction used to calibrate an instrument is different to the direction to take images with that instrument (see calibration_dir and new_dir above).
 ;; NOTE2: we add a dummy predicate "dummy" for adding directions which are not instantiated in any atom of the init state.
 ;;        This makes possible to have directions which only appear in "have_image" atoms in the goal (but no atom in the init state).
+;; NOTE3: we use an existential precondition in the action take_image in order to remove the satellite ?s from its parameters
 
 (define (domain satellite)
   (:requirements :strips :typing)
@@ -61,11 +62,13 @@
                       (power_on ?i))
    :effect (calibrated ?i))
 
+  ;; We use an existential precondition to remove ?s from the parameters
   (:action take_image
-   :parameters (?s - satellite ?d - direction ?i - instrument ?m - mode)
-   :precondition (and (calibrated ?i)
-                      (on_board ?i ?s)
+   :parameters (?d - direction ?i - instrument ?m - mode)
+   :precondition (and (calibrated ?i)                     
                       (supports ?i ?m)
-                      (power_on ?i)
-                      (pointing ?s ?d))
+                      (power_on ?i)           
+                      (exists (?s - satellite)
+                        (and (on_board ?i ?s) (pointing ?s ?d))
+                      ))
    :effect (have_image ?d ?m)))
