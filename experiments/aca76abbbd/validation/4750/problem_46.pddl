@@ -1,0 +1,38 @@
+(define (problem problem_46)
+
+(:domain satellite)
+
+(:objects
+	obj0 obj1 obj2 obj3 obj4 obj8 - direction
+	obj5 - satellite
+	obj6 obj9 - instrument
+	obj7 obj10 obj11 - mode
+)
+
+(:init
+	(calibration_target obj6 obj2)
+	(calibration_target obj9 obj4)
+	(dummy obj0)
+	(dummy obj1)
+	(dummy obj2)
+	(dummy obj3)
+	(dummy obj4)
+	(dummy obj8)
+	(on_board obj6 obj5)
+	(on_board obj9 obj5)
+	(pointing obj5 obj1)
+	(power_avail obj5)
+	(supports obj6 obj7)
+	(supports obj9 obj10)
+	(supports obj9 obj11)
+)
+
+(:goal (and
+	(have_image obj0 obj11)
+	(have_image obj1 obj10)
+	(have_image obj2 obj11)
+	(have_image obj3 obj10)
+	(have_image obj4 obj11)
+	(have_image obj8 obj11)
+))
+)
