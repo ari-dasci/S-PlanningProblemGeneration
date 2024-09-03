@@ -1,0 +1,99 @@
+(define (problem strips-sat-x-1)
+(:domain satellite)
+(:objects
+	satellite0 - satellite
+	instrument0 - instrument
+	instrument1 - instrument
+	instrument2 - instrument
+	instrument3 - instrument
+	instrument4 - instrument
+	instrument5 - instrument
+	instrument6 - instrument
+	infrared0 - mode
+	GroundStation1 - direction
+	GroundStation5 - direction
+	Star6 - direction
+	Star4 - direction
+	Star9 - direction
+	Star10 - direction
+	Star0 - direction
+	GroundStation7 - direction
+	GroundStation15 - direction
+	Star2 - direction
+	GroundStation14 - direction
+	GroundStation3 - direction
+	Star12 - direction
+	Star11 - direction
+	Star16 - direction
+	Star8 - direction
+	GroundStation13 - direction
+	Planet17 - direction
+	Planet18 - direction
+	Star19 - direction
+	Planet20 - direction
+	Planet21 - direction
+	Planet22 - direction
+	Phenomenon23 - direction
+	Star24 - direction
+	Star25 - direction
+	Planet26 - direction
+	Star27 - direction
+	Planet28 - direction
+)
+(:init
+	(supports instrument0 infrared0)
+	(calibration_target instrument0 Star0)
+	(calibration_target instrument0 Star8)
+	(calibration_target instrument0 Star9)
+	(calibration_target instrument0 GroundStation14)
+	(calibration_target instrument0 Star6)
+	(supports instrument1 infrared0)
+	(calibration_target instrument1 Star0)
+	(calibration_target instrument1 Star10)
+	(calibration_target instrument1 Star12)
+	(calibration_target instrument1 Star9)
+	(calibration_target instrument1 Star4)
+	(supports instrument2 infrared0)
+	(calibration_target instrument2 Star8)
+	(calibration_target instrument2 Star0)
+	(supports instrument3 infrared0)
+	(calibration_target instrument3 GroundStation15)
+	(calibration_target instrument3 GroundStation7)
+	(supports instrument4 infrared0)
+	(calibration_target instrument4 Star16)
+	(calibration_target instrument4 GroundStation14)
+	(calibration_target instrument4 Star2)
+	(calibration_target instrument4 GroundStation13)
+	(supports instrument5 infrared0)
+	(calibration_target instrument5 GroundStation3)
+	(supports instrument6 infrared0)
+	(calibration_target instrument6 GroundStation13)
+	(calibration_target instrument6 Star8)
+	(calibration_target instrument6 Star16)
+	(calibration_target instrument6 Star11)
+	(calibration_target instrument6 Star12)
+	(on_board instrument0 satellite0)
+	(on_board instrument1 satellite0)
+	(on_board instrument2 satellite0)
+	(on_board instrument3 satellite0)
+	(on_board instrument4 satellite0)
+	(on_board instrument5 satellite0)
+	(on_board instrument6 satellite0)
+	(power_avail satellite0)
+	(pointing satellite0 Star9)
+)
+(:goal (and
+	(have_image Planet17 infrared0)
+	(have_image Planet18 infrared0)
+	(have_image Star19 infrared0)
+	(have_image Planet20 infrared0)
+	(have_image Planet21 infrared0)
+	(have_image Planet22 infrared0)
+	(have_image Phenomenon23 infrared0)
+	(have_image Star24 infrared0)
+	(have_image Star25 infrared0)
+	(have_image Planet26 infrared0)
+	(have_image Star27 infrared0)
+	(have_image Planet28 infrared0)
+))
+)

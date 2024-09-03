@@ -1,0 +1,48 @@
+{
+  "seed": 1,
+  "num_problems": 100,
+  "perc_problems_diversity": 1.0,
+  "atoms": [
+    23,
+    25
+  ],
+  "satellites": [
+    1,
+    13
+  ],
+  "max_inst_sat": [
+    1,
+    13
+  ],
+  "modes": [
+    1,
+    13
+  ],
+  "targets": [
+    1,
+    13
+  ],
+  "observations": [
+    1,
+    13
+  ],
+  "domain": "satellite",
+  "time_limit_planner": {
+    "lama_first": 1800,
+    "lazy_greedy_ff": 1800,
+    "astar_lmcut": 1800,
+    "fdss_opt": 600
+  },
+  "memory_limit_planner": {
+    "lama_first": 8500000,
+    "lazy_greedy_ff": 8500000,
+    "astar_lmcut": 8500000,
+    "fdss_opt": 8500000
+  },
+  "term_problem_diff": {
+    "lama_first": 100000000.0,
+    "lazy_greedy_ff": 100000000.0,
+    "astar_lmcut": 100000000.0,
+    "fdss_opt": 601.0
+  }
+}

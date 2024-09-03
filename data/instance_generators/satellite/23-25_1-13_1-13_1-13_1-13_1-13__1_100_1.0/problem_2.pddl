@@ -1,0 +1,100 @@
+(define (problem strips-sat-x-1)
+(:domain satellite)
+(:objects
+	satellite0 - satellite
+	instrument0 - instrument
+	instrument1 - instrument
+	image6 - mode
+	infrared0 - mode
+	infrared4 - mode
+	thermograph3 - mode
+	image10 - mode
+	spectrograph9 - mode
+	image2 - mode
+	thermograph1 - mode
+	thermograph11 - mode
+	thermograph5 - mode
+	image7 - mode
+	image8 - mode
+	image12 - mode
+	GroundStation1 - direction
+	Star2 - direction
+	GroundStation6 - direction
+	GroundStation7 - direction
+	Star4 - direction
+	Star5 - direction
+	Star0 - direction
+	GroundStation3 - direction
+	GroundStation8 - direction
+	Star9 - direction
+	Phenomenon10 - direction
+	Phenomenon11 - direction
+	Star12 - direction
+	Phenomenon13 - direction
+	Star14 - direction
+	Phenomenon15 - direction
+	Phenomenon16 - direction
+	Star17 - direction
+	Star18 - direction
+	Planet19 - direction
+)
+(:init
+	(supports instrument0 thermograph5)
+	(supports instrument0 thermograph11)
+	(supports instrument0 image12)
+	(supports instrument0 thermograph1)
+	(supports instrument0 spectrograph9)
+	(supports instrument0 infrared4)
+	(supports instrument0 image6)
+	(calibration_target instrument0 Star5)
+	(calibration_target instrument0 GroundStation8)
+	(calibration_target instrument0 Star4)
+	(supports instrument1 thermograph5)
+	(supports instrument1 thermograph11)
+	(supports instrument1 image8)
+	(supports instrument1 image7)
+	(supports instrument1 image2)
+	(supports instrument1 image10)
+	(supports instrument1 thermograph3)
+	(supports instrument1 infrared0)
+	(calibration_target instrument1 GroundStation8)
+	(calibration_target instrument1 GroundStation3)
+	(calibration_target instrument1 Star0)
+	(on_board instrument0 satellite0)
+	(on_board instrument1 satellite0)
+	(power_avail satellite0)
+	(pointing satellite0 GroundStation8)
+)
+(:goal (and
+	(have_image Star9 spectrograph9)
+	(have_image Star9 thermograph11)
+	(have_image Star9 thermograph5)
+	(have_image Star9 infrared0)
+	(have_image Phenomenon10 image6)
+	(have_image Phenomenon10 image12)
+	(have_image Phenomenon10 thermograph11)
+	(have_image Phenomenon11 image10)
+	(have_image Phenomenon11 spectrograph9)
+	(have_image Phenomenon11 image6)
+	(have_image Star12 thermograph1)
+	(have_image Star12 thermograph3)
+	(have_image Star12 image12)
+	(have_image Star12 image2)
+	(have_image Phenomenon13 image12)
+	(have_image Star14 image10)
+	(have_image Phenomenon15 image6)
+	(have_image Phenomenon15 image8)
+	(have_image Phenomenon15 image7)
+	(have_image Phenomenon15 thermograph5)
+	(have_image Phenomenon16 thermograph11)
+	(have_image Phenomenon16 image8)
+	(have_image Phenomenon16 image7)
+	(have_image Star17 image6)
+	(have_image Star17 spectrograph9)
+	(have_image Star18 thermograph5)
+	(have_image Star18 infrared0)
+	(have_image Planet19 image6)
+	(have_image Planet19 infrared0)
+	(have_image Planet19 image12)
+))
+)
