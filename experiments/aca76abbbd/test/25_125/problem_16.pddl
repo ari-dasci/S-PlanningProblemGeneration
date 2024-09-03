@@ -1,0 +1,63 @@
+(define (problem problem_16)
+
+(:domain satellite)
+
+(:objects
+	obj0 obj2 obj3 obj6 obj7 obj10 obj11 obj14 obj18 - direction
+	obj1 - satellite
+	obj4 obj8 obj12 - instrument
+	obj5 obj9 obj13 obj15 obj16 obj17 - mode
+)
+
+(:init
+	(calibration_target obj4 obj3)
+	(calibration_target obj4 obj7)
+	(calibration_target obj8 obj2)
+	(calibration_target obj12 obj6)
+	(calibration_target obj12 obj10)
+	(dummy obj0)
+	(dummy obj2)
+	(dummy obj3)
+	(dummy obj6)
+	(dummy obj7)
+	(dummy obj10)
+	(dummy obj11)
+	(dummy obj14)
+	(dummy obj18)
+	(on_board obj4 obj1)
+	(on_board obj8 obj1)
+	(on_board obj12 obj1)
+	(pointing obj1 obj0)
+	(power_avail obj1)
+	(supports obj4 obj5)
+	(supports obj8 obj9)
+	(supports obj8 obj15)
+	(supports obj12 obj13)
+	(supports obj12 obj16)
+	(supports obj12 obj17)
+)
+
+(:goal (and
+	(have_image obj0 obj5)
+	(have_image obj0 obj15)
+	(have_image obj0 obj16)
+	(have_image obj2 obj16)
+	(have_image obj3 obj5)
+	(have_image obj3 obj13)
+	(have_image obj3 obj15)
+	(have_image obj6 obj5)
+	(have_image obj6 obj16)
+	(have_image obj7 obj9)
+	(have_image obj7 obj15)
+	(have_image obj7 obj16)
+	(have_image obj10 obj13)
+	(have_image obj10 obj15)
+	(have_image obj11 obj5)
+	(have_image obj11 obj9)
+	(have_image obj11 obj13)
+	(have_image obj14 obj9)
+	(have_image obj14 obj16)
+	(have_image obj18 obj13)
+	(have_image obj18 obj15)
+))
+)

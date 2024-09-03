@@ -1,0 +1,4401 @@
+{
+  "Consistency percentage": 1.0,
+  "Mean diversity": 0.07027707066386939,
+  "Mean actions init": 35.0,
+  "Std actions init": 0.0,
+  "Mean actions goal": 173.7,
+  "Std actions goal": 4.471017781221634,
+  "Mean num objects": {
+    "direction": 11.0,
+    "instrument": 5.26,
+    "mode": 7.46,
+    "object": 0.0,
+    "satellite": 1.0
+  },
+  "Std num objects": {
+    "direction": 1.42828568570857,
+    "instrument": 0.6421837743200927,
+    "mode": 1.3373107342723305,
+    "object": 0.0,
+    "satellite": 0.0
+  },
+  "Mean num atoms init": {
+    "calibrated": 0.0,
+    "calibration_target": 9.28,
+    "dummy": 11.0,
+    "have_image": 0.0,
+    "on_board": 5.26,
+    "pointing": 1.0,
+    "power_avail": 1.0,
+    "power_on": 0.0,
+    "supports": 7.46
+  },
+  "Std num atoms init": {
+    "calibrated": 0.0,
+    "calibration_target": 1.020588065773846,
+    "dummy": 1.42828568570857,
+    "have_image": 0.0,
+    "on_board": 0.6421837743200927,
+    "pointing": 0.0,
+    "power_avail": 0.0,
+    "power_on": 0.0,
+    "supports": 1.3373107342723305
+  },
+  "Mean num atoms goal": {
+    "calibrated": 3.57,
+    "calibration_target": 9.28,
+    "dummy": 11.0,
+    "have_image": 21.22,
+    "on_board": 5.26,
+    "pointing": 1.0,
+    "power_avail": 0.12,
+    "power_on": 0.88,
+    "supports": 7.46
+  },
+  "Std num atoms goal": {
+    "calibrated": 1.0223013254417697,
+    "calibration_target": 1.020588065773846,
+    "dummy": 1.42828568570857,
+    "have_image": 3.748546384933764,
+    "on_board": 0.6421837743200927,
+    "pointing": 0.0,
+    "power_avail": 0.3249615361854386,
+    "power_on": 0.3249615361854386,
+    "supports": 1.3373107342723305
+  },
+  "Mean difficulty": {
+    "lama_first": 479.06,
+    "lazy_greedy_ff": 434.22,
+    "astar_lmcut": 49023317.57,
+    "fdss_opt": 577.783
+  },
+  "Std difficulty": {
+    "lama_first": 134.1293271436191,
+    "lazy_greedy_ff": 124.96004001279768,
+    "astar_lmcut": 48096516.86272114,
+    "fdss_opt": 113.83556837386102
+  },
+  "Max init actions": 35,
+  "Max goal actions": 175,
+  "Generation time": 154.5046501159668,
+  "r_terminated_problem_test": {
+    "lama_first": 100000000.0,
+    "lazy_greedy_ff": 100000000.0,
+    "astar_lmcut": 100000000.0,
+    "fdss_opt": 601.0
+  },
+  "time_limit_planner_test": {
+    "lama_first": 1800,
+    "lazy_greedy_ff": 1800,
+    "astar_lmcut": 1800,
+    "fdss_opt": 600
+  },
+  "memory_limit_planner_test": {
+    "lama_first": 8500000,
+    "lazy_greedy_ff": 8500000,
+    "astar_lmcut": 8500000,
+    "fdss_opt": 8500000
+  },
+  "Problem Results": {
+    "problem_0": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 11,
+        "instrument": 5,
+        "mode": 7,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 11,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 10,
+        "dummy": 11,
+        "have_image": 19,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 7
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 345.0,
+        "lazy_greedy_ff": 299.0,
+        "astar_lmcut": 1261535.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.056879673153162
+    },
+    "problem_1": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 11,
+        "instrument": 5,
+        "mode": 6,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 11,
+        "dummy": 11,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 6
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 11,
+        "dummy": 11,
+        "have_image": 20,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 6
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 484.0,
+        "lazy_greedy_ff": 482.0,
+        "astar_lmcut": 12971925.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.058867063373327255
+    },
+    "problem_2": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 8,
+        "instrument": 6,
+        "mode": 9,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 8,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 9
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 2,
+        "calibration_target": 10,
+        "dummy": 8,
+        "have_image": 14,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 9
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 281.0,
+        "lazy_greedy_ff": 255.0,
+        "astar_lmcut": 32568.0,
+        "fdss_opt": 17.96
+      },
+      "diversity": 0.09019309282302856
+    },
+    "problem_3": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 11,
+        "instrument": 6,
+        "mode": 6,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 11,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 6
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 5,
+        "calibration_target": 10,
+        "dummy": 11,
+        "have_image": 23,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 6
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 536.0,
+        "lazy_greedy_ff": 499.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.07261735945940018
+    },
+    "problem_4": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 13,
+        "instrument": 5,
+        "mode": 5,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 13,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 5
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 10,
+        "dummy": 13,
+        "have_image": 24,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 5
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 600.0,
+        "lazy_greedy_ff": 557.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.09246353805065155
+    },
+    "problem_5": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 10,
+        "instrument": 5,
+        "mode": 9,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 10,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 9
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 9,
+        "dummy": 10,
+        "have_image": 21,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 9
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 383.0,
+        "lazy_greedy_ff": 332.0,
+        "astar_lmcut": 2498822.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.06409425288438797
+    },
+    "problem_6": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 10,
+        "instrument": 6,
+        "mode": 7,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 10,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 10,
+        "dummy": 10,
+        "have_image": 21,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 7
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 419.0,
+        "lazy_greedy_ff": 385.0,
+        "astar_lmcut": 13768810.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.06226442754268646
+    },
+    "problem_7": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 10,
+        "instrument": 6,
+        "mode": 6,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 11,
+        "dummy": 10,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 6
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 11,
+        "dummy": 10,
+        "have_image": 19,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 6
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 342.0,
+        "lazy_greedy_ff": 348.0,
+        "astar_lmcut": 1762565.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.07459796220064163
+    },
+    "problem_8": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 11,
+        "instrument": 6,
+        "mode": 6,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 11,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 6
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 10,
+        "dummy": 11,
+        "have_image": 17,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 6
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 511.0,
+        "lazy_greedy_ff": 317.0,
+        "astar_lmcut": 155428.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.07085923105478287
+    },
+    "problem_9": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 12,
+        "instrument": 4,
+        "mode": 9,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 8,
+        "dummy": 12,
+        "have_image": 0,
+        "on_board": 4,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 9
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 8,
+        "dummy": 12,
+        "have_image": 29,
+        "on_board": 4,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 9
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 546.0,
+        "lazy_greedy_ff": 530.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.07430712133646011
+    },
+    "problem_10": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 12,
+        "instrument": 6,
+        "mode": 6,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 12,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 6
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 9,
+        "dummy": 12,
+        "have_image": 20,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 6
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 624.0,
+        "lazy_greedy_ff": 590.0,
+        "astar_lmcut": 8566156.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.0754568800330162
+    },
+    "problem_11": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 9,
+        "instrument": 5,
+        "mode": 10,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 9,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 10
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 9,
+        "dummy": 9,
+        "have_image": 21,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 10
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 380.0,
+        "lazy_greedy_ff": 403.0,
+        "astar_lmcut": 10405684.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.0833377093076706
+    },
+    "problem_12": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 11,
+        "instrument": 6,
+        "mode": 7,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 11,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 9,
+        "dummy": 11,
+        "have_image": 16,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 7
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 256.0,
+        "lazy_greedy_ff": 207.0,
+        "astar_lmcut": 26572.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.055672742426395416
+    },
+    "problem_13": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 10,
+        "instrument": 5,
+        "mode": 9,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 10,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 9
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 2,
+        "calibration_target": 9,
+        "dummy": 10,
+        "have_image": 23,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 9
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 517.0,
+        "lazy_greedy_ff": 409.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.0683007761836052
+    },
+    "problem_14": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 10,
+        "instrument": 5,
+        "mode": 10,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 8,
+        "dummy": 10,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 10
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 8,
+        "dummy": 10,
+        "have_image": 22,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 10
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 387.0,
+        "lazy_greedy_ff": 398.0,
+        "astar_lmcut": 3532075.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.07885103672742844
+    },
+    "problem_15": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 11,
+        "instrument": 6,
+        "mode": 8,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 8,
+        "dummy": 11,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 8
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 6,
+        "calibration_target": 8,
+        "dummy": 11,
+        "have_image": 22,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 8
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 706.0,
+        "lazy_greedy_ff": 669.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.07257824391126633
+    },
+    "problem_16": {
+      "init_phase_length": 35,
+      "goal_phase_length": 156,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 13,
+        "instrument": 5,
+        "mode": 7,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 8,
+        "dummy": 13,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 8,
+        "dummy": 13,
+        "have_image": 28,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 607.0,
+        "lazy_greedy_ff": 616.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.0626736432313919
+    },
+    "problem_17": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 11,
+        "instrument": 5,
+        "mode": 8,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 11,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 8
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 5,
+        "calibration_target": 9,
+        "dummy": 11,
+        "have_image": 20,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 8
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 384.0,
+        "lazy_greedy_ff": 381.0,
+        "astar_lmcut": 11032942.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.05809547379612923
+    },
+    "problem_18": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 10,
+        "instrument": 5,
+        "mode": 9,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 10,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 9
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 2,
+        "calibration_target": 9,
+        "dummy": 10,
+        "have_image": 20,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 9
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 332.0,
+        "lazy_greedy_ff": 287.0,
+        "astar_lmcut": 3696992.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.062496136873960495
+    },
+    "problem_19": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 13,
+        "instrument": 5,
+        "mode": 6,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 13,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 6
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 5,
+        "calibration_target": 9,
+        "dummy": 13,
+        "have_image": 23,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 6
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 807.0,
+        "lazy_greedy_ff": 647.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.06845229864120483
+    },
+    "problem_20": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 10,
+        "instrument": 6,
+        "mode": 8,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 10,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 8
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 9,
+        "dummy": 10,
+        "have_image": 20,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 8
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 468.0,
+        "lazy_greedy_ff": 407.0,
+        "astar_lmcut": 5524075.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.061358217149972916
+    },
+    "problem_21": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 9,
+        "instrument": 6,
+        "mode": 8,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 9,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 8
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 10,
+        "dummy": 9,
+        "have_image": 16,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 8
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 328.0,
+        "lazy_greedy_ff": 301.0,
+        "astar_lmcut": 166504.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.0774458795785904
+    },
+    "problem_22": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 9,
+        "instrument": 6,
+        "mode": 7,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 11,
+        "dummy": 9,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 11,
+        "dummy": 9,
+        "have_image": 18,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 7
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 362.0,
+        "lazy_greedy_ff": 312.0,
+        "astar_lmcut": 2618891.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.0672641173005104
+    },
+    "problem_23": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 12,
+        "instrument": 5,
+        "mode": 7,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 12,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 9,
+        "dummy": 12,
+        "have_image": 19,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 7
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 474.0,
+        "lazy_greedy_ff": 414.0,
+        "astar_lmcut": 2330317.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.05781727656722069
+    },
+    "problem_24": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 11,
+        "instrument": 5,
+        "mode": 7,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 11,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 2,
+        "calibration_target": 10,
+        "dummy": 11,
+        "have_image": 18,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 7
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 414.0,
+        "lazy_greedy_ff": 372.0,
+        "astar_lmcut": 1302734.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.054400328546762466
+    },
+    "problem_25": {
+      "init_phase_length": 35,
+      "goal_phase_length": 160,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 14,
+        "instrument": 5,
+        "mode": 7,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 7,
+        "dummy": 14,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 7,
+        "dummy": 14,
+        "have_image": 31,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 7
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 841.0,
+        "lazy_greedy_ff": 814.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.07547228038311005
+    },
+    "problem_26": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 10,
+        "instrument": 6,
+        "mode": 7,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 10,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 10,
+        "dummy": 10,
+        "have_image": 20,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 7
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 432.0,
+        "lazy_greedy_ff": 378.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.05698680877685547
+    },
+    "problem_27": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 9,
+        "instrument": 5,
+        "mode": 9,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 9,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 9
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 10,
+        "dummy": 9,
+        "have_image": 22,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 9
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 408.0,
+        "lazy_greedy_ff": 389.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.07776738703250885
+    },
+    "problem_28": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 10,
+        "instrument": 6,
+        "mode": 8,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 10,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 8
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 9,
+        "dummy": 10,
+        "have_image": 19,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 8
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 440.0,
+        "lazy_greedy_ff": 374.0,
+        "astar_lmcut": 1881034.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.058269158005714417
+    },
+    "problem_29": {
+      "init_phase_length": 35,
+      "goal_phase_length": 162,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 13,
+        "instrument": 5,
+        "mode": 7,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 8,
+        "dummy": 13,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 8,
+        "dummy": 13,
+        "have_image": 29,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 797.0,
+        "lazy_greedy_ff": 664.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.06303904205560684
+    },
+    "problem_30": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 11,
+        "instrument": 5,
+        "mode": 6,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 11,
+        "dummy": 11,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 6
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 11,
+        "dummy": 11,
+        "have_image": 21,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 6
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 621.0,
+        "lazy_greedy_ff": 650.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.0655875951051712
+    },
+    "problem_31": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 11,
+        "instrument": 6,
+        "mode": 6,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 11,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 6
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 10,
+        "dummy": 11,
+        "have_image": 22,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 6
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 617.0,
+        "lazy_greedy_ff": 530.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.07235173135995865
+    },
+    "problem_32": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 11,
+        "instrument": 5,
+        "mode": 6,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 11,
+        "dummy": 11,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 6
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 11,
+        "dummy": 11,
+        "have_image": 17,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 6
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 447.0,
+        "lazy_greedy_ff": 361.0,
+        "astar_lmcut": 347087.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.06248908117413521
+    },
+    "problem_33": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 12,
+        "instrument": 5,
+        "mode": 6,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 12,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 6
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 10,
+        "dummy": 12,
+        "have_image": 18,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 6
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 453.0,
+        "lazy_greedy_ff": 382.0,
+        "astar_lmcut": 2922216.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.06319853663444519
+    },
+    "problem_34": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 10,
+        "instrument": 6,
+        "mode": 6,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 11,
+        "dummy": 10,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 6
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 11,
+        "dummy": 10,
+        "have_image": 17,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 6
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 492.0,
+        "lazy_greedy_ff": 487.0,
+        "astar_lmcut": 717911.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.07543428242206573
+    },
+    "problem_35": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 12,
+        "instrument": 4,
+        "mode": 7,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 12,
+        "have_image": 0,
+        "on_board": 4,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 10,
+        "dummy": 12,
+        "have_image": 24,
+        "on_board": 4,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 7
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 588.0,
+        "lazy_greedy_ff": 516.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.07179596275091171
+    },
+    "problem_36": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 12,
+        "instrument": 5,
+        "mode": 6,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 12,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 6
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 2,
+        "calibration_target": 10,
+        "dummy": 12,
+        "have_image": 23,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 6
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 477.0,
+        "lazy_greedy_ff": 429.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.07037436217069626
+    },
+    "problem_37": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 10,
+        "instrument": 5,
+        "mode": 10,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 8,
+        "dummy": 10,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 10
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 8,
+        "dummy": 10,
+        "have_image": 22,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 10
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 465.0,
+        "lazy_greedy_ff": 435.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.08717741072177887
+    },
+    "problem_38": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 11,
+        "instrument": 5,
+        "mode": 9,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 8,
+        "dummy": 11,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 9
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 8,
+        "dummy": 11,
+        "have_image": 15,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 9
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 389.0,
+        "lazy_greedy_ff": 335.0,
+        "astar_lmcut": 151400.0,
+        "fdss_opt": 59.48
+      },
+      "diversity": 0.07379564642906189
+    },
+    "problem_39": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 13,
+        "instrument": 4,
+        "mode": 8,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 8,
+        "dummy": 13,
+        "have_image": 0,
+        "on_board": 4,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 8
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 8,
+        "dummy": 13,
+        "have_image": 25,
+        "on_board": 4,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 8
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 562.0,
+        "lazy_greedy_ff": 495.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.07473518699407578
+    },
+    "problem_40": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 10,
+        "instrument": 6,
+        "mode": 7,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 10,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 6,
+        "calibration_target": 10,
+        "dummy": 10,
+        "have_image": 19,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 7
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 456.0,
+        "lazy_greedy_ff": 409.0,
+        "astar_lmcut": 3410804.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.06458672881126404
+    },
+    "problem_41": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 8,
+        "instrument": 6,
+        "mode": 11,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 8,
+        "dummy": 8,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 11
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 8,
+        "dummy": 8,
+        "have_image": 18,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 11
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 313.0,
+        "lazy_greedy_ff": 304.0,
+        "astar_lmcut": 4294781.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.11345156282186508
+    },
+    "problem_42": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 10,
+        "instrument": 6,
+        "mode": 7,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 10,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 10,
+        "dummy": 10,
+        "have_image": 22,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 472.0,
+        "lazy_greedy_ff": 453.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.057691603899002075
+    },
+    "problem_43": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 12,
+        "instrument": 5,
+        "mode": 7,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 12,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 9,
+        "dummy": 12,
+        "have_image": 23,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 7
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 608.0,
+        "lazy_greedy_ff": 556.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.05773482844233513
+    },
+    "problem_44": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 12,
+        "instrument": 5,
+        "mode": 7,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 12,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 9,
+        "dummy": 12,
+        "have_image": 25,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 7
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 540.0,
+        "lazy_greedy_ff": 472.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.059322964400053024
+    },
+    "problem_45": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 11,
+        "instrument": 6,
+        "mode": 7,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 11,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 5,
+        "calibration_target": 9,
+        "dummy": 11,
+        "have_image": 18,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 7
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 512.0,
+        "lazy_greedy_ff": 456.0,
+        "astar_lmcut": 2466912.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.059697337448596954
+    },
+    "problem_46": {
+      "init_phase_length": 35,
+      "goal_phase_length": 171,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 12,
+        "instrument": 5,
+        "mode": 6,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 12,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 6
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 5,
+        "calibration_target": 10,
+        "dummy": 12,
+        "have_image": 31,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 6
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 745.0,
+        "lazy_greedy_ff": 654.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.06368231773376465
+    },
+    "problem_47": {
+      "init_phase_length": 35,
+      "goal_phase_length": 163,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 15,
+        "instrument": 5,
+        "mode": 5,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 8,
+        "dummy": 15,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 5
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 8,
+        "dummy": 15,
+        "have_image": 24,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 5
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 751.0,
+        "lazy_greedy_ff": 652.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.11425735056400299
+    },
+    "problem_48": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 10,
+        "instrument": 6,
+        "mode": 6,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 11,
+        "dummy": 10,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 6
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 11,
+        "dummy": 10,
+        "have_image": 20,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 6
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 403.0,
+        "lazy_greedy_ff": 387.0,
+        "astar_lmcut": 4240403.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.07420536130666733
+    },
+    "problem_49": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 11,
+        "instrument": 5,
+        "mode": 9,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 8,
+        "dummy": 11,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 9
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 8,
+        "dummy": 11,
+        "have_image": 23,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 9
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 694.0,
+        "lazy_greedy_ff": 424.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.07400373369455338
+    },
+    "problem_50": {
+      "init_phase_length": 35,
+      "goal_phase_length": 162,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 11,
+        "instrument": 5,
+        "mode": 7,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 11,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 10,
+        "dummy": 11,
+        "have_image": 20,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 406.0,
+        "lazy_greedy_ff": 389.0,
+        "astar_lmcut": 1936102.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.05722242593765259
+    },
+    "problem_51": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 9,
+        "instrument": 6,
+        "mode": 10,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 8,
+        "dummy": 9,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 10
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 8,
+        "dummy": 9,
+        "have_image": 21,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 10
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 474.0,
+        "lazy_greedy_ff": 440.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.08551099896430969
+    },
+    "problem_52": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 10,
+        "instrument": 6,
+        "mode": 9,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 8,
+        "dummy": 10,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 9
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 8,
+        "dummy": 10,
+        "have_image": 18,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 9
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 421.0,
+        "lazy_greedy_ff": 384.0,
+        "astar_lmcut": 2931739.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.07072603702545166
+    },
+    "problem_53": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 13,
+        "instrument": 5,
+        "mode": 7,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 8,
+        "dummy": 13,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 8,
+        "dummy": 13,
+        "have_image": 21,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 7
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 489.0,
+        "lazy_greedy_ff": 380.0,
+        "astar_lmcut": 6092301.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.06552089005708694
+    },
+    "problem_54": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 10,
+        "instrument": 5,
+        "mode": 8,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 10,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 8
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 5,
+        "calibration_target": 10,
+        "dummy": 10,
+        "have_image": 23,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 8
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 390.0,
+        "lazy_greedy_ff": 373.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.058684878051280975
+    },
+    "problem_55": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 10,
+        "instrument": 6,
+        "mode": 8,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 10,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 8
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 2,
+        "calibration_target": 9,
+        "dummy": 10,
+        "have_image": 19,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 8
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 282.0,
+        "lazy_greedy_ff": 261.0,
+        "astar_lmcut": 719193.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.06061287224292755
+    },
+    "problem_56": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 11,
+        "instrument": 5,
+        "mode": 6,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 11,
+        "dummy": 11,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 6
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 11,
+        "dummy": 11,
+        "have_image": 20,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 6
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 477.0,
+        "lazy_greedy_ff": 419.0,
+        "astar_lmcut": 4944448.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.060563888400793076
+    },
+    "problem_57": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 12,
+        "instrument": 5,
+        "mode": 8,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 8,
+        "dummy": 12,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 8
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 8,
+        "dummy": 12,
+        "have_image": 23,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 8
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 561.0,
+        "lazy_greedy_ff": 500.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.05966595560312271
+    },
+    "problem_58": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 11,
+        "instrument": 5,
+        "mode": 8,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 11,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 8
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 9,
+        "dummy": 11,
+        "have_image": 17,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 8
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 343.0,
+        "lazy_greedy_ff": 296.0,
+        "astar_lmcut": 262988.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.052035391330718994
+    },
+    "problem_59": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 11,
+        "instrument": 6,
+        "mode": 9,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 7,
+        "dummy": 11,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 9
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 7,
+        "dummy": 11,
+        "have_image": 24,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 9
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 598.0,
+        "lazy_greedy_ff": 598.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.07028315961360931
+    },
+    "problem_60": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 14,
+        "instrument": 4,
+        "mode": 7,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 8,
+        "dummy": 14,
+        "have_image": 0,
+        "on_board": 4,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 8,
+        "dummy": 14,
+        "have_image": 25,
+        "on_board": 4,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 7
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 470.0,
+        "lazy_greedy_ff": 409.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.08819319307804108
+    },
+    "problem_61": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 10,
+        "instrument": 6,
+        "mode": 8,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 10,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 8
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 9,
+        "dummy": 10,
+        "have_image": 20,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 8
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 465.0,
+        "lazy_greedy_ff": 439.0,
+        "astar_lmcut": 5136396.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.058777302503585815
+    },
+    "problem_62": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 11,
+        "instrument": 5,
+        "mode": 8,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 11,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 8
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 5,
+        "calibration_target": 9,
+        "dummy": 11,
+        "have_image": 20,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 8
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 424.0,
+        "lazy_greedy_ff": 345.0,
+        "astar_lmcut": 6838822.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.05508992820978165
+    },
+    "problem_63": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 11,
+        "instrument": 5,
+        "mode": 6,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 11,
+        "dummy": 11,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 6
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 11,
+        "dummy": 11,
+        "have_image": 18,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 6
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 309.0,
+        "lazy_greedy_ff": 272.0,
+        "astar_lmcut": 354405.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.07086136192083359
+    },
+    "problem_64": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 13,
+        "instrument": 5,
+        "mode": 6,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 13,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 6
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 2,
+        "calibration_target": 9,
+        "dummy": 13,
+        "have_image": 22,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 6
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 496.0,
+        "lazy_greedy_ff": 359.0,
+        "astar_lmcut": 7843312.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.07088954746723175
+    },
+    "problem_65": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 11,
+        "instrument": 4,
+        "mode": 9,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 11,
+        "have_image": 0,
+        "on_board": 4,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 9
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 9,
+        "dummy": 11,
+        "have_image": 31,
+        "on_board": 4,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 9
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 620.0,
+        "lazy_greedy_ff": 596.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.08102969080209732
+    },
+    "problem_66": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 13,
+        "instrument": 5,
+        "mode": 5,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 13,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 5
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 10,
+        "dummy": 13,
+        "have_image": 17,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 5
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 298.0,
+        "lazy_greedy_ff": 264.0,
+        "astar_lmcut": 39971.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.09833423793315887
+    },
+    "problem_67": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 10,
+        "instrument": 5,
+        "mode": 8,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 10,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 8
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 5,
+        "calibration_target": 10,
+        "dummy": 10,
+        "have_image": 22,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 8
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 521.0,
+        "lazy_greedy_ff": 482.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.08550690114498138
+    },
+    "problem_68": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 9,
+        "instrument": 5,
+        "mode": 10,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 9,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 10
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 5,
+        "calibration_target": 9,
+        "dummy": 9,
+        "have_image": 25,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 10
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 428.0,
+        "lazy_greedy_ff": 404.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.10726553946733475
+    },
+    "problem_69": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 12,
+        "instrument": 5,
+        "mode": 7,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 12,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 5,
+        "calibration_target": 9,
+        "dummy": 12,
+        "have_image": 24,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 7
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 548.0,
+        "lazy_greedy_ff": 489.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.056962642818689346
+    },
+    "problem_70": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 13,
+        "instrument": 4,
+        "mode": 8,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 8,
+        "dummy": 13,
+        "have_image": 0,
+        "on_board": 4,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 8
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 8,
+        "dummy": 13,
+        "have_image": 20,
+        "on_board": 4,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 8
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 573.0,
+        "lazy_greedy_ff": 562.0,
+        "astar_lmcut": 3563651.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.07821950316429138
+    },
+    "problem_71": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 11,
+        "instrument": 6,
+        "mode": 7,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 11,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 9,
+        "dummy": 11,
+        "have_image": 22,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 7
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 468.0,
+        "lazy_greedy_ff": 492.0,
+        "astar_lmcut": 3463122.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.05621477589011192
+    },
+    "problem_72": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 12,
+        "instrument": 5,
+        "mode": 6,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 12,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 6
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 10,
+        "dummy": 12,
+        "have_image": 19,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 6
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 500.0,
+        "lazy_greedy_ff": 466.0,
+        "astar_lmcut": 4189074.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.06127936765551567
+    },
+    "problem_73": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 13,
+        "instrument": 4,
+        "mode": 8,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 8,
+        "dummy": 13,
+        "have_image": 0,
+        "on_board": 4,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 8
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 8,
+        "dummy": 13,
+        "have_image": 23,
+        "on_board": 4,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 8
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 491.0,
+        "lazy_greedy_ff": 436.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.07763633877038956
+    },
+    "problem_74": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 11,
+        "instrument": 5,
+        "mode": 7,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 11,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 1,
+        "calibration_target": 10,
+        "dummy": 11,
+        "have_image": 22,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 7
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 591.0,
+        "lazy_greedy_ff": 491.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.056425392627716064
+    },
+    "problem_75": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 11,
+        "instrument": 6,
+        "mode": 7,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 11,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 9,
+        "dummy": 11,
+        "have_image": 18,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 7
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 485.0,
+        "lazy_greedy_ff": 412.0,
+        "astar_lmcut": 1227946.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.05567246675491333
+    },
+    "problem_76": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 9,
+        "instrument": 6,
+        "mode": 9,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 9,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 9
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 2,
+        "calibration_target": 9,
+        "dummy": 9,
+        "have_image": 18,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 9
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 358.0,
+        "lazy_greedy_ff": 279.0,
+        "astar_lmcut": 1531452.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.07795502990484238
+    },
+    "problem_77": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 11,
+        "instrument": 5,
+        "mode": 8,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 11,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 8
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 5,
+        "calibration_target": 9,
+        "dummy": 11,
+        "have_image": 23,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 8
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 510.0,
+        "lazy_greedy_ff": 491.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.056601595133543015
+    },
+    "problem_78": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 10,
+        "instrument": 5,
+        "mode": 8,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 10,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 8
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 10,
+        "dummy": 10,
+        "have_image": 19,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 8
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 398.0,
+        "lazy_greedy_ff": 382.0,
+        "astar_lmcut": 12145390.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.06276363879442215
+    },
+    "problem_79": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 11,
+        "instrument": 6,
+        "mode": 7,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 11,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 5,
+        "calibration_target": 9,
+        "dummy": 11,
+        "have_image": 20,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 7
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 500.0,
+        "lazy_greedy_ff": 480.0,
+        "astar_lmcut": 17086026.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.05950574576854706
+    },
+    "problem_80": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 9,
+        "instrument": 5,
+        "mode": 9,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 9,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 9
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 5,
+        "calibration_target": 10,
+        "dummy": 9,
+        "have_image": 17,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 9
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 321.0,
+        "lazy_greedy_ff": 307.0,
+        "astar_lmcut": 631339.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.07362551242113113
+    },
+    "problem_81": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 10,
+        "instrument": 6,
+        "mode": 6,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 11,
+        "dummy": 10,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 6
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 11,
+        "dummy": 10,
+        "have_image": 23,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 6
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 467.0,
+        "lazy_greedy_ff": 451.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.07327497750520706
+    },
+    "problem_82": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 12,
+        "instrument": 5,
+        "mode": 7,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 12,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 1,
+        "calibration_target": 9,
+        "dummy": 12,
+        "have_image": 10,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 7
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 160.0,
+        "lazy_greedy_ff": 131.0,
+        "astar_lmcut": 707.0,
+        "fdss_opt": 0.86
+      },
+      "diversity": 0.05586760491132736
+    },
+    "problem_83": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 12,
+        "instrument": 5,
+        "mode": 8,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 8,
+        "dummy": 12,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 8
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 8,
+        "dummy": 12,
+        "have_image": 18,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 8
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 440.0,
+        "lazy_greedy_ff": 426.0,
+        "astar_lmcut": 628423.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.06275397539138794
+    },
+    "problem_84": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 14,
+        "instrument": 4,
+        "mode": 6,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 14,
+        "have_image": 0,
+        "on_board": 4,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 6
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 9,
+        "dummy": 14,
+        "have_image": 28,
+        "on_board": 4,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 6
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 829.0,
+        "lazy_greedy_ff": 758.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.09837166965007782
+    },
+    "problem_85": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 8,
+        "instrument": 7,
+        "mode": 9,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 8,
+        "have_image": 0,
+        "on_board": 7,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 9
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 9,
+        "dummy": 8,
+        "have_image": 20,
+        "on_board": 7,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 9
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 296.0,
+        "lazy_greedy_ff": 291.0,
+        "astar_lmcut": 3430621.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.09718767553567886
+    },
+    "problem_86": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 9,
+        "instrument": 6,
+        "mode": 9,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 9,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 9
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 9,
+        "dummy": 9,
+        "have_image": 16,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 9
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 231.0,
+        "lazy_greedy_ff": 251.0,
+        "astar_lmcut": 31172.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.07787612825632095
+    },
+    "problem_87": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 10,
+        "instrument": 5,
+        "mode": 8,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 10,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 8
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 10,
+        "dummy": 10,
+        "have_image": 24,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 8
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 441.0,
+        "lazy_greedy_ff": 407.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.06678355485200882
+    },
+    "problem_88": {
+      "init_phase_length": 35,
+      "goal_phase_length": 171,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 13,
+        "instrument": 5,
+        "mode": 7,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 8,
+        "dummy": 13,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 2,
+        "calibration_target": 8,
+        "dummy": 13,
+        "have_image": 24,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 7
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 658.0,
+        "lazy_greedy_ff": 638.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.06182824820280075
+    },
+    "problem_89": {
+      "init_phase_length": 35,
+      "goal_phase_length": 158,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 13,
+        "instrument": 4,
+        "mode": 6,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 13,
+        "have_image": 0,
+        "on_board": 4,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 6
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 10,
+        "dummy": 13,
+        "have_image": 24,
+        "on_board": 4,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 6
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 526.0,
+        "lazy_greedy_ff": 458.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.08330012112855911
+    },
+    "problem_90": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 9,
+        "instrument": 6,
+        "mode": 7,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 11,
+        "dummy": 9,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 5,
+        "calibration_target": 11,
+        "dummy": 9,
+        "have_image": 21,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 7
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 506.0,
+        "lazy_greedy_ff": 478.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.06885068863630295
+    },
+    "problem_91": {
+      "init_phase_length": 35,
+      "goal_phase_length": 152,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 13,
+        "instrument": 5,
+        "mode": 5,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 13,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 5
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 5,
+        "calibration_target": 10,
+        "dummy": 13,
+        "have_image": 22,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 5
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 580.0,
+        "lazy_greedy_ff": 518.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.09666063636541367
+    },
+    "problem_92": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 10,
+        "instrument": 5,
+        "mode": 11,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 7,
+        "dummy": 10,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 11
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 2,
+        "calibration_target": 7,
+        "dummy": 10,
+        "have_image": 23,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 11
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 417.0,
+        "lazy_greedy_ff": 372.0,
+        "astar_lmcut": 11013201.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.1004045307636261
+    },
+    "problem_93": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 10,
+        "instrument": 6,
+        "mode": 7,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 10,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 5,
+        "calibration_target": 10,
+        "dummy": 10,
+        "have_image": 26,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 7
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 565.0,
+        "lazy_greedy_ff": 583.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.059881698340177536
+    },
+    "problem_94": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 12,
+        "instrument": 6,
+        "mode": 6,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 12,
+        "have_image": 0,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 6
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 4,
+        "calibration_target": 9,
+        "dummy": 12,
+        "have_image": 27,
+        "on_board": 6,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 6
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 622.0,
+        "lazy_greedy_ff": 624.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.07845187187194824
+    },
+    "problem_95": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 11,
+        "instrument": 5,
+        "mode": 7,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 11,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 2,
+        "calibration_target": 10,
+        "dummy": 11,
+        "have_image": 21,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 7
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 379.0,
+        "lazy_greedy_ff": 326.0,
+        "astar_lmcut": 4197805.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.05327069014310837
+    },
+    "problem_96": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 11,
+        "instrument": 4,
+        "mode": 9,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 9,
+        "dummy": 11,
+        "have_image": 0,
+        "on_board": 4,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 9
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 2,
+        "calibration_target": 9,
+        "dummy": 11,
+        "have_image": 26,
+        "on_board": 4,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 9
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 472.0,
+        "lazy_greedy_ff": 411.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.07848324626684189
+    },
+    "problem_97": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 10,
+        "instrument": 5,
+        "mode": 7,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 11,
+        "dummy": 10,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 7
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 11,
+        "dummy": 10,
+        "have_image": 12,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 7
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 125.0,
+        "lazy_greedy_ff": 114.0,
+        "astar_lmcut": 5008.0,
+        "fdss_opt": 4.0
+      },
+      "diversity": 0.06186823546886444
+    },
+    "problem_98": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 12,
+        "instrument": 5,
+        "mode": 8,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 8,
+        "dummy": 12,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 8
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 8,
+        "dummy": 12,
+        "have_image": 21,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 8
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 497.0,
+        "lazy_greedy_ff": 441.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.058861732482910156
+    },
+    "problem_99": {
+      "init_phase_length": 35,
+      "goal_phase_length": 175,
+      "max_init_state_actions": 35,
+      "max_goal_actions": 175,
+      "num_objects": {
+        "direction": 10,
+        "instrument": 5,
+        "mode": 8,
+        "object": 0,
+        "satellite": 1
+      },
+      "num_atoms_init_state": {
+        "calibrated": 0,
+        "calibration_target": 10,
+        "dummy": 10,
+        "have_image": 0,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 1,
+        "power_on": 0,
+        "supports": 8
+      },
+      "num_atoms_goal_state": {
+        "calibrated": 3,
+        "calibration_target": 10,
+        "dummy": 10,
+        "have_image": 24,
+        "on_board": 5,
+        "pointing": 1,
+        "power_avail": 0,
+        "power_on": 1,
+        "supports": 8
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 464.0,
+        "lazy_greedy_ff": 424.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.05564082786440849
+    }
+  }
+}

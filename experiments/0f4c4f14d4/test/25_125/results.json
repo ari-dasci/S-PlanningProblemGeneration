@@ -1,0 +1,3381 @@
+{
+  "Consistency percentage": 1.0,
+  "Mean diversity": 0.20563227832317352,
+  "Mean actions init": 25.0,
+  "Std actions init": 0.0,
+  "Mean actions goal": 108.84,
+  "Std actions goal": 10.859760586679617,
+  "Mean num objects": {
+    "floor": 9.15,
+    "object": 0.0,
+    "passenger": 14.85
+  },
+  "Std num objects": {
+    "floor": 6.875136362284024,
+    "object": 0.0,
+    "passenger": 6.875136362284024
+  },
+  "Mean num atoms init": {
+    "above": 8.15,
+    "at": 14.85,
+    "boarded": 0.0,
+    "lift_at": 1.0,
+    "lift_empty": 1.0
+  },
+  "Std num atoms init": {
+    "above": 6.875136362284024,
+    "at": 6.875136362284024,
+    "boarded": 0.0,
+    "lift_at": 0.0,
+    "lift_empty": 0.0
+  },
+  "Mean num atoms goal": {
+    "above": 8.15,
+    "at": 14.52,
+    "boarded": 0.33,
+    "lift_at": 1.0,
+    "lift_empty": 0.67
+  },
+  "Std num atoms goal": {
+    "above": 6.875136362284024,
+    "at": 6.974926522910471,
+    "boarded": 0.47021271782034946,
+    "lift_at": 0.0,
+    "lift_empty": 0.4702127178203497
+  },
+  "Mean difficulty": {
+    "lama_first": 251.41,
+    "lazy_greedy_ff": 367.7,
+    "astar_lmcut": 76310864.85,
+    "fdss_opt": 475.8573999999999
+  },
+  "Std difficulty": {
+    "lama_first": 99.88123897909956,
+    "lazy_greedy_ff": 347.84883210958174,
+    "astar_lmcut": 42179534.40184996,
+    "fdss_opt": 242.80511785635827
+  },
+  "Max init actions": 25,
+  "Max goal actions": 125,
+  "Generation time": 66.91973924636841,
+  "r_terminated_problem_test": {
+    "lama_first": 100000000.0,
+    "lazy_greedy_ff": 100000000.0,
+    "astar_lmcut": 100000000.0,
+    "fdss_opt": 601.0
+  },
+  "time_limit_planner_test": {
+    "lama_first": 1800,
+    "lazy_greedy_ff": 1800,
+    "astar_lmcut": 1800,
+    "fdss_opt": 600
+  },
+  "memory_limit_planner_test": {
+    "lama_first": 8500000,
+    "lazy_greedy_ff": 8500000,
+    "astar_lmcut": 8500000,
+    "fdss_opt": 8500000
+  },
+  "Problem Results": {
+    "problem_0": {
+      "init_phase_length": 25,
+      "goal_phase_length": 117,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 20,
+        "object": 0,
+        "passenger": 4
+      },
+      "num_atoms_init_state": {
+        "above": 19,
+        "at": 4,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 19,
+        "at": 4,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 196.0,
+        "lazy_greedy_ff": 321.0,
+        "astar_lmcut": 45401.0,
+        "fdss_opt": 0.84
+      },
+      "diversity": 0.325912743806839
+    },
+    "problem_1": {
+      "init_phase_length": 25,
+      "goal_phase_length": 117,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 4,
+        "object": 0,
+        "passenger": 20
+      },
+      "num_atoms_init_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 3,
+        "at": 19,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 268.0,
+        "lazy_greedy_ff": 268.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.15671703219413757
+    },
+    "problem_2": {
+      "init_phase_length": 25,
+      "goal_phase_length": 97,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 5,
+        "object": 0,
+        "passenger": 19
+      },
+      "num_atoms_init_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 253.0,
+        "lazy_greedy_ff": 271.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.14264468848705292
+    },
+    "problem_3": {
+      "init_phase_length": 25,
+      "goal_phase_length": 119,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 4,
+        "object": 0,
+        "passenger": 20
+      },
+      "num_atoms_init_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 302.0,
+        "lazy_greedy_ff": 302.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.1556333750486374
+    },
+    "problem_4": {
+      "init_phase_length": 25,
+      "goal_phase_length": 112,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 22,
+        "object": 0,
+        "passenger": 2
+      },
+      "num_atoms_init_state": {
+        "above": 21,
+        "at": 2,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 21,
+        "at": 2,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 259.0,
+        "lazy_greedy_ff": 488.0,
+        "astar_lmcut": 9118.0,
+        "fdss_opt": 0.22
+      },
+      "diversity": 0.3781448006629944
+    },
+    "problem_5": {
+      "init_phase_length": 25,
+      "goal_phase_length": 99,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 5,
+        "object": 0,
+        "passenger": 19
+      },
+      "num_atoms_init_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 253.0,
+        "lazy_greedy_ff": 271.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.14264468848705292
+    },
+    "problem_6": {
+      "init_phase_length": 25,
+      "goal_phase_length": 109,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 4,
+        "object": 0,
+        "passenger": 20
+      },
+      "num_atoms_init_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 3,
+        "at": 19,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 236.0,
+        "lazy_greedy_ff": 236.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.15681718289852142
+    },
+    "problem_7": {
+      "init_phase_length": 25,
+      "goal_phase_length": 121,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 4,
+        "object": 0,
+        "passenger": 20
+      },
+      "num_atoms_init_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 3,
+        "at": 19,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 423.0,
+        "lazy_greedy_ff": 420.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.15656350553035736
+    },
+    "problem_8": {
+      "init_phase_length": 25,
+      "goal_phase_length": 114,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 4,
+        "object": 0,
+        "passenger": 20
+      },
+      "num_atoms_init_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 376.0,
+        "lazy_greedy_ff": 376.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.15549996495246887
+    },
+    "problem_9": {
+      "init_phase_length": 25,
+      "goal_phase_length": 125,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 21,
+        "object": 0,
+        "passenger": 3
+      },
+      "num_atoms_init_state": {
+        "above": 20,
+        "at": 3,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 20,
+        "at": 2,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 30.0,
+        "lazy_greedy_ff": 31.0,
+        "astar_lmcut": 36.0,
+        "fdss_opt": 0.17
+      },
+      "diversity": 0.3880326747894287
+    },
+    "problem_10": {
+      "init_phase_length": 25,
+      "goal_phase_length": 111,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 3,
+        "object": 0,
+        "passenger": 21
+      },
+      "num_atoms_init_state": {
+        "above": 2,
+        "at": 21,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 2,
+        "at": 20,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 272.0,
+        "lazy_greedy_ff": 272.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.18767797946929932
+    },
+    "problem_11": {
+      "init_phase_length": 25,
+      "goal_phase_length": 125,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 18,
+        "object": 0,
+        "passenger": 6
+      },
+      "num_atoms_init_state": {
+        "above": 17,
+        "at": 6,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 17,
+        "at": 5,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 471.0,
+        "lazy_greedy_ff": 1091.0,
+        "astar_lmcut": 11804563.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.30978402495384216
+    },
+    "problem_12": {
+      "init_phase_length": 25,
+      "goal_phase_length": 97,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 5,
+        "object": 0,
+        "passenger": 19
+      },
+      "num_atoms_init_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 253.0,
+        "lazy_greedy_ff": 271.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.14264468848705292
+    },
+    "problem_13": {
+      "init_phase_length": 25,
+      "goal_phase_length": 116,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 4,
+        "object": 0,
+        "passenger": 20
+      },
+      "num_atoms_init_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 268.0,
+        "lazy_greedy_ff": 268.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.1556333750486374
+    },
+    "problem_14": {
+      "init_phase_length": 25,
+      "goal_phase_length": 113,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 4,
+        "object": 0,
+        "passenger": 20
+      },
+      "num_atoms_init_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 3,
+        "at": 19,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 236.0,
+        "lazy_greedy_ff": 236.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.15681718289852142
+    },
+    "problem_15": {
+      "init_phase_length": 25,
+      "goal_phase_length": 99,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 5,
+        "object": 0,
+        "passenger": 19
+      },
+      "num_atoms_init_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 253.0,
+        "lazy_greedy_ff": 271.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.14264468848705292
+    },
+    "problem_16": {
+      "init_phase_length": 25,
+      "goal_phase_length": 109,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 5,
+        "object": 0,
+        "passenger": 19
+      },
+      "num_atoms_init_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 300.0,
+        "lazy_greedy_ff": 320.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.14264468848705292
+    },
+    "problem_17": {
+      "init_phase_length": 25,
+      "goal_phase_length": 103,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 5,
+        "object": 0,
+        "passenger": 19
+      },
+      "num_atoms_init_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 210.0,
+        "lazy_greedy_ff": 226.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.14264468848705292
+    },
+    "problem_18": {
+      "init_phase_length": 25,
+      "goal_phase_length": 125,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 18,
+        "object": 0,
+        "passenger": 6
+      },
+      "num_atoms_init_state": {
+        "above": 17,
+        "at": 6,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 17,
+        "at": 5,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 332.0,
+        "lazy_greedy_ff": 913.0,
+        "astar_lmcut": 6915864.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.30978402495384216
+    },
+    "problem_19": {
+      "init_phase_length": 25,
+      "goal_phase_length": 104,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 6,
+        "object": 0,
+        "passenger": 18
+      },
+      "num_atoms_init_state": {
+        "above": 5,
+        "at": 18,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 5,
+        "at": 18,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 299.0,
+        "lazy_greedy_ff": 264.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.1480654925107956
+    },
+    "problem_20": {
+      "init_phase_length": 25,
+      "goal_phase_length": 93,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 4,
+        "object": 0,
+        "passenger": 20
+      },
+      "num_atoms_init_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 3,
+        "at": 19,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 268.0,
+        "lazy_greedy_ff": 268.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.15671703219413757
+    },
+    "problem_21": {
+      "init_phase_length": 25,
+      "goal_phase_length": 125,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 17,
+        "object": 0,
+        "passenger": 7
+      },
+      "num_atoms_init_state": {
+        "above": 16,
+        "at": 7,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 16,
+        "at": 6,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 274.0,
+        "lazy_greedy_ff": 885.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.29021766781806946
+    },
+    "problem_22": {
+      "init_phase_length": 25,
+      "goal_phase_length": 125,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 22,
+        "object": 0,
+        "passenger": 2
+      },
+      "num_atoms_init_state": {
+        "above": 21,
+        "at": 2,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 21,
+        "at": 1,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 32.0,
+        "lazy_greedy_ff": 33.0,
+        "astar_lmcut": 38.0,
+        "fdss_opt": 0.1
+      },
+      "diversity": 0.4246376156806946
+    },
+    "problem_23": {
+      "init_phase_length": 25,
+      "goal_phase_length": 91,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 7,
+        "object": 0,
+        "passenger": 17
+      },
+      "num_atoms_init_state": {
+        "above": 6,
+        "at": 17,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 6,
+        "at": 17,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 350.0,
+        "lazy_greedy_ff": 379.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.15868505835533142
+    },
+    "problem_24": {
+      "init_phase_length": 25,
+      "goal_phase_length": 125,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 19,
+        "object": 0,
+        "passenger": 5
+      },
+      "num_atoms_init_state": {
+        "above": 18,
+        "at": 5,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 18,
+        "at": 4,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 124.0,
+        "lazy_greedy_ff": 239.0,
+        "astar_lmcut": 82173.0,
+        "fdss_opt": 2.01
+      },
+      "diversity": 0.33170223236083984
+    },
+    "problem_25": {
+      "init_phase_length": 25,
+      "goal_phase_length": 112,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 11,
+        "object": 0,
+        "passenger": 13
+      },
+      "num_atoms_init_state": {
+        "above": 10,
+        "at": 13,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 10,
+        "at": 13,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 181.0,
+        "lazy_greedy_ff": 519.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.20424291491508484
+    },
+    "problem_26": {
+      "init_phase_length": 25,
+      "goal_phase_length": 101,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 5,
+        "object": 0,
+        "passenger": 19
+      },
+      "num_atoms_init_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 253.0,
+        "lazy_greedy_ff": 271.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.14264468848705292
+    },
+    "problem_27": {
+      "init_phase_length": 25,
+      "goal_phase_length": 107,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 5,
+        "object": 0,
+        "passenger": 19
+      },
+      "num_atoms_init_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 171.0,
+        "lazy_greedy_ff": 185.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.14264468848705292
+    },
+    "problem_28": {
+      "init_phase_length": 25,
+      "goal_phase_length": 123,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 19,
+        "object": 0,
+        "passenger": 5
+      },
+      "num_atoms_init_state": {
+        "above": 18,
+        "at": 5,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 18,
+        "at": 5,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 339.0,
+        "lazy_greedy_ff": 1211.0,
+        "astar_lmcut": 2693694.0,
+        "fdss_opt": 31.17
+      },
+      "diversity": 0.30601856112480164
+    },
+    "problem_29": {
+      "init_phase_length": 25,
+      "goal_phase_length": 125,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 21,
+        "object": 0,
+        "passenger": 3
+      },
+      "num_atoms_init_state": {
+        "above": 20,
+        "at": 3,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 20,
+        "at": 2,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 30.0,
+        "lazy_greedy_ff": 31.0,
+        "astar_lmcut": 36.0,
+        "fdss_opt": 0.11
+      },
+      "diversity": 0.3880326747894287
+    },
+    "problem_30": {
+      "init_phase_length": 25,
+      "goal_phase_length": 99,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 5,
+        "object": 0,
+        "passenger": 19
+      },
+      "num_atoms_init_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 171.0,
+        "lazy_greedy_ff": 185.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.14264468848705292
+    },
+    "problem_31": {
+      "init_phase_length": 25,
+      "goal_phase_length": 99,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 5,
+        "object": 0,
+        "passenger": 19
+      },
+      "num_atoms_init_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 253.0,
+        "lazy_greedy_ff": 271.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.14264468848705292
+    },
+    "problem_32": {
+      "init_phase_length": 25,
+      "goal_phase_length": 103,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 4,
+        "object": 0,
+        "passenger": 20
+      },
+      "num_atoms_init_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 3,
+        "at": 19,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 178.0,
+        "lazy_greedy_ff": 178.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.1570068597793579
+    },
+    "problem_33": {
+      "init_phase_length": 25,
+      "goal_phase_length": 125,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 19,
+        "object": 0,
+        "passenger": 5
+      },
+      "num_atoms_init_state": {
+        "above": 18,
+        "at": 5,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 18,
+        "at": 4,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 140.0,
+        "lazy_greedy_ff": 264.0,
+        "astar_lmcut": 58727.0,
+        "fdss_opt": 1.83
+      },
+      "diversity": 0.3288925588130951
+    },
+    "problem_34": {
+      "init_phase_length": 25,
+      "goal_phase_length": 116,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 4,
+        "object": 0,
+        "passenger": 20
+      },
+      "num_atoms_init_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 302.0,
+        "lazy_greedy_ff": 302.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.1556333750486374
+    },
+    "problem_35": {
+      "init_phase_length": 25,
+      "goal_phase_length": 103,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 5,
+        "object": 0,
+        "passenger": 19
+      },
+      "num_atoms_init_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 253.0,
+        "lazy_greedy_ff": 271.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.14264468848705292
+    },
+    "problem_36": {
+      "init_phase_length": 25,
+      "goal_phase_length": 101,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 5,
+        "object": 0,
+        "passenger": 19
+      },
+      "num_atoms_init_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 210.0,
+        "lazy_greedy_ff": 226.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.14264468848705292
+    },
+    "problem_37": {
+      "init_phase_length": 25,
+      "goal_phase_length": 87,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 7,
+        "object": 0,
+        "passenger": 17
+      },
+      "num_atoms_init_state": {
+        "above": 6,
+        "at": 17,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 6,
+        "at": 17,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 129.0,
+        "lazy_greedy_ff": 172.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.15868505835533142
+    },
+    "problem_38": {
+      "init_phase_length": 25,
+      "goal_phase_length": 109,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 5,
+        "object": 0,
+        "passenger": 19
+      },
+      "num_atoms_init_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 300.0,
+        "lazy_greedy_ff": 320.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.14264468848705292
+    },
+    "problem_39": {
+      "init_phase_length": 25,
+      "goal_phase_length": 115,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 4,
+        "object": 0,
+        "passenger": 20
+      },
+      "num_atoms_init_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 3,
+        "at": 19,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 268.0,
+        "lazy_greedy_ff": 268.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.15671703219413757
+    },
+    "problem_40": {
+      "init_phase_length": 25,
+      "goal_phase_length": 109,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 4,
+        "object": 0,
+        "passenger": 20
+      },
+      "num_atoms_init_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 3,
+        "at": 19,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 268.0,
+        "lazy_greedy_ff": 268.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.15671703219413757
+    },
+    "problem_41": {
+      "init_phase_length": 25,
+      "goal_phase_length": 125,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 18,
+        "object": 0,
+        "passenger": 6
+      },
+      "num_atoms_init_state": {
+        "above": 17,
+        "at": 6,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 17,
+        "at": 5,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 232.0,
+        "lazy_greedy_ff": 502.0,
+        "astar_lmcut": 1915692.0,
+        "fdss_opt": 59.8
+      },
+      "diversity": 0.30978402495384216
+    },
+    "problem_42": {
+      "init_phase_length": 25,
+      "goal_phase_length": 105,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 5,
+        "object": 0,
+        "passenger": 19
+      },
+      "num_atoms_init_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 210.0,
+        "lazy_greedy_ff": 226.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.14264468848705292
+    },
+    "problem_43": {
+      "init_phase_length": 25,
+      "goal_phase_length": 113,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 4,
+        "object": 0,
+        "passenger": 20
+      },
+      "num_atoms_init_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 3,
+        "at": 19,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 298.0,
+        "lazy_greedy_ff": 297.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.15696017444133759
+    },
+    "problem_44": {
+      "init_phase_length": 25,
+      "goal_phase_length": 113,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 21,
+        "object": 0,
+        "passenger": 3
+      },
+      "num_atoms_init_state": {
+        "above": 20,
+        "at": 3,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 20,
+        "at": 3,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 203.0,
+        "lazy_greedy_ff": 462.0,
+        "astar_lmcut": 45998.0,
+        "fdss_opt": 0.41
+      },
+      "diversity": 0.34863415360450745
+    },
+    "problem_45": {
+      "init_phase_length": 25,
+      "goal_phase_length": 94,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 6,
+        "object": 0,
+        "passenger": 18
+      },
+      "num_atoms_init_state": {
+        "above": 5,
+        "at": 18,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 5,
+        "at": 18,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 394.0,
+        "lazy_greedy_ff": 334.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.1480654925107956
+    },
+    "problem_46": {
+      "init_phase_length": 25,
+      "goal_phase_length": 125,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 22,
+        "object": 0,
+        "passenger": 2
+      },
+      "num_atoms_init_state": {
+        "above": 21,
+        "at": 2,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 21,
+        "at": 1,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 32.0,
+        "lazy_greedy_ff": 33.0,
+        "astar_lmcut": 38.0,
+        "fdss_opt": 0.11
+      },
+      "diversity": 0.4246376156806946
+    },
+    "problem_47": {
+      "init_phase_length": 25,
+      "goal_phase_length": 119,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 21,
+        "object": 0,
+        "passenger": 3
+      },
+      "num_atoms_init_state": {
+        "above": 20,
+        "at": 3,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 20,
+        "at": 3,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 203.0,
+        "lazy_greedy_ff": 462.0,
+        "astar_lmcut": 45998.0,
+        "fdss_opt": 0.42
+      },
+      "diversity": 0.34863415360450745
+    },
+    "problem_48": {
+      "init_phase_length": 25,
+      "goal_phase_length": 109,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 21,
+        "object": 0,
+        "passenger": 3
+      },
+      "num_atoms_init_state": {
+        "above": 20,
+        "at": 3,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 20,
+        "at": 3,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 37.0,
+        "lazy_greedy_ff": 42.0,
+        "astar_lmcut": 42.0,
+        "fdss_opt": 0.17
+      },
+      "diversity": 0.34863415360450745
+    },
+    "problem_49": {
+      "init_phase_length": 25,
+      "goal_phase_length": 105,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 5,
+        "object": 0,
+        "passenger": 19
+      },
+      "num_atoms_init_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 300.0,
+        "lazy_greedy_ff": 320.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.14264468848705292
+    },
+    "problem_50": {
+      "init_phase_length": 25,
+      "goal_phase_length": 124,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 4,
+        "object": 0,
+        "passenger": 20
+      },
+      "num_atoms_init_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 268.0,
+        "lazy_greedy_ff": 268.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.1556333750486374
+    },
+    "problem_51": {
+      "init_phase_length": 25,
+      "goal_phase_length": 105,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 5,
+        "object": 0,
+        "passenger": 19
+      },
+      "num_atoms_init_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 253.0,
+        "lazy_greedy_ff": 271.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.14264468848705292
+    },
+    "problem_52": {
+      "init_phase_length": 25,
+      "goal_phase_length": 102,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 4,
+        "object": 0,
+        "passenger": 20
+      },
+      "num_atoms_init_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 3,
+        "at": 19,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 268.0,
+        "lazy_greedy_ff": 268.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.15671703219413757
+    },
+    "problem_53": {
+      "init_phase_length": 25,
+      "goal_phase_length": 99,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 4,
+        "object": 0,
+        "passenger": 20
+      },
+      "num_atoms_init_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 3,
+        "at": 19,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 236.0,
+        "lazy_greedy_ff": 236.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.15681718289852142
+    },
+    "problem_54": {
+      "init_phase_length": 25,
+      "goal_phase_length": 99,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 5,
+        "object": 0,
+        "passenger": 19
+      },
+      "num_atoms_init_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 136.0,
+        "lazy_greedy_ff": 148.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.14264468848705292
+    },
+    "problem_55": {
+      "init_phase_length": 25,
+      "goal_phase_length": 121,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 21,
+        "object": 0,
+        "passenger": 3
+      },
+      "num_atoms_init_state": {
+        "above": 20,
+        "at": 3,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 20,
+        "at": 3,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 196.0,
+        "lazy_greedy_ff": 318.0,
+        "astar_lmcut": 16006.0,
+        "fdss_opt": 0.27
+      },
+      "diversity": 0.34863415360450745
+    },
+    "problem_56": {
+      "init_phase_length": 25,
+      "goal_phase_length": 113,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 4,
+        "object": 0,
+        "passenger": 20
+      },
+      "num_atoms_init_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 3,
+        "at": 19,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 206.0,
+        "lazy_greedy_ff": 206.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.1569175273180008
+    },
+    "problem_57": {
+      "init_phase_length": 25,
+      "goal_phase_length": 125,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 19,
+        "object": 0,
+        "passenger": 5
+      },
+      "num_atoms_init_state": {
+        "above": 18,
+        "at": 5,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 18,
+        "at": 4,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 223.0,
+        "lazy_greedy_ff": 280.0,
+        "astar_lmcut": 58379.0,
+        "fdss_opt": 3.54
+      },
+      "diversity": 0.33170223236083984
+    },
+    "problem_58": {
+      "init_phase_length": 25,
+      "goal_phase_length": 105,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 5,
+        "object": 0,
+        "passenger": 19
+      },
+      "num_atoms_init_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 253.0,
+        "lazy_greedy_ff": 271.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.14264468848705292
+    },
+    "problem_59": {
+      "init_phase_length": 25,
+      "goal_phase_length": 94,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 6,
+        "object": 0,
+        "passenger": 18
+      },
+      "num_atoms_init_state": {
+        "above": 5,
+        "at": 18,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 5,
+        "at": 18,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 394.0,
+        "lazy_greedy_ff": 334.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.1480654925107956
+    },
+    "problem_60": {
+      "init_phase_length": 25,
+      "goal_phase_length": 119,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 22,
+        "object": 0,
+        "passenger": 2
+      },
+      "num_atoms_init_state": {
+        "above": 21,
+        "at": 2,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 21,
+        "at": 2,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 234.0,
+        "lazy_greedy_ff": 488.0,
+        "astar_lmcut": 9118.0,
+        "fdss_opt": 0.15
+      },
+      "diversity": 0.3781448006629944
+    },
+    "problem_61": {
+      "init_phase_length": 25,
+      "goal_phase_length": 108,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 6,
+        "object": 0,
+        "passenger": 18
+      },
+      "num_atoms_init_state": {
+        "above": 5,
+        "at": 18,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 5,
+        "at": 18,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 299.0,
+        "lazy_greedy_ff": 264.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.1480654925107956
+    },
+    "problem_62": {
+      "init_phase_length": 25,
+      "goal_phase_length": 101,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 5,
+        "object": 0,
+        "passenger": 19
+      },
+      "num_atoms_init_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 253.0,
+        "lazy_greedy_ff": 271.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.14264468848705292
+    },
+    "problem_63": {
+      "init_phase_length": 25,
+      "goal_phase_length": 96,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 6,
+        "object": 0,
+        "passenger": 18
+      },
+      "num_atoms_init_state": {
+        "above": 5,
+        "at": 18,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 5,
+        "at": 18,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 217.0,
+        "lazy_greedy_ff": 202.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.1480654925107956
+    },
+    "problem_64": {
+      "init_phase_length": 25,
+      "goal_phase_length": 109,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 4,
+        "object": 0,
+        "passenger": 20
+      },
+      "num_atoms_init_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 3,
+        "at": 19,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 206.0,
+        "lazy_greedy_ff": 206.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.1569175273180008
+    },
+    "problem_65": {
+      "init_phase_length": 25,
+      "goal_phase_length": 108,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 4,
+        "object": 0,
+        "passenger": 20
+      },
+      "num_atoms_init_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 236.0,
+        "lazy_greedy_ff": 236.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.1556333750486374
+    },
+    "problem_66": {
+      "init_phase_length": 25,
+      "goal_phase_length": 125,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 15,
+        "object": 0,
+        "passenger": 9
+      },
+      "num_atoms_init_state": {
+        "above": 14,
+        "at": 9,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 14,
+        "at": 8,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 305.0,
+        "lazy_greedy_ff": 1299.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.2602860927581787
+    },
+    "problem_67": {
+      "init_phase_length": 25,
+      "goal_phase_length": 114,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 16,
+        "object": 0,
+        "passenger": 8
+      },
+      "num_atoms_init_state": {
+        "above": 15,
+        "at": 8,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 15,
+        "at": 8,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 353.0,
+        "lazy_greedy_ff": 1489.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.2628200650215149
+    },
+    "problem_68": {
+      "init_phase_length": 25,
+      "goal_phase_length": 125,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 21,
+        "object": 0,
+        "passenger": 3
+      },
+      "num_atoms_init_state": {
+        "above": 20,
+        "at": 3,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 20,
+        "at": 3,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 370.0,
+        "lazy_greedy_ff": 1234.0,
+        "astar_lmcut": 112130.0,
+        "fdss_opt": 0.52
+      },
+      "diversity": 0.34863415360450745
+    },
+    "problem_69": {
+      "init_phase_length": 25,
+      "goal_phase_length": 108,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 4,
+        "object": 0,
+        "passenger": 20
+      },
+      "num_atoms_init_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 268.0,
+        "lazy_greedy_ff": 268.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.1556333750486374
+    },
+    "problem_70": {
+      "init_phase_length": 25,
+      "goal_phase_length": 109,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 4,
+        "object": 0,
+        "passenger": 20
+      },
+      "num_atoms_init_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 3,
+        "at": 19,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 268.0,
+        "lazy_greedy_ff": 268.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.15671703219413757
+    },
+    "problem_71": {
+      "init_phase_length": 25,
+      "goal_phase_length": 111,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 5,
+        "object": 0,
+        "passenger": 19
+      },
+      "num_atoms_init_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 253.0,
+        "lazy_greedy_ff": 271.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.14264468848705292
+    },
+    "problem_72": {
+      "init_phase_length": 25,
+      "goal_phase_length": 99,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 5,
+        "object": 0,
+        "passenger": 19
+      },
+      "num_atoms_init_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 300.0,
+        "lazy_greedy_ff": 320.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.14264468848705292
+    },
+    "problem_73": {
+      "init_phase_length": 25,
+      "goal_phase_length": 105,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 20,
+        "object": 0,
+        "passenger": 4
+      },
+      "num_atoms_init_state": {
+        "above": 19,
+        "at": 4,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 19,
+        "at": 4,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 173.0,
+        "lazy_greedy_ff": 436.0,
+        "astar_lmcut": 149343.0,
+        "fdss_opt": 2.09
+      },
+      "diversity": 0.325912743806839
+    },
+    "problem_74": {
+      "init_phase_length": 25,
+      "goal_phase_length": 92,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 6,
+        "object": 0,
+        "passenger": 18
+      },
+      "num_atoms_init_state": {
+        "above": 5,
+        "at": 18,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 5,
+        "at": 18,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 217.0,
+        "lazy_greedy_ff": 202.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.1480654925107956
+    },
+    "problem_75": {
+      "init_phase_length": 25,
+      "goal_phase_length": 107,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 5,
+        "object": 0,
+        "passenger": 19
+      },
+      "num_atoms_init_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 253.0,
+        "lazy_greedy_ff": 271.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.14264468848705292
+    },
+    "problem_76": {
+      "init_phase_length": 25,
+      "goal_phase_length": 125,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 18,
+        "object": 0,
+        "passenger": 6
+      },
+      "num_atoms_init_state": {
+        "above": 17,
+        "at": 6,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 17,
+        "at": 6,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 478.0,
+        "lazy_greedy_ff": 1705.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.29035601019859314
+    },
+    "problem_77": {
+      "init_phase_length": 25,
+      "goal_phase_length": 111,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 5,
+        "object": 0,
+        "passenger": 19
+      },
+      "num_atoms_init_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 171.0,
+        "lazy_greedy_ff": 185.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.14264468848705292
+    },
+    "problem_78": {
+      "init_phase_length": 25,
+      "goal_phase_length": 107,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 4,
+        "object": 0,
+        "passenger": 20
+      },
+      "num_atoms_init_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 3,
+        "at": 19,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 206.0,
+        "lazy_greedy_ff": 206.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.1569175273180008
+    },
+    "problem_79": {
+      "init_phase_length": 25,
+      "goal_phase_length": 109,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 5,
+        "object": 0,
+        "passenger": 19
+      },
+      "num_atoms_init_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 351.0,
+        "lazy_greedy_ff": 373.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.14264468848705292
+    },
+    "problem_80": {
+      "init_phase_length": 25,
+      "goal_phase_length": 125,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 22,
+        "object": 0,
+        "passenger": 2
+      },
+      "num_atoms_init_state": {
+        "above": 21,
+        "at": 2,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 21,
+        "at": 1,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 32.0,
+        "lazy_greedy_ff": 33.0,
+        "astar_lmcut": 38.0,
+        "fdss_opt": 0.11
+      },
+      "diversity": 0.4246376156806946
+    },
+    "problem_81": {
+      "init_phase_length": 25,
+      "goal_phase_length": 110,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 4,
+        "object": 0,
+        "passenger": 20
+      },
+      "num_atoms_init_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 268.0,
+        "lazy_greedy_ff": 268.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.1556333750486374
+    },
+    "problem_82": {
+      "init_phase_length": 25,
+      "goal_phase_length": 116,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 4,
+        "object": 0,
+        "passenger": 20
+      },
+      "num_atoms_init_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 268.0,
+        "lazy_greedy_ff": 268.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.1556333750486374
+    },
+    "problem_83": {
+      "init_phase_length": 25,
+      "goal_phase_length": 103,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 5,
+        "object": 0,
+        "passenger": 19
+      },
+      "num_atoms_init_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 300.0,
+        "lazy_greedy_ff": 320.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.14264468848705292
+    },
+    "problem_84": {
+      "init_phase_length": 25,
+      "goal_phase_length": 125,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 20,
+        "object": 0,
+        "passenger": 4
+      },
+      "num_atoms_init_state": {
+        "above": 19,
+        "at": 4,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 19,
+        "at": 3,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 173.0,
+        "lazy_greedy_ff": 436.0,
+        "astar_lmcut": 195720.0,
+        "fdss_opt": 2.56
+      },
+      "diversity": 0.3546740710735321
+    },
+    "problem_85": {
+      "init_phase_length": 25,
+      "goal_phase_length": 110,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 4,
+        "object": 0,
+        "passenger": 20
+      },
+      "num_atoms_init_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 268.0,
+        "lazy_greedy_ff": 268.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.1556333750486374
+    },
+    "problem_86": {
+      "init_phase_length": 25,
+      "goal_phase_length": 95,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 4,
+        "object": 0,
+        "passenger": 20
+      },
+      "num_atoms_init_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 3,
+        "at": 19,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 206.0,
+        "lazy_greedy_ff": 206.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.1569175273180008
+    },
+    "problem_87": {
+      "init_phase_length": 25,
+      "goal_phase_length": 88,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 6,
+        "object": 0,
+        "passenger": 18
+      },
+      "num_atoms_init_state": {
+        "above": 5,
+        "at": 18,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 5,
+        "at": 18,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 217.0,
+        "lazy_greedy_ff": 202.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.1480654925107956
+    },
+    "problem_88": {
+      "init_phase_length": 25,
+      "goal_phase_length": 125,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 18,
+        "object": 0,
+        "passenger": 6
+      },
+      "num_atoms_init_state": {
+        "above": 17,
+        "at": 6,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 17,
+        "at": 5,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 307.0,
+        "lazy_greedy_ff": 480.0,
+        "astar_lmcut": 6922815.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.30978402495384216
+    },
+    "problem_89": {
+      "init_phase_length": 25,
+      "goal_phase_length": 91,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 5,
+        "object": 0,
+        "passenger": 19
+      },
+      "num_atoms_init_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 210.0,
+        "lazy_greedy_ff": 226.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.14264468848705292
+    },
+    "problem_90": {
+      "init_phase_length": 25,
+      "goal_phase_length": 94,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 6,
+        "object": 0,
+        "passenger": 18
+      },
+      "num_atoms_init_state": {
+        "above": 5,
+        "at": 18,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 5,
+        "at": 18,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 299.0,
+        "lazy_greedy_ff": 264.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.1480654925107956
+    },
+    "problem_91": {
+      "init_phase_length": 25,
+      "goal_phase_length": 101,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 5,
+        "object": 0,
+        "passenger": 19
+      },
+      "num_atoms_init_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 253.0,
+        "lazy_greedy_ff": 271.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.14264468848705292
+    },
+    "problem_92": {
+      "init_phase_length": 25,
+      "goal_phase_length": 99,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 5,
+        "object": 0,
+        "passenger": 19
+      },
+      "num_atoms_init_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 253.0,
+        "lazy_greedy_ff": 271.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.14264468848705292
+    },
+    "problem_93": {
+      "init_phase_length": 25,
+      "goal_phase_length": 121,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 22,
+        "object": 0,
+        "passenger": 2
+      },
+      "num_atoms_init_state": {
+        "above": 21,
+        "at": 2,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 21,
+        "at": 2,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 296.0,
+        "lazy_greedy_ff": 332.0,
+        "astar_lmcut": 5518.0,
+        "fdss_opt": 0.14
+      },
+      "diversity": 0.3781448006629944
+    },
+    "problem_94": {
+      "init_phase_length": 25,
+      "goal_phase_length": 99,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 4,
+        "object": 0,
+        "passenger": 20
+      },
+      "num_atoms_init_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 3,
+        "at": 19,
+        "boarded": 1,
+        "lift_at": 1,
+        "lift_empty": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 178.0,
+        "lazy_greedy_ff": 178.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.1570068597793579
+    },
+    "problem_95": {
+      "init_phase_length": 25,
+      "goal_phase_length": 118,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 4,
+        "object": 0,
+        "passenger": 20
+      },
+      "num_atoms_init_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 3,
+        "at": 20,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 206.0,
+        "lazy_greedy_ff": 206.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.1556333750486374
+    },
+    "problem_96": {
+      "init_phase_length": 25,
+      "goal_phase_length": 109,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 5,
+        "object": 0,
+        "passenger": 19
+      },
+      "num_atoms_init_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 253.0,
+        "lazy_greedy_ff": 271.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.14264468848705292
+    },
+    "problem_97": {
+      "init_phase_length": 25,
+      "goal_phase_length": 125,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 18,
+        "object": 0,
+        "passenger": 6
+      },
+      "num_atoms_init_state": {
+        "above": 17,
+        "at": 6,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 17,
+        "at": 6,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 770.0,
+        "lazy_greedy_ff": 2331.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.2889973223209381
+    },
+    "problem_98": {
+      "init_phase_length": 25,
+      "goal_phase_length": 101,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 5,
+        "object": 0,
+        "passenger": 19
+      },
+      "num_atoms_init_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 4,
+        "at": 19,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 253.0,
+        "lazy_greedy_ff": 271.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.14264468848705292
+    },
+    "problem_99": {
+      "init_phase_length": 25,
+      "goal_phase_length": 104,
+      "max_init_state_actions": 25,
+      "max_goal_actions": 125,
+      "num_objects": {
+        "floor": 6,
+        "object": 0,
+        "passenger": 18
+      },
+      "num_atoms_init_state": {
+        "above": 5,
+        "at": 18,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "num_atoms_goal_state": {
+        "above": 5,
+        "at": 18,
+        "boarded": 0,
+        "lift_at": 1,
+        "lift_empty": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 394.0,
+        "lazy_greedy_ff": 334.0,
+        "astar_lmcut": 100000000.0,
+        "fdss_opt": 601.0
+      },
+      "diversity": 0.1480654925107956
+    }
+  }
+}

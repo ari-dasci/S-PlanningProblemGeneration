@@ -393,7 +393,12 @@ class PolicyTrainer():
         mean_difficulty_dict = dict()
         std_difficulty_dict = dict()
 
-        for planner in self.args.planners_test:
+        # The planners used for obtaining difficulty depend on the phase: train uses only TRAIN_PLANNER_ARGS whereas test planners are given by
+        # self.args.planners_test (minus those used in past runs if args.test_mode is not 'supersede_diff')
+        # Therefore, we inspect the 'plan_args' attribute of the PlannerEvaluator used to obtain the problem difficulties
+        planners_curr_phase = self.problem_generator.difficulty_evaluator.plan_args
+
+        for planner in planners_curr_phase:
             problem_diffs = [p_info['difficulty'][planner] for p_info in problem_info_list if p_info['consistency']]
             mean_difficulty = sum(problem_diffs) / len(problem_diffs) if len(problem_diffs) > 0 else 0
             std_difficulty = (sum([(d - mean_difficulty)**2 for d in problem_diffs]) / len(problem_diffs))**0.5 if len(problem_diffs) > 0 else 0

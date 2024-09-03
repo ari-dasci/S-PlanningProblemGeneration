@@ -26,8 +26,8 @@ It uses pandas dataframes and their operations, filter (--filter-query), groupby
         python collect_and_summarize_results.py ../../experiments ../../data/instance_generators --agg-fields Mean_difficulty
         # We use --agg-fields to avoid many extra columns in the output
 
-        
-python collect_and_summarize_results.py ../../experiments ../../data/instance_generators --filter-query "domain=sokoban,init_policy=PPO,goal_policy=PPO,planner=lazy_greedy_ff" --agg-fields size,Mean_difficulty --group-fields experiment_id,domain,init_policy,goal_policy,seed > output.txt
+   
+python collect_and_summarize_results.py ../../experiments ../../data/instance_generators --filter-query "domain=miconic,init_policy=adhoc,goal_policy=adhoc,planner=lama_first" --agg-fields size,Mean_difficulty --group-fields experiment_id,domain,init_policy,goal_policy,seed > output.txt
 
 """
 
