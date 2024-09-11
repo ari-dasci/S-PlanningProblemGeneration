@@ -28,13 +28,22 @@ It uses pandas dataframes and their operations, filter (--filter-query), groupby
 
 > Command used for obtaining last plot results:
 
-    python collect_and_summarize_results.py ../../experiments ../../data/instance_generators --filter-query "domain=miconic,init_policy=adhoc,goal_policy=adhoc,planner=lama_first" --agg-fields size,Mean_difficulty --group-fields experiment_id,domain,init_policy,goal_policy,seed > output.txt
+    # Command used for generalization plots
+    python collect_and_summarize_results.py ../../experiments ../../data/instance_generators --filter-query "domain=satellite,init_policy=adhoc,goal_policy=adhoc,planner=lama_first" --agg-fields size,Mean_difficulty --group-fields experiment_id,domain,init_policy,goal_policy,seed > output.txt
+
+    # Commands used for filling values in tables (which only contain the training problem size)
+    ## Mean diversity
+    python collect_and_summarize_results.py ../../old_experiments ../../data/instance_generators --filter-query "domain=blocksworld,init_policy=PPO,goal_policy=PPO,size=15_60" --agg-fields seed,Mean_diversity --group-fields domain,init_policy,goal_policy,planner > output.txt
+    ## LAMA difficulty
+
 
 """
 
 import argparse
 import pandas as pd
 pd.set_option('display.max_rows', None)
+pd.set_option('display.expand_frame_repr', False)
+pd.set_option('display.max_columns', None)
 pd.set_option('display.max_colwidth', None)
 from pathlib import Path
 import json
@@ -69,7 +78,8 @@ def parse_arguments():
                                                                               'Example: "domain,init_policy,goal_policy,seed"'))
     parser.add_argument('--agg-fields', type=parse_tuple, default=tuple(), help=('The field(s) to aggregate in the summary (e.g., Mean_difficulty)'
                                                                                  'If empty, we aggregate all of them.'))
-    parser.add_argument('--group-op', choices=('list', 'mean'), default='list', help='How to aggregate the grouped values in --agg-fields. Default: just show a list of values ("list").')
+    parser.add_argument('--group-op', type=parse_tuple, default=('list'), help=('How to aggregate the grouped values in --agg-fields. It receives a list of aggregations to perform for each group of values.'
+                                                                                'Each value in the list can be either "list", "mean" or "std".'))
 
     args = parser.parse_args()
 
@@ -78,7 +88,9 @@ def parse_arguments():
 
     assert args.base_folder_nesig.is_dir(), f"Folder {args.base_folder_nesig} is not a directory"
     assert args.base_folder_adhoc.is_dir(), f"Folder {args.base_folder_adhoc} is not a directory"
-    assert args.group_op in ('list', 'mean'), f"Invalid value for --group-op: {args.group_op}"
+    
+    for op in args.group_op:
+        assert op in ('list', 'mean', 'std'), f"Invalid value for --group-op: {args.group_op}"
 
     return args
 
@@ -123,6 +135,7 @@ def get_dataframe_nesig(base_folder : Path, df_data):
             if 'Old mean difficulty' in curr_results: # Old results format
                 curr_results_vals = {'size' : str(curr_size),
                                      'planner' : 'old',
+                                     'Generation_time' : curr_results['Generation time'],
                                      'Consistency_percentage' : curr_results['Consistency percentage'],
                                      'Mean_diversity' : curr_results['Mean diversity'],
                                      'Mean_difficulty' : curr_results['Old mean difficulty'],
@@ -134,6 +147,7 @@ def get_dataframe_nesig(base_folder : Path, df_data):
                 for planner in curr_results['Mean difficulty']:
                     curr_results_vals = {'size' : str(curr_size),
                                          'planner' : planner,
+                                         'Generation_time' : curr_results['Generation time'],
                                          'Consistency_percentage' : curr_results['Consistency percentage'],
                                          'Mean_diversity' : curr_results['Mean diversity'],
                                          'Mean_difficulty' : curr_results['Mean difficulty'][planner],
@@ -167,6 +181,7 @@ def get_dataframe_adhoc(base_folder : Path, df_data):
             # Add a different df row for each planner in results.json
             if 'Old mean difficulty' in results_info: # Old results format
                 results_info_vals = {'planner' : 'old',
+                                     'Generation_time' : results_info['Generation time'],
                                      'Consistency_percentage' : results_info['Consistency percentage'],
                                      'Mean_diversity' : results_info['Mean diversity'],
                                      'Mean_difficulty' : results_info['Old mean difficulty'],
@@ -177,6 +192,7 @@ def get_dataframe_adhoc(base_folder : Path, df_data):
             if 'Mean difficulty' in results_info and isinstance(results_info['Mean difficulty'], dict):
                 for planner in results_info['Mean difficulty']:
                     results_info_vals = {'planner' : planner,
+                                         'Generation_time' : results_info['Generation time'],
                                          'Consistency_percentage' : results_info['Consistency percentage'],
                                          'Mean_diversity' : results_info['Mean diversity'],
                                          'Mean_difficulty' : results_info['Mean difficulty'][planner],
@@ -203,11 +219,11 @@ def get_aggregated_dataframe(df_data, group_fields, agg_fields, group_op):
         group_fields = df_data.columns.tolist()
     if len(agg_fields) == 0:
         agg_fields = df_data.columns.tolist() # If agg_fields is empty, we show all the columns
-    if group_op == 'list':
-        group_op = list
-
-    # If we want to aggregate several fields, we need to specify them as a dict
-    group_op_dict = {f:group_op for f in agg_fields}
+    
+    # If we want to aggregate several fields, we need to specify them in the following format
+    # {field1 : [op_1, ..., op_n], field2 : ...}
+    # Also, the operation "list" must be given as the list type, not as a string
+    group_op_dict = {field : [list if op=='list' else op for op in group_op] for field in agg_fields}
 
     df_agg = df_data.groupby(list(group_fields)).agg(group_op_dict)
     
@@ -216,7 +232,7 @@ def get_aggregated_dataframe(df_data, group_fields, agg_fields, group_op):
 def main(args):
     # Obtain dataframes with all data
     col_names = ['experiment_id','domain','init_policy','goal_policy','seed',
-                 'size','planner','Consistency_percentage','Mean_diversity','Mean_difficulty','Std_difficulty']
+                 'size','planner', 'Generation_time', 'Consistency_percentage','Mean_diversity','Mean_difficulty','Std_difficulty']
     df_data = pd.DataFrame(columns=col_names)
 
     df_data = get_dataframe_nesig(args.base_folder_nesig, df_data)
