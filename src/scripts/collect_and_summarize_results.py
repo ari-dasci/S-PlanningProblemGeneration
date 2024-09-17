@@ -33,10 +33,11 @@ It uses pandas dataframes and their operations, filter (--filter-query), groupby
 
     # Commands used for filling values in tables (which only contain the training problem size)
     ## Mean diversity
-    python collect_and_summarize_results.py ../../old_experiments ../../data/instance_generators --filter-query "domain=blocksworld,init_policy=PPO,goal_policy=PPO,size=15_60" --agg-fields seed,Mean_diversity --group-fields domain,init_policy,goal_policy,planner > output.txt
-    ## LAMA difficulty
-
-
+    python collect_and_summarize_results.py ../../old_experiments ../../data/instance_generators --filter-query "domain=blocksworld,init_policy=PPO,goal_policy=PPO,size=15_60" --agg-fields Mean_diversity --group-fields domain,init_policy,goal_policy,planner --group-op mean,std >  output.txt
+    ## Planners difficulty
+    python collect_and_summarize_results.py ../../old_experiments ../../data/instance_generators --filter-query "domain=blocksworld,init_policy=PPO,goal_policy=PPO,size=15_60" --agg-fields Mean_difficulty --group-fields domain,init_policy,goal_policy,planner --group-op mean,std >  output.txt
+    ## Planners difficulty for ad hoc
+    python collect_and_summarize_results.py ../../old_experiments ../../data/instance_generators --filter-query "domain=blocksworld,init_policy=adhoc,goal_policy=adhoc,size=13-15_5-15__1_100_1" --agg-fields Mean_difficulty --group-fields domain,init_policy,goal_policy,planner --group-op mean,std >  output.txt
 """
 
 import argparse
