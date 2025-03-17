@@ -5,7 +5,7 @@ NOTE: execute this script as a python module (-m) and NOT inside the scripts dir
 This script receives as command-line input an experiment.
 In the case of NeSIG, it must be given by one of the following (but not both):
     1) Its parameters:  --domain, --init-policy, --goal-policy, --seed
-    2) Its --experiment_id (like "0ae0837594") and --domain (needed to obtain the PDDL domain_path)
+    2) Its --experiment_id (like "0ae0837594"), --init-policy, --goal-policy and --domain (needed to obtain the PDDL domain_path)
     ** Note: if for given parameter values there exist several experiments, the script will print the experiment_ids and exit.
 
 In the case of the adhoc model, it must be given by --experiment_id and --domain (the rest of the arguments are ignored).
@@ -23,9 +23,11 @@ The specific analysis depends on the command-line argument passed:
         python -m scripts.analyze_generated_problems --init-policy adhoc --goal-policy adhoc --domain blocksworld --experiment-id 8-10_3-10__1_100_1.0 
 """
 
+from nesig.symbolic.pddl_problem import PDDLProblem
+from nesig.metrics.diversity import InitGoalDiversityEvaluator
+
 import argparse
 from pathlib import Path
-from nesig.symbolic.pddl_problem import PDDLProblem
 from lifted_pddl import Parser
 from typing import Tuple, List
 import json
@@ -116,7 +118,6 @@ def get_problems_nesig(args) -> Tuple[dict, dict]:
     It returns the pddl_problems (as a dict where keys are problem_names and values PDDLProblem objects) and problems info (given by results.json) of the NeSIG experiment given by the command-line arguments.
     In order to find the experiment, it will iterate over all experiments in the base_folder_nesig and check if the arguments match.
     """
-    assert (args.experiment_id is None) != (args.init_policy is None), 'For NeSIG, the experiment must be identified by either its parameters or its experiment_id but not both' 
     assert args.max_init_actions_test is not None and args.max_goal_actions_test is not None, 'For NeSIG, the test problem size must be given'
 
     matched_experiments_id = []
@@ -150,6 +151,7 @@ def get_problems_nesig(args) -> Tuple[dict, dict]:
                     pddl_problems = _load_pddl_problems_folder(problems_folder, args)
                     
                     matched_experiments_id.append(experiment_folder.name)
+                    print(f"> Matched experiment with id {experiment_folder.name}")
                 except FileNotFoundError:
                     continue
 
@@ -163,11 +165,14 @@ def main(args):
     assert (args.init_policy == 'adhoc') == (args.goal_policy == 'adhoc'), 'Either both policies are adhoc or none is'
     is_adhoc = args.init_policy == 'adhoc'
 
+    # Note pddl_problems ONLY contains consistent problems whereas problems_info contains info for ALL problems
     if is_adhoc:
         pddl_problems, problems_info = get_problems_adhoc(args)
     else:
         pddl_problems, problems_info = get_problems_nesig(args)
 
+
+    print(pddl_problems.keys())
  
     pass
 

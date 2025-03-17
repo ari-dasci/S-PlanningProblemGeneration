@@ -253,6 +253,42 @@ class InitGoalDiversityEvaluator(DiversityEvaluator):
 
         return distance_matrix
 
+    def get_distance_and_feature_matrices(self, problem_list : List[PDDLProblem]) -> Tuple[np.darray, np.darray, int]:
+        """
+        Works the same as get_diversity but, instead of returning the diversity information, it returns a tuple made by the following:
+            - Distance matrix
+            - Feature matrix
+            - num_unique_problems (NOTE: two problems are considered unique iff they have the same size (wrt. objs and init and goal atoms) and same features!)
+        This method is used by the script "analyze_generated_problems.py".
+        """   
+        for i, problem in enumerate(problem_list):
+            assert problem.is_initial_state_generated, f'The initial state of problem {i} has not been completely generated yet'
+            assert problem.is_goal_state_generated, f'The goal state of problem {i} has not been completely generated yet'
+
+        # Obtain the state features for each problem
+        # We use ._initial_state to avoid obtaining a deep copy of the init state. We can do this since we don't modify the init state
+        feature_matrix = np.array([self._get_state_features(problem._initial_state, problem.goal) for problem in problem_list], dtype=np.float32)
+
+        # Obtain the number of unique problems (after removing duplicates)
+        # We consider two problems to be equal if their feature vectors are equal AND they have the same size (num objects, num init state atoms and num goal atoms)
+        # NOTE: since all problems have been completely generated, we use the goal instead of the goal state for computing the number of goal atoms
+
+        # Measure size of each problem and add this to the feature_matrix for calculating unique problems
+        additional_features = np.array([
+            [problem._initial_state.num_objects, 
+             problem._initial_state.num_atoms, 
+             problem._goal.num_atoms]
+            for problem in problem_list], dtype=np.float32)
+
+        feature_matrix_extended = np.hstack((feature_matrix, additional_features))
+        num_unique_problems = len(np.unique(feature_matrix_extended, axis=0))
+
+        # Calculate the pair-wise distances between problems
+        # distance_matrix[i][j] is the distance between problems i and j
+        distance_matrix = self._calculate_distances(feature_matrix)
+
+        return distance_matrix, feature_matrix, num_unique_problems
+
     def get_diversity(self, problem_list : List[PDDLProblem]) -> Tuple[List[float], List[float], int]:
         """
         Returns the diversity scores, diversity rewards and number of unique problems for a list of PDDL problems.
@@ -265,22 +301,8 @@ class InitGoalDiversityEvaluator(DiversityEvaluator):
             return [], [], 0
         elif num_problems == 1: # The distance (and, thus, diversity) between a problem and itself is always 0
             return [0.0], [0.0], 1
-        
-        for i, problem in enumerate(problem_list):
-            assert problem.is_initial_state_generated, f'The initial state of problem {i} has not been completely generated yet'
-            assert problem.is_goal_state_generated, f'The goal state of problem {i} has not been completely generated yet'
 
-        # Obtain the state features for each problem
-        # We use ._initial_state to avoid obtaining a deep copy of the init state. We can do this since we don't modify the init state
-        feature_matrix = np.array([self._get_state_features(problem._initial_state, problem.goal) for problem in problem_list], dtype=np.float32)
-
-        # Obtain the number of unique problems (after removing duplicates)
-        # We consider two problems to be equal if their feature vectors are equal
-        num_unique_problems = len(np.unique(feature_matrix, axis=0))
-
-        # Calculate the pair-wise distances between problems
-        # distance_matrix[i][j] is the distance between problems i and j
-        distance_matrix = self._calculate_distances(feature_matrix)
+        distance_matrix, feature_matrix, num_unique_problems = self.get_distance_and_feature_matrices(problem_list)
 
         # For each problem, calculate its diversity as the average distance between it and the rest of problems
         # diversity_scores = [np.mean(distance_matrix[i,:]) for i in range(len(problem_list))]
