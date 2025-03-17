@@ -1,6 +1,6 @@
 """
-NOTE: execute this script as a python module (-m) and NOT inside the scripts directory but at the src directory!!
-    Example: python -m scripts.analyze_generated_problems --init-policy adhoc --goal-policy adhoc --domain blocksworld --experiment-id 8-10_3-10__1_100_1.0
+NOTE: execute this script as a python module (-m) and from the base project folder (S-PlanningProblemGeneration) and NOT inside the scripts directory!!
+    Example: python -m src.scripts.analyze_generated_problems --init-policy adhoc --goal-policy adhoc --domain blocksworld --experiment-id 8-10_3-10__1_100_1.0
 
 This script receives as command-line input an experiment.
 In the case of NeSIG, it must be given by one of the following (but not both):
@@ -16,15 +16,15 @@ The specific analysis depends on the command-line argument passed:
 
 >>> Examples of use:
     - NeSIG (experiment identified by parameters):
-        python -m scripts.analyze_generated_problems --domain blocksworld --init-policy PPO --goal-policy PPO --seed 1 --max-init-actions-test 15 --max-goal-actions-test 60
+        python -m src.scripts.analyze_generated_problems --domain blocksworld --init-policy PPO --goal-policy PPO --seed 1 --max-init-actions-test 15 --max-goal-actions-test 60
     - NeSIG (experiment identified by experiment_id):
-        python -m scripts.analyze_generated_problems --domain blocksworld --experiment-id edf5246679 --init-policy PPO --goal-policy PPO --max-init-actions-test 15 --max-goal-actions-test 60
+        python -m src.scripts.analyze_generated_problems --domain blocksworld --experiment-id edf5246679 --init-policy PPO --goal-policy PPO --max-init-actions-test 15 --max-goal-actions-test 60
     - adhoc:
-        python -m scripts.analyze_generated_problems --init-policy adhoc --goal-policy adhoc --domain blocksworld --experiment-id 8-10_3-10__1_100_1.0 
+        python -m src.scripts.analyze_generated_problems --init-policy adhoc --goal-policy adhoc --domain blocksworld --experiment-id 8-10_3-10__1_100_1.0 
 """
 
-from nesig.symbolic.pddl_problem import PDDLProblem
-from nesig.metrics.diversity import InitGoalDiversityEvaluator
+from src.nesig.symbolic.pddl_problem import PDDLProblem
+from src.nesig.metrics.diversity import InitGoalDiversityEvaluator
 
 import argparse
 from pathlib import Path
@@ -171,9 +171,13 @@ def main(args):
     else:
         pddl_problems, problems_info = get_problems_nesig(args)
 
-
-    print(pddl_problems.keys())
+    # Get feature matrix, distance matrix and num unique problems
+    diversity_evaluator = InitGoalDiversityEvaluator()
+    distance_matrix, feature_matrix, num_unique_problems = diversity_evaluator.get_distance_and_feature_matrices(list(pddl_problems.values())) # NOTE: from Python 3.7, dictionaries are ordered
  
+    print("Num total problems:", len(pddl_problems.values()))
+    print("Num unique problems:", num_unique_problems)
+
     pass
 
 if __name__ == '__main__':

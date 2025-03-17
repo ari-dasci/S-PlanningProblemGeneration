@@ -253,7 +253,7 @@ class InitGoalDiversityEvaluator(DiversityEvaluator):
 
         return distance_matrix
 
-    def get_distance_and_feature_matrices(self, problem_list : List[PDDLProblem]) -> Tuple[np.darray, np.darray, int]:
+    def get_distance_and_feature_matrices(self, problem_list : List[PDDLProblem]) -> Tuple[np.ndarray, np.ndarray, int]:
         """
         Works the same as get_diversity but, instead of returning the diversity information, it returns a tuple made by the following:
             - Distance matrix
@@ -277,7 +277,7 @@ class InitGoalDiversityEvaluator(DiversityEvaluator):
         additional_features = np.array([
             [problem._initial_state.num_objects, 
              problem._initial_state.num_atoms, 
-             problem._goal.num_atoms]
+             len(problem._goal)]
             for problem in problem_list], dtype=np.float32)
 
         feature_matrix_extended = np.hstack((feature_matrix, additional_features))
