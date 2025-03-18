@@ -325,6 +325,49 @@ def create_histograms_logistics(args, pddl_problems, consistent_problems_info):
 
     print("> Created histograms for logistics")
 
+def create_histograms_sokoban(args, pddl_problems, consistent_problems_info):
+    """
+    For sokoban, we measure the number of boxes and walls.
+
+    NOTE: this info is the same in the init and goal state as it corresponds to objects (even though it is represented with predicates 'at-box' and 'at-wall').
+          However, it is not the same in the GOAL (do not confuse with goal STATE) as 'at-wall' atoms do not appear in the goal
+    """
+    num_boxes = [x['num_atoms_init_state']['at-box'] for x in consistent_problems_info.values()]
+    num_walls = [x['num_atoms_init_state']['at-wall'] for x in consistent_problems_info.values()]
+
+    color = 'tab:orange' if args.init_policy=='PPO' else 'tab:blue'
+    model = 'NeSIG' if args.init_policy=='PPO' else 'adhoc'
+
+    # Histogram for num_boxes
+    min_val = 1
+    max_val = 20
+    bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
+    
+    plt.figure()
+    plt.hist(num_boxes, bins=bins, edgecolor='black', color=color)
+    plt.xlabel("# Boxes")
+    plt.ylabel("# Problems")
+    plt.title("Number of Boxes")
+    plt.xticks(np.arange(min_val, max_val+1))
+    plt.savefig(f"histogram_sokoban_{model}_num_boxes.png")
+    plt.close()
+
+    # Histogram for num_walls
+    min_val = 1
+    max_val = 30
+    bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
+    
+    plt.figure()
+    plt.hist(num_walls, bins=bins, edgecolor='black', color=color)
+    plt.xlabel("# Walls")
+    plt.ylabel("# Problems")
+    plt.title("Number of Walls")
+    plt.xticks(np.arange(0, max_val+1, 2))
+    plt.savefig(f"histogram_sokoban_{model}_num_walls.png")
+    plt.close()
+
+    print("> Created histograms for sokoban")
+
 
 def main(args):
     assert (args.init_policy == 'adhoc') == (args.goal_policy == 'adhoc'), 'Either both policies are adhoc or none is'
@@ -372,6 +415,12 @@ def main(args):
             """
             create_histograms_logistics(args, pddl_problems, consistent_problems_info)
 
+        elif args.domain == 'sokoban':
+            """
+            Calls:
+                - NeSIG: python -m src.scripts.analyze_generated_problems --init-policy PPO --goal-policy PPO --seed 1 --domain sokoban --max-init-actions-test 30 --max-goal-actions-test 150  --create-histograms
+            """
+            create_histograms_sokoban(args, pddl_problems, consistent_problems_info)
     pass
 
 if __name__ == '__main__':
