@@ -147,7 +147,7 @@ def get_problems_nesig(args) -> Tuple[dict, dict]:
 
             if experiment_info['domain'] == args.domain and experiment_info['init_policy'] == args.init_policy and \
                experiment_info['goal_policy'] == args.goal_policy and experiment_info['seed'] == args.seed:
-                
+
                 try:         
                     problems_folder = experiment_folder / 'test' / f'{args.max_init_actions_test}_{args.max_goal_actions_test}'
                     problems_info = load_json(problems_folder / 'results.json')
@@ -216,7 +216,7 @@ def _get_num_towers_blocksworld_goal(goal_atoms: Tuple) -> int:
     
     return towers_with_two_or_more
 
-def create_histograms_blocksworld(pddl_problems, consistent_problems_info):
+def create_histograms_blocksworld(args, pddl_problems, consistent_problems_info):
     """
     For blocksworld, we measure the number of towers (i.e., onblock atoms) in the initial state and goal.
 
@@ -240,27 +240,91 @@ def create_histograms_blocksworld(pddl_problems, consistent_problems_info):
     # Create bins for each integer value. The 0.5 offsets ensure each integer gets its own bin.
     bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
 
+    color = 'tab:orange' if args.init_policy=='PPO' else 'tab:blue'
+    model = 'NeSIG' if args.init_policy=='PPO' else 'adhoc'
+
     # Histogram for initial state towers
     plt.figure()
-    plt.hist(num_towers_init, bins=bins, edgecolor='black')
-    plt.xlabel("Number of Towers")
-    plt.ylabel("Number of Problems")
-    plt.title("Histogram of Towers in Initial State")
+    plt.hist(num_towers_init, bins=bins, edgecolor='black', color=color)
+    plt.xlabel("# Towers")
+    plt.ylabel("# Problems")
+    plt.title("Number of Towers in Initial State")
     plt.xticks(np.arange(min_val, max_val+1))
-    plt.savefig("histogram_towers_init.png")
+    plt.savefig(f"histogram_blocksworld_{model}_towers_init.png")
     plt.close()
 
     # Histogram for goal state towers
     plt.figure()
-    plt.hist(num_towers_goal, bins=bins, edgecolor='black')
-    plt.xlabel("Number of Towers")
-    plt.ylabel("Number of Problems")
-    plt.title("Histogram of Towers in Goal State")
+    plt.hist(num_towers_goal, bins=bins, edgecolor='black', color=color)
+    plt.xlabel("# Towers")
+    plt.ylabel("# Problems")
+    plt.title("Number of Towers in Goal")
     plt.xticks(np.arange(min_val, max_val+1))
-    plt.savefig("histogram_towers_goal.png")
+    plt.savefig(f"histogram_blocksworld_{model}_towers_goal.png")
     plt.close()
 
     print("> Created histograms for blocksworld")
+
+def create_histograms_logistics(args, pddl_problems, consistent_problems_info):
+    """
+    For logistics, we measure the following info:
+        - Number of cities
+        - Average city size -> Num locations (including airports) / num_cities
+        - Number of packages
+
+    NOTE: this info is the same in the init and goal state (corresponds to objects)!!!
+    """
+    num_cities = [x['num_objects']['city'] for x in consistent_problems_info.values()]
+    avg_city_size = [(x['num_objects']['location'] + x['num_objects']['airport']) / x['num_objects']['city'] for x in consistent_problems_info.values()]
+    num_packages = [x['num_objects']['package'] for x in consistent_problems_info.values()]
+
+    color = 'tab:orange' if args.init_policy=='PPO' else 'tab:blue'
+    model = 'NeSIG' if args.init_policy=='PPO' else 'adhoc'
+
+    # Histogram for num_cities
+    min_val = 1
+    max_val = 15
+    bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
+    
+    plt.figure()
+    plt.hist(num_cities, bins=bins, edgecolor='black', color=color)
+    plt.xlabel("# Cities")
+    plt.ylabel("# Problems")
+    plt.title("Number of Cities")
+    plt.xticks(np.arange(min_val, max_val+1))
+    plt.savefig(f"histogram_logistics_{model}_num_cities.png")
+    plt.close()
+
+    # Histogram for avg_city_size
+    min_val = 1
+    max_val = 15
+    bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
+    
+    plt.figure()
+    plt.hist(avg_city_size, bins=bins, edgecolor='black', color=color)
+    plt.xlabel("Avg. Size")
+    plt.ylabel("# Problems")
+    plt.title("Average City Size")
+    plt.xticks(np.arange(min_val, max_val+1))
+    plt.savefig(f"histogram_logistics_{model}_city_size.png")
+    plt.close()
+
+    # Histogram for number of packages
+    min_val = 1
+    max_val = 25
+    bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
+    
+    plt.figure()
+    plt.hist(num_packages, bins=bins, edgecolor='black', color=color)
+    plt.xlabel("# Packages")
+    plt.ylabel("# Problems")
+    plt.title("Number of Packages")
+    plt.xticks(np.arange(min_val, max_val+1))
+    plt.savefig(f"histogram_logistics_{model}_num_packages.png")
+    plt.close()
+
+    print("> Created histograms for logistics")
+
 
 def main(args):
     assert (args.init_policy == 'adhoc') == (args.goal_policy == 'adhoc'), 'Either both policies are adhoc or none is'
@@ -293,7 +357,20 @@ def main(args):
     # < Create histograms and save to disk >
     if args.create_histograms:
         if args.domain == 'blocksworld':
-            create_histograms_blocksworld(pddl_problems, consistent_problems_info)
+            """
+            Calls:
+                - NeSIG: python -m src.scripts.analyze_generated_problems --init-policy PPO --goal-policy PPO --seed 1 --domain blocksworld --max-init-actions-test 40 --max-goal-actions-test 160  --create-histograms
+                - Adhoc: python -m src.scripts.analyze_generated_problems --init-policy adhoc --goal-policy adhoc --domain blocksworld --experiment-id 38-40_14-40__1_100_1.0  --create-histograms
+            """
+            create_histograms_blocksworld(args, pddl_problems, consistent_problems_info)
+        
+        elif args.domain == 'logistics':
+            """
+            Calls:
+                - NeSIG: python -m src.scripts.analyze_generated_problems --init-policy PPO --goal-policy PPO --domain logistics --seed 1 --max-init-actions-test 40 --max-goal-actions-test 160  --create-histograms
+                - Adhoc: python -m src.scripts.analyze_generated_problems --init-policy adhoc --goal-policy adhoc --domain logistics --experiment-id 38-40_1-40_2-40_1-40_1-40_0-40__1_100_1.0 --create-histograms
+            """
+            create_histograms_logistics(args, pddl_problems, consistent_problems_info)
 
     pass
 
