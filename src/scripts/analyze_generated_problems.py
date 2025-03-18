@@ -368,6 +368,97 @@ def create_histograms_sokoban(args, pddl_problems, consistent_problems_info):
 
     print("> Created histograms for sokoban")
 
+def create_histograms_miconic(args, pddl_problems, consistent_problems_info):
+    """
+    For miconic, we measure the number of floors, the number of passengers and the average number of passengers per floor (occupancy).
+
+    NOTE: this info is the same in the init and goal state (corresponds to objects)!!!
+    """
+    num_floors = [x['num_objects']['floor'] for x in consistent_problems_info.values()]
+    num_passengers = [x['num_objects']['passenger'] for x in consistent_problems_info.values()]
+    average_occupancy = [x['num_objects']['passenger'] / x['num_objects']['floor'] for x in consistent_problems_info.values()]
+
+    color = 'tab:orange' if args.init_policy=='PPO' else 'tab:blue'
+    model = 'NeSIG' if args.init_policy=='PPO' else 'adhoc'
+
+    # Histogram for num_floors
+    min_val = 1
+    max_val = 40
+    bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
+    
+    plt.figure()
+    plt.hist(num_floors, bins=bins, edgecolor='black', color=color)
+    plt.xlabel("# Floors")
+    plt.ylabel("# Problems")
+    plt.title("Number of Floors")
+    plt.xticks(np.arange(0, max_val+1, 2))
+    plt.savefig(f"histogram_miconic_{model}_num_floors.png")
+    plt.close()
+
+    # Histogram for num_passengers
+    min_val = 1
+    max_val = 40
+    bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
+    
+    plt.figure()
+    plt.hist(num_passengers, bins=bins, edgecolor='black', color=color)
+    plt.xlabel("# Passengers")
+    plt.ylabel("# Problems")
+    plt.title("Number of Passengers")
+    plt.xticks(np.arange(0, max_val+1, 2))
+    plt.savefig(f"histogram_miconic_{model}_num_passengers.png")
+    plt.close()
+
+    # Histogram for average_occupancy
+    min_val = 1
+    max_val = 15
+    bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
+
+    plt.figure()
+    plt.hist(average_occupancy, bins=bins, edgecolor='black', color=color)
+    plt.xlabel("# Passengers / Floor")
+    plt.ylabel("# Problems")
+    plt.title("Average Floor Occupancy")
+    plt.xticks(np.arange(min_val, max_val+1))
+    plt.savefig(f"histogram_miconic_{model}_average_occupancy.png")
+    plt.close()
+
+    print("> Created histograms for miconic")
+
+
+def create_histograms(args, pddl_problems, consistent_problems_info):
+    if args.domain == 'blocksworld':
+        """
+        Calls:
+            - NeSIG: python -m src.scripts.analyze_generated_problems --init-policy PPO --goal-policy PPO --seed 1 --domain blocksworld --max-init-actions-test 40 --max-goal-actions-test 160  --create-histograms
+            - Adhoc: python -m src.scripts.analyze_generated_problems --init-policy adhoc --goal-policy adhoc --domain blocksworld --experiment-id 38-40_14-40__1_100_1.0  --create-histograms
+        """
+        create_histograms_blocksworld(args, pddl_problems, consistent_problems_info)
+    
+    elif args.domain == 'logistics':
+        """
+        Calls:
+            - NeSIG: python -m src.scripts.analyze_generated_problems --init-policy PPO --goal-policy PPO --domain logistics --seed 1 --max-init-actions-test 40 --max-goal-actions-test 160  --create-histograms
+            - Adhoc: python -m src.scripts.analyze_generated_problems --init-policy adhoc --goal-policy adhoc --domain logistics --experiment-id 38-40_1-40_2-40_1-40_1-40_0-40__1_100_1.0 --create-histograms
+        """
+        create_histograms_logistics(args, pddl_problems, consistent_problems_info)
+
+    elif args.domain == 'sokoban':
+        """
+        Calls:
+            - NeSIG: python -m src.scripts.analyze_generated_problems --init-policy PPO --goal-policy PPO --seed 1 --domain sokoban --max-init-actions-test 30 --max-goal-actions-test 150  --create-histograms
+            - Adhoc: python -m src.scripts.analyze_generated_problems --init-policy adhoc --goal-policy adhoc --domain sokoban --experiment-id 7_7_1-29_0-29__1_100_1.0 --create-histograms 
+        """
+        create_histograms_sokoban(args, pddl_problems, consistent_problems_info)
+
+    elif args.domain == 'miconic':
+        """
+        Calls:
+            - NeSIG: python -m src.scripts.analyze_generated_problems --init-policy PPO --goal-policy PPO --seed 1 --domain miconic --max-init-actions-test 40 --max-goal-actions-test 200  --create-histograms
+            - Adhoc: python -m src.scripts.analyze_generated_problems --init-policy adhoc --goal-policy adhoc --domain miconic --experiment-id 38-40_2-40_1-40__1_100_1.0 --create-histograms
+        """
+        create_histograms_miconic(args, pddl_problems, consistent_problems_info)
+
 
 def main(args):
     assert (args.init_policy == 'adhoc') == (args.goal_policy == 'adhoc'), 'Either both policies are adhoc or none is'
@@ -399,29 +490,9 @@ def main(args):
 
     # < Create histograms and save to disk >
     if args.create_histograms:
-        if args.domain == 'blocksworld':
-            """
-            Calls:
-                - NeSIG: python -m src.scripts.analyze_generated_problems --init-policy PPO --goal-policy PPO --seed 1 --domain blocksworld --max-init-actions-test 40 --max-goal-actions-test 160  --create-histograms
-                - Adhoc: python -m src.scripts.analyze_generated_problems --init-policy adhoc --goal-policy adhoc --domain blocksworld --experiment-id 38-40_14-40__1_100_1.0  --create-histograms
-            """
-            create_histograms_blocksworld(args, pddl_problems, consistent_problems_info)
-        
-        elif args.domain == 'logistics':
-            """
-            Calls:
-                - NeSIG: python -m src.scripts.analyze_generated_problems --init-policy PPO --goal-policy PPO --domain logistics --seed 1 --max-init-actions-test 40 --max-goal-actions-test 160  --create-histograms
-                - Adhoc: python -m src.scripts.analyze_generated_problems --init-policy adhoc --goal-policy adhoc --domain logistics --experiment-id 38-40_1-40_2-40_1-40_1-40_0-40__1_100_1.0 --create-histograms
-            """
-            create_histograms_logistics(args, pddl_problems, consistent_problems_info)
+        create_histograms(args, pddl_problems, consistent_problems_info)
+    
 
-        elif args.domain == 'sokoban':
-            """
-            Calls:
-                - NeSIG: python -m src.scripts.analyze_generated_problems --init-policy PPO --goal-policy PPO --seed 1 --domain sokoban --max-init-actions-test 30 --max-goal-actions-test 150  --create-histograms
-            """
-            create_histograms_sokoban(args, pddl_problems, consistent_problems_info)
-    pass
 
 if __name__ == '__main__':
     # We set the working directory to the directory containing this script
