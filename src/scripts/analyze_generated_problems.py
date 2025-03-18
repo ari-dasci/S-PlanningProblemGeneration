@@ -31,6 +31,8 @@ from pathlib import Path
 from lifted_pddl import Parser
 from typing import Tuple, List
 import json
+import numpy as np
+import matplotlib.pyplot as plt
 from copy import deepcopy
 import os, sys
 
@@ -71,7 +73,8 @@ def parse_arguments():
     parser.add_argument('--seed', type=int, default=None, help='The seed of the experiment')
     parser.add_argument('--max-init-actions-test', type=int, default=None, help='Used to differentiate between the different test problem sizes of the same experiment')
     parser.add_argument('--max-goal-actions-test', type=int, default=None, help='Used to differentiate between the different test problem sizes of the same experiment')
-    parser.add_argument('--get-unique-problems', action='store_true', help='Get the unique problems in the experiment')
+    
+    parser.add_argument('--create-histograms', action='store_true', help='If True, we save to disk the histograms associated with the domain given by "--domain"')
 
     args = parser.parse_args()
 
@@ -160,23 +163,137 @@ def get_problems_nesig(args) -> Tuple[dict, dict]:
     return pddl_problems, problems_info
 
 
+def _get_num_towers_blocksworld_goal(goal_atoms: Tuple) -> int:
+    """
+    Auxiliary method used by the blocksworld histogram.
+    Receives the atoms in the goal (as a tuple of atoms) and obtains the number of towers using only this information.
+    For this reason, <IT ONLY DETECTS THE TOWERS OF BLOCKS WITH 2 OR MORE BLOCKS> (since a one-block tower will only contain ('ontable', (X,)) but no 'on' atoms).
+    Anyway, <THIS IS THE EXPECTED BEHAVIOUR> since, for extracting goal information, we should ONLY CONSIDER THE GOAL ATOMS, and not the atoms in the GOAL STATE.
+    For instance, 'ontable' atoms in the blocksworld goal state do NOT appear in the goal, so one-block towers in the goal are ignored.
+
+    Each atom is represented as (predicate_name, (obj_0, obj_1, ...)).
+    For instance, given:
+      (('on', (0, 1)), ('on', (1, 2)), ('on', (2, 3)), ('on', (4, 5)))
+    we consider the edges between the blocks and count two connected components:
+      - one tower consisting of blocks 0, 1, 2, 3,
+      - one tower consisting of blocks 4 and 5.
+    
+    Returns:
+      The number of towers <WITH 2 OR MORE BLOCKS>
+    """
+    # Filter to only the 'on' atoms.
+    on_atoms = [atom for atom in goal_atoms if atom[0] == "on"]
+    
+    # Build an undirected graph using only the 'on' atoms.
+    graph = {}
+    for pred, args in on_atoms:
+        if len(args) < 2:
+            continue  # skip malformed atoms
+        a, b = args[0], args[1]
+        if a not in graph:
+            graph[a] = set()
+        if b not in graph:
+            graph[b] = set()
+        graph[a].add(b)
+        graph[b].add(a)
+    
+    # Count connected components (each corresponds to a tower with two or more blocks).
+    visited = set()
+    towers_with_two_or_more = 0
+    
+    def dfs(node):
+        stack = [node]
+        while stack:
+            current = stack.pop()
+            if current not in visited:
+                visited.add(current)
+                stack.extend(graph.get(current, set()) - visited)
+    
+    for node in graph:
+        if node not in visited:
+            towers_with_two_or_more += 1
+            dfs(node)
+    
+    return towers_with_two_or_more
+
+def create_histograms_blocksworld(pddl_problems, consistent_problems_info):
+    """
+    For blocksworld, we measure the number of towers (i.e., onblock atoms) in the initial state and goal.
+
+    NOTE: consistent_problems_info argument contains the elements in the 'Problem Results' dictionary of results.json (in the same order)
+          but only for those problems that are consistent (i.e., 'consistency'==true).
+          Similarly, pddl_problems argument only contains consistent problems, in the same order as consistent_problems_info.
+    """
+    assert list(pddl_problems.keys()) == list(consistent_problems_info.keys()), "The problem names in pddl_problems and consistent_problems_info are not the same!"
+
+    # Count the number of tower blocks in the problem initial state and goal
+    # For the initial state, we count the number of 'ontable' atoms, i.e., <WE CONSIDER TOWER BLOCKS WITH ONE OR MORE BLOCKS>
+    # For the goal state, we use _get_num_towers_blocksworld_goal, i.e., <WE ONLY CONSIDER TOWER BLOCKS WITH TWO OR MORE BLOCKS>
+    # This makes sense since 'ontable' atoms do not appear in blocksworld goals (they are removed from the goal state)
+    num_towers_init = [x['num_atoms_init_state']['ontable'] for x in consistent_problems_info.values()]
+    num_towers_goal = [_get_num_towers_blocksworld_goal(x.goal) for x in pddl_problems.values()]
+
+    # Range for the number of towers in the histogram
+    min_val = 1
+    max_val = 15
+    
+    # Create bins for each integer value. The 0.5 offsets ensure each integer gets its own bin.
+    bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
+
+    # Histogram for initial state towers
+    plt.figure()
+    plt.hist(num_towers_init, bins=bins, edgecolor='black')
+    plt.xlabel("Number of Towers")
+    plt.ylabel("Number of Problems")
+    plt.title("Histogram of Towers in Initial State")
+    plt.xticks(np.arange(min_val, max_val+1))
+    plt.savefig("histogram_towers_init.png")
+    plt.close()
+
+    # Histogram for goal state towers
+    plt.figure()
+    plt.hist(num_towers_goal, bins=bins, edgecolor='black')
+    plt.xlabel("Number of Towers")
+    plt.ylabel("Number of Problems")
+    plt.title("Histogram of Towers in Goal State")
+    plt.xticks(np.arange(min_val, max_val+1))
+    plt.savefig("histogram_towers_goal.png")
+    plt.close()
+
+    print("> Created histograms for blocksworld")
 
 def main(args):
     assert (args.init_policy == 'adhoc') == (args.goal_policy == 'adhoc'), 'Either both policies are adhoc or none is'
     is_adhoc = args.init_policy == 'adhoc'
 
     # Note pddl_problems ONLY contains consistent problems whereas problems_info contains info for ALL problems
+    # So the number of items (problems) in pddl_problems and problems_info CAN BE DIFFERENT
     if is_adhoc:
-        pddl_problems, problems_info = get_problems_adhoc(args)
+        _pddl_problems, problems_info = get_problems_adhoc(args)
     else:
-        pddl_problems, problems_info = get_problems_nesig(args)
+        _pddl_problems, problems_info = get_problems_nesig(args)
 
-    # Get feature matrix, distance matrix and num unique problems
+    # The order of _pddl_problems and problems_info is not the same!!
+    # For instance, _pddl_problems may be ['problem_0', 'problem_1', 'problem_10', 'problem_11', 'problem_12'...]
+    # For this reason, we order _pddl_problems according to their index: ['problem_0', 'problem_1', 'problem_2'...], which is the same order as in problems_info
+    pddl_problems = {k:_pddl_problems[k] for k in sorted(_pddl_problems.keys(), key=lambda x: int(x.split('_')[1]))} # We assume that problem names are like 'problem_X', where X is index
+
+    # We make sure that the ordered problems in 'pddl_problems' are the same as in problems_info, removing info for inconsistent problems
+    consistent_problems_info = {k:v for k,v in problems_info['Problem Results'].items() if v['consistency']} 
+    assert list(pddl_problems.keys()) == list(consistent_problems_info.keys()), \
+     f"The problems in pddl_problems and problems_info (considering only consistent problems are not the same). pddl_problems:{pddl_problems} -- problems_info:{problems_info_consistent_names}"
+
+    # < Get feature matrix, distance matrix and num unique problems >
     diversity_evaluator = InitGoalDiversityEvaluator()
     distance_matrix, feature_matrix, num_unique_problems = diversity_evaluator.get_distance_and_feature_matrices(list(pddl_problems.values())) # NOTE: from Python 3.7, dictionaries are ordered
  
-    print("Num total problems:", len(pddl_problems.values()))
-    print("Num unique problems:", num_unique_problems)
+    print("> Unique problems / total problems:", f'{num_unique_problems}/{len(pddl_problems.values())}')
+    print("> Mean diversity:", problems_info['Mean diversity'])
+
+    # < Create histograms and save to disk >
+    if args.create_histograms:
+        if args.domain == 'blocksworld':
+            create_histograms_blocksworld(pddl_problems, consistent_problems_info)
 
     pass
 
