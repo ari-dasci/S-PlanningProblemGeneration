@@ -283,10 +283,6 @@ def create_histograms_blocksworld(args, pddl_problems, consistent_problems_info)
     """
     For blocksworld, we measure the number of towers (i.e., onblock atoms) in the initial state and goal, and the number of objects.
     We also measure the average block distance between the initial and goal state (see _get_average_block_distance for more info).
-
-    NOTE: consistent_problems_info argument contains the elements in the 'Problem Results' dictionary of results.json (in the same order)
-          but only for those problems that are consistent (i.e., 'consistency'==true).
-          Similarly, pddl_problems argument only contains consistent problems, in the same order as consistent_problems_info.
     """
     assert list(pddl_problems.keys()) == list(consistent_problems_info.keys()), "The problem names in pddl_problems and consistent_problems_info are not the same!"
 
@@ -365,18 +361,107 @@ def create_histograms_blocksworld(args, pddl_problems, consistent_problems_info)
 
     print("> Created histograms for blocksworld")
 
+def _get_average_package_distance(objects: Tuple[str], init_atoms: Tuple, goal_atoms: Tuple) -> float:
+    """
+    For logistics, measure the average package distance for the problem given by the input parameters.
+    Given a package, its distance is a heuristic of the number of actions (movements) needed to reach its goal location
+    from its initial location.
+    If we abstract away from vehicles, in order to deliver a package from location A to location B, in the general case,
+    we need to 1) move it to its city airport with a truck, 2) fly it to another city airport, and 3) move it to its final location with a truck.
+    We assume the cost of each action is 1, so in this case the distance would be 3.
+    Distance (d) can be calculated according to the following decision tree:
+    - Is the goal city the same as starting city?
+        - Yes:
+            - Is the package at the goal location?
+                - Yes: d=0
+                - No: d=1
+        - No -> d = 1
+            - Is the package at the starting city airport? -> If No, d+=1
+            - Is the goal location at the goal city airport? -> If No, d+=1
+    """
+    # Build an in-city mapping from init_atoms.
+    # This tells us, for each location or airport, in which city it is.
+    in_city = {}
+    for atom in init_atoms:
+        pred, args = atom
+        if pred == "in-city" and len(args) >= 2:
+            location, city = args[0], args[1]
+            in_city[location] = city
+
+    # Build initial location mapping for packages from init_atoms.
+    # We only consider atoms with predicate "at" where the subject is a package.
+    init_at = {}
+    for atom in init_atoms:
+        pred, args = atom
+        if pred == "at" and len(args) >= 2:
+            subject, loc = args[0], args[1]
+            # Only consider if the subject is a package.
+            if objects[subject] == "package":
+                init_at[subject] = loc
+
+    # Build goal location mapping for packages from goal_atoms.
+    # The goal_atoms only contain atoms for packages.
+    goal_at = {}
+    for atom in goal_atoms:
+        pred, args = atom
+        if pred == "at" and len(args) >= 2:
+            subject, loc = args[0], args[1]
+            goal_at[subject] = loc
+
+    distances = []
+    # Iterate over all objects that are packages.
+    for obj_id, obj_type in enumerate(objects):
+        if obj_type != "package":
+            continue  # Only process packages.
+
+        # Retrieve the initial and goal location for this package.
+        # If not found, we assume the package cannot be evaluated and skip it.
+        init_location = init_at.get(obj_id, None)
+        goal_location = goal_at.get(obj_id, None)
+
+        if init_location is None or goal_location is None:
+            continue
+
+        # Determine the city for the initial and goal locations using in-city mapping.
+        # We use the connectivity information only from the init_atoms.
+        init_city = in_city.get(init_location, None)
+        goal_city = in_city.get(goal_location, None)
+        if init_city is None or goal_city is None:
+            continue  # skip if we cannot determine the city for a location
+
+        d = 0
+        if init_city == goal_city:
+            # Same city: if the package is already at its goal location, no moves are needed.
+            d = 0 if init_location == goal_location else 1
+        else:
+            # Different cities: start with a base cost of 1 (for the flight between cities).
+            d = 1
+            # Check if the initial location is at the starting city's airport.
+            # If not, one truck move is needed to get it to the airport.
+            if objects[init_location] != "airport":
+                d += 1
+            # Check if the goal location is at the goal city's airport.
+            # If not, one truck move is needed from the airport to the final location.
+            if objects[goal_location] != "airport":
+                d += 1
+
+        distances.append(d)
+
+    # Return the average distance for all packages.
+    return sum(distances) / len(distances) if distances else 0.0
+
 def create_histograms_logistics(args, pddl_problems, consistent_problems_info):
     """
     For logistics, we measure the following info:
         - Number of cities
         - Average city size -> Num locations (including airports) / num_cities
         - Number of packages
-
-    NOTE: this info is the same in the init and goal state (corresponds to objects)!!!
+        - Average package distance (see _get_average_package_distance for more info)
     """
     num_cities = [x['num_objects']['city'] for x in consistent_problems_info.values()]
     avg_city_size = [(x['num_objects']['location'] + x['num_objects']['airport']) / x['num_objects']['city'] for x in consistent_problems_info.values()]
     num_packages = [x['num_objects']['package'] for x in consistent_problems_info.values()]
+    avg_package_distance = [_get_average_package_distance(x._initial_state.objects, tuple(x._initial_state._atoms), x.goal) for x in pddl_problems.values()]
 
     color = 'tab:orange' if args.init_policy=='PPO' else 'tab:blue'
     model = 'NeSIG' if args.init_policy=='PPO' else 'adhoc'
@@ -421,6 +506,20 @@ def create_histograms_logistics(args, pddl_problems, consistent_problems_info):
     plt.title("Number of Packages")
     plt.xticks(np.arange(min_val, max_val+1))
     plt.savefig(f"histogram_logistics_{model}_num_packages.png")
+    plt.close()
+
+    # Histogram for package distance
+    min_val = 0
+    max_val = 3
+    bins = np.arange(min_val, max_val+0.1, 0.25)
+    
+    plt.figure()
+    plt.hist(avg_package_distance, bins=bins, edgecolor='black', color=color)
+    plt.xlabel("Avg. Distance")
+    plt.ylabel("# Problems")
+    plt.title("Average Package Distance")
+    plt.xticks(np.arange(min_val, max_val+0.5, 0.5))
+    plt.savefig(f"histogram_logistics_{model}_package_distance.png")
     plt.close()
 
     print("> Created histograms for logistics")
