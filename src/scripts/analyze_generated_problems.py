@@ -33,6 +33,7 @@ from typing import Tuple, List
 import json
 import numpy as np
 import matplotlib.pyplot as plt
+import math
 from copy import deepcopy
 import os, sys
 
@@ -524,15 +525,81 @@ def create_histograms_logistics(args, pddl_problems, consistent_problems_info):
 
     print("> Created histograms for logistics")
 
+def _get_average_box_distance(num_obj: int, init_atoms: tuple, goal_atoms: tuple) -> float:
+    """
+    For sokoban, we measure the average box distance for the problem given by the input parameters.
+    Given a particular box, its distance is given by the manhattan distance between its initial and goal positions.
+
+    NOTE: we assume that the connectivity_map given by init_atoms corresponds to a square (and not rectangular) grid!
+    
+    In this context, the boxes are represented by the (at-box, (loc,)) atoms. The grid cells (objects)
+    are numbered from 0 to num_obj-1 in row-major order. The grid is square so that the grid side length is sqrt(num_obj).
+    
+    Since boxes are indistinguishable (i.e., we use (at-box) atoms and not specific objects), 
+    we match the boxes from the initial state to the goal state greedily:
+      1) Compute the Manhattan distance between every pair of init and goal at-box locations.
+      2) Select the pair with the smallest distance, add that distance to the total, and remove both locations.
+      3) Repeat until all boxes are matched.
+      
+    The function returns the average of these distances.
+    """
+    # Extract box locations from init_atoms and goal_atoms.
+    init_boxes = [atom[1][0] for atom in init_atoms if atom[0] == "at-box"]
+    goal_boxes = [atom[1][0] for atom in goal_atoms if atom[0] == "at-box"]
+    
+    # There should be the same number of boxes in init and goal.
+    n = len(init_boxes)
+    if n == 0:
+        return 0.0
+    
+    # Calculate grid side length.
+    grid_length = int(math.sqrt(num_obj))
+    
+    # Helper: get grid coordinates from cell index.
+    def cell_coords(index):
+        return (index // grid_length, index % grid_length)
+    
+    # Helper: compute Manhattan distance between two cell indices.
+    def manhattan_distance(idx1, idx2):
+        r1, c1 = cell_coords(idx1)
+        r2, c2 = cell_coords(idx2)
+        return abs(r1 - r2) + abs(c1 - c2)
+    
+    total_distance = 0
+    # Copy the lists for greedy matching.
+    unmatched_init = init_boxes.copy()
+    unmatched_goal = goal_boxes.copy()
+    
+    # Greedy matching: at each step, pick the pair with the smallest Manhattan distance.
+    while unmatched_init and unmatched_goal:
+        best_pair = None
+        min_dist = None
+        for init_loc in unmatched_init:
+            for goal_loc in unmatched_goal:
+                d = manhattan_distance(init_loc, goal_loc)
+                if min_dist is None or d < min_dist:
+                    min_dist = d
+                    best_pair = (init_loc, goal_loc)
+        # Add the best pair distance.
+        total_distance += min_dist
+        # Remove the matched locations.
+        unmatched_init.remove(best_pair[0])
+        unmatched_goal.remove(best_pair[1])
+    
+    # Return the average distance.
+    return total_distance / n
+
+
 def create_histograms_sokoban(args, pddl_problems, consistent_problems_info):
     """
-    For sokoban, we measure the number of boxes and walls.
+    For sokoban, we measure the number of boxes and walls, and the average box distance (see _get_average_box_distance for more info).
 
     NOTE: this info is the same in the init and goal state as it corresponds to objects (even though it is represented with predicates 'at-box' and 'at-wall').
           However, it is not the same in the GOAL (do not confuse with goal STATE) as 'at-wall' atoms do not appear in the goal
     """
     num_boxes = [x['num_atoms_init_state']['at-box'] for x in consistent_problems_info.values()]
     num_walls = [x['num_atoms_init_state']['at-wall'] for x in consistent_problems_info.values()]
+    avg_box_distance = [_get_average_box_distance(x._initial_state.num_objects, tuple(x._initial_state._atoms), x.goal) for x in pddl_problems.values()]
 
     color = 'tab:orange' if args.init_policy=='PPO' else 'tab:blue'
     model = 'NeSIG' if args.init_policy=='PPO' else 'adhoc'
@@ -554,7 +621,7 @@ def create_histograms_sokoban(args, pddl_problems, consistent_problems_info):
     # Histogram for num_walls
     min_val = 1
     max_val = 30
-    bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
+    bins = np.arange(min_val - 1.5, max_val + 1.5, 1)
     
     plt.figure()
     plt.hist(num_walls, bins=bins, edgecolor='black', color=color)
@@ -563,6 +630,20 @@ def create_histograms_sokoban(args, pddl_problems, consistent_problems_info):
     plt.title("Number of Walls")
     plt.xticks(np.arange(0, max_val+1, 2))
     plt.savefig(f"histogram_sokoban_{model}_num_walls.png")
+    plt.close()
+
+    # Histogram for avg_box_distance
+    min_val = 1
+    max_val = 10
+    bins = np.arange(min_val - 1.5, max_val + 1.5, 1)
+    
+    plt.figure()
+    plt.hist(avg_box_distance, bins=bins, edgecolor='black', color=color)
+    plt.xlabel("Avg. Distance")
+    plt.ylabel("# Problems")
+    plt.title("Average Box Distance")
+    plt.xticks(np.arange(0, max_val+1, 1))
+    plt.savefig(f"histogram_sokoban_{model}_box_distance.png")
     plt.close()
 
     print("> Created histograms for sokoban")
