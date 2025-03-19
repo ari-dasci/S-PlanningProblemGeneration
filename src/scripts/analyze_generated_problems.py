@@ -216,9 +216,73 @@ def _get_num_towers_blocksworld_goal(goal_atoms: Tuple) -> int:
     
     return towers_with_two_or_more
 
+def _get_average_block_distance(num_obj: int, init_atoms: Tuple, goal_atoms: Tuple) -> float:
+    """
+    For blocksworld, measure the average block distance for the problem given by the input parameters.
+    Block distance is measured, for a particular block X, as the difference in height between the initial and goal positions of X,
+    where the height of a block is given by the number of blocks below it (0 if it is ontable).
+    NOTE: goal_atoms only contain atoms of type 'on' and not 'ontable' (since 'ontable' atoms are removed from the goal state).
+          For doing this distance calculation, we assume that blocks that do not appear in the goal are on the table, i.e., are (ontable, (X,)) atoms.
+    """
+
+    # Build mapping for the initial state.
+    # For atoms of type "on", we map: child -> parent.
+    # For atoms of type "ontable", we set the mapping to None, indicating that the block is on the table.
+    init_mapping = {}
+    for atom in init_atoms:
+        pred, args = atom
+        if pred == "on":
+            # Expecting exactly two objects: (child, parent)
+            if len(args) >= 2:
+                child, parent = args[0], args[1]
+                init_mapping[child] = parent
+        elif pred == "ontable":
+            # Mark that this block is directly on the table.
+            if len(args) >= 1:
+                init_mapping[args[0]] = None
+
+    # Build mapping for the goal state.
+    # Only "on" atoms are present here. For any block not appearing as a child, assume it is on the table.
+    goal_mapping = {}
+    for atom in goal_atoms:
+        pred, args = atom
+        if pred == "on" and len(args) >= 2:
+            child, parent = args[0], args[1]
+            goal_mapping[child] = parent
+
+    # Helper function: given a mapping (which can be init_mapping or goal_mapping), compute the height of a block.
+    # Memoization is used to avoid redundant computation.
+    def get_height(mapping, block, memo):
+        if block in memo:
+            return memo[block]
+        # For the initial state, if a block is either not in mapping or mapped to None, it is on the table (height 0).
+        # For the goal state, blocks not in the mapping are assumed to be on the table.
+        if block not in mapping or mapping[block] is None:
+            memo[block] = 0
+            return 0
+        else:
+            height = 1 + get_height(mapping, mapping[block], memo)
+            memo[block] = height
+            return height
+
+    init_memo = {}
+    goal_memo = {}
+
+    total_diff = 0
+    # Compute the difference in height for each block.
+    for block in range(num_obj):
+        h_init = get_height(init_mapping, block, init_memo)
+        h_goal = get_height(goal_mapping, block, goal_memo)
+        total_diff += abs(h_init - h_goal)
+
+    # Calculate average difference.
+    average_distance = total_diff / num_obj if num_obj > 0 else 0
+    return average_distance
+
 def create_histograms_blocksworld(args, pddl_problems, consistent_problems_info):
     """
-    For blocksworld, we measure the number of towers (i.e., onblock atoms) in the initial state and goal.
+    For blocksworld, we measure the number of towers (i.e., onblock atoms) in the initial state and goal, and the number of objects.
+    We also measure the average block distance between the initial and goal state (see _get_average_block_distance for more info).
 
     NOTE: consistent_problems_info argument contains the elements in the 'Problem Results' dictionary of results.json (in the same order)
           but only for those problems that are consistent (i.e., 'consistency'==true).
@@ -232,6 +296,8 @@ def create_histograms_blocksworld(args, pddl_problems, consistent_problems_info)
     # This makes sense since 'ontable' atoms do not appear in blocksworld goals (they are removed from the goal state)
     num_towers_init = [x['num_atoms_init_state']['ontable'] for x in consistent_problems_info.values()]
     num_towers_goal = [_get_num_towers_blocksworld_goal(x.goal) for x in pddl_problems.values()]
+    num_blocks = [x['num_objects']['block'] for x in consistent_problems_info.values()]
+    avg_block_distance = [_get_average_block_distance(x._initial_state.num_objects, tuple(x._initial_state._atoms), x.goal) for x in pddl_problems.values()]
 
     # Range for the number of towers in the histogram
     min_val = 1
@@ -261,6 +327,40 @@ def create_histograms_blocksworld(args, pddl_problems, consistent_problems_info)
     plt.title("Number of Towers in Goal")
     plt.xticks(np.arange(min_val, max_val+1))
     plt.savefig(f"histogram_blocksworld_{model}_towers_goal.png")
+    plt.close()
+
+    # Histogram for number of blocks
+    min_val = 1
+    max_val = 40
+    
+    # Create bins for each integer value. The 0.5 offsets ensure each integer gets its own bin.
+    bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
+
+    # Histogram for initial state towers
+    plt.figure()
+    plt.hist(num_blocks, bins=bins, edgecolor='black', color=color)
+    plt.xlabel("# Blocks")
+    plt.ylabel("# Problems")
+    plt.title("Number of Blocks")
+    plt.xticks(np.arange(0, max_val+1, 2))
+    plt.savefig(f"histogram_blocksworld_{model}_num_blocks.png")
+    plt.close()
+
+    # Histogram for average block distance
+    min_val = 1
+    max_val = 15
+    
+    # Create bins for each integer value. The 0.5 offsets ensure each integer gets its own bin.
+    bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
+
+    # Histogram for initial state towers
+    plt.figure()
+    plt.hist(avg_block_distance, bins=bins, edgecolor='black', color=color)
+    plt.xlabel("Avg. Distance")
+    plt.ylabel("# Problems")
+    plt.title("Average Block Distance")
+    plt.xticks(np.arange(min_val, max_val+1))
+    plt.savefig(f"histogram_blocksworld_{model}_block_distance.png")
     plt.close()
 
     print("> Created histograms for blocksworld")
