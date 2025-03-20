@@ -318,7 +318,7 @@ def create_histograms_blocksworld(args, pddl_problems, consistent_problems_info)
 
     # Range for the number of towers in the histogram
     min_val = 1
-    max_val = 15
+    max_val = 10 # 6
     
     # Create bins for each integer value. The 0.5 offsets ensure each integer gets its own bin.
     bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
@@ -347,35 +347,32 @@ def create_histograms_blocksworld(args, pddl_problems, consistent_problems_info)
 
     # Histogram for number of blocks
     min_val = 1
-    max_val = 40
+    max_val = 15 # 40
     
     # Create bins for each integer value. The 0.5 offsets ensure each integer gets its own bin.
-    bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
+    bins = np.arange(min_val - 0.5, max_val + 0.5, 1)
 
-    # Histogram for initial state towers
     plt.figure()
     plt.hist(num_blocks, bins=bins, edgecolor='black', color=color)
     plt.xlabel("# Blocks")
     plt.ylabel("# Problems")
     plt.title("Number of Blocks")
-    plt.xticks(np.arange(0, max_val+1, 2))
+    plt.xticks(np.arange(0, max_val+1, 1)) # np.arange(0, max_val+1, 2)
     plt.savefig(f"histogram_blocksworld_{model}_num_blocks.png")
     plt.close()
 
     # Histogram for average block distance
-    min_val = 1
-    max_val = 15
+    min_val = 0 # 1
+    max_val = 6 # 15
     
-    # Create bins for each integer value. The 0.5 offsets ensure each integer gets its own bin.
-    bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
+    bins = np.arange(min_val-0.25, max_val+0.75, 0.5)
 
-    # Histogram for initial state towers
     plt.figure()
     plt.hist(avg_block_distance, bins=bins, edgecolor='black', color=color)
     plt.xlabel("Avg. Distance")
     plt.ylabel("# Problems")
     plt.title("Average Block Distance")
-    plt.xticks(np.arange(min_val, max_val+1))
+    plt.xticks(np.arange(min_val, max_val+0.1, 0.5))
     plt.savefig(f"histogram_blocksworld_{model}_block_distance.png")
     plt.close()
 
@@ -487,7 +484,7 @@ def create_histograms_logistics(args, pddl_problems, consistent_problems_info):
 
     # Histogram for num_cities
     min_val = 1
-    max_val = 15
+    max_val = 6 # 15
     bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
     
     plt.figure()
@@ -501,21 +498,21 @@ def create_histograms_logistics(args, pddl_problems, consistent_problems_info):
 
     # Histogram for avg_city_size
     min_val = 1
-    max_val = 15
-    bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
+    max_val = 6 # 15
+    bins = np.arange(min_val - 0.25, max_val + 0.75, 0.5)
     
     plt.figure()
     plt.hist(avg_city_size, bins=bins, edgecolor='black', color=color)
     plt.xlabel("Avg. Size")
     plt.ylabel("# Problems")
     plt.title("Average City Size")
-    plt.xticks(np.arange(min_val, max_val+1))
+    plt.xticks(np.arange(min_val, max_val+0.4, 0.5))
     plt.savefig(f"histogram_logistics_{model}_city_size.png")
     plt.close()
 
     # Histogram for number of packages
     min_val = 1
-    max_val = 25
+    max_val = 10 # 25
     bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
     
     plt.figure()
@@ -530,14 +527,14 @@ def create_histograms_logistics(args, pddl_problems, consistent_problems_info):
     # Histogram for package distance
     min_val = 0
     max_val = 3
-    bins = np.arange(min_val, max_val+0.1, 0.25)
+    bins = np.arange(min_val-0.125, max_val+0.375, 0.25)
     
     plt.figure()
     plt.hist(avg_package_distance, bins=bins, edgecolor='black', color=color)
     plt.xlabel("Avg. Distance")
     plt.ylabel("# Problems")
     plt.title("Average Package Distance")
-    plt.xticks(np.arange(min_val, max_val+0.5, 0.5))
+    plt.xticks(np.arange(min_val, max_val+0.4, 0.5))
     plt.savefig(f"histogram_logistics_{model}_package_distance.png")
     plt.close()
 
@@ -898,16 +895,24 @@ def create_histograms(args, pddl_problems, consistent_problems_info):
     if args.domain == 'blocksworld':
         """
         Calls:
+            --- Large problems
             - NeSIG: python -m src.scripts.analyze_generated_problems --init-policy PPO --goal-policy PPO --seed 1 --domain blocksworld --max-init-actions-test 40 --max-goal-actions-test 160  --create-histograms
             - Adhoc: python -m src.scripts.analyze_generated_problems --init-policy adhoc --goal-policy adhoc --domain blocksworld --experiment-id 38-40_14-40__1_100_1.0  --create-histograms
+            --- Small problems
+            - NeSIG: python -m src.scripts.analyze_generated_problems --init-policy PPO --goal-policy PPO --seed 1 --domain blocksworld --max-init-actions-test 15 --max-goal-actions-test 60  --create-histograms
+            - Adhoc: python -m src.scripts.analyze_generated_problems --init-policy adhoc --goal-policy adhoc --domain blocksworld --experiment-id 13-15_5-15__1_100_1.0  --create-histograms
         """
         create_histograms_blocksworld(args, pddl_problems, consistent_problems_info)
     
     elif args.domain == 'logistics':
         """
         Calls:
+            --- Large problems
             - NeSIG: python -m src.scripts.analyze_generated_problems --init-policy PPO --goal-policy PPO --domain logistics --seed 1 --max-init-actions-test 40 --max-goal-actions-test 160  --create-histograms
             - Adhoc: python -m src.scripts.analyze_generated_problems --init-policy adhoc --goal-policy adhoc --domain logistics --experiment-id 38-40_1-40_2-40_1-40_1-40_0-40__1_100_1.0 --create-histograms
+            --- Small problems
+            - NeSIG: python -m src.scripts.analyze_generated_problems --init-policy PPO --goal-policy PPO --domain logistics --seed 1 --max-init-actions-test 15 --max-goal-actions-test 60  --create-histograms
+            - Adhoc: python -m src.scripts.analyze_generated_problems --init-policy adhoc --goal-policy adhoc --domain logistics --experiment-id 13-15_1-15_2-15_1-15_1-15_0-15__1_100_1.0 --create-histograms
         """
         create_histograms_logistics(args, pddl_problems, consistent_problems_info)
 
