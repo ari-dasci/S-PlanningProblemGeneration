@@ -163,6 +163,26 @@ def get_problems_nesig(args) -> Tuple[dict, dict]:
 
     return pddl_problems, problems_info
 
+def _get_histogram_color_and_model_name(args) -> Tuple[str, str]:
+    if args.init_policy=='PPO' and args.goal_policy=='PPO':
+        model = 'NeSIG'
+        color = 'tab:orange'
+    elif args.init_policy=='adhoc' and args.goal_policy=='adhoc':
+        model = 'adhoc'
+        color = 'tab:blue'
+    elif args.init_policy=='random' and args.goal_policy=='random':
+        model = 'random-both'
+        color = 'tab:gray'
+    elif args.init_policy=='random':
+        model = 'random-init'
+        color = 'tab:purple'
+    elif args.goal_policy=='random':
+        model = 'random-goal'
+        color = 'tab:red'
+    else:
+        raise ValueError(f"Invalid combination of init-policy and goal-policy: {args.init_policy}, {args.goal_policy}")
+    
+    return model, color
 
 def _get_num_towers_blocksworld_goal(goal_atoms: Tuple) -> int:
     """
@@ -303,8 +323,7 @@ def create_histograms_blocksworld(args, pddl_problems, consistent_problems_info)
     # Create bins for each integer value. The 0.5 offsets ensure each integer gets its own bin.
     bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
 
-    color = 'tab:orange' if args.init_policy=='PPO' else 'tab:blue'
-    model = 'NeSIG' if args.init_policy=='PPO' else 'adhoc'
+    model, color = _get_histogram_color_and_model_name(args)
 
     # Histogram for initial state towers
     plt.figure()
@@ -464,8 +483,7 @@ def create_histograms_logistics(args, pddl_problems, consistent_problems_info):
     num_packages = [x['num_objects']['package'] for x in consistent_problems_info.values()]
     avg_package_distance = [_get_average_package_distance(x._initial_state.objects, tuple(x._initial_state._atoms), x.goal) for x in pddl_problems.values()]
 
-    color = 'tab:orange' if args.init_policy=='PPO' else 'tab:blue'
-    model = 'NeSIG' if args.init_policy=='PPO' else 'adhoc'
+    model, color = _get_histogram_color_and_model_name(args)
 
     # Histogram for num_cities
     min_val = 1
@@ -600,8 +618,7 @@ def create_histograms_sokoban(args, pddl_problems, consistent_problems_info):
     num_walls = [x['num_atoms_init_state']['at-wall'] for x in consistent_problems_info.values()]
     avg_box_distance = [_get_average_box_distance(x._initial_state.num_objects, tuple(x._initial_state._atoms), x.goal) for x in pddl_problems.values()]
 
-    color = 'tab:orange' if args.init_policy=='PPO' else 'tab:blue'
-    model = 'NeSIG' if args.init_policy=='PPO' else 'adhoc'
+    model, color = _get_histogram_color_and_model_name(args)
 
     # Histogram for num_boxes
     min_val = 1
@@ -732,8 +749,7 @@ def create_histograms_miconic(args, pddl_problems, consistent_problems_info):
     average_occupancy = [x['num_objects']['passenger'] / x['num_objects']['floor'] for x in consistent_problems_info.values()]
     avg_passenger_distance = [_get_average_passenger_distance(x._initial_state.objects, tuple(x._initial_state._atoms), x.goal) for x in pddl_problems.values()]
 
-    color = 'tab:orange' if args.init_policy=='PPO' else 'tab:blue'
-    model = 'NeSIG' if args.init_policy=='PPO' else 'adhoc'
+    model, color = _get_histogram_color_and_model_name(args)
 
     # Histogram for num_floors
     min_val = 1
@@ -806,8 +822,7 @@ def create_histograms_satellite(args, pddl_problems, consistent_problems_info):
     avg_instruments_per_satellite = [x['num_objects']['instrument'] / x['num_objects']['satellite'] for x in consistent_problems_info.values()]
     avg_modes_per_instrument = [x['num_atoms_init_state']['supports'] / x['num_objects']['instrument'] for x in consistent_problems_info.values()]
 
-    color = 'tab:orange' if args.init_policy=='PPO' else 'tab:blue'
-    model = 'NeSIG' if args.init_policy=='PPO' else 'adhoc'
+    model, color = _get_histogram_color_and_model_name(args)
 
     # Histogram for num_satellites
     min_val = 1
@@ -940,7 +955,7 @@ def main(args):
     # We make sure that the ordered problems in 'pddl_problems' are the same as in problems_info, removing info for inconsistent problems
     consistent_problems_info = {k:v for k,v in problems_info['Problem Results'].items() if v['consistency']} 
     assert list(pddl_problems.keys()) == list(consistent_problems_info.keys()), \
-     f"The problems in pddl_problems and problems_info (considering only consistent problems are not the same). pddl_problems:{pddl_problems} -- problems_info:{problems_info_consistent_names}"
+     f"The problems in pddl_problems and problems_info (considering only consistent problems are not the same). pddl_problems:{pddl_problems.keys()} -- problems_info:{consistent_problems_info.keys()}"
 
     # < Get feature matrix, distance matrix and num unique problems >
     diversity_evaluator = InitGoalDiversityEvaluator()
