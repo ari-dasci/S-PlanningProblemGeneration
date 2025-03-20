@@ -619,7 +619,7 @@ def create_histograms_sokoban(args, pddl_problems, consistent_problems_info):
 
     # Histogram for num_boxes
     min_val = 1
-    max_val = 20
+    max_val = 15 # 20
     bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
     
     plt.figure()
@@ -633,7 +633,7 @@ def create_histograms_sokoban(args, pddl_problems, consistent_problems_info):
 
     # Histogram for num_walls
     min_val = 1
-    max_val = 30
+    max_val = 15 # 30
     bins = np.arange(min_val - 1.5, max_val + 1.5, 1)
     
     plt.figure()
@@ -641,21 +641,21 @@ def create_histograms_sokoban(args, pddl_problems, consistent_problems_info):
     plt.xlabel("# Walls")
     plt.ylabel("# Problems")
     plt.title("Number of Walls")
-    plt.xticks(np.arange(0, max_val+1, 2))
+    plt.xticks(np.arange(0, max_val+1))
     plt.savefig(f"histogram_sokoban_{model}_num_walls.png")
     plt.close()
 
     # Histogram for avg_box_distance
     min_val = 1
-    max_val = 10
-    bins = np.arange(min_val - 1.5, max_val + 1.5, 1)
+    max_val = 5 # 10
+    bins = np.arange(min_val - 1.25, max_val + 0.75, 0.5)
     
     plt.figure()
     plt.hist(avg_box_distance, bins=bins, edgecolor='black', color=color)
     plt.xlabel("Avg. Distance")
     plt.ylabel("# Problems")
     plt.title("Average Box Distance")
-    plt.xticks(np.arange(0, max_val+1, 1))
+    plt.xticks(np.arange(0, max_val+0.5, 0.5))
     plt.savefig(f"histogram_sokoban_{model}_box_distance.png")
     plt.close()
 
@@ -750,7 +750,7 @@ def create_histograms_miconic(args, pddl_problems, consistent_problems_info):
 
     # Histogram for num_floors
     min_val = 1
-    max_val = 40
+    max_val = 15 # 40
     bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
     
     plt.figure()
@@ -758,13 +758,13 @@ def create_histograms_miconic(args, pddl_problems, consistent_problems_info):
     plt.xlabel("# Floors")
     plt.ylabel("# Problems")
     plt.title("Number of Floors")
-    plt.xticks(np.arange(0, max_val+1, 2))
+    plt.xticks(np.arange(1, max_val+1))
     plt.savefig(f"histogram_miconic_{model}_num_floors.png")
     plt.close()
 
     # Histogram for num_passengers
     min_val = 1
-    max_val = 40
+    max_val = 15 # 40
     bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
     
     plt.figure()
@@ -772,35 +772,35 @@ def create_histograms_miconic(args, pddl_problems, consistent_problems_info):
     plt.xlabel("# Passengers")
     plt.ylabel("# Problems")
     plt.title("Number of Passengers")
-    plt.xticks(np.arange(0, max_val+1, 2))
+    plt.xticks(np.arange(1, max_val+1))
     plt.savefig(f"histogram_miconic_{model}_num_passengers.png")
     plt.close()
 
     # Histogram for average_occupancy
-    min_val = 1
-    max_val = 15
-    bins = np.arange(min_val - 1.5, max_val + 1.5, 1)
+    min_val = 0
+    max_val = 6 # 15
+    bins = np.arange(min_val - 0.25, max_val + 0.75, 0.5)
 
     plt.figure()
     plt.hist(average_occupancy, bins=bins, edgecolor='black', color=color)
     plt.xlabel("# Passengers / Floor")
     plt.ylabel("# Problems")
     plt.title("Average Floor Occupancy")
-    plt.xticks(np.arange(min_val-1, max_val+1))
+    plt.xticks(np.arange(min_val, max_val+0.5, 0.5))
     plt.savefig(f"histogram_miconic_{model}_average_occupancy.png")
     plt.close()
 
     # Histogram for avg_passenger_distance
-    min_val = 1
-    max_val = 40
-    bins = np.arange(min_val - 1.5, max_val + 1.5, 1)
+    min_val = 0
+    max_val = 10 # 40
+    bins = np.arange(min_val - 0.25, max_val + 0.75, 0.5)
 
     plt.figure()
     plt.hist(avg_passenger_distance, bins=bins, edgecolor='black', color=color)
     plt.xlabel("Avg. Distance")
     plt.ylabel("# Problems")
     plt.title("Average Passenger Distance")
-    plt.xticks(np.arange(min_val-1, max_val+1, 2))
+    plt.xticks(np.arange(min_val, max_val+0.5))
     plt.savefig(f"histogram_miconic_{model}_passenger_distance.png")
     plt.close()
 
@@ -823,7 +823,7 @@ def create_histograms_satellite(args, pddl_problems, consistent_problems_info):
 
     # Histogram for num_satellites
     min_val = 1
-    max_val = 10
+    max_val = 5 # 10
     bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
     
     plt.figure()
@@ -831,13 +831,13 @@ def create_histograms_satellite(args, pddl_problems, consistent_problems_info):
     plt.xlabel("# Satellites")
     plt.ylabel("# Problems")
     plt.title("Number of Satellites")
-    plt.xticks(np.arange(0, max_val+1, 1))
+    plt.xticks(np.arange(1, max_val+1, 1))
     plt.savefig(f"histogram_satellite_{model}_num_satellites.png")
     plt.close()
 
     # Histogram for num_directions
     min_val = 1
-    max_val = 40
+    max_val = 20 # 40
     bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
     
     plt.figure()
@@ -845,49 +845,49 @@ def create_histograms_satellite(args, pddl_problems, consistent_problems_info):
     plt.xlabel("# Directions")
     plt.ylabel("# Problems")
     plt.title("Number of Directions")
-    plt.xticks(np.arange(0, max_val+1, 2))
+    plt.xticks(np.arange(1, max_val+1, 1))
     plt.savefig(f"histogram_satellite_{model}_num_directions.png")
     plt.close()
 
     # Histogram for num_have_image
-    min_val = 1
-    max_val = 90
-    bins = np.arange(min_val - 0.5, max_val + 1.5, 2)
+    min_val = 0
+    max_val = 15 #90
+    bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
     
     plt.figure()
     plt.hist(num_have_image, bins=bins, edgecolor='black', color=color)
     plt.xlabel("# have_image atoms")
     plt.ylabel("# Problems")
     plt.title("Number of Goal Observations")
-    plt.xticks(np.arange(0, max_val+1, 5))
+    plt.xticks(np.arange(0, max_val+1))
     plt.savefig(f"histogram_satellite_{model}_num_have_image.png")
     plt.close()
 
     # Histogram for avg_instruments_per_satellite
     min_val = 1
-    max_val = 15
-    bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
+    max_val = 5 # 15
+    bins = np.arange(min_val - 0.25, max_val + 0.75, 0.5)
     
     plt.figure()
     plt.hist(avg_instruments_per_satellite, bins=bins, edgecolor='black', color=color)
     plt.xlabel("# Instruments / Satellite")
     plt.ylabel("# Problems")
     plt.title("Average Number of Instruments per Satellite")
-    plt.xticks(np.arange(0, max_val+1, 1))
+    plt.xticks(np.arange(1, max_val+0.5, 0.5))
     plt.savefig(f"histogram_satellite_{model}_instruments_per_satellite.png")
     plt.close()
 
     # Histogram for avg_modes_per_instrument
     min_val = 1
-    max_val = 15
-    bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
+    max_val = 10 # 15
+    bins = np.arange(min_val - 0.25, max_val + 0.75, 0.5)
     
     plt.figure()
     plt.hist(avg_modes_per_instrument, bins=bins, edgecolor='black', color=color)
     plt.xlabel("# Modes / Instrument")
     plt.ylabel("# Problems")
     plt.title("Average Number of Modes Supported per Instrument")
-    plt.xticks(np.arange(0, max_val+1, 1))
+    plt.xticks(np.arange(1, max_val+1, 1))
     plt.savefig(f"histogram_satellite_{model}_modes_per_instrument.png")
     plt.close()
 
@@ -919,24 +919,39 @@ def create_histograms(args, pddl_problems, consistent_problems_info):
     elif args.domain == 'sokoban':
         """
         Calls:
+            --- Large problems
             - NeSIG: python -m src.scripts.analyze_generated_problems --init-policy PPO --goal-policy PPO --seed 1 --domain sokoban --max-init-actions-test 30 --max-goal-actions-test 150  --create-histograms
             - Adhoc: python -m src.scripts.analyze_generated_problems --init-policy adhoc --goal-policy adhoc --domain sokoban --experiment-id 7_7_1-29_0-29__1_100_1.0 --create-histograms 
+            --- Small problems
+            - NeSIG: python -m src.scripts.analyze_generated_problems --init-policy PPO --goal-policy PPO --seed 1 --domain sokoban --max-init-actions-test 15 --max-goal-actions-test 75  --create-histograms
+            - Adhoc: python -m src.scripts.analyze_generated_problems --init-policy adhoc --goal-policy adhoc --domain sokoban --experiment-id 5_5_1-15_0-15__1_100_1.0 --create-histograms     
         """
         create_histograms_sokoban(args, pddl_problems, consistent_problems_info)
 
     elif args.domain == 'miconic':
         """
+        NOTE: for miconic we use --seed 3 instead of --seed 1 or another seed so that there exists at least one consisten problem for every model.
+              
         Calls:
+            --- Large problems
             - NeSIG: python -m src.scripts.analyze_generated_problems --init-policy PPO --goal-policy PPO --seed 1 --domain miconic --max-init-actions-test 40 --max-goal-actions-test 200  --create-histograms
             - Adhoc: python -m src.scripts.analyze_generated_problems --init-policy adhoc --goal-policy adhoc --domain miconic --experiment-id 38-40_2-40_1-40__1_100_1.0 --create-histograms
+            --- Small problems
+            - NeSIG: python -m src.scripts.analyze_generated_problems --init-policy PPO --goal-policy PPO --seed 3 --domain miconic --max-init-actions-test 15 --max-goal-actions-test 75  --create-histograms
+            - Adhoc: python -m src.scripts.analyze_generated_problems --init-policy adhoc --goal-policy adhoc --domain miconic --experiment-id 13-15_2-15_1-15__1_100_1.0 --create-histograms
         """
         create_histograms_miconic(args, pddl_problems, consistent_problems_info)
 
     elif args.domain == 'satellite':
-        """
+        """ 
         Calls:
+            NOTE: for small problems, we need to use --seed 4, except for goal-random (seed 2), since otherwise there are no consistent problems or the test folder is missing in some runs.
+            --- Large problems
             - NeSIG: python -m src.scripts.analyze_generated_problems --init-policy PPO --goal-policy PPO --seed 1 --domain satellite --max-init-actions-test 40 --max-goal-actions-test 200  --create-histograms
             - Adhoc: python -m src.scripts.analyze_generated_problems --init-policy adhoc --goal-policy adhoc --domain satellite --experiment-id 38-40_1-20_1-20_1-20_1-20_1-20__1_100_1.0 --create-histograms
+            --- Small problems
+            - NeSIG: python -m src.scripts.analyze_generated_problems --init-policy PPO --goal-policy PPO --seed 1 --domain satellite --max-init-actions-test 15 --max-goal-actions-test 75  --create-histograms
+            - Adhoc: python -m src.scripts.analyze_generated_problems --init-policy adhoc --goal-policy adhoc --domain satellite --experiment-id 13-15_1-8_1-8_1-8_1-8_1-8__1_100_1.0 --create-histograms
         """
         create_histograms_satellite(args, pddl_problems, consistent_problems_info)
 
