@@ -589,7 +589,6 @@ def _get_average_box_distance(num_obj: int, init_atoms: tuple, goal_atoms: tuple
     # Return the average distance.
     return total_distance / n
 
-
 def create_histograms_sokoban(args, pddl_problems, consistent_problems_info):
     """
     For sokoban, we measure the number of boxes and walls, and the average box distance (see _get_average_box_distance for more info).
@@ -648,15 +647,90 @@ def create_histograms_sokoban(args, pddl_problems, consistent_problems_info):
 
     print("> Created histograms for sokoban")
 
+def _get_average_passenger_distance(objects: tuple, init_atoms: tuple, goal_atoms: tuple) -> float:
+    """
+    For miconic, measure the average passenger distance for the problem given by the input parameters.
+    For each passenger, we calculate its distance as the number of floors between its initial and goal locations.
+    """
+    # Build mapping for passenger initial floors (from init_atoms).
+    init_at = {}
+    for atom in init_atoms:
+        pred, args = atom
+        if pred == "at" and len(args) >= 2:
+            subject, floor = args[0], args[1]
+            if objects[subject] == "passenger":
+                init_at[subject] = floor
+
+    # Build mapping for passenger goal floors (from goal_atoms).
+    goal_at = {}
+    for atom in goal_atoms:
+        pred, args = atom
+        if pred == "at" and len(args) >= 2:
+            subject, floor = args[0], args[1]
+            goal_at[subject] = floor
+
+    # Collect all floors from the objects (those whose type is "floor").
+    floors = [i for i, typ in enumerate(objects) if typ == "floor"]
+
+    # Build ordering using the "above" atoms from init_atoms.
+    # For each (above, (f1, f2)) atom, f1 is directly above f2.
+    next_floor = {}  # mapping: given floor f, next_floor[f] is the floor immediately above f.
+    prev_floor = {}  # mapping: for floor f, prev_floor[f] is the floor immediately below f.
+    for atom in init_atoms:
+        pred, args = atom
+        if pred == "above" and len(args) >= 2:
+            f_above, f_below = args[0], args[1]
+            next_floor[f_below] = f_above
+            prev_floor[f_above] = f_below
+
+    # Determine the bottom floor: the one that does not have any floor below it.
+    bottom_floor = None
+    for f in floors:
+        if f not in prev_floor:
+            bottom_floor = f
+            break
+    # If no ordering is found via "above", fallback to natural order.
+    if bottom_floor is None:
+        ordered_floors = sorted(floors)
+    else:
+        ordered_floors = [bottom_floor]
+        current = bottom_floor
+        while current in next_floor:
+            current = next_floor[current]
+            ordered_floors.append(current)
+
+    # Create a mapping from floor id to its position in the ordered list.
+    floor_pos = {floor: pos for pos, floor in enumerate(ordered_floors)}
+
+    # Compute the Manhattan distance (in number of floors) for each passenger.
+    total_distance = 0
+    count = 0
+    for obj_id, typ in enumerate(objects):
+        if typ != "passenger":
+            continue
+        # Only process if we have both initial and goal information.
+        if obj_id in init_at and obj_id in goal_at:
+            init_floor = init_at[obj_id]
+            goal_floor = goal_at[obj_id]
+            if init_floor in floor_pos and goal_floor in floor_pos:
+                d = abs(floor_pos[init_floor] - floor_pos[goal_floor])
+                total_distance += d
+                count += 1
+
+    return total_distance / count if count > 0 else 0.0
+
 def create_histograms_miconic(args, pddl_problems, consistent_problems_info):
     """
     For miconic, we measure the number of floors, the number of passengers and the average number of passengers per floor (occupancy).
+    We also calculate the average distance (num floors) that passengers have to travel to get to their init to goal locations
+    (see _get_average_passenger_distance for more info).
 
     NOTE: this info is the same in the init and goal state (corresponds to objects)!!!
     """
     num_floors = [x['num_objects']['floor'] for x in consistent_problems_info.values()]
     num_passengers = [x['num_objects']['passenger'] for x in consistent_problems_info.values()]
     average_occupancy = [x['num_objects']['passenger'] / x['num_objects']['floor'] for x in consistent_problems_info.values()]
+    avg_passenger_distance = [_get_average_passenger_distance(x._initial_state.objects, tuple(x._initial_state._atoms), x.goal) for x in pddl_problems.values()]
 
     color = 'tab:orange' if args.init_policy=='PPO' else 'tab:blue'
     model = 'NeSIG' if args.init_policy=='PPO' else 'adhoc'
@@ -692,15 +766,29 @@ def create_histograms_miconic(args, pddl_problems, consistent_problems_info):
     # Histogram for average_occupancy
     min_val = 1
     max_val = 15
-    bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
+    bins = np.arange(min_val - 1.5, max_val + 1.5, 1)
 
     plt.figure()
     plt.hist(average_occupancy, bins=bins, edgecolor='black', color=color)
     plt.xlabel("# Passengers / Floor")
     plt.ylabel("# Problems")
     plt.title("Average Floor Occupancy")
-    plt.xticks(np.arange(min_val, max_val+1))
+    plt.xticks(np.arange(min_val-1, max_val+1))
     plt.savefig(f"histogram_miconic_{model}_average_occupancy.png")
+    plt.close()
+
+    # Histogram for avg_passenger_distance
+    min_val = 1
+    max_val = 40
+    bins = np.arange(min_val - 1.5, max_val + 1.5, 1)
+
+    plt.figure()
+    plt.hist(avg_passenger_distance, bins=bins, edgecolor='black', color=color)
+    plt.xlabel("Avg. Distance")
+    plt.ylabel("# Problems")
+    plt.title("Average Passenger Distance")
+    plt.xticks(np.arange(min_val-1, max_val+1, 2))
+    plt.savefig(f"histogram_miconic_{model}_passenger_distance.png")
     plt.close()
 
     print("> Created histograms for miconic")
