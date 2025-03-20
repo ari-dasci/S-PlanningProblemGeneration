@@ -793,6 +793,91 @@ def create_histograms_miconic(args, pddl_problems, consistent_problems_info):
 
     print("> Created histograms for miconic")
 
+def create_histograms_satellite(args, pddl_problems, consistent_problems_info):
+    """
+    For satellite, we measure the number of satelites, average instruments per satellite, average modes supported per instrument,
+    number of directions and number of goal observations ('have_image' atoms in the goal).
+    """
+    num_satellites = [x['num_objects']['satellite'] for x in consistent_problems_info.values()]
+    num_directions = [x['num_objects']['direction'] for x in consistent_problems_info.values()]
+    # For NeSIG, the key is called 'num_atoms_goal_state', for adhoc it is 'num_atoms_goal'
+    num_have_image = [x['num_atoms_goal_state']['have_image'] if 'num_atoms_goal_state' in x else x['num_atoms_goal']['have_image'] \
+                      for x in consistent_problems_info.values()] 
+    avg_instruments_per_satellite = [x['num_objects']['instrument'] / x['num_objects']['satellite'] for x in consistent_problems_info.values()]
+    avg_modes_per_instrument = [x['num_atoms_init_state']['supports'] / x['num_objects']['instrument'] for x in consistent_problems_info.values()]
+
+    color = 'tab:orange' if args.init_policy=='PPO' else 'tab:blue'
+    model = 'NeSIG' if args.init_policy=='PPO' else 'adhoc'
+
+    # Histogram for num_satellites
+    min_val = 1
+    max_val = 10
+    bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
+    
+    plt.figure()
+    plt.hist(num_satellites, bins=bins, edgecolor='black', color=color)
+    plt.xlabel("# Satellites")
+    plt.ylabel("# Problems")
+    plt.title("Number of Satellites")
+    plt.xticks(np.arange(0, max_val+1, 1))
+    plt.savefig(f"histogram_satellite_{model}_num_satellites.png")
+    plt.close()
+
+    # Histogram for num_directions
+    min_val = 1
+    max_val = 40
+    bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
+    
+    plt.figure()
+    plt.hist(num_directions, bins=bins, edgecolor='black', color=color)
+    plt.xlabel("# Directions")
+    plt.ylabel("# Problems")
+    plt.title("Number of Directions")
+    plt.xticks(np.arange(0, max_val+1, 2))
+    plt.savefig(f"histogram_satellite_{model}_num_directions.png")
+    plt.close()
+
+    # Histogram for num_have_image
+    min_val = 1
+    max_val = 90
+    bins = np.arange(min_val - 0.5, max_val + 1.5, 2)
+    
+    plt.figure()
+    plt.hist(num_have_image, bins=bins, edgecolor='black', color=color)
+    plt.xlabel("# have_image atoms")
+    plt.ylabel("# Problems")
+    plt.title("Number of Goal Observations")
+    plt.xticks(np.arange(0, max_val+1, 5))
+    plt.savefig(f"histogram_satellite_{model}_num_have_image.png")
+    plt.close()
+
+    # Histogram for avg_instruments_per_satellite
+    min_val = 1
+    max_val = 15
+    bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
+    
+    plt.figure()
+    plt.hist(avg_instruments_per_satellite, bins=bins, edgecolor='black', color=color)
+    plt.xlabel("# Instruments / Satellite")
+    plt.ylabel("# Problems")
+    plt.title("Average Number of Instruments per Satellite")
+    plt.xticks(np.arange(0, max_val+1, 1))
+    plt.savefig(f"histogram_satellite_{model}_instruments_per_satellite.png")
+    plt.close()
+
+    # Histogram for avg_modes_per_instrument
+    min_val = 1
+    max_val = 15
+    bins = np.arange(min_val - 0.5, max_val + 1.5, 1)
+    
+    plt.figure()
+    plt.hist(avg_modes_per_instrument, bins=bins, edgecolor='black', color=color)
+    plt.xlabel("# Modes / Instrument")
+    plt.ylabel("# Problems")
+    plt.title("Average Number of Modes Supported per Instrument")
+    plt.xticks(np.arange(0, max_val+1, 1))
+    plt.savefig(f"histogram_satellite_{model}_modes_per_instrument.png")
+    plt.close()
 
 def create_histograms(args, pddl_problems, consistent_problems_info):
     if args.domain == 'blocksworld':
@@ -826,6 +911,14 @@ def create_histograms(args, pddl_problems, consistent_problems_info):
             - Adhoc: python -m src.scripts.analyze_generated_problems --init-policy adhoc --goal-policy adhoc --domain miconic --experiment-id 38-40_2-40_1-40__1_100_1.0 --create-histograms
         """
         create_histograms_miconic(args, pddl_problems, consistent_problems_info)
+
+    elif args.domain == 'satellite':
+        """
+        Calls:
+            - NeSIG: python -m src.scripts.analyze_generated_problems --init-policy PPO --goal-policy PPO --seed 1 --domain satellite --max-init-actions-test 40 --max-goal-actions-test 200  --create-histograms
+            - Adhoc: python -m src.scripts.analyze_generated_problems --init-policy adhoc --goal-policy adhoc --domain satellite --experiment-id 38-40_1-20_1-20_1-20_1-20_1-20__1_100_1.0 --create-histograms
+        """
+        create_histograms_satellite(args, pddl_problems, consistent_problems_info)
 
 
 def main(args):
