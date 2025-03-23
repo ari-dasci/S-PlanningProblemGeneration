@@ -63,6 +63,23 @@ def parse_arguments():
     bw_parser.add_argument("--block-name-size", type=int, default=24,
                            help="Fontsize of the name (i.e., index) of each block.")
     
+    # -------------------------
+    # logistics subparser
+    # -------------------------
+    log_parser = subparsers.add_parser("logistics", help="Logistics domain")
+    log_parser.add_argument("--img-width", type=int, default=1000,
+                           help="Image width in pixels (default: 1000)")
+    log_parser.add_argument("--img-height", type=int, default=1000,
+                           help="Image height in pixels (default: 1000)")
+    log_parser.add_argument("--location-size", type=float, default=60,
+                           help="Size in pixels used for painting locations and airports.")
+    log_parser.add_argument("--object-size", type=float, default=12,
+                           help="Font size for the text of packages, trucks and airplanes.")
+    log_parser.add_argument("--location-sep", type=float, default=20,
+                           help="Separation in pixels between locations/airports in the grid.")
+    log_parser.add_argument("--city-sep", type=float, default=50,
+                           help="Separation in pixels between grids of different cities.")
+
     args = parser.parse_args()
     return args
 
@@ -264,6 +281,210 @@ def visualize_blocksworld_problem(objects, init_atoms, goal_atoms, args):
     plt.savefig(output_path, bbox_inches='tight')
     plt.close(fig)
 
+def visualize_logistics_problem(objects, init_atoms, goal_atoms, args):
+    """
+    Visualizes a logistics planning problem, painting one grid per city.
+    - We detect each city from (in-city loc city) atoms.
+    - Each city's locations/airports are laid out in a grid of up to 3 columns.
+      The first cell is the airport (name containing '-0').
+    - Airports are diamonds; other locations are circles.
+    - We then place objects (trucks, airplanes, packages) by writing text:
+        'tX' in red for trucks,
+        'aX' in green for airplanes,
+        'iX' in blue for packages in the initial state,
+        'gX' in orange for packages in the goal state.
+      (Where 'X' is whatever follows the initial letter in the object's name, e.g. 't0' -> 't0'.)
+    """
+    IMG_WIDTH = args.img_width
+    IMG_HEIGHT = args.img_height
+    output_path = args.output
+    
+    location_size = args.location_size
+    object_size = args.object_size
+    location_sep = args.location_sep
+    city_sep = args.city_sep
+    
+    fig, ax = plt.subplots(figsize=(IMG_WIDTH/100, IMG_HEIGHT/100), dpi=100)
+    ax.set_xlim(0, IMG_WIDTH)
+    ax.set_ylim(0, IMG_HEIGHT)
+    ax.axis('off')
+    
+    # ---------------------------------------------------
+    # 1. Determine which locations belong to which city
+    # ---------------------------------------------------
+    city_locations = {}   # city_name -> list of loc indices
+    for atom in init_atoms:
+        pred, args_tuple = atom
+        if pred == "in-city":
+            loc_idx, city_idx = args_tuple
+            loc_name = objects[loc_idx]
+            city_name = objects[city_idx]
+            if city_name not in city_locations:
+                city_locations[city_name] = []
+            city_locations[city_name].append(loc_idx)
+    
+    # Sort the location indices within each city so that:
+    #   - The airport (with "-0") is first
+    #   - The rest follow in alphabetical order
+    for city in city_locations:
+        locs = city_locations[city]
+        # separate airports vs others
+        airports = [l for l in locs if "-0" in objects[l]]
+        non_airports = [l for l in locs if "-0" not in objects[l]]
+        # sort them
+        airports.sort(key=lambda idx: objects[idx])
+        non_airports.sort(key=lambda idx: objects[idx])
+        city_locations[city] = airports + non_airports
+    
+    # ---------------------------------------------------
+    # 2. Compute grid dimensions for each city
+    # ---------------------------------------------------
+    city_grids = {}
+    for city, locs in city_locations.items():
+        n = len(locs)
+        cols = min(3, n)
+        rows = (n + cols - 1) // cols  # integer ceiling
+        grid_w = cols * location_size + (cols - 1) * location_sep
+        grid_h = rows * location_size + (rows - 1) * location_sep
+        city_grids[city] = {
+            'locs': locs,
+            'rows': rows,
+            'cols': cols,
+            'width': grid_w,
+            'height': grid_h
+        }
+    
+    # We'll lay out these city grids horizontally
+    cities = sorted(city_grids.keys())
+    total_width = sum(city_grids[c]['width'] for c in cities) + city_sep * (len(cities) - 1)
+    start_x = (IMG_WIDTH - total_width) / 2
+    
+    # We'll center them vertically as well
+    max_grid_height = max(city_grids[c]['height'] for c in cities) if cities else 0
+    start_y = (IMG_HEIGHT - max_grid_height) / 2
+    
+    # location_positions: loc_idx -> (center_x, center_y)
+    location_positions = {}
+    
+    # ---------------------------------------------------
+    # 3. Draw each city as a sub-grid
+    # ---------------------------------------------------
+    current_x = start_x
+    for city in cities:
+        grid = city_grids[city]
+        locs = grid['locs']
+        cols = grid['cols']
+        # Top-left corner of this city's grid
+        city_x = current_x
+        city_y = start_y
+        
+        # Place each location in a row/col
+        for i, loc_idx in enumerate(locs):
+            row = i // cols
+            col = i % cols
+            cell_x = city_x + col * (location_size + location_sep)
+            cell_y = city_y + row * (location_size + location_sep)
+            cx = cell_x + location_size / 2
+            cy = cell_y + location_size / 2
+            location_positions[loc_idx] = (cx, cy)
+        
+        # Draw city name above its grid
+        city_center_x = city_x + grid['width'] / 2
+        city_label_y = city_y - (object_size + 5)
+        ax.text(city_center_x, city_label_y, city,
+                fontsize=object_size, ha='center', va='bottom', color='black')
+        
+        current_x += grid['width'] + city_sep
+    
+    # ---------------------------------------------------
+    # 4. Draw each location (airport -> diamond, else circle)
+    # ---------------------------------------------------
+    for loc_idx, (cx, cy) in location_positions.items():
+        loc_name = objects[loc_idx]
+        # If name contains "-0", treat it as an airport
+        if "-0" in loc_name:
+            half = location_size / 2
+            diamond = patches.Polygon(
+                [
+                    [cx,     cy + half],
+                    [cx + half, cy],
+                    [cx,     cy - half],
+                    [cx - half, cy]
+                ],
+                closed=True, edgecolor='black', facecolor='lightgray'
+            )
+            ax.add_patch(diamond)
+        else:
+            circle = plt.Circle((cx, cy), radius=location_size/2,
+                                edgecolor='black', facecolor='lightgray')
+            ax.add_patch(circle)
+    
+    # ---------------------------------------------------
+    # 5. Identify objects' initial and goal locations
+    # ---------------------------------------------------
+    # For the initial state, we look at (at ?obj ?loc)
+    init_loc_objects = {}
+    for atom in init_atoms:
+        pred, args_tuple = atom
+        if pred == "at":
+            obj_idx, loc_idx = args_tuple
+            obj_name = objects[obj_idx]
+            
+            # Decide color & label based on prefix
+            # "tX" (red) for trucks, "aX" (green) for airplanes,
+            # "iX" (blue) for packages in the initial state
+            # otherwise default to black
+            if obj_name.startswith("t"):
+                label = obj_name  # e.g. "t0"
+                color = "red"
+            elif obj_name.startswith("a"):
+                label = obj_name  # e.g. "a0"
+                color = "green"
+            elif obj_name.startswith("p"):
+                # "iX" for initial package
+                label = "i" + obj_name[1:]  # e.g. "i0"
+                color = "blue"
+            else:
+                # fallback
+                label = obj_name
+                color = "black"
+            
+            init_loc_objects.setdefault(loc_idx, []).append((label, color))
+    
+    # For the goal state, we also look at (at ?obj ?loc),
+    # but only for packages, which we label "gX" (orange).
+    goal_loc_objects = {}
+    for atom in goal_atoms:
+        pred, args_tuple = atom
+        if pred == "at":
+            obj_idx, loc_idx = args_tuple
+            obj_name = objects[obj_idx]
+            if obj_name.startswith("p"):
+                label = "g" + obj_name[1:]  # e.g. "g0"
+                color = "orange"
+                goal_loc_objects.setdefault(loc_idx, []).append((label, color))
+    
+    # ---------------------------------------------------
+    # 6. Draw object labels in each location
+    # ---------------------------------------------------
+    for loc_idx, (cx, cy) in location_positions.items():
+        labels = []
+        if loc_idx in init_loc_objects:
+            labels.extend(init_loc_objects[loc_idx])
+        if loc_idx in goal_loc_objects:
+            labels.extend(goal_loc_objects[loc_idx])
+        
+        # If multiple labels, stack them vertically
+        # center them around cy
+        offset = - (len(labels) - 1) * (object_size / 2)
+        for (label, color) in labels:
+            ax.text(cx, cy + offset, label,
+                    fontsize=object_size, ha='center', va='center', color=color)
+            offset += object_size
+    
+    plt.savefig(output_path, bbox_inches='tight')
+    plt.close(fig)
+
 def main(args):
     # Parse the PDDL problem
     objects, init_atoms, goal_atoms = read_pddl_problem(args)
@@ -271,6 +492,8 @@ def main(args):
     # If the domain is blocksworld, do the specialized visualization
     if args.domain == 'blocksworld':
         visualize_blocksworld_problem(objects, init_atoms, goal_atoms, args)
+    elif args.domain == 'logistics':
+        visualize_logistics_problem(objects, init_atoms, goal_atoms, args)
     else:
         print(f"No specialized visualization implemented for domain: {args.domain}")
 
