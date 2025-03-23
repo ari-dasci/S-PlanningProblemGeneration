@@ -11,8 +11,7 @@ In the case of NeSIG, it must be given by one of the following (but not both):
 In the case of the adhoc model, it must be given by --experiment_id and --domain (the rest of the arguments are ignored).
     
 Then, it will load all the (test) problems and their info (results.json) in order to analyze them.
-The specific analysis depends on the command-line argument passed:
-    --get-unique-problems: 
+It will return the number of unique problems, their diversity and if --create-histograms is given, it will create histograms for the corresponding domain.
 
 >>> Examples of use:
     - NeSIG (experiment identified by parameters):
