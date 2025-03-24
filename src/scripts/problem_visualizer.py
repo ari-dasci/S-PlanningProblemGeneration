@@ -1,17 +1,15 @@
 """
-NOTE: execute this script as a python module (-m) and from the base project folder (S-PlanningProblemGeneration)
-and NOT inside the scripts directory!!
-    Example:
-    python -m src.scripts.problem_visualizer data/instance_generators/blocksworld/13-15_5-15__1_100_1.0/problem_0.pddl \
-           -o example_image.jpg blocksworld \
-           --img-height 600 --title-size 18
+@author: Carlos Núñez Molina
 
-This script is used to visualize a PDDL planning problem. 
-It receives the path to the PDDL problem file, an optional output image path, 
-and a domain sub-command with associated arguments.
+This script converts a PDDL planning problem to a visual representation.
+It receives the path to the PDDL problem file, an optional output image path, and a domain sub-command with associated arguments.
+At the moment it supports the following domains: blocksworld, logistics, sokoban, miconic, satellite.
+
+NOTE: this script sets the working directory to the folder that contains it.
+    Example call:
+    python problem_visualizer.py ../../data/instance_generators/logistics/13-15_1-15_2-15_1-15_1-15_0-15__1_100_1.0/problem_0.pddl logistics
 """
 
-from src.nesig.symbolic.pddl_problem import PDDLProblem
 from lifted_pddl import Parser
 
 import matplotlib.pyplot as plt
@@ -19,16 +17,16 @@ import matplotlib.patches as patches
 import math
 import numpy as np
 import argparse
-import os
 import sys
+import os
 
 # Path of the PDDL domain file associated with each possible value of --domain
 domain_path_dict = {
-    'blocksworld': 'data/domains/blocks-domain.pddl',
-    'logistics':   'data/domains/logistics-domain.pddl',
-    'miconic':     'data/domains/miconic-domain.pddl',
-    'satellite':   'data/domains/satellite-domain.pddl',
-    'sokoban':     'data/domains/sokoban-domain.pddl',
+    'blocksworld': '../../data/domains/blocks-domain.pddl',
+    'logistics':   '../../data/domains/logistics-domain.pddl',
+    'miconic':     '../../data/domains/miconic-domain.pddl',
+    'satellite':   '../../data/domains/satellite-domain.pddl',
+    'sokoban':     '../../data/domains/sokoban-domain.pddl',
 }
 
 def parse_arguments():
@@ -86,23 +84,18 @@ def parse_arguments():
     args = parser.parse_args()
     return args
 
-def get_domain_parser(domain: str):
+def parse_pddl_problem(args):
     """
-    Given the domain name, returns a lifted_pddl parser that has parsed the domain.
+    Reads and parses the PDDL problem file, returning the objects, initial state atoms and goal atoms.
     """
     parser = Parser()
-    parser.parse_domain(domain_path_dict[domain])
-    return parser
+    parser.parse_domain(domain_path_dict[args.domain])
+    parser.parse_problem(args.problem_path)
 
-def read_pddl_problem(args):
-    """
-    Read the PDDL problem file and return the objects, initial atoms, and goal atoms,
-    according to the PDDLState encoding.
-    """
-    pddl_problem = PDDLProblem.load_from_pddl(get_domain_parser(args.domain), args.problem_path)
-    objects = pddl_problem._initial_state.objects
-    init_atoms = tuple(pddl_problem._initial_state.atoms)
-    goal_atoms = pddl_problem.goal
+    objects = parser.object_types
+    init_atoms = tuple(parser.atoms)
+    goal_atoms = tuple(goal[1:] for goal in parser.goals)
+
     return objects, init_atoms, goal_atoms
 
 def _compute_initial_stacks(init_atoms):
@@ -491,7 +484,7 @@ def visualize_logistics_problem(objects, init_atoms, goal_atoms, args):
 
 def main(args):
     # Parse the PDDL problem
-    objects, init_atoms, goal_atoms = read_pddl_problem(args)
+    objects, init_atoms, goal_atoms = parse_pddl_problem(args)
 
     # If the domain is blocksworld, do the specialized visualization
     if args.domain == 'blocksworld':
@@ -502,5 +495,8 @@ def main(args):
         print(f"No specialized visualization implemented for domain: {args.domain}")
 
 if __name__ == "__main__":
+    # Set the working directory to the folder that contains this script
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
     args = parse_arguments()
     main(args)
