@@ -36,8 +36,6 @@ def parse_arguments():
     parser.add_argument("problem_path", help="Path to the PDDL problem file")
     parser.add_argument("-o", "--output", default="problem_visualization.jpg",
                         help="Output image path (default: problem_visualization.jpg)")
-    parser.add_argument("--title-size", type=float, default=50,
-                        help="Font size for the 'Initial state'/'Goal' titles (domain-independent).")
 
     # Subparsers for each domain
     subparsers = parser.add_subparsers(dest="domain", required=True,
@@ -49,8 +47,10 @@ def parse_arguments():
     bw_parser = subparsers.add_parser("blocksworld", help="Blocksworld domain")
     bw_parser.add_argument("--img-width", type=int, default=2500,
                            help="Image width in pixels")
-    bw_parser.add_argument("--img-height", type=int, default=1500,
+    bw_parser.add_argument("--img-height", type=int, default=2000,
                            help="Image height in pixels")
+    bw_parser.add_argument("--title-size", type=float, default=50,
+                           help="Font size for the 'Initial state'/'Goal' titles.")
     bw_parser.add_argument("--block-size", type=float, default=130,
                            help="Block size in pixels (square side).")
     bw_parser.add_argument("--block-separation", type=float, default=40,
