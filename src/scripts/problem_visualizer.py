@@ -84,13 +84,26 @@ def parse_arguments():
     # -------------------------
     # Sokoban subparser
     # -------------------------
-    log_parser = subparsers.add_parser("sokoban", help="Sokoban domain")
-    log_parser.add_argument("--img-width", type=int, default=1500,
+    sk_parser = subparsers.add_parser("sokoban", help="Sokoban domain")
+    sk_parser.add_argument("--img-width", type=int, default=1100,
                            help="Image width in pixels")
-    log_parser.add_argument("--img-height", type=int, default=1500,
+    sk_parser.add_argument("--img-height", type=int, default=1100,
                            help="Image height in pixels")
-    log_parser.add_argument("--cell-size", type=float, default=200,
+    sk_parser.add_argument("--cell-size", type=float, default=200,
                            help="Size in pixels of each grid cell.")
+
+    # -------------------------
+    # Miconic subparser
+    # -------------------------
+    mic_parser = subparsers.add_parser("miconic", help="Miconic domain")
+    mic_parser.add_argument("--img-width", type=int, default=1800,
+                           help="Image width in pixels")
+    mic_parser.add_argument("--img-height", type=int, default=2000,
+                           help="Image height in pixels")
+    mic_parser.add_argument("--floor-size", type=float, default=200,
+                           help="Size in pixels of each elevator floor.")
+    mic_parser.add_argument("--font-size", type=float, default=30,
+                           help="Font size for the text of pasengers.")
 
     args = parser.parse_args()
     return args
@@ -632,9 +645,140 @@ def visualize_sokoban_problem(objects, init_atoms, goal_atoms, args):
             ax.add_patch(goal_circle)
 
     # 10. Save the image.
-    plt.savefig(args.output, bbox_inches="tight")
+    plt.savefig(args.output, bbox_inches="tight", dpi=300)
     plt.close(fig)
 
+def visualize_miconic_problem(objects, init_atoms, goal_atoms, args):
+    """
+    Visualizes a Miconic planning problem.
+
+    In this domain, there are two kinds of objects: floors and passengers.
+    Floors are connected in a straight line via "above" atoms in the initial state.
+    The ordering of floors is determined by these "above" atoms. The top floor is the
+    one that never appears as the second argument in an "above" atom, and then floors
+    are ordered by following the chain.
+
+    The lift starts at the floor indicated by the "lift_at" atom (and is initially empty).
+    Each passenger starts at the floor given by an "at" atom in the initial state and must
+    go to the floor given by its "at" atom in the goal state.
+
+    The visualization draws:
+      - Floors as rectangles with width = args.floor_size and height = 70% of args.floor_size,
+        stacked vertically (with the top floor at the top). The grid is centered in an image
+        of size args.img_width × args.img_height.
+      - The floor where the lift starts is filled in "tab:green"; all other floors are filled white.
+      - For each floor, to the left of its rectangle, the initial passenger labels are drawn,
+        as a comma-separated list (in blue) of the form "iX" (where X is the passenger’s object index).
+      - To the right of the rectangle, the goal passenger labels are drawn (in orange) as "gX".
+      - If multiple passengers appear on the same floor, their labels are joined by commas.
+      - Grid lines (vertical and horizontal) are drawn with linewidth 2.
+
+    Note: The tuple encoding is used. In 'objects', every floor object is simply "floor" (so you must
+    determine the order solely from the "above" atoms). Similarly, every passenger is represented as "passenger".
+    The labels "iX" and "gX" use the passenger’s object index.
+
+    Domain-specific arguments (from args):
+      --img-width, --img-height : image dimensions (pixels)
+      --floor-size : size (in pixels) for the width of each floor rectangle (its height is 70% of this)
+      --font-size  : font size for passenger labels
+      --output     : file path to save the image
+    """
+    # 1. Determine floor ordering using "above" atoms.
+    above_map = {}
+    for (pred, args_tuple) in init_atoms:
+        if pred == "above":
+            f1, f2 = args_tuple
+            above_map[f1] = f2
+
+    # Get all floor indices (object indices where type is "floor").
+    floor_indices = [i for i, t in enumerate(objects) if t == "floor"]
+
+    # Determine the top floor: one that does not appear as f2.
+    below_set = set(above_map.values())
+    top_floor = None
+    for f in floor_indices:
+        if f not in below_set:
+            top_floor = f
+            break
+    if top_floor is None:
+        raise Exception("Could not determine the top floor.")
+
+    # Follow the chain to get the complete ordering (top to bottom).
+    floor_order = [top_floor]
+    current = top_floor
+    while current in above_map:
+        current = above_map[current]
+        floor_order.append(current)
+    # Append any floors not in the chain, sorted deterministically.
+    if set(floor_order) != set(floor_indices):
+        remaining = sorted(set(floor_indices) - set(floor_order))
+        floor_order.extend(remaining)
+
+    # 2. Determine the lift's starting floor from "lift_at" atom.
+    lift_floor = None
+    for (pred, args_tuple) in init_atoms:
+        if pred == "lift_at":
+            lift_floor = args_tuple[0]
+            break
+
+    # 3. Build passenger label mappings.
+    init_passengers = {}
+    for (pred, args_tuple) in init_atoms:
+        if pred == "at":
+            p, f = args_tuple
+            if objects[p] == "passenger":
+                init_passengers.setdefault(f, []).append(f"i{p}")
+    for f in init_passengers:
+        init_passengers[f] = sorted(init_passengers[f])
+
+    goal_passengers = {}
+    for (pred, args_tuple) in goal_atoms:
+        p, f = args_tuple
+        if objects[p] == "passenger":
+            goal_passengers.setdefault(f, []).append(f"g{p}")
+    for f in goal_passengers:
+        goal_passengers[f] = sorted(goal_passengers[f])
+
+    # 4. Determine drawing positions.
+    num_floors = len(floor_order)
+    floor_rect_height = 0.7 * args.floor_size
+    total_grid_height = num_floors * floor_rect_height
+    start_y = (args.img_height - total_grid_height) / 2
+    start_x = (args.img_width - args.floor_size) / 2
+
+    # 5. Create figure and axis.
+    fig, ax = plt.subplots(figsize=(args.img_width/100, args.img_height/100), dpi=100)
+    ax.set_xlim(0, args.img_width)
+    ax.set_ylim(0, args.img_height)
+    ax.axis("off")
+
+    # 6. Draw each floor.
+    floor_positions = {}  # mapping floor index -> (center_x, center_y, cell_x, cell_y)
+    for i, floor in enumerate(floor_order):
+        cell_y = start_y + i * floor_rect_height
+        cell_x = start_x
+        cx = cell_x + args.floor_size / 2
+        cy = cell_y + floor_rect_height / 2
+        floor_positions[floor] = (cx, cy, cell_x, cell_y)
+        # Fill color: "tab:green" if this is the lift floor, otherwise white.
+        fill_color = "tab:green" if floor == lift_floor else "white"
+        rect = patches.Rectangle((cell_x, cell_y), args.floor_size, floor_rect_height,
+                                 facecolor=fill_color, edgecolor="black", linewidth=2)
+        ax.add_patch(rect)
+        # Draw initial passenger labels to the LEFT of the floor.
+        if floor in init_passengers:
+            init_str = ", ".join(init_passengers[floor])
+            ax.text(cell_x - 20, cy, init_str,
+                    fontsize=args.font_size, ha="right", va="center", color="blue")
+        # Draw goal passenger labels to the RIGHT of the floor.
+        if floor in goal_passengers:
+            goal_str = ", ".join(goal_passengers[floor])
+            ax.text(cell_x + args.floor_size + 20, cy, goal_str,
+                    fontsize=args.font_size, ha="left", va="center", color="tab:orange")
+
+    # 7. Save the figure.
+    plt.savefig(args.output, bbox_inches="tight", dpi=300)
+    plt.close(fig)
 
 def main(args):
     # Parse the PDDL problem
@@ -647,6 +791,8 @@ def main(args):
         visualize_logistics_problem(objects, init_atoms, goal_atoms, args)
     elif args.domain == 'sokoban':
         visualize_sokoban_problem(objects, init_atoms, goal_atoms, args)
+    elif args.domain == 'miconic':
+        visualize_miconic_problem(objects, init_atoms, goal_atoms, args)
     else:
         print(f"No specialized visualization implemented for domain: {args.domain}")
 
