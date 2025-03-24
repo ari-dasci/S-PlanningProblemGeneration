@@ -67,9 +67,9 @@ def parse_arguments():
     # -------------------------
     log_parser = subparsers.add_parser("logistics", help="Logistics domain")
     log_parser.add_argument("--img-width", type=int, default=2500,
-                           help="Image width in pixels (default: 1000)")
+                           help="Image width in pixels")
     log_parser.add_argument("--img-height", type=int, default=1500,
-                           help="Image height in pixels (default: 1000)")
+                           help="Image height in pixels")
     log_parser.add_argument("--location-size", type=float, default=120,
                            help="Size in pixels used for painting locations and airports.")
     log_parser.add_argument("--object-size", type=float, default=24,
@@ -80,6 +80,17 @@ def parse_arguments():
                            help="Separation in pixels between grids of different cities.")
     log_parser.add_argument("--text-sep", type=float, default=30,
                            help="Separation in pixels between text.")
+    
+    # -------------------------
+    # Sokoban subparser
+    # -------------------------
+    log_parser = subparsers.add_parser("sokoban", help="Sokoban domain")
+    log_parser.add_argument("--img-width", type=int, default=1500,
+                           help="Image width in pixels")
+    log_parser.add_argument("--img-height", type=int, default=1500,
+                           help="Image height in pixels")
+    log_parser.add_argument("--cell-size", type=float, default=200,
+                           help="Size in pixels of each grid cell.")
 
     args = parser.parse_args()
     return args
@@ -481,6 +492,149 @@ def visualize_logistics_problem(objects, init_atoms, goal_atoms, args):
     plt.savefig(output_path, bbox_inches='tight', dpi=300)
     plt.close(fig)
 
+def visualize_sokoban_problem(objects, init_atoms, goal_atoms, args):
+    """
+    Visualizes a Sokoban planning problem.
+
+    The problem is assumed to be a square grid. The grid size N is computed as the square
+    root of the number of "loc" objects in 'objects'. If this is not an integer, an exception is raised.
+
+    The grid is drawn with horizontal and vertical lines (line width 2).
+    Each cell is of size args.cell_size. The cells are arranged so that cell 0 is the upper-left
+    and the cell indices increase from left to right and then top to bottom.
+
+    The positions of the robot, boxes, and walls are determined from the following predicates
+    in the initial state:
+      - at-robot: the cell where the robot is.
+      - at-box: the cell where a box is located.
+      - at-wall: the cell that is a wall.
+    In the goal state, atoms of type at-box indicate the desired goal locations for boxes.
+
+    Drawing details (relative to cell size):
+      - Walls: fill the entire cell with solid gray.
+      - Box: a centered square with side 80% of cell size, filled with a light brownish color ("burlywood"),
+             with a black border (linewidth 2).
+      - Robot: an upward-pointing triangle with height 60% of cell size, filled in yellow, with a black border (linewidth 2).
+      - Goal marker: a small circle with diameter 25% of cell size, filled in red, drawn on top of any other content.
+      - If a cell contains both a box (or robot) and a goal marker, the goal marker is drawn last.
+
+    Parameters:
+      objects: list/tuple where each element corresponds to a "loc" object.
+      init_atoms: list/tuple of atoms from the initial state (e.g., ("at-robot", (loc_idx,)),
+                  ("at-box", (loc_idx,)), ("at-wall", (loc_idx,)) ).
+      goal_atoms: list/tuple of atoms from the goal state (only atoms of type "at-box").
+      args: an object with attributes:
+             - img_width, img_height: dimensions of the output image in pixels.
+             - cell_size: size (in pixels) of each grid cell.
+             - output: file path to save the image.
+    """
+    # 1. Compute grid dimensions.
+    num_cells = len(objects)
+    N_float = math.sqrt(num_cells)
+    if int(N_float) != N_float:
+        raise Exception("The number of loc objects is not a perfect square.")
+    N = int(N_float)
+
+    # 2. Compute total grid size and center the grid.
+    cell_size = args.cell_size  # each cell is cell_size x cell_size
+    grid_w = cell_size * N
+    grid_h = cell_size * N
+
+    IMG_WIDTH = args.img_width
+    IMG_HEIGHT = args.img_height
+
+    start_x = (IMG_WIDTH - grid_w) / 2
+    start_y = (IMG_HEIGHT - grid_h) / 2
+
+    # 3. Compute the center of each cell.
+    # Assume cell 0 is the upper-left corner.
+    cell_centers = {}
+    for i in range(num_cells):
+        row = i // N
+        col = i % N
+        cx = start_x + col * cell_size + cell_size / 2
+        # For rows, row 0 should be at the top; so invert the row index.
+        cy = start_y + (N - 1 - row) * cell_size + cell_size / 2
+        cell_centers[i] = (cx, cy)
+
+    # 4. Determine cell contents from init_atoms.
+    # Each cell's content is stored in a dictionary.
+    cell_contents = {i: {"wall": False, "robot": False, "box": False} for i in range(num_cells)}
+    for (pred, args_tuple) in init_atoms:
+        if pred == "at-wall":
+            loc_idx = args_tuple[0]
+            cell_contents[loc_idx]["wall"] = True
+        elif pred == "at-robot":
+            loc_idx = args_tuple[0]
+            cell_contents[loc_idx]["robot"] = True
+        elif pred == "at-box":
+            loc_idx = args_tuple[0]
+            cell_contents[loc_idx]["box"] = True
+
+    # 5. Determine goal cells from goal_atoms.
+    goal_cells = set()
+    for (pred, args_tuple) in goal_atoms:
+        loc_idx = args_tuple[0]
+        goal_cells.add(loc_idx)
+
+    # 6. Create figure and axis (assume plt and patches are imported globally).
+    fig, ax = plt.subplots(figsize=(IMG_WIDTH / 100, IMG_HEIGHT / 100), dpi=100)
+    ax.set_xlim(0, IMG_WIDTH)
+    ax.set_ylim(0, IMG_HEIGHT)
+    ax.axis("off")
+
+    # 7. Draw grid lines with linewidth=2.
+    # Vertical lines.
+    for i in range(N + 1):
+        x = start_x + i * cell_size
+        ax.plot([x, x], [start_y, start_y + grid_h], color="black", linewidth=2)
+    # Horizontal lines.
+    for j in range(N + 1):
+        y = start_y + j * cell_size
+        ax.plot([start_x, start_x + grid_w], [y, y], color="black", linewidth=2)
+
+    # 8. Relative sizes.
+    robot_size = 0.6 * cell_size
+    box_size = 0.8 * cell_size
+    goal_size = 0.25 * cell_size  # goal marker is 25% of cell size
+
+    # 9. Draw cell contents.
+    for i in range(num_cells):
+        cx, cy = cell_centers[i]
+        # If the cell is a wall, fill it with gray.
+        if cell_contents[i]["wall"]:
+            cell_x = start_x + (i % N) * cell_size
+            cell_y = start_y + (N - 1 - (i // N)) * cell_size
+            rect = patches.Rectangle((cell_x, cell_y), cell_size, cell_size,
+                                     facecolor="gray", edgecolor=None)
+            ax.add_patch(rect)
+        else:
+            # If not a wall, draw box (if present) first.
+            if cell_contents[i]["box"]:
+                b_size = box_size
+                lower_left = (cx - b_size / 2, cy - b_size / 2)
+                rect = patches.Rectangle(lower_left, b_size, b_size,
+                                         facecolor="xkcd:light brown", edgecolor="black", linewidth=2)
+                ax.add_patch(rect)
+            # Then draw the robot if present.
+            if cell_contents[i]["robot"]:
+                r_size = robot_size
+                triangle = patches.Polygon([[cx, cy + r_size / 2],
+                                            [cx - r_size / 2, cy - r_size / 2],
+                                            [cx + r_size / 2, cy - r_size / 2]],
+                                           closed=True, facecolor="tab:green", edgecolor="black", linewidth=2)
+                ax.add_patch(triangle)
+        # Finally, if the cell is a goal cell, draw the goal marker on top.
+        if i in goal_cells:
+            g_radius = goal_size / 2
+            goal_circle = patches.Circle((cx, cy), radius=g_radius,
+                                         facecolor="red", edgecolor="none")
+            ax.add_patch(goal_circle)
+
+    # 10. Save the image.
+    plt.savefig(args.output, bbox_inches="tight")
+    plt.close(fig)
+
 
 def main(args):
     # Parse the PDDL problem
@@ -491,6 +645,8 @@ def main(args):
         visualize_blocksworld_problem(objects, init_atoms, goal_atoms, args)
     elif args.domain == 'logistics':
         visualize_logistics_problem(objects, init_atoms, goal_atoms, args)
+    elif args.domain == 'sokoban':
+        visualize_sokoban_problem(objects, init_atoms, goal_atoms, args)
     else:
         print(f"No specialized visualization implemented for domain: {args.domain}")
 
