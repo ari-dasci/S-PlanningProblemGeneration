@@ -68,19 +68,19 @@ def parse_arguments():
     # logistics subparser
     # -------------------------
     log_parser = subparsers.add_parser("logistics", help="Logistics domain")
-    log_parser.add_argument("--img-width", type=int, default=1000,
+    log_parser.add_argument("--img-width", type=int, default=2500,
                            help="Image width in pixels (default: 1000)")
-    log_parser.add_argument("--img-height", type=int, default=1000,
+    log_parser.add_argument("--img-height", type=int, default=1500,
                            help="Image height in pixels (default: 1000)")
-    log_parser.add_argument("--location-size", type=float, default=60,
+    log_parser.add_argument("--location-size", type=float, default=120,
                            help="Size in pixels used for painting locations and airports.")
-    log_parser.add_argument("--object-size", type=float, default=12,
+    log_parser.add_argument("--object-size", type=float, default=24,
                            help="Font size for the text of packages, trucks and airplanes.")
-    log_parser.add_argument("--location-sep", type=float, default=20,
+    log_parser.add_argument("--location-sep", type=float, default=40,
                            help="Separation in pixels between locations/airports in the grid.")
-    log_parser.add_argument("--city-sep", type=float, default=50,
+    log_parser.add_argument("--city-sep", type=float, default=200,
                            help="Separation in pixels between grids of different cities.")
-    log_parser.add_argument("--text-sep", type=float, default=20,
+    log_parser.add_argument("--text-sep", type=float, default=30,
                            help="Separation in pixels between text.")
 
     args = parser.parse_args()
@@ -287,31 +287,25 @@ def visualize_blocksworld_problem(objects, init_atoms, goal_atoms, args):
 def visualize_logistics_problem(objects, init_atoms, goal_atoms, args):
     """
     Visualizes a logistics planning problem by drawing one grid per distinct city
-    and placing up to four labeled lines of text above each location/airport:
-      1) iX  (blue)    - packages in the initial state
-      2) gX  (orange)  - packages in the goal state
-      3) aX  (green)   - airplanes
-      4) tX  (red)     - trucks
+    and placing up to four labeled lines of text above each location/airport,
+    in top-to-bottom order: i, g, a, t. Only non-empty lines are drawn (no empty gaps).
 
-    Only lines that have content will appear (no empty-line gaps).
-    Below each city's grid, we place a label "City N" (starting from N=0, ignoring
-    the original city object index).
+    Below each city's grid, we place a label "City N" (N starting at 0).
+    The vertical spacing between rows in each city's grid is 3 * location_sep,
+    while columns use location_sep. The text lines above each location
+    are spaced so they do not overlap. "City X" is placed BELOW the grid.
 
     Assumptions:
-      - objects[obj_idx] is the *type* of the object at index obj_idx
-        (e.g. "truck", "airplane", "package", "airport", "location", etc.).
-      - init_atoms contains ("in-city",(loc_idx,city_idx)) to assign loc_idx to city_idx,
-        plus ("at",(obj_idx,loc_idx)) for trucks/airplanes/packages in the initial state.
-      - goal_atoms only contains ("at",(obj_idx,loc_idx)) for packages that must be in loc_idx.
-      - The function arguments 'args' include:
-           --img-width, --img-height (canvas size)
-           --location-size (diameter for location/airport shapes)
-           --object-size (font size for text)
-           --location-sep (grid cell gap within a city)
-           --city-sep (gap between cities)
-           --text-sep (extra vertical gap used above shapes and between lines of text,
-                       and also below the grid for the city label)
-           --output (file path to save)
+      - objects[obj_idx] is the type (e.g. "truck", "airplane", "package", "airport", "location", etc.).
+      - init_atoms contains:
+          ("in-city", (loc_idx, city_idx)) for city assignments,
+          ("at", (obj_idx, loc_idx)) for initial object placements.
+      - goal_atoms contains only ("at", (obj_idx, loc_idx)) for packages in the goal.
+      - The 'args' object has:
+          --img-width, --img-height
+          --location-size, --object-size
+          --location-sep, --city-sep, --text-sep
+          --output
     """
 
     import matplotlib.pyplot as plt
@@ -322,14 +316,15 @@ def visualize_logistics_problem(objects, init_atoms, goal_atoms, args):
     IMG_WIDTH = args.img_width
     IMG_HEIGHT = args.img_height
     output_path = args.output
-    
-    location_size = args.location_size
-    object_size = args.object_size
-    location_sep = args.location_sep
-    city_sep = args.city_sep
-    text_sep = args.text_sep  # Additional vertical gap for text
 
-    # 2) Identify city -> list_of_locations from ("in-city",(loc_idx, city_idx))
+    location_size = args.location_size      # diameter of circle/diamond
+    object_size = args.object_size          # font size for text
+    location_sep = args.location_sep        # horizontal gap between columns
+    city_sep = args.city_sep                # gap between city grids
+    text_sep = args.text_sep                # extra vertical gap for text
+    row_sep = 5 * location_sep              # vertical gap between rows is larger
+
+    # 2) Build city -> list_of_locations from ("in-city", (loc_idx, city_idx))
     city_to_locs = {}
     for (pred, args_tuple) in init_atoms:
         if pred == "in-city":
@@ -338,13 +333,13 @@ def visualize_logistics_problem(objects, init_atoms, goal_atoms, args):
                 city_to_locs[city_idx] = []
             city_to_locs[city_idx].append(loc_idx)
 
-    # 3) Sort each city's locations so that airports come first, then normal locations
+    # 3) Sort each city's locations: airports first, then other locations
     for city_idx, loc_list in city_to_locs.items():
         airports = [l for l in loc_list if objects[l] == "airport"]
         others   = [l for l in loc_list if objects[l] == "location"]
         city_to_locs[city_idx] = airports + others
 
-    # 4) Compute a grid for each city (up to 3 columns)
+    # 4) Compute grid geometry for each city (up to 3 columns, row_sep for vertical gap)
     city_grids = {}
     for city_idx, locs in city_to_locs.items():
         n = len(locs)
@@ -353,7 +348,7 @@ def visualize_logistics_problem(objects, init_atoms, goal_atoms, args):
         cols = min(3, n)
         rows = math.ceil(n / cols)
         grid_w = cols * location_size + (cols - 1) * location_sep
-        grid_h = rows * location_size + (rows - 1) * location_sep
+        grid_h = rows * location_size + (rows - 1) * row_sep
         city_grids[city_idx] = {
             "locs": locs,
             "rows": rows,
@@ -362,62 +357,57 @@ def visualize_logistics_problem(objects, init_atoms, goal_atoms, args):
             "height": grid_h
         }
 
-    # Sort city indices so we have a stable left-to-right order
+    # 5) Sort cities left-to-right
     sorted_city_indices = sorted(city_grids.keys())
 
-    # 5) Set up the figure
+    # 6) Prepare figure
     fig, ax = plt.subplots(figsize=(IMG_WIDTH / 100, IMG_HEIGHT / 100), dpi=100)
     ax.set_xlim(0, IMG_WIDTH)
     ax.set_ylim(0, IMG_HEIGHT)
     ax.axis("off")
 
-    # Lay out the city grids horizontally
-    total_width = sum(city_grids[c]["width"] for c in sorted_city_indices) \
-                  + city_sep * (len(sorted_city_indices) - 1)
+    total_width = sum(city_grids[c]["width"] for c in sorted_city_indices) + \
+                  city_sep * (len(sorted_city_indices) - 1)
     start_x = (IMG_WIDTH - total_width) / 2
 
-    max_grid_height = 0
-    if sorted_city_indices:
-        max_grid_height = max(city_grids[c]["height"] for c in sorted_city_indices)
+    max_grid_height = max(city_grids[c]["height"] for c in sorted_city_indices) if sorted_city_indices else 0
     start_y = (IMG_HEIGHT - max_grid_height) / 2
 
-    # location_positions: loc_idx -> (center_x, center_y)
-    location_positions = {}
+    location_positions = {}  # loc_idx -> (cx, cy)
 
-    # 6) Draw each city's grid side by side
+    # 7) Draw each city's grid side-by-side; label city below
     current_x = start_x
     for city_num, city_idx in enumerate(sorted_city_indices):
         grid_info = city_grids[city_idx]
         locs = grid_info["locs"]
         cols = grid_info["cols"]
         rows = grid_info["rows"]
-        gw   = grid_info["width"]
-        gh   = grid_info["height"]
+        gw = grid_info["width"]
+        gh = grid_info["height"]
 
         grid_x = current_x
         grid_y = start_y
 
-        # Place each location in a row/col
+        # Place each location
         for i, loc_idx in enumerate(locs):
             row = i // cols
             col = i % cols
             cell_x = grid_x + col * (location_size + location_sep)
-            cell_y = grid_y + row * (location_size + location_sep)
+            cell_y = grid_y + row * (location_size + row_sep)
             cx = cell_x + location_size / 2
             cy = cell_y + location_size / 2
             location_positions[loc_idx] = (cx, cy)
 
-        # Label the city below its grid, ignoring the real city_idx and using city_num
+        # Label the city BELOW the grid
         city_label = f"City {city_num}"
         city_label_x = grid_x + gw / 2
-        city_label_y = grid_y - gh + text_sep  # below the grid
-        # We anchor the "top" of the text at city_label_y so it doesn't overlap
+        city_label_y = grid_y - 2*text_sep
         ax.text(city_label_x, city_label_y, city_label,
-                fontsize=object_size, ha="center", va="top", color="black")
+                fontsize=object_size*1.2, ha="center", va="top", color="black")
 
         current_x += gw + city_sep
 
-    # 7) Draw each location shape: airport -> diamond, location -> circle
+    # 8) Draw shapes: airport->diamond, location->circle
     for loc_idx, (cx, cy) in location_positions.items():
         loc_type = objects[loc_idx]
         if loc_type == "airport":
@@ -429,83 +419,77 @@ def visualize_logistics_problem(objects, init_atoms, goal_atoms, args):
                     (cx,     cy - half),
                     (cx - half, cy)
                 ],
-                closed=True, edgecolor="black", facecolor="lightgray"
+                closed=True, edgecolor="black", facecolor="lightgreen",
+                linewidth=2
             )
             ax.add_patch(diamond)
         elif loc_type == "location":
             circle = plt.Circle((cx, cy), radius=location_size / 2,
-                                edgecolor="black", facecolor="lightgray")
+                                edgecolor="black", facecolor="lightgray",
+                                linewidth=2)
             ax.add_patch(circle)
         else:
-            # Fallback if there's some unexpected type
+            # fallback
             circle = plt.Circle((cx, cy), radius=location_size / 4,
-                                edgecolor="black", facecolor="lightgray")
+                                edgecolor="black", facecolor="lightgray",
+                                linewidth=2)
             ax.add_patch(circle)
 
-    # 8) Build data for up to four lines: i, g, a, t
-    # lines_data[loc_idx] = { "i": [], "g": [], "a": [], "t": [] }
-    lines_data = {}
-    for loc_idx in location_positions:
-        lines_data[loc_idx] = {"i": [], "g": [], "a": [], "t": []}
+    # 9) Collect text lines: i, g, a, t
+    # lines_data[loc_idx] = { "i": [...], "g": [...], "a": [...], "t": [...] }
+    lines_data = {loc_idx: {"i": [], "g": [], "a": [], "t": []} for loc_idx in location_positions}
 
-    # 8a) From the INITIAL state
+    # From initial state
     for (pred, args_tuple) in init_atoms:
         if pred == "at":
             obj_idx, loc_idx = args_tuple
             if loc_idx not in lines_data:
                 continue
-            obj_type = objects[obj_idx]
-            if obj_type == "truck":
+            typ = objects[obj_idx]
+            if typ == "truck":
                 lines_data[loc_idx]["t"].append(f"t{obj_idx}")
-            elif obj_type == "airplane":
+            elif typ == "airplane":
                 lines_data[loc_idx]["a"].append(f"a{obj_idx}")
-            elif obj_type == "package":
+            elif typ == "package":
                 lines_data[loc_idx]["i"].append(f"i{obj_idx}")
 
-    # 8b) From the GOAL state (only packages -> gX)
+    # From goal state (packages -> gX)
     for (pred, args_tuple) in goal_atoms:
         obj_idx, loc_idx = args_tuple
         if loc_idx not in lines_data:
             continue
-        obj_type = objects[obj_idx]
-        if obj_type == "package":
+        typ = objects[obj_idx]
+        if typ == "package":
             lines_data[loc_idx]["g"].append(f"g{obj_idx}")
 
-    # 9) For each location, we place lines top-to-bottom *only if they are non-empty*.
-    # We'll keep the order i->g->a->t
-    # The shape extends up to (cy + location_size/2), so we start above that
-    # and stack lines upward. No line if it's empty, so no unnecessary gap.
-    color_map = {"i": "blue", "g": "orange", "a": "green", "t": "red"}
+    # 10) Draw text above each location: lines in order i, g, a, t
+    #     Only draw lines that are non-empty, top -> bottom with spacing
+    #     i is top, then g below it, etc.
+    color_map = {"i": "blue", "g": "tab:orange", "a": "green", "t": "red"}
     line_order = ["i", "g", "a", "t"]
-    lineSpacing = object_size + text_sep
+    line_gap = object_size + text_sep  # vertical gap between lines
 
     for loc_idx, (cx, cy) in location_positions.items():
-        # Gather the non-empty lines in order
-        # e.g. lines = [ ("i", ["i12","i15"]), ("g", ["g15"]), ... ]
+        # gather non-empty lines
         active_lines = []
         for key in line_order:
             if lines_data[loc_idx][key]:
-                active_lines.append((key, lines_data[loc_idx][key]))
+                line_str = ", ".join(lines_data[loc_idx][key])
+                active_lines.append((key, line_str))
 
-        # If none are active, skip
         if not active_lines:
             continue
 
         # The top of the shape is at cy + location_size/2
-        # We'll place the first (top) line at (shape_top + text_sep + (n-1)*lineSpacing),
-        # the second at (shape_top + text_sep + (n-2)*lineSpacing), etc.
-        shape_top = cy + location_size / 2
-        n = len(active_lines)
-        top_offset = (n - 1) * lineSpacing
-        for i, (key, objs) in enumerate(active_lines):
-            line_str = ", ".join(objs)
-            color = color_map[key]
-            offset = top_offset - i * lineSpacing
-            y_line = shape_top + text_sep + offset
-            ax.text(y_line_x := cx, y_line, line_str,
-                    fontsize=object_size, ha="center", va="center", color=color)
+        # We start from that plus text_sep for the top line
+        # then each subsequent line is line_gap below the previous
+        current_y = cy + location_size/2 + text_sep
+        for idx, (k, text_str) in enumerate(active_lines):
+            ax.text(cx, current_y, text_str,
+                    fontsize=object_size, ha="center", va="bottom", color=color_map[k])
+            current_y += line_gap
 
-    # 10) Save figure
+    # 11) Save figure
     plt.savefig(output_path, bbox_inches="tight")
     plt.close(fig)
 
