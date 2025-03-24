@@ -281,7 +281,7 @@ def visualize_blocksworld_problem(objects, init_atoms, goal_atoms, args):
     )
     
     # Save the resulting image
-    plt.savefig(output_path, bbox_inches='tight')
+    plt.savefig(output_path, bbox_inches='tight', dpi=300)
     plt.close(fig)
 
 def visualize_logistics_problem(objects, init_atoms, goal_atoms, args):
@@ -308,23 +308,19 @@ def visualize_logistics_problem(objects, init_atoms, goal_atoms, args):
           --output
     """
 
-    import matplotlib.pyplot as plt
-    import matplotlib.patches as patches
-    import math
-
     # 1) Unpack arguments
     IMG_WIDTH = args.img_width
     IMG_HEIGHT = args.img_height
     output_path = args.output
 
-    location_size = args.location_size      # diameter of circle/diamond
-    object_size = args.object_size          # font size for text
-    location_sep = args.location_sep        # horizontal gap between columns
-    city_sep = args.city_sep                # gap between city grids
-    text_sep = args.text_sep                # extra vertical gap for text
-    row_sep = 5 * location_sep              # vertical gap between rows is larger
+    location_size = args.location_size
+    object_size = args.object_size
+    location_sep = args.location_sep
+    city_sep = args.city_sep
+    text_sep = args.text_sep
+    row_sep = 6 * location_sep  # for example
 
-    # 2) Build city -> list_of_locations from ("in-city", (loc_idx, city_idx))
+    # 2) city_to_locs from init_atoms
     city_to_locs = {}
     for (pred, args_tuple) in init_atoms:
         if pred == "in-city":
@@ -333,13 +329,13 @@ def visualize_logistics_problem(objects, init_atoms, goal_atoms, args):
                 city_to_locs[city_idx] = []
             city_to_locs[city_idx].append(loc_idx)
 
-    # 3) Sort each city's locations: airports first, then other locations
+    # 3) Sort each city's locations: airports first, then others, but each subset is sorted
     for city_idx, loc_list in city_to_locs.items():
-        airports = [l for l in loc_list if objects[l] == "airport"]
-        others   = [l for l in loc_list if objects[l] == "location"]
+        airports = sorted([l for l in loc_list if objects[l] == "airport"])
+        others   = sorted([l for l in loc_list if objects[l] == "location"])
         city_to_locs[city_idx] = airports + others
 
-    # 4) Compute grid geometry for each city (up to 3 columns, row_sep for vertical gap)
+    # 4) Compute grid geometry
     city_grids = {}
     for city_idx, locs in city_to_locs.items():
         n = len(locs)
@@ -357,10 +353,10 @@ def visualize_logistics_problem(objects, init_atoms, goal_atoms, args):
             "height": grid_h
         }
 
-    # 5) Sort cities left-to-right
+    # 5) Sort city indices left-to-right
     sorted_city_indices = sorted(city_grids.keys())
 
-    # 6) Prepare figure
+    # 6) Figure
     fig, ax = plt.subplots(figsize=(IMG_WIDTH / 100, IMG_HEIGHT / 100), dpi=100)
     ax.set_xlim(0, IMG_WIDTH)
     ax.set_ylim(0, IMG_HEIGHT)
@@ -369,14 +365,13 @@ def visualize_logistics_problem(objects, init_atoms, goal_atoms, args):
     total_width = sum(city_grids[c]["width"] for c in sorted_city_indices) + \
                   city_sep * (len(sorted_city_indices) - 1)
     start_x = (IMG_WIDTH - total_width) / 2
-
     max_grid_height = max(city_grids[c]["height"] for c in sorted_city_indices) if sorted_city_indices else 0
     start_y = (IMG_HEIGHT - max_grid_height) / 2
 
-    location_positions = {}  # loc_idx -> (cx, cy)
-
-    # 7) Draw each city's grid side-by-side; label city below
+    location_positions = {}
     current_x = start_x
+
+    # 7) Draw each city
     for city_num, city_idx in enumerate(sorted_city_indices):
         grid_info = city_grids[city_idx]
         locs = grid_info["locs"]
@@ -398,12 +393,12 @@ def visualize_logistics_problem(objects, init_atoms, goal_atoms, args):
             cy = cell_y + location_size / 2
             location_positions[loc_idx] = (cx, cy)
 
-        # Label the city BELOW the grid
+        # Label the city below
         city_label = f"City {city_num}"
         city_label_x = grid_x + gw / 2
-        city_label_y = grid_y - 2*text_sep
+        city_label_y = grid_y - 2 * text_sep
         ax.text(city_label_x, city_label_y, city_label,
-                fontsize=object_size*1.2, ha="center", va="top", color="black")
+                fontsize=object_size * 1.2, ha="center", va="top", color="black")
 
         current_x += gw + city_sep
 
@@ -419,7 +414,7 @@ def visualize_logistics_problem(objects, init_atoms, goal_atoms, args):
                     (cx,     cy - half),
                     (cx - half, cy)
                 ],
-                closed=True, edgecolor="black", facecolor="lightgreen",
+                closed=True, edgecolor="black", facecolor="lightgray",
                 linewidth=2
             )
             ax.add_patch(diamond)
@@ -490,7 +485,7 @@ def visualize_logistics_problem(objects, init_atoms, goal_atoms, args):
             current_y += line_gap
 
     # 11) Save figure
-    plt.savefig(output_path, bbox_inches="tight")
+    plt.savefig(output_path, bbox_inches='tight', dpi=300)
     plt.close(fig)
 
 
