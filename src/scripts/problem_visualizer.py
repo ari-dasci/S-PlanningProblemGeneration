@@ -14,6 +14,7 @@ from lifted_pddl import Parser
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+from matplotlib.path import Path
 import math
 import numpy as np
 import argparse
@@ -47,7 +48,7 @@ def parse_arguments():
     bw_parser = subparsers.add_parser("blocksworld", help="Blocksworld domain")
     bw_parser.add_argument("--img-width", type=int, default=2500,
                            help="Image width in pixels")
-    bw_parser.add_argument("--img-height", type=int, default=2000,
+    bw_parser.add_argument("--img-height", type=int, default=1800,
                            help="Image height in pixels")
     bw_parser.add_argument("--title-size", type=float, default=50,
                            help="Font size for the 'Initial state'/'Goal' titles.")
@@ -104,6 +105,30 @@ def parse_arguments():
                            help="Size in pixels of each elevator floor.")
     mic_parser.add_argument("--font-size", type=float, default=30,
                            help="Font size for the text of pasengers.")
+    
+    # -------------------------
+    # Satellite subparser
+    # -------------------------
+    sat_parser = subparsers.add_parser("satellite", help="Satellite domain")
+    sat_parser.add_argument("--img-width", type=int, default=3000,
+                           help="Image width in pixels")
+    sat_parser.add_argument("--img-height", type=int, default=2000,
+                           help="Image height in pixels")
+    sat_parser.add_argument("--sat-size", type=float, default=200,
+                           help="Height in pixels of each satellite (the width is given by the number of instruments).")
+    sat_parser.add_argument("--sat-sep", type=float, default=200,
+                           help="Separation in pixels between satellites.")
+    sat_parser.add_argument("--dir-size", type=float, default=100,
+                           help="Size in pixels of each direction (i.e., star shape).")
+    sat_parser.add_argument("--dir-sep", type=float, default=100,
+                           help="Separation in pixels between satellites and directions.")
+    sat_parser.add_argument("--font-size", type=float, default=30,
+                           help="Font size for the text of instruments and modes.")
+    sat_parser.add_argument("--text-vsep", type=float, default=10,
+                           help="Vertical separation in pixels between the text lines above the satellites.")
+    sat_parser.add_argument("--text-hsep", type=float, default=10,
+                           help="Horizontal separation in pixels between the text lines above the satellites.")
+    
 
     args = parser.parse_args()
     return args
@@ -780,6 +805,262 @@ def visualize_miconic_problem(objects, init_atoms, goal_atoms, args):
     plt.savefig(args.output, bbox_inches="tight", dpi=300)
     plt.close(fig)
 
+def visualize_satellite_problem(objects, init_atoms, goal_atoms, args):
+    """
+    Visualizes a Satellite domain problem with a uniform vertical baseline for instrument text.
+
+    Layout Overview:
+      1) Satellites (type "satellite") are placed in a horizontal row, each drawn as a downward 
+         semi-circle. The circle's flat edge is at y = sat_y, and the arc curves downward by args.sat_size.
+         The satellite's width depends on the number of instruments (to fit "iX" labels horizontally).
+      
+      2) Instruments (from "on_board") and their modes (from "supports") are drawn below each 
+         satellite at a consistent vertical baseline, determined by the global maximum number of 
+         modes among all instruments. This prevents satellites with more modes from pushing 
+         their text further down than others.
+
+      3) Directions (type "direction") are shown as yellow star markers above the satellites 
+         (y = sat_y + args.dir_sep). Each direction is labeled "dX" above the star. 
+         Directions not pointed at by any satellite are arranged horizontally to the right 
+         (as if each had an "invisible satellite" of width for 1 instrument).
+
+      4) For each direction star, calibration-target labels ("iX") appear to the left in blue, 
+         and goal-mode labels ("mX") appear to the right in orange.
+
+    Domain-specific arguments (args):
+      --img-width, --img-height : Dimensions in pixels of the output image.
+      --sat-size : Vertical size (height) of each satellite’s downward semicircle.
+      --sat-sep : Horizontal gap between satellites.
+      --dir-size : Marker size for direction stars.
+      --dir-sep : Vertical offset for direction stars above satellites.
+      --font-size : Font size for instrument, mode, and direction text.
+      --text-hsep : Horizontal gap between instrument labels.
+      --text-vsep : Vertical gap between mode labels.
+      --output : File path to save the resulting image.
+    """
+    import math
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as patches
+    from matplotlib.path import Path
+
+    # --- Helper to compute satellite width from number of instruments ---
+    def get_sat_width(num_instruments, font_size, text_hsep):
+        if num_instruments < 1:
+            num_instruments = 1
+        # Each instrument label ~ (font_size * 1.5) wide, plus text_hsep between them
+        return num_instruments * (font_size * 1.5) + (num_instruments - 1) * text_hsep
+
+    # -----------------------------
+    # 1. Build Mappings from init_atoms and goal_atoms
+    # -----------------------------
+    sat_to_instruments = {}
+    inst_to_modes = {}
+    sat_to_pointing = {}
+    dir_to_calib = {}
+    dir_to_goal_modes = {}
+
+    for (pred, args_tuple) in init_atoms:
+        if pred == "on_board":
+            inst, sat = args_tuple
+            sat_to_instruments.setdefault(sat, []).append(inst)
+        elif pred == "supports":
+            inst, mode = args_tuple
+            inst_to_modes.setdefault(inst, []).append(mode)
+        elif pred == "pointing":
+            sat, d = args_tuple
+            sat_to_pointing[sat] = d
+        elif pred == "calibration_target":
+            inst, d = args_tuple
+            dir_to_calib.setdefault(d, []).append(inst)
+
+    for sat in sat_to_instruments:
+        sat_to_instruments[sat].sort()
+    for inst in inst_to_modes:
+        inst_to_modes[inst].sort()
+    for d in dir_to_calib:
+        dir_to_calib[d].sort()
+
+    for (pred, args_tuple) in goal_atoms:
+        if pred == "have_image":
+            d, mode = args_tuple
+            dir_to_goal_modes.setdefault(d, []).append(mode)
+    for d in dir_to_goal_modes:
+        dir_to_goal_modes[d].sort()
+
+    # All directions
+    all_directions = sorted([i for i, t in enumerate(objects) if t == "direction"])
+    # All satellites
+    sat_indices = sorted([i for i, t in enumerate(objects) if t == "satellite"])
+
+    # -----------------------------
+    # 2. Compute Satellite Widths & Summation
+    # -----------------------------
+    sat_widths = {}
+    for sat in sat_indices:
+        instruments = sat_to_instruments.get(sat, [])
+        sat_widths[sat] = get_sat_width(len(instruments), args.font_size, args.text_hsep)
+    total_sat_width = sum(sat_widths[s] for s in sat_indices) + args.sat_sep * (len(sat_indices) - 1)
+
+    # -----------------------------
+    # 3. Figure Setup
+    # -----------------------------
+    fig, ax = plt.subplots(figsize=(args.img_width/100, args.img_height/100), dpi=100)
+    ax.set_xlim(0, args.img_width)
+    ax.set_ylim(0, args.img_height)
+    ax.axis("off")
+
+    sat_y = args.img_height * 0.5
+    start_x = (args.img_width - total_sat_width) / 2
+
+    # -----------------------------
+    # 4. Build Satellite Polygons
+    # -----------------------------
+    sat_centers = {}
+    current_x = start_x
+    for sat in sat_indices:
+        width = sat_widths[sat]
+        r_x = width / 2.0
+        sat_height = args.sat_size
+        cx = current_x + r_x
+        sat_centers[sat] = (cx, sat_y)
+
+        # Downward semi-circle:
+        # top edge: (cx-r_x, sat_y) -> (cx+r_x, sat_y)
+        # arc param θ in [0..π], x= cx + r_x*cos(θ), y= sat_y - sat_height*sin(θ)
+        num_points = 50
+        arc_points = []
+        thetas = np.linspace(0, math.pi, num_points+1)
+        for theta in thetas:
+            x_arc = cx + r_x * math.cos(theta)
+            y_arc = sat_y - sat_height * math.sin(theta)
+            arc_points.append((x_arc, y_arc))
+
+        vertices = [(cx - r_x, sat_y), (cx + r_x, sat_y)] + arc_points[1:] + [(cx - r_x, sat_y)]
+        codes = ([Path.MOVETO, Path.LINETO] + [Path.LINETO]*len(arc_points[1:]) + [Path.CLOSEPOLY])
+        sat_path = Path(vertices, codes)
+        patch = patches.PathPatch(sat_path, facecolor="lightgray", edgecolor="black", lw=2)
+        ax.add_patch(patch)
+
+        current_x += width + args.sat_sep
+
+    # -----------------------------
+    # 5. Determine Global Max #Modes to unify baseline
+    # -----------------------------
+    global_max_modes = 0
+    for sat in sat_indices:
+        instruments = sat_to_instruments.get(sat, [])
+        for inst in instruments:
+            modes = inst_to_modes.get(inst, [])
+            if len(modes) > global_max_modes:
+                global_max_modes = len(modes)
+
+    # Each satellite will place instruments at a single baseline:
+    #   instruments_y = (sat_y - sat_height) - 40 - (global_max_modes * (font_size + text_vsep))
+    # so that even if a satellite has fewer modes, they remain aligned.
+    instruments_y_base = (sat_y - args.sat_size) - 40 - (global_max_modes * (args.font_size + args.text_vsep))
+
+    # -----------------------------
+    # 6. Draw Instruments + Modes
+    # -----------------------------
+    sat_inst_positions = {}
+    for sat in sat_indices:
+        instruments = sat_to_instruments.get(sat, [])
+        if not instruments:
+            continue
+        width = sat_widths[sat]
+        cx_sat, _ = sat_centers[sat]
+
+        # Horizontal arrangement for instruments
+        inst_label_width = args.font_size * 1.5
+        total_inst_width = len(instruments)*inst_label_width + (len(instruments)-1)*args.text_hsep
+        start_inst_x = cx_sat - (total_inst_width / 2.0)
+
+        for idx, inst in enumerate(instruments):
+            x_inst = start_inst_x + idx*(inst_label_width + args.text_hsep) + inst_label_width/2
+            ax.text(x_inst, instruments_y_base, f"i{inst}", fontsize=args.font_size,
+                    ha="center", va="center", color="black")
+            sat_inst_positions[inst] = (x_inst, instruments_y_base)
+
+        # Now place modes below each instrument, starting from instruments_y_base downward
+        for inst in instruments:
+            x_inst, base_y = sat_inst_positions[inst]
+            modes = inst_to_modes.get(inst, [])
+            current_mode_y = base_y - (args.font_size + args.text_vsep)
+            for m in modes:
+                ax.text(x_inst, current_mode_y, f"m{m}", fontsize=args.font_size,
+                        ha="center", va="center", color="black")
+                current_mode_y -= (args.font_size + args.text_vsep)
+
+    # -----------------------------
+    # 7. Draw Directions (Stars) Above Satellites
+    # -----------------------------
+    star_y = sat_y + args.dir_sep
+    dir_positions = {}
+
+    # Group A: directions pointed by satellites
+    groupA_dirs = set(sat_to_pointing.values())
+    for sat, d in sat_to_pointing.items():
+        if sat in sat_centers:
+            cx_sat, _ = sat_centers[sat]
+            ax.plot(cx_sat, star_y, marker="*", markersize=args.dir_size,
+                    color="yellow", markeredgecolor="black", lw=2)
+            ax.text(cx_sat, star_y + args.dir_size + 5, f"d{d}",
+                    fontsize=args.font_size, ha="center", va="bottom", color="black")
+            dir_positions.setdefault(d, []).append(cx_sat)
+
+    # Group B: directions not pointed at by satellites
+    groupB = [d for d in all_directions if d not in groupA_dirs]
+
+    # We'll treat each direction in Group B as if it were an "invisible satellite" with 1 instrument
+    # => invisible_width = get_sat_width(1, font_size, text_hsep)
+    invisible_width = get_sat_width(1, args.font_size, args.text_hsep)
+
+    # Right edge of last real satellite
+    if sat_indices:
+        last_sat = sat_indices[-1]
+        last_cx, _ = sat_centers[last_sat]
+        last_w = sat_widths[last_sat]
+        right_edge = last_cx + (last_w / 2.0)
+    else:
+        right_edge = 100
+
+    # Place them in a row, separated by sat_sep, each star centered in that invisible satellite
+    groupB_x = right_edge + args.sat_sep
+    for d in groupB:
+        cx_dir = groupB_x + (invisible_width / 2.0)
+        ax.plot(cx_dir, star_y, marker="*", markersize=args.dir_size,
+                color="yellow", markeredgecolor="black", lw=2)
+        ax.text(cx_dir, star_y + args.dir_size + 5, f"d{d}",
+                fontsize=args.font_size, ha="center", va="bottom", color="black")
+        dir_positions.setdefault(d, []).append(cx_dir)
+        groupB_x += invisible_width + args.sat_sep
+
+    # -----------------------------
+    # 8. Draw Direction Annotations (Calibration + Goal)
+    # -----------------------------
+    for d, x_list in dir_positions.items():
+        for x_val in x_list:
+            # calibration on the left
+            if d in dir_to_calib:
+                c_labels = [f"i{inst}" for inst in dir_to_calib[d]]
+                c_str = ", ".join(c_labels)
+                ax.text(x_val - (args.dir_size + 5), star_y, c_str,
+                        fontsize=args.font_size, ha="right", va="center", color="blue")
+            # goal modes on the right
+            if d in dir_to_goal_modes:
+                m_labels = [f"m{m}" for m in dir_to_goal_modes[d]]
+                m_str = ", ".join(m_labels)
+                ax.text(x_val + args.dir_size + 5, star_y, m_str,
+                        fontsize=args.font_size, ha="left", va="center", color="orange")
+
+    # -----------------------------
+    # 9. Save Figure
+    # -----------------------------
+    plt.savefig(args.output, bbox_inches="tight")
+    plt.close(fig)
+
+
 def main(args):
     # Parse the PDDL problem
     objects, init_atoms, goal_atoms = parse_pddl_problem(args)
@@ -793,6 +1074,8 @@ def main(args):
         visualize_sokoban_problem(objects, init_atoms, goal_atoms, args)
     elif args.domain == 'miconic':
         visualize_miconic_problem(objects, init_atoms, goal_atoms, args)
+    elif args.domain == 'satellite':
+        visualize_satellite_problem(objects, init_atoms, goal_atoms, args)
     else:
         print(f"No specialized visualization implemented for domain: {args.domain}")
 
