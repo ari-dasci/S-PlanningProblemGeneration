@@ -75,9 +75,9 @@ def parse_arguments():
                            help="Size in pixels used for painting locations and airports.")
     log_parser.add_argument("--object-size", type=float, default=24,
                            help="Font size for the text of packages, trucks and airplanes.")
-    log_parser.add_argument("--location-sep", type=float, default=40,
+    log_parser.add_argument("--location-sep", type=float, default=140,
                            help="Separation in pixels between locations/airports in the grid.")
-    log_parser.add_argument("--city-sep", type=float, default=200,
+    log_parser.add_argument("--city-sep", type=float, default=300,
                            help="Separation in pixels between grids of different cities.")
     log_parser.add_argument("--text-sep", type=float, default=30,
                            help="Separation in pixels between text.")
@@ -333,7 +333,6 @@ def visualize_logistics_problem(objects, init_atoms, goal_atoms, args):
     in top-to-bottom order: i, g, a, t. Only non-empty lines are drawn (no empty gaps).
 
     Below each city's grid, we place a label "City N" (N starting at 0).
-    The vertical spacing between rows in each city's grid is 3 * location_sep,
     while columns use location_sep. The text lines above each location
     are spaced so they do not overlap. "City X" is placed BELOW the grid.
 
@@ -360,7 +359,7 @@ def visualize_logistics_problem(objects, init_atoms, goal_atoms, args):
     location_sep = args.location_sep
     city_sep = args.city_sep
     text_sep = args.text_sep
-    row_sep = 6 * location_sep  # for example
+    row_sep = int(1.8 * location_sep)
 
     # 2) city_to_locs from init_atoms
     city_to_locs = {}

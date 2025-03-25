@@ -929,14 +929,14 @@ def create_histograms(args, pddl_problems, consistent_problems_info):
 
     elif args.domain == 'miconic':
         """
-        NOTE: for miconic we use --seed 3 instead of --seed 1 or another seed so that there exists at least one consisten problem for every model.
+        NOTE: in miconic, we use --seed 3 <for the ablations> instead of --seed 1 or another seed so that there exists at least one consisten problem for every model.
               
         Calls:
             --- Large problems
             - NeSIG: python -m src.scripts.analyze_generated_problems --init-policy PPO --goal-policy PPO --seed 1 --domain miconic --max-init-actions-test 40 --max-goal-actions-test 200  --create-histograms
             - Adhoc: python -m src.scripts.analyze_generated_problems --init-policy adhoc --goal-policy adhoc --domain miconic --experiment-id 38-40_2-40_1-40__1_100_1.0 --create-histograms
             --- Small problems
-            - NeSIG: python -m src.scripts.analyze_generated_problems --init-policy PPO --goal-policy PPO --seed 3 --domain miconic --max-init-actions-test 15 --max-goal-actions-test 75  --create-histograms
+            - NeSIG: python -m src.scripts.analyze_generated_problems --init-policy PPO --goal-policy PPO --seed 1 --domain miconic --max-init-actions-test 15 --max-goal-actions-test 75  --create-histograms
             - Adhoc: python -m src.scripts.analyze_generated_problems --init-policy adhoc --goal-policy adhoc --domain miconic --experiment-id 13-15_2-15_1-15__1_100_1.0 --create-histograms
         """
         create_histograms_miconic(args, pddl_problems, consistent_problems_info)
@@ -944,7 +944,7 @@ def create_histograms(args, pddl_problems, consistent_problems_info):
     elif args.domain == 'satellite':
         """ 
         Calls:
-            NOTE: for small problems, we need to use --seed 4, except for goal-random (seed 2), since otherwise there are no consistent problems or the test folder is missing in some runs.
+            NOTE: for small problems, we need to use --seed 4 <for the ablations>, except for goal-random (seed 2), since otherwise there are no consistent problems or the test folder is missing in some runs.
             --- Large problems
             - NeSIG: python -m src.scripts.analyze_generated_problems --init-policy PPO --goal-policy PPO --seed 1 --domain satellite --max-init-actions-test 40 --max-goal-actions-test 200  --create-histograms
             - Adhoc: python -m src.scripts.analyze_generated_problems --init-policy adhoc --goal-policy adhoc --domain satellite --experiment-id 38-40_1-20_1-20_1-20_1-20_1-20__1_100_1.0 --create-histograms
