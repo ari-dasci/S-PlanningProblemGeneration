@@ -6,7 +6,7 @@
 from ..consistency import ConsistencyEvaluator
 from pddl_prover import *
 
-class ConsistencyEvaluatorLogistics(ConsistencyEvaluator):
+class ConsistencyEvaluatorLogisticsExtra(ConsistencyEvaluator):
 
     def check_continuous_consistency(self, curr_state, atom_pred, atom_obj_consts, atom_obj_inds, atom_obj_types):
         # Shortcuts for more easily accessing predicates and constants

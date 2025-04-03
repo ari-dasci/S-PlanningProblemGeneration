@@ -11,11 +11,19 @@ import os
 
 # >>> Add here imports for consistency evaluators of new domains
 from src.nesig.metrics.consistency_evaluators.dummy_consistency import DummyConsistencyEvaluator
+
 from src.nesig.metrics.consistency_evaluators.blocksworld_consistency import ConsistencyEvaluatorBlocksworld
 from src.nesig.metrics.consistency_evaluators.logistics_consistency import ConsistencyEvaluatorLogistics
 from src.nesig.metrics.consistency_evaluators.sokoban_consistency import ConsistencyEvaluatorSokoban
 from src.nesig.metrics.consistency_evaluators.satellite_consistency import ConsistencyEvaluatorSatellite
 from src.nesig.metrics.consistency_evaluators.miconic_consistency import ConsistencyEvaluatorMiconic
+
+# Extra consistency evaluators
+from src.nesig.metrics.consistency_evaluators.blocksworld_consistency_extra import ConsistencyEvaluatorBlocksworldExtra
+from src.nesig.metrics.consistency_evaluators.logistics_consistency_extra import ConsistencyEvaluatorLogisticsExtra
+from src.nesig.metrics.consistency_evaluators.sokoban_consistency_extra import ConsistencyEvaluatorSokobanExtra
+from src.nesig.metrics.consistency_evaluators.satellite_consistency_extra import ConsistencyEvaluatorSatelliteExtra
+from src.nesig.metrics.consistency_evaluators.miconic_consistency_extra import ConsistencyEvaluatorMiconicExtra
 
 # NOTE, when calling the different scripts, we must first change the working directory to the parent folder
 # of the repository (in this case, S-planningproblemgeneration)
@@ -147,11 +155,11 @@ sokoban_init_state_info_7_7 = (['loc']*49,
     ('connected-up', (41, 34)), ('connected-up', (42, 35)), ('connected-up', (43, 36)), ('connected-up', (44, 37)), 
     ('connected-up', (45, 38)), ('connected-up', (46, 39)), ('connected-up', (47, 40)), ('connected-up', (48, 41))})
 
-# >>> Add to DOMAIN_INFO the information about new domains
 # init_state_info can be None, a tuple (objects, atoms) or a dictionary where keys represent tuple (max_init_actions, max_goal_actions)
 # and values are tuples (objects, atoms). In this latter case, we use a different init state for each problem size.
 # <<In other words, if init_state_info is a dictionary, the initial state to use depends on max_init_actions and max_goal_actions.>>
 # Note: goal_predicates must be given as a tuple instead of as a set
+# As a workaround, we create a new domain for each different set of consistency rules we want to use
 DOMAIN_INFO = {
     'blocksworld' :
         {'path' : Path('data/domains/blocks-domain.pddl'),
@@ -191,6 +199,94 @@ DOMAIN_INFO = {
     'miconic' :
         {'path' : Path('data/domains/miconic-domain.pddl'),
         'consistency_evaluator' : ConsistencyEvaluatorMiconic,
+        'init_state_info' : None,
+        'goal_predicates' : (('at', ('passenger','floor')),),
+        'allowed_virtual_objects' : None},
+
+
+
+    'blocksworld_dummy' :
+        {'path' : Path('data/domains/blocks-domain.pddl'),
+         'consistency_evaluator' : DummyConsistencyEvaluator,
+         'init_state_info' : None,
+         'goal_predicates' : (('on', ('block','block')),),
+         'allowed_virtual_objects' : None},
+
+    'logistics_dummy' :
+            {'path' : Path('data/domains/logistics-domain.pddl'),
+             'consistency_evaluator' : DummyConsistencyEvaluator,
+             'init_state_info' : None,
+             'goal_predicates' : (('at', ('package','location')),),
+             'allowed_virtual_objects' : ('city', 'location', 'airport', 'package', 'truck', 'airplane')},
+
+    'sokoban_dummy' :
+            {'path' : Path('data/domains/sokoban-domain.pddl'),
+             'consistency_evaluator' : DummyConsistencyEvaluator,
+             'init_state_info' : {
+                (10,50) : sokoban_init_state_info_4_4,
+                (15,75) : sokoban_init_state_info_5_5,
+                (18,90) : sokoban_init_state_info_5_6,
+                (21,105) : sokoban_init_state_info_6_6,
+                (25,125) : sokoban_init_state_info_6_7,
+                (30,150) : sokoban_init_state_info_7_7
+             },
+             'goal_predicates' : (('at-box', ('loc',)),),
+             'allowed_virtual_objects' : tuple()},
+    
+    'satellite_dummy' :
+            {'path' : Path('data/domains/satellite-domain.pddl'),
+            'consistency_evaluator' : DummyConsistencyEvaluator,
+            'init_state_info' : None,
+            'goal_predicates' : (('have_image', ('direction','mode')),),
+            'allowed_virtual_objects' : None},
+
+    'miconic_dummy' :
+        {'path' : Path('data/domains/miconic-domain.pddl'),
+        'consistency_evaluator' : DummyConsistencyEvaluator,
+        'init_state_info' : None,
+        'goal_predicates' : (('at', ('passenger','floor')),),
+        'allowed_virtual_objects' : None},
+
+
+
+    'blocksworld_extra' :
+        {'path' : Path('data/domains/blocks-domain.pddl'),
+         'consistency_evaluator' : ConsistencyEvaluatorBlocksworldExtra,
+         'init_state_info' : None,
+         'goal_predicates' : (('on', ('block','block')),),
+         'allowed_virtual_objects' : None},
+
+    'logistics_extra' :
+            {'path' : Path('data/domains/logistics-domain.pddl'),
+             'consistency_evaluator' : ConsistencyEvaluatorLogisticsExtra,
+             'init_state_info' : None,
+             'goal_predicates' : (('at', ('package','location')),),
+             'allowed_virtual_objects' : ('city', 'location', 'airport', 'package', 'truck', 'airplane')},
+
+    'sokoban_extra' :
+            {'path' : Path('data/domains/sokoban-domain.pddl'),
+             'consistency_evaluator' : ConsistencyEvaluatorSokobanExtra,
+             'init_state_info' : {
+                (10,50) : sokoban_init_state_info_4_4,
+                (15,75) : sokoban_init_state_info_5_5,
+                (18,90) : sokoban_init_state_info_5_6,
+                (21,105) : sokoban_init_state_info_6_6,
+                (25,125) : sokoban_init_state_info_6_7,
+                (30,150) : sokoban_init_state_info_7_7
+             },
+             'goal_predicates' : (('at-box', ('loc',)),),
+             'allowed_virtual_objects' : tuple()},
+    
+    'satellite_extra' :
+            {'path' : Path('data/domains/satellite-domain.pddl'),
+            'consistency_evaluator' : ConsistencyEvaluatorSatelliteExtra,
+            'init_state_info' : None,
+            'goal_predicates' : (('have_image', ('direction','mode')),),
+            'allowed_virtual_objects' : None},
+
+    'miconic_extra' :
+        {'path' : Path('data/domains/miconic-domain.pddl'),
+        'consistency_evaluator' : ConsistencyEvaluatorMiconicExtra,
         'init_state_info' : None,
         'goal_predicates' : (('at', ('passenger','floor')),),
         'allowed_virtual_objects' : None}
