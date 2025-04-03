@@ -1,9 +1,8 @@
 """
 > dummy_consistency.py
 
-This consistency evaluator always returns True. Therefore, every totally-generated initial state is eventual consistent
-and the only continuous consistency rules that are checked are those of preprocess_and_check_continuous_consistency()
-in ConsistencyEvaluator:
+This consistency evaluator only checks that a totally-generated initial state contains at least one object.
+Additionally, the rules of preprocess_and_check_continuous_consistency() are checked:
     - The new atom is valid
     - The new atom is not already in the state
     - The new atom has no repeated arguments
@@ -19,6 +18,7 @@ class DummyConsistencyEvaluator(ConsistencyEvaluator):
         return True
 
     def check_eventual_consistency(self, curr_state):
-        return True
+        # The state cannot be empty
+        return curr_state.num_objects > 0
 
 
