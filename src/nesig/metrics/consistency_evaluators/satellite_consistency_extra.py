@@ -1,8 +1,12 @@
 # Extra satellite consistency rules used for the extra AIJ experiments
 # We use the same continuous consistency rules as in satellite_consistency.py
+# << No, these rules are too difficulty for NeSIG to learn (the prob. of randomly generating an eventual-consistent state is too low) >>
+# This could be solved using some RL technique for dealing with sparse rewards. For now, we use a different set of rules.
 # To the eventual consistency rules, we add the following:
-# - There must be at least two satellites
-# - No two satellites can start pointing in the same direction
+# - [NO] There must be at least two satellites
+# - [NO] No two satellites can start pointing in the same direction
+# - [NO] Each satellite needs to have at least three instruments
+# - Each instrument can now support ONLY one mode (i.e., an instrument can only do one thing)
 
 from ..consistency import ConsistencyEvaluator
 from pddl_prover import *
@@ -139,8 +143,8 @@ class ConsistencyEvaluatorSatelliteExtra(ConsistencyEvaluator):
         x = Variable('x')
         y = Variable('y')
 
-        # There exists at least two satellites
-        formula_1 = TE(x, _type(x, satellite)) >= 2
+        # There exists at least one satellite
+        formula_1 = TE(x, _type(x, satellite))
 
         # Each satellite needs to have power available
         formula_2 = FA(x, _type(x, satellite) >> power_avail(x))
@@ -148,13 +152,13 @@ class ConsistencyEvaluatorSatelliteExtra(ConsistencyEvaluator):
         # Each satellite needs to have at least one instrument on board
         formula_3 = FA(x, _type(x, satellite) >> TE(y, on_board(y, x)))
         
-        # Each instrument needs to support at least one mode
-        formula_4 = FA(x, _type(x, instrument) >> TE(y, supports(x, y)))
+        # Each instrument must ONLY support one mode
+        formula_4 = FA(x, _type(x, instrument) >> (TE(y, supports(x, y)) == 1))
         
         # Each instrument needs to have at least one calibration target
         formula_5 = FA(x, _type(x, instrument) >> TE(y, calibration_target(x, y)))
 
         # No two satellites can start pointing in the same direction
-        formula_6 = ~(TE(x, _type(x, direction) & (TE(y, pointing(y, x)) >= 2)))
+        # formula_6 = ~(TE(x, _type(x, direction) & (TE(y, pointing(y, x)) >= 2)))
         
-        return self._evaluate(formula_1 & formula_2 & formula_3 & formula_4 & formula_5 & formula_6)
+        return self._evaluate(formula_1 & formula_2 & formula_3 & formula_4 & formula_5)

@@ -1,0 +1,38 @@
+(define (problem problem_86)
+
+(:domain miconic)
+
+(:objects
+	obj0 obj3 obj6 obj7 - passenger
+	obj1 obj2 obj4 obj5 obj8 obj9 - floor
+)
+
+(:init
+	(above obj1 obj2)
+	(above obj8 obj9)
+	(at obj0 obj4)
+	(at obj3 obj5)
+	(at obj6 obj1)
+	(at obj7 obj2)
+	(boarded obj0)
+	(boarded obj3)
+	(boarded obj6)
+	(boarded obj7)
+	(lift_at obj2)
+	(lift_at obj4)
+	(lift_at obj5)
+	(lift_at obj8)
+	(lift_empty)
+)
+
+(:goal (and
+	(at obj0 obj4)
+	(at obj0 obj5)
+	(at obj3 obj2)
+	(at obj3 obj4)
+	(at obj6 obj4)
+	(at obj6 obj5)
+	(at obj7 obj4)
+	(at obj7 obj5)
+))
+)
