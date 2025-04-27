@@ -1,0 +1,3575 @@
+{
+  "Consistency percentage": 0.98,
+  "Mean diversity": 0.1994394483614941,
+  "Mean actions init": 15.0,
+  "Std actions init": 0.0,
+  "Mean actions goal": 32.23,
+  "Std actions goal": 7.647032104025716,
+  "Mean num objects": {
+    "airplane": 2.07,
+    "airport": 2.78,
+    "city": 2.78,
+    "location": 0.6,
+    "object": 0.0,
+    "package": 6.17,
+    "thing": 0.0,
+    "truck": 3.38,
+    "vehicle": 0.0
+  },
+  "Std num objects": {
+    "airplane": 0.8631917515824625,
+    "airport": 0.8435638683585261,
+    "city": 0.8435638683585261,
+    "location": 0.6324555320336757,
+    "object": 0.0,
+    "package": 1.9341923379023087,
+    "thing": 0.0,
+    "truck": 0.977547952787995,
+    "vehicle": 0.0
+  },
+  "Mean num atoms init": {
+    "at": 11.62,
+    "in": 0.0,
+    "in-city": 3.38
+  },
+  "Std num atoms init": {
+    "at": 0.596322060635023,
+    "in": 0.0,
+    "in-city": 0.5963220606350228
+  },
+  "Mean num atoms goal": {
+    "at": 11.38,
+    "in": 0.24,
+    "in-city": 3.38
+  },
+  "Std num atoms goal": {
+    "at": 0.758683069535626,
+    "in": 0.5499090833947011,
+    "in-city": 0.5963220606350228
+  },
+  "Mean difficulty": {
+    "lama_first": 26.724489795918366,
+    "lazy_greedy_ff": 23.8265306122449,
+    "astar_lmcut": 74.11224489795919,
+    "fdss_opt": 0.29693877551020403
+  },
+  "Std difficulty": {
+    "lama_first": 9.67194619024727,
+    "lazy_greedy_ff": 8.272187863254874,
+    "astar_lmcut": 110.31382715828228,
+    "fdss_opt": 0.0657516689206256
+  },
+  "Max init actions": 15,
+  "Max goal actions": 60,
+  "Generation time": 20.052316665649414,
+  "r_terminated_problem_test": {
+    "lama_first": 100000000.0,
+    "lazy_greedy_ff": 100000000.0,
+    "astar_lmcut": 100000000.0,
+    "fdss_opt": 601.0
+  },
+  "time_limit_planner_test": {
+    "lama_first": 1800,
+    "lazy_greedy_ff": 1800,
+    "astar_lmcut": 1800,
+    "fdss_opt": 600
+  },
+  "memory_limit_planner_test": {
+    "lama_first": 8500000,
+    "lazy_greedy_ff": 8500000,
+    "astar_lmcut": 8500000,
+    "fdss_opt": 8500000
+  },
+  "Problem Results": {
+    "problem_0": {
+      "init_phase_length": 15,
+      "goal_phase_length": 37,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 2,
+        "city": 2,
+        "location": 2,
+        "object": 0,
+        "package": 6,
+        "thing": 0,
+        "truck": 3,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 12.0,
+        "lazy_greedy_ff": 11.0,
+        "astar_lmcut": 10.0,
+        "fdss_opt": 0.3
+      },
+      "diversity": 0.24703173339366913
+    },
+    "problem_1": {
+      "init_phase_length": 15,
+      "goal_phase_length": 36,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 4,
+        "city": 4,
+        "location": 0,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 25.0,
+        "lazy_greedy_ff": 20.0,
+        "astar_lmcut": 53.0,
+        "fdss_opt": 0.42
+      },
+      "diversity": 0.1967782825231552
+    },
+    "problem_2": {
+      "init_phase_length": 15,
+      "goal_phase_length": 38,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 4,
+        "city": 4,
+        "location": 0,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 26.0,
+        "lazy_greedy_ff": 20.0,
+        "astar_lmcut": 38.0,
+        "fdss_opt": 0.4
+      },
+      "diversity": 0.1967782825231552
+    },
+    "problem_3": {
+      "init_phase_length": 15,
+      "goal_phase_length": 28,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 4,
+        "city": 4,
+        "location": 0,
+        "object": 0,
+        "package": 5,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 30.0,
+        "lazy_greedy_ff": 31.0,
+        "astar_lmcut": 69.0,
+        "fdss_opt": 0.36
+      },
+      "diversity": 0.18503974378108978
+    },
+    "problem_4": {
+      "init_phase_length": 15,
+      "goal_phase_length": 33,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 4,
+        "city": 4,
+        "location": 0,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 29.0,
+        "lazy_greedy_ff": 27.0,
+        "astar_lmcut": 97.0,
+        "fdss_opt": 0.43
+      },
+      "diversity": 0.1967782825231552
+    },
+    "problem_5": {
+      "init_phase_length": 15,
+      "goal_phase_length": 0,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 1,
+        "city": 1,
+        "location": 1,
+        "object": 0,
+        "package": 10,
+        "thing": 0,
+        "truck": 2,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 13,
+        "in": 0,
+        "in-city": 2
+      },
+      "num_atoms_goal_state": {
+        "at": 13,
+        "in": 0,
+        "in-city": 2
+      },
+      "consistency": false,
+      "difficulty": 0,
+      "diversity": 0
+    },
+    "problem_6": {
+      "init_phase_length": 15,
+      "goal_phase_length": 31,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 8,
+        "thing": 0,
+        "truck": 2,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 24.0,
+        "lazy_greedy_ff": 23.0,
+        "astar_lmcut": 58.0,
+        "fdss_opt": 0.36
+      },
+      "diversity": 0.22150133550167084
+    },
+    "problem_7": {
+      "init_phase_length": 15,
+      "goal_phase_length": 30,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 4,
+        "city": 4,
+        "location": 0,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 5,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 23.0,
+        "lazy_greedy_ff": 25.0,
+        "astar_lmcut": 29.0,
+        "fdss_opt": 0.33
+      },
+      "diversity": 0.20396873354911804
+    },
+    "problem_8": {
+      "init_phase_length": 15,
+      "goal_phase_length": 26,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 3,
+        "city": 3,
+        "location": 1,
+        "object": 0,
+        "package": 5,
+        "thing": 0,
+        "truck": 5,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 17.0,
+        "lazy_greedy_ff": 17.0,
+        "astar_lmcut": 13.0,
+        "fdss_opt": 0.3
+      },
+      "diversity": 0.22462894022464752
+    },
+    "problem_9": {
+      "init_phase_length": 15,
+      "goal_phase_length": 46,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 2,
+        "city": 2,
+        "location": 0,
+        "object": 0,
+        "package": 9,
+        "thing": 0,
+        "truck": 3,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 13,
+        "in": 0,
+        "in-city": 2
+      },
+      "num_atoms_goal_state": {
+        "at": 13,
+        "in": 0,
+        "in-city": 2
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 34.0,
+        "lazy_greedy_ff": 34.0,
+        "astar_lmcut": 48.0,
+        "fdss_opt": 0.32
+      },
+      "diversity": 0.21475423872470856
+    },
+    "problem_10": {
+      "init_phase_length": 15,
+      "goal_phase_length": 38,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 4,
+        "airport": 3,
+        "city": 3,
+        "location": 0,
+        "object": 0,
+        "package": 3,
+        "thing": 0,
+        "truck": 5,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 17.0,
+        "lazy_greedy_ff": 14.0,
+        "astar_lmcut": 50.0,
+        "fdss_opt": 0.24
+      },
+      "diversity": 0.2186020165681839
+    },
+    "problem_11": {
+      "init_phase_length": 15,
+      "goal_phase_length": 39,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 6,
+        "thing": 0,
+        "truck": 3,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 22.0,
+        "lazy_greedy_ff": 21.0,
+        "astar_lmcut": 78.0,
+        "fdss_opt": 0.29
+      },
+      "diversity": 0.17903535068035126
+    },
+    "problem_12": {
+      "init_phase_length": 15,
+      "goal_phase_length": 32,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 9,
+        "thing": 0,
+        "truck": 2,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 25.0,
+        "lazy_greedy_ff": 25.0,
+        "astar_lmcut": 21.0,
+        "fdss_opt": 0.23
+      },
+      "diversity": 0.22342213988304138
+    },
+    "problem_13": {
+      "init_phase_length": 15,
+      "goal_phase_length": 34,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 4,
+        "city": 4,
+        "location": 0,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 30.0,
+        "lazy_greedy_ff": 25.0,
+        "astar_lmcut": 43.0,
+        "fdss_opt": 0.32
+      },
+      "diversity": 0.20089229941368103
+    },
+    "problem_14": {
+      "init_phase_length": 15,
+      "goal_phase_length": 28,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 2,
+        "city": 2,
+        "location": 2,
+        "object": 0,
+        "package": 5,
+        "thing": 0,
+        "truck": 5,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 11.0,
+        "lazy_greedy_ff": 11.0,
+        "astar_lmcut": 12.0,
+        "fdss_opt": 0.23
+      },
+      "diversity": 0.2485620528459549
+    },
+    "problem_15": {
+      "init_phase_length": 15,
+      "goal_phase_length": 43,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 4,
+        "city": 4,
+        "location": 0,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 5,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 29.0,
+        "lazy_greedy_ff": 32.0,
+        "astar_lmcut": 21.0,
+        "fdss_opt": 0.26
+      },
+      "diversity": 0.20174993574619293
+    },
+    "problem_16": {
+      "init_phase_length": 15,
+      "goal_phase_length": 33,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 2,
+        "city": 2,
+        "location": 2,
+        "object": 0,
+        "package": 5,
+        "thing": 0,
+        "truck": 3,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 14.0,
+        "lazy_greedy_ff": 13.0,
+        "astar_lmcut": 15.0,
+        "fdss_opt": 0.23
+      },
+      "diversity": 0.19403846561908722
+    },
+    "problem_17": {
+      "init_phase_length": 15,
+      "goal_phase_length": 32,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 3,
+        "city": 3,
+        "location": 0,
+        "object": 0,
+        "package": 8,
+        "thing": 0,
+        "truck": 3,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 42.0,
+        "lazy_greedy_ff": 42.0,
+        "astar_lmcut": 121.0,
+        "fdss_opt": 0.37
+      },
+      "diversity": 0.18633751571178436
+    },
+    "problem_18": {
+      "init_phase_length": 15,
+      "goal_phase_length": 29,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 8,
+        "thing": 0,
+        "truck": 3,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 1,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 27.0,
+        "lazy_greedy_ff": 27.0,
+        "astar_lmcut": 44.0,
+        "fdss_opt": 0.23
+      },
+      "diversity": 0.18653051555156708
+    },
+    "problem_19": {
+      "init_phase_length": 15,
+      "goal_phase_length": 31,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 3,
+        "city": 3,
+        "location": 0,
+        "object": 0,
+        "package": 7,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 39.0,
+        "lazy_greedy_ff": 40.0,
+        "astar_lmcut": 88.0,
+        "fdss_opt": 0.35
+      },
+      "diversity": 0.18290391564369202
+    },
+    "problem_20": {
+      "init_phase_length": 15,
+      "goal_phase_length": 42,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 9,
+        "thing": 0,
+        "truck": 2,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 28.0,
+        "lazy_greedy_ff": 28.0,
+        "astar_lmcut": 44.0,
+        "fdss_opt": 0.24
+      },
+      "diversity": 0.19357459247112274
+    },
+    "problem_21": {
+      "init_phase_length": 15,
+      "goal_phase_length": 37,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 4,
+        "city": 4,
+        "location": 0,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 23.0,
+        "lazy_greedy_ff": 24.0,
+        "astar_lmcut": 46.0,
+        "fdss_opt": 0.32
+      },
+      "diversity": 0.1967782825231552
+    },
+    "problem_22": {
+      "init_phase_length": 15,
+      "goal_phase_length": 35,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 4,
+        "city": 4,
+        "location": 0,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 30.0,
+        "lazy_greedy_ff": 21.0,
+        "astar_lmcut": 481.0,
+        "fdss_opt": 0.36
+      },
+      "diversity": 0.1967782825231552
+    },
+    "problem_23": {
+      "init_phase_length": 15,
+      "goal_phase_length": 17,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 3,
+        "city": 3,
+        "location": 1,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 9,
+        "in": 2,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 6.0,
+        "lazy_greedy_ff": 7.0,
+        "astar_lmcut": 5.0,
+        "fdss_opt": 0.24
+      },
+      "diversity": 0.202569842338562
+    },
+    "problem_24": {
+      "init_phase_length": 15,
+      "goal_phase_length": 35,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 3,
+        "city": 3,
+        "location": 0,
+        "object": 0,
+        "package": 5,
+        "thing": 0,
+        "truck": 5,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 37.0,
+        "lazy_greedy_ff": 28.0,
+        "astar_lmcut": 138.0,
+        "fdss_opt": 0.32
+      },
+      "diversity": 0.18809355795383453
+    },
+    "problem_25": {
+      "init_phase_length": 15,
+      "goal_phase_length": 31,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 7,
+        "thing": 0,
+        "truck": 2,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 21.0,
+        "lazy_greedy_ff": 20.0,
+        "astar_lmcut": 57.0,
+        "fdss_opt": 0.31
+      },
+      "diversity": 0.18478818237781525
+    },
+    "problem_26": {
+      "init_phase_length": 15,
+      "goal_phase_length": 29,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 3,
+        "city": 3,
+        "location": 1,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 21.0,
+        "lazy_greedy_ff": 16.0,
+        "astar_lmcut": 28.0,
+        "fdss_opt": 0.26
+      },
+      "diversity": 0.1849079579114914
+    },
+    "problem_27": {
+      "init_phase_length": 15,
+      "goal_phase_length": 46,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 2,
+        "city": 2,
+        "location": 0,
+        "object": 0,
+        "package": 9,
+        "thing": 0,
+        "truck": 2,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 13,
+        "in": 0,
+        "in-city": 2
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 1,
+        "in-city": 2
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 32.0,
+        "lazy_greedy_ff": 31.0,
+        "astar_lmcut": 204.0,
+        "fdss_opt": 0.41
+      },
+      "diversity": 0.2346811592578888
+    },
+    "problem_28": {
+      "init_phase_length": 15,
+      "goal_phase_length": 30,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 3,
+        "city": 3,
+        "location": 1,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 20.0,
+        "lazy_greedy_ff": 16.0,
+        "astar_lmcut": 19.0,
+        "fdss_opt": 0.22
+      },
+      "diversity": 0.20450618863105774
+    },
+    "problem_29": {
+      "init_phase_length": 15,
+      "goal_phase_length": 33,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 8,
+        "thing": 0,
+        "truck": 2,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 24.0,
+        "lazy_greedy_ff": 23.0,
+        "astar_lmcut": 58.0,
+        "fdss_opt": 0.27
+      },
+      "diversity": 0.22150133550167084
+    },
+    "problem_30": {
+      "init_phase_length": 15,
+      "goal_phase_length": 19,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 9,
+        "thing": 0,
+        "truck": 2,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 19.0,
+        "lazy_greedy_ff": 19.0,
+        "astar_lmcut": 15.0,
+        "fdss_opt": 0.22
+      },
+      "diversity": 0.21323248744010925
+    },
+    "problem_31": {
+      "init_phase_length": 15,
+      "goal_phase_length": 22,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 2,
+        "city": 2,
+        "location": 2,
+        "object": 0,
+        "package": 6,
+        "thing": 0,
+        "truck": 2,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 10.0,
+        "lazy_greedy_ff": 9.0,
+        "astar_lmcut": 10.0,
+        "fdss_opt": 0.26
+      },
+      "diversity": 0.2519958019256592
+    },
+    "problem_32": {
+      "init_phase_length": 15,
+      "goal_phase_length": 36,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 3,
+        "city": 3,
+        "location": 1,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 18.0,
+        "lazy_greedy_ff": 16.0,
+        "astar_lmcut": 22.0,
+        "fdss_opt": 0.24
+      },
+      "diversity": 0.21905076503753662
+    },
+    "problem_33": {
+      "init_phase_length": 15,
+      "goal_phase_length": 34,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 4,
+        "city": 4,
+        "location": 0,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 24.0,
+        "lazy_greedy_ff": 20.0,
+        "astar_lmcut": 47.0,
+        "fdss_opt": 0.32
+      },
+      "diversity": 0.1967782825231552
+    },
+    "problem_34": {
+      "init_phase_length": 15,
+      "goal_phase_length": 30,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 3,
+        "city": 3,
+        "location": 0,
+        "object": 0,
+        "package": 6,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 37.0,
+        "lazy_greedy_ff": 33.0,
+        "astar_lmcut": 52.0,
+        "fdss_opt": 0.33
+      },
+      "diversity": 0.17785385251045227
+    },
+    "problem_35": {
+      "init_phase_length": 15,
+      "goal_phase_length": 40,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 3,
+        "city": 3,
+        "location": 0,
+        "object": 0,
+        "package": 6,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 46.0,
+        "lazy_greedy_ff": 34.0,
+        "astar_lmcut": 463.0,
+        "fdss_opt": 0.43
+      },
+      "diversity": 0.17785385251045227
+    },
+    "problem_36": {
+      "init_phase_length": 15,
+      "goal_phase_length": 34,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 3,
+        "city": 3,
+        "location": 0,
+        "object": 0,
+        "package": 6,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 1,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 35.0,
+        "lazy_greedy_ff": 29.0,
+        "astar_lmcut": 23.0,
+        "fdss_opt": 0.24
+      },
+      "diversity": 0.17500419914722443
+    },
+    "problem_37": {
+      "init_phase_length": 15,
+      "goal_phase_length": 37,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 8,
+        "thing": 0,
+        "truck": 2,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 27.0,
+        "lazy_greedy_ff": 26.0,
+        "astar_lmcut": 107.0,
+        "fdss_opt": 0.37
+      },
+      "diversity": 0.19190703332424164
+    },
+    "problem_38": {
+      "init_phase_length": 15,
+      "goal_phase_length": 36,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 4,
+        "city": 4,
+        "location": 0,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 32.0,
+        "lazy_greedy_ff": 33.0,
+        "astar_lmcut": 64.0,
+        "fdss_opt": 0.33
+      },
+      "diversity": 0.1967782825231552
+    },
+    "problem_39": {
+      "init_phase_length": 15,
+      "goal_phase_length": 33,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 4,
+        "city": 4,
+        "location": 0,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 29.0,
+        "lazy_greedy_ff": 21.0,
+        "astar_lmcut": 50.0,
+        "fdss_opt": 0.32
+      },
+      "diversity": 0.20089229941368103
+    },
+    "problem_40": {
+      "init_phase_length": 15,
+      "goal_phase_length": 39,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 9,
+        "thing": 0,
+        "truck": 2,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 10,
+        "in": 2,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 20.0,
+        "lazy_greedy_ff": 20.0,
+        "astar_lmcut": 18.0,
+        "fdss_opt": 0.24
+      },
+      "diversity": 0.19615958631038666
+    },
+    "problem_41": {
+      "init_phase_length": 15,
+      "goal_phase_length": 30,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 8,
+        "thing": 0,
+        "truck": 2,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 21.0,
+        "lazy_greedy_ff": 20.0,
+        "astar_lmcut": 33.0,
+        "fdss_opt": 0.23
+      },
+      "diversity": 0.20514631271362305
+    },
+    "problem_42": {
+      "init_phase_length": 15,
+      "goal_phase_length": 32,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 7,
+        "thing": 0,
+        "truck": 2,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 10,
+        "in": 2,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 17.0,
+        "lazy_greedy_ff": 12.0,
+        "astar_lmcut": 12.0,
+        "fdss_opt": 0.23
+      },
+      "diversity": 0.18873395025730133
+    },
+    "problem_43": {
+      "init_phase_length": 15,
+      "goal_phase_length": 24,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 9,
+        "thing": 0,
+        "truck": 2,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 30.0,
+        "lazy_greedy_ff": 30.0,
+        "astar_lmcut": 45.0,
+        "fdss_opt": 0.25
+      },
+      "diversity": 0.19357459247112274
+    },
+    "problem_44": {
+      "init_phase_length": 15,
+      "goal_phase_length": 42,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 4,
+        "city": 4,
+        "location": 0,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 5,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 10,
+        "in": 1,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 20.0,
+        "lazy_greedy_ff": 18.0,
+        "astar_lmcut": 16.0,
+        "fdss_opt": 0.23
+      },
+      "diversity": 0.20552967488765717
+    },
+    "problem_45": {
+      "init_phase_length": 15,
+      "goal_phase_length": 31,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 3,
+        "city": 3,
+        "location": 0,
+        "object": 0,
+        "package": 5,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 34.0,
+        "lazy_greedy_ff": 28.0,
+        "astar_lmcut": 726.0,
+        "fdss_opt": 0.34
+      },
+      "diversity": 0.1792551875114441
+    },
+    "problem_46": {
+      "init_phase_length": 15,
+      "goal_phase_length": 25,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 2,
+        "city": 2,
+        "location": 2,
+        "object": 0,
+        "package": 7,
+        "thing": 0,
+        "truck": 3,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 15.0,
+        "lazy_greedy_ff": 15.0,
+        "astar_lmcut": 12.0,
+        "fdss_opt": 0.29
+      },
+      "diversity": 0.2268701195716858
+    },
+    "problem_47": {
+      "init_phase_length": 15,
+      "goal_phase_length": 30,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 3,
+        "city": 3,
+        "location": 1,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 10,
+        "in": 1,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 10.0,
+        "lazy_greedy_ff": 10.0,
+        "astar_lmcut": 19.0,
+        "fdss_opt": 0.23
+      },
+      "diversity": 0.19126909971237183
+    },
+    "problem_48": {
+      "init_phase_length": 15,
+      "goal_phase_length": 38,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 4,
+        "city": 4,
+        "location": 0,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 5,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 31.0,
+        "lazy_greedy_ff": 25.0,
+        "astar_lmcut": 31.0,
+        "fdss_opt": 0.26
+      },
+      "diversity": 0.20396873354911804
+    },
+    "problem_49": {
+      "init_phase_length": 15,
+      "goal_phase_length": 32,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 2,
+        "city": 2,
+        "location": 2,
+        "object": 0,
+        "package": 5,
+        "thing": 0,
+        "truck": 5,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 10,
+        "in": 1,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 11.0,
+        "lazy_greedy_ff": 11.0,
+        "astar_lmcut": 14.0,
+        "fdss_opt": 0.26
+      },
+      "diversity": 0.23802010715007782
+    },
+    "problem_50": {
+      "init_phase_length": 15,
+      "goal_phase_length": 51,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 6,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 21.0,
+        "lazy_greedy_ff": 16.0,
+        "astar_lmcut": 16.0,
+        "fdss_opt": 0.24
+      },
+      "diversity": 0.20025910437107086
+    },
+    "problem_51": {
+      "init_phase_length": 15,
+      "goal_phase_length": 26,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 7,
+        "thing": 0,
+        "truck": 3,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 21.0,
+        "lazy_greedy_ff": 16.0,
+        "astar_lmcut": 16.0,
+        "fdss_opt": 0.25
+      },
+      "diversity": 0.2095189392566681
+    },
+    "problem_52": {
+      "init_phase_length": 15,
+      "goal_phase_length": 35,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 3,
+        "city": 3,
+        "location": 0,
+        "object": 0,
+        "package": 7,
+        "thing": 0,
+        "truck": 3,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 53.0,
+        "lazy_greedy_ff": 47.0,
+        "astar_lmcut": 88.0,
+        "fdss_opt": 0.37
+      },
+      "diversity": 0.18251682817935944
+    },
+    "problem_53": {
+      "init_phase_length": 15,
+      "goal_phase_length": 43,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 3,
+        "city": 3,
+        "location": 1,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 18.0,
+        "lazy_greedy_ff": 16.0,
+        "astar_lmcut": 23.0,
+        "fdss_opt": 0.32
+      },
+      "diversity": 0.21905076503753662
+    },
+    "problem_54": {
+      "init_phase_length": 15,
+      "goal_phase_length": 36,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 4,
+        "city": 4,
+        "location": 0,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 5,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 22.0,
+        "lazy_greedy_ff": 22.0,
+        "astar_lmcut": 22.0,
+        "fdss_opt": 0.3
+      },
+      "diversity": 0.20586396753787994
+    },
+    "problem_55": {
+      "init_phase_length": 15,
+      "goal_phase_length": 30,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 8,
+        "thing": 0,
+        "truck": 2,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 1,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 34.0,
+        "lazy_greedy_ff": 20.0,
+        "astar_lmcut": 29.0,
+        "fdss_opt": 0.28
+      },
+      "diversity": 0.18121705949306488
+    },
+    "problem_56": {
+      "init_phase_length": 15,
+      "goal_phase_length": 29,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 9,
+        "thing": 0,
+        "truck": 2,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 28.0,
+        "lazy_greedy_ff": 28.0,
+        "astar_lmcut": 23.0,
+        "fdss_opt": 0.25
+      },
+      "diversity": 0.19362011551856995
+    },
+    "problem_57": {
+      "init_phase_length": 15,
+      "goal_phase_length": 32,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 4,
+        "city": 4,
+        "location": 0,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 36.0,
+        "lazy_greedy_ff": 21.0,
+        "astar_lmcut": 86.0,
+        "fdss_opt": 0.31
+      },
+      "diversity": 0.1967782825231552
+    },
+    "problem_58": {
+      "init_phase_length": 15,
+      "goal_phase_length": 37,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 9,
+        "thing": 0,
+        "truck": 2,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 29.0,
+        "lazy_greedy_ff": 29.0,
+        "astar_lmcut": 30.0,
+        "fdss_opt": 0.28
+      },
+      "diversity": 0.19362011551856995
+    },
+    "problem_59": {
+      "init_phase_length": 15,
+      "goal_phase_length": 28,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 8,
+        "thing": 0,
+        "truck": 3,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 10,
+        "in": 2,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 22.0,
+        "lazy_greedy_ff": 22.0,
+        "astar_lmcut": 19.0,
+        "fdss_opt": 0.24
+      },
+      "diversity": 0.181256502866745
+    },
+    "problem_60": {
+      "init_phase_length": 15,
+      "goal_phase_length": 30,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 4,
+        "city": 4,
+        "location": 0,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 25.0,
+        "lazy_greedy_ff": 19.0,
+        "astar_lmcut": 100.0,
+        "fdss_opt": 0.35
+      },
+      "diversity": 0.20089229941368103
+    },
+    "problem_61": {
+      "init_phase_length": 15,
+      "goal_phase_length": 43,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 3,
+        "city": 3,
+        "location": 1,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 18.0,
+        "lazy_greedy_ff": 14.0,
+        "astar_lmcut": 27.0,
+        "fdss_opt": 0.24
+      },
+      "diversity": 0.1994525045156479
+    },
+    "problem_62": {
+      "init_phase_length": 15,
+      "goal_phase_length": 35,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 3,
+        "city": 3,
+        "location": 0,
+        "object": 0,
+        "package": 7,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 39.0,
+        "lazy_greedy_ff": 39.0,
+        "astar_lmcut": 88.0,
+        "fdss_opt": 0.31
+      },
+      "diversity": 0.18290391564369202
+    },
+    "problem_63": {
+      "init_phase_length": 15,
+      "goal_phase_length": 37,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 4,
+        "airport": 3,
+        "city": 3,
+        "location": 0,
+        "object": 0,
+        "package": 5,
+        "thing": 0,
+        "truck": 3,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 29.0,
+        "lazy_greedy_ff": 27.0,
+        "astar_lmcut": 216.0,
+        "fdss_opt": 0.44
+      },
+      "diversity": 0.18907013535499573
+    },
+    "problem_64": {
+      "init_phase_length": 15,
+      "goal_phase_length": 38,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 9,
+        "thing": 0,
+        "truck": 2,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 19.0,
+        "lazy_greedy_ff": 19.0,
+        "astar_lmcut": 17.0,
+        "fdss_opt": 0.23
+      },
+      "diversity": 0.21419307589530945
+    },
+    "problem_65": {
+      "init_phase_length": 15,
+      "goal_phase_length": 38,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 3,
+        "city": 3,
+        "location": 0,
+        "object": 0,
+        "package": 6,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 34.0,
+        "lazy_greedy_ff": 37.0,
+        "astar_lmcut": 53.0,
+        "fdss_opt": 0.29
+      },
+      "diversity": 0.18323640525341034
+    },
+    "problem_66": {
+      "init_phase_length": 15,
+      "goal_phase_length": 34,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 4,
+        "city": 4,
+        "location": 0,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 23.0,
+        "lazy_greedy_ff": 21.0,
+        "astar_lmcut": 42.0,
+        "fdss_opt": 0.33
+      },
+      "diversity": 0.20089229941368103
+    },
+    "problem_67": {
+      "init_phase_length": 15,
+      "goal_phase_length": 35,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 4,
+        "city": 4,
+        "location": 0,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 21.0,
+        "lazy_greedy_ff": 20.0,
+        "astar_lmcut": 92.0,
+        "fdss_opt": 0.35
+      },
+      "diversity": 0.1967782825231552
+    },
+    "problem_68": {
+      "init_phase_length": 15,
+      "goal_phase_length": 31,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 7,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 1,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 21.0,
+        "lazy_greedy_ff": 21.0,
+        "astar_lmcut": 17.0,
+        "fdss_opt": 0.24
+      },
+      "diversity": 0.18518048524856567
+    },
+    "problem_69": {
+      "init_phase_length": 15,
+      "goal_phase_length": 43,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 3,
+        "city": 3,
+        "location": 0,
+        "object": 0,
+        "package": 7,
+        "thing": 0,
+        "truck": 3,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 48.0,
+        "lazy_greedy_ff": 38.0,
+        "astar_lmcut": 92.0,
+        "fdss_opt": 0.35
+      },
+      "diversity": 0.17536088824272156
+    },
+    "problem_70": {
+      "init_phase_length": 15,
+      "goal_phase_length": 34,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 8,
+        "thing": 0,
+        "truck": 3,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 27.0,
+        "lazy_greedy_ff": 27.0,
+        "astar_lmcut": 29.0,
+        "fdss_opt": 0.24
+      },
+      "diversity": 0.18627691268920898
+    },
+    "problem_71": {
+      "init_phase_length": 15,
+      "goal_phase_length": 31,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 7,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 1,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 20.0,
+        "lazy_greedy_ff": 20.0,
+        "astar_lmcut": 18.0,
+        "fdss_opt": 0.26
+      },
+      "diversity": 0.18446284532546997
+    },
+    "problem_72": {
+      "init_phase_length": 15,
+      "goal_phase_length": 31,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 3,
+        "city": 3,
+        "location": 0,
+        "object": 0,
+        "package": 7,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 42.0,
+        "lazy_greedy_ff": 42.0,
+        "astar_lmcut": 289.0,
+        "fdss_opt": 0.34
+      },
+      "diversity": 0.18658392131328583
+    },
+    "problem_73": {
+      "init_phase_length": 15,
+      "goal_phase_length": 32,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 4,
+        "city": 4,
+        "location": 0,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 29.0,
+        "lazy_greedy_ff": 24.0,
+        "astar_lmcut": 97.0,
+        "fdss_opt": 0.31
+      },
+      "diversity": 0.20089229941368103
+    },
+    "problem_74": {
+      "init_phase_length": 15,
+      "goal_phase_length": 29,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 4,
+        "city": 4,
+        "location": 0,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 25.0,
+        "lazy_greedy_ff": 21.0,
+        "astar_lmcut": 46.0,
+        "fdss_opt": 0.32
+      },
+      "diversity": 0.20089229941368103
+    },
+    "problem_75": {
+      "init_phase_length": 15,
+      "goal_phase_length": 24,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 9,
+        "thing": 0,
+        "truck": 2,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 10,
+        "in": 2,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 20.0,
+        "lazy_greedy_ff": 20.0,
+        "astar_lmcut": 18.0,
+        "fdss_opt": 0.22
+      },
+      "diversity": 0.19796453416347504
+    },
+    "problem_76": {
+      "init_phase_length": 15,
+      "goal_phase_length": 0,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 1,
+        "city": 1,
+        "location": 1,
+        "object": 0,
+        "package": 8,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 13,
+        "in": 0,
+        "in-city": 2
+      },
+      "num_atoms_goal_state": {
+        "at": 13,
+        "in": 0,
+        "in-city": 2
+      },
+      "consistency": false,
+      "difficulty": 0,
+      "diversity": 0
+    },
+    "problem_77": {
+      "init_phase_length": 15,
+      "goal_phase_length": 42,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 3,
+        "city": 3,
+        "location": 0,
+        "object": 0,
+        "package": 8,
+        "thing": 0,
+        "truck": 3,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 58.0,
+        "lazy_greedy_ff": 43.0,
+        "astar_lmcut": 73.0,
+        "fdss_opt": 0.37
+      },
+      "diversity": 0.19222857058048248
+    },
+    "problem_78": {
+      "init_phase_length": 15,
+      "goal_phase_length": 31,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 8,
+        "thing": 0,
+        "truck": 2,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 34.0,
+        "lazy_greedy_ff": 24.0,
+        "astar_lmcut": 66.0,
+        "fdss_opt": 0.23
+      },
+      "diversity": 0.17708349227905273
+    },
+    "problem_79": {
+      "init_phase_length": 15,
+      "goal_phase_length": 33,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 9,
+        "thing": 0,
+        "truck": 2,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 25.0,
+        "lazy_greedy_ff": 25.0,
+        "astar_lmcut": 21.0,
+        "fdss_opt": 0.2
+      },
+      "diversity": 0.22342213988304138
+    },
+    "problem_80": {
+      "init_phase_length": 15,
+      "goal_phase_length": 39,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 3,
+        "city": 3,
+        "location": 1,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 10,
+        "in": 1,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 17.0,
+        "lazy_greedy_ff": 16.0,
+        "astar_lmcut": 14.0,
+        "fdss_opt": 0.24
+      },
+      "diversity": 0.2150983065366745
+    },
+    "problem_81": {
+      "init_phase_length": 15,
+      "goal_phase_length": 47,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 2,
+        "city": 2,
+        "location": 0,
+        "object": 0,
+        "package": 9,
+        "thing": 0,
+        "truck": 2,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 13,
+        "in": 0,
+        "in-city": 2
+      },
+      "num_atoms_goal_state": {
+        "at": 13,
+        "in": 0,
+        "in-city": 2
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 39.0,
+        "lazy_greedy_ff": 30.0,
+        "astar_lmcut": 70.0,
+        "fdss_opt": 0.34
+      },
+      "diversity": 0.2131430059671402
+    },
+    "problem_82": {
+      "init_phase_length": 15,
+      "goal_phase_length": 33,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 3,
+        "city": 3,
+        "location": 1,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 5,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 20.0,
+        "lazy_greedy_ff": 17.0,
+        "astar_lmcut": 16.0,
+        "fdss_opt": 0.26
+      },
+      "diversity": 0.18923242390155792
+    },
+    "problem_83": {
+      "init_phase_length": 15,
+      "goal_phase_length": 29,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 8,
+        "thing": 0,
+        "truck": 2,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 25.0,
+        "lazy_greedy_ff": 24.0,
+        "astar_lmcut": 107.0,
+        "fdss_opt": 0.33
+      },
+      "diversity": 0.19508513808250427
+    },
+    "problem_84": {
+      "init_phase_length": 15,
+      "goal_phase_length": 34,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 4,
+        "city": 4,
+        "location": 0,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 30.0,
+        "lazy_greedy_ff": 21.0,
+        "astar_lmcut": 60.0,
+        "fdss_opt": 0.33
+      },
+      "diversity": 0.1967782825231552
+    },
+    "problem_85": {
+      "init_phase_length": 15,
+      "goal_phase_length": 32,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 7,
+        "thing": 0,
+        "truck": 3,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 31.0,
+        "lazy_greedy_ff": 20.0,
+        "astar_lmcut": 29.0,
+        "fdss_opt": 0.27
+      },
+      "diversity": 0.17819570004940033
+    },
+    "problem_86": {
+      "init_phase_length": 15,
+      "goal_phase_length": 33,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 3,
+        "city": 3,
+        "location": 0,
+        "object": 0,
+        "package": 7,
+        "thing": 0,
+        "truck": 3,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 33.0,
+        "lazy_greedy_ff": 30.0,
+        "astar_lmcut": 120.0,
+        "fdss_opt": 0.42
+      },
+      "diversity": 0.1806001216173172
+    },
+    "problem_87": {
+      "init_phase_length": 15,
+      "goal_phase_length": 24,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 2,
+        "city": 2,
+        "location": 0,
+        "object": 0,
+        "package": 9,
+        "thing": 0,
+        "truck": 2,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 13,
+        "in": 0,
+        "in-city": 2
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 1,
+        "in-city": 2
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 28.0,
+        "lazy_greedy_ff": 27.0,
+        "astar_lmcut": 204.0,
+        "fdss_opt": 0.4
+      },
+      "diversity": 0.2361205369234085
+    },
+    "problem_88": {
+      "init_phase_length": 15,
+      "goal_phase_length": 36,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 2,
+        "city": 2,
+        "location": 2,
+        "object": 0,
+        "package": 7,
+        "thing": 0,
+        "truck": 3,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 10,
+        "in": 1,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 20.0,
+        "lazy_greedy_ff": 20.0,
+        "astar_lmcut": 18.0,
+        "fdss_opt": 0.21
+      },
+      "diversity": 0.20723876357078552
+    },
+    "problem_89": {
+      "init_phase_length": 15,
+      "goal_phase_length": 52,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 3,
+        "city": 3,
+        "location": 0,
+        "object": 0,
+        "package": 7,
+        "thing": 0,
+        "truck": 3,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 53.0,
+        "lazy_greedy_ff": 39.0,
+        "astar_lmcut": 233.0,
+        "fdss_opt": 0.56
+      },
+      "diversity": 0.17662577331066132
+    },
+    "problem_90": {
+      "init_phase_length": 15,
+      "goal_phase_length": 46,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 8,
+        "thing": 0,
+        "truck": 3,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 10,
+        "in": 2,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 18.0,
+        "lazy_greedy_ff": 18.0,
+        "astar_lmcut": 14.0,
+        "fdss_opt": 0.23
+      },
+      "diversity": 0.21334877610206604
+    },
+    "problem_91": {
+      "init_phase_length": 15,
+      "goal_phase_length": 34,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 4,
+        "city": 4,
+        "location": 0,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 33.0,
+        "lazy_greedy_ff": 24.0,
+        "astar_lmcut": 29.0,
+        "fdss_opt": 0.32
+      },
+      "diversity": 0.1967782825231552
+    },
+    "problem_92": {
+      "init_phase_length": 15,
+      "goal_phase_length": 34,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 3,
+        "city": 3,
+        "location": 0,
+        "object": 0,
+        "package": 6,
+        "thing": 0,
+        "truck": 3,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 45.0,
+        "lazy_greedy_ff": 34.0,
+        "astar_lmcut": 85.0,
+        "fdss_opt": 0.4
+      },
+      "diversity": 0.17695261538028717
+    },
+    "problem_93": {
+      "init_phase_length": 15,
+      "goal_phase_length": 36,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 3,
+        "city": 3,
+        "location": 1,
+        "object": 0,
+        "package": 5,
+        "thing": 0,
+        "truck": 3,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 24.0,
+        "lazy_greedy_ff": 25.0,
+        "astar_lmcut": 30.0,
+        "fdss_opt": 0.25
+      },
+      "diversity": 0.18675188720226288
+    },
+    "problem_94": {
+      "init_phase_length": 15,
+      "goal_phase_length": 39,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 8,
+        "thing": 0,
+        "truck": 3,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 29.0,
+        "lazy_greedy_ff": 29.0,
+        "astar_lmcut": 31.0,
+        "fdss_opt": 0.27
+      },
+      "diversity": 0.18627691268920898
+    },
+    "problem_95": {
+      "init_phase_length": 15,
+      "goal_phase_length": 31,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 4,
+        "city": 4,
+        "location": 0,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 24.0,
+        "lazy_greedy_ff": 21.0,
+        "astar_lmcut": 472.0,
+        "fdss_opt": 0.28
+      },
+      "diversity": 0.1967782825231552
+    },
+    "problem_96": {
+      "init_phase_length": 15,
+      "goal_phase_length": 30,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 2,
+        "city": 2,
+        "location": 1,
+        "object": 0,
+        "package": 9,
+        "thing": 0,
+        "truck": 2,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 25.0,
+        "lazy_greedy_ff": 25.0,
+        "astar_lmcut": 21.0,
+        "fdss_opt": 0.21
+      },
+      "diversity": 0.22342213988304138
+    },
+    "problem_97": {
+      "init_phase_length": 15,
+      "goal_phase_length": 27,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 2,
+        "airport": 2,
+        "city": 2,
+        "location": 2,
+        "object": 0,
+        "package": 6,
+        "thing": 0,
+        "truck": 3,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 17.0,
+        "lazy_greedy_ff": 12.0,
+        "astar_lmcut": 11.0,
+        "fdss_opt": 0.2
+      },
+      "diversity": 0.20810042321681976
+    },
+    "problem_98": {
+      "init_phase_length": 15,
+      "goal_phase_length": 34,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 3,
+        "airport": 4,
+        "city": 4,
+        "location": 0,
+        "object": 0,
+        "package": 4,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "num_atoms_goal_state": {
+        "at": 11,
+        "in": 0,
+        "in-city": 4
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 22.0,
+        "lazy_greedy_ff": 23.0,
+        "astar_lmcut": 93.0,
+        "fdss_opt": 0.29
+      },
+      "diversity": 0.1967782825231552
+    },
+    "problem_99": {
+      "init_phase_length": 15,
+      "goal_phase_length": 30,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "airplane": 1,
+        "airport": 3,
+        "city": 3,
+        "location": 0,
+        "object": 0,
+        "package": 7,
+        "thing": 0,
+        "truck": 4,
+        "vehicle": 0
+      },
+      "num_atoms_init_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "num_atoms_goal_state": {
+        "at": 12,
+        "in": 0,
+        "in-city": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 41.0,
+        "lazy_greedy_ff": 41.0,
+        "astar_lmcut": 86.0,
+        "fdss_opt": 0.29
+      },
+      "diversity": 0.18290391564369202
+    }
+  }
+}

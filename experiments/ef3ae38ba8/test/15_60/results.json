@@ -1,0 +1,3279 @@
+{
+  "Consistency percentage": 1.0,
+  "Mean diversity": 0.029142536018043758,
+  "Mean actions init": 15.0,
+  "Std actions init": 0.0,
+  "Mean actions goal": 50.28,
+  "Std actions goal": 10.123319613644528,
+  "Mean num objects": {
+    "block": 11.33,
+    "object": 0.0
+  },
+  "Std num objects": {
+    "block": 1.5036954478883024,
+    "object": 0.0
+  },
+  "Mean num atoms init": {
+    "clear": 3.51,
+    "handempty": 0.0,
+    "holding": 4.69,
+    "on": 5.92,
+    "ontable": 0.88
+  },
+  "Std num atoms init": {
+    "clear": 1.1789402020458883,
+    "handempty": 0.0,
+    "holding": 1.0362914647916381,
+    "on": 1.6654128617252841,
+    "ontable": 0.8634813257969158
+  },
+  "Mean num atoms goal": {
+    "clear": 2.74,
+    "handempty": 0.85,
+    "holding": 0.15,
+    "on": 11.01,
+    "ontable": 0.31
+  },
+  "Std num atoms goal": {
+    "clear": 1.054703749874817,
+    "handempty": 0.3570714214271427,
+    "holding": 0.3570714214271427,
+    "on": 1.1957842614786338,
+    "ontable": 0.5778408085277466
+  },
+  "Mean difficulty": {
+    "lama_first": 83109623.74,
+    "lazy_greedy_ff": 77923822.99,
+    "astar_lmcut": 7857.01,
+    "fdss_opt": 40.0572
+  },
+  "Std difficulty": {
+    "lama_first": 35543345.36707183,
+    "lazy_greedy_ff": 38707010.5752284,
+    "astar_lmcut": 30724.679531117978,
+    "fdss_opt": 251.73628691581197
+  },
+  "Max init actions": 15,
+  "Max goal actions": 60,
+  "Generation time": 39.93462657928467,
+  "r_terminated_problem_test": {
+    "lama_first": 100000000.0,
+    "lazy_greedy_ff": 100000000.0,
+    "astar_lmcut": 100000000.0,
+    "fdss_opt": 1801.0
+  },
+  "time_limit_planner_test": {
+    "lama_first": 1800,
+    "lazy_greedy_ff": 1800,
+    "astar_lmcut": 3600,
+    "fdss_opt": 1800
+  },
+  "memory_limit_planner_test": {
+    "lama_first": 8500000,
+    "lazy_greedy_ff": 8500000,
+    "astar_lmcut": 8500000,
+    "fdss_opt": 8500000
+  },
+  "Problem Results": {
+    "problem_0": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 12,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 3,
+        "handempty": 0,
+        "holding": 4,
+        "on": 7,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 3,
+        "handempty": 1,
+        "holding": 0,
+        "on": 11,
+        "ontable": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 67.0,
+        "fdss_opt": 0.56
+      },
+      "diversity": 0.022783387452363968
+    },
+    "problem_1": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 13,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 4,
+        "on": 7,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 4,
+        "handempty": 1,
+        "holding": 0,
+        "on": 11,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 5035.0,
+        "astar_lmcut": 53.0,
+        "fdss_opt": 0.55
+      },
+      "diversity": 0.024130189791321754
+    },
+    "problem_2": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 12,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 5,
+        "handempty": 0,
+        "holding": 4,
+        "on": 6,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 5,
+        "handempty": 1,
+        "holding": 0,
+        "on": 10,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 53.0,
+        "fdss_opt": 0.55
+      },
+      "diversity": 0.02626262605190277
+    },
+    "problem_3": {
+      "init_phase_length": 15,
+      "goal_phase_length": 33,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 11,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 2,
+        "handempty": 0,
+        "holding": 6,
+        "on": 6,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 1,
+        "handempty": 1,
+        "holding": 0,
+        "on": 13,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 1674.0,
+        "fdss_opt": 32.98
+      },
+      "diversity": 0.02783389203250408
+    },
+    "problem_4": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 11,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 7,
+        "on": 4,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 1,
+        "on": 10,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 9876.0,
+        "lazy_greedy_ff": 5171.0,
+        "astar_lmcut": 1540.0,
+        "fdss_opt": 0.74
+      },
+      "diversity": 0.03557800129055977
+    },
+    "problem_5": {
+      "init_phase_length": 15,
+      "goal_phase_length": 53,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 10,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 5,
+        "handempty": 0,
+        "holding": 4,
+        "on": 5,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 3,
+        "handempty": 1,
+        "holding": 0,
+        "on": 10,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 47517080.0,
+        "lazy_greedy_ff": 28229574.0,
+        "astar_lmcut": 2229.0,
+        "fdss_opt": 0.74
+      },
+      "diversity": 0.02603815868496895
+    },
+    "problem_6": {
+      "init_phase_length": 15,
+      "goal_phase_length": 35,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 10,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 5,
+        "handempty": 0,
+        "holding": 4,
+        "on": 5,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 3,
+        "handempty": 1,
+        "holding": 0,
+        "on": 10,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 193.0,
+        "fdss_opt": 0.49
+      },
+      "diversity": 0.02603815868496895
+    },
+    "problem_7": {
+      "init_phase_length": 15,
+      "goal_phase_length": 45,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 11,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 3,
+        "handempty": 0,
+        "holding": 4,
+        "on": 7,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 1,
+        "holding": 0,
+        "on": 12,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 967.0,
+        "fdss_opt": 0.81
+      },
+      "diversity": 0.022783387452363968
+    },
+    "problem_8": {
+      "init_phase_length": 15,
+      "goal_phase_length": 44,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 11,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 5,
+        "on": 5,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 1,
+        "holding": 0,
+        "on": 11,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 2514.0,
+        "fdss_opt": 0.51
+      },
+      "diversity": 0.022558925673365593
+    },
+    "problem_9": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 10,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 3,
+        "handempty": 0,
+        "holding": 6,
+        "on": 5,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 1,
+        "handempty": 1,
+        "holding": 0,
+        "on": 12,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 806.0,
+        "fdss_opt": 0.48
+      },
+      "diversity": 0.025925926864147186
+    },
+    "problem_10": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 9,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 2,
+        "handempty": 0,
+        "holding": 5,
+        "on": 5,
+        "ontable": 3
+      },
+      "num_atoms_goal_state": {
+        "clear": 1,
+        "handempty": 0,
+        "holding": 1,
+        "on": 10,
+        "ontable": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 9007.0,
+        "lazy_greedy_ff": 67882980.0,
+        "astar_lmcut": 67288.0,
+        "fdss_opt": 0.78
+      },
+      "diversity": 0.03389450162649155
+    },
+    "problem_11": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 9,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 5,
+        "on": 5,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 1,
+        "on": 9,
+        "ontable": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 7953.0,
+        "lazy_greedy_ff": 4430.0,
+        "astar_lmcut": 81.0,
+        "fdss_opt": 0.3
+      },
+      "diversity": 0.022558925673365593
+    },
+    "problem_12": {
+      "init_phase_length": 15,
+      "goal_phase_length": 36,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 12,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 3,
+        "handempty": 0,
+        "holding": 5,
+        "on": 6,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 1,
+        "holding": 0,
+        "on": 12,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 49773507.0,
+        "lazy_greedy_ff": 6563.0,
+        "astar_lmcut": 15113.0,
+        "fdss_opt": 3.26
+      },
+      "diversity": 0.02143659070134163
+    },
+    "problem_13": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 10,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 5,
+        "handempty": 0,
+        "holding": 4,
+        "on": 5,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 3,
+        "handempty": 1,
+        "holding": 0,
+        "on": 9,
+        "ontable": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 8922065.0,
+        "lazy_greedy_ff": 5374022.0,
+        "astar_lmcut": 1138.0,
+        "fdss_opt": 0.3
+      },
+      "diversity": 0.02603815868496895
+    },
+    "problem_14": {
+      "init_phase_length": 15,
+      "goal_phase_length": 51,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 10,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 6,
+        "on": 5,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 4,
+        "handempty": 1,
+        "holding": 0,
+        "on": 11,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 1425.0,
+        "fdss_opt": 0.65
+      },
+      "diversity": 0.027272727340459824
+    },
+    "problem_15": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 12,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 2,
+        "handempty": 0,
+        "holding": 4,
+        "on": 8,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 1,
+        "holding": 0,
+        "on": 12,
+        "ontable": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 1146.0,
+        "fdss_opt": 4.5
+      },
+      "diversity": 0.029517395421862602
+    },
+    "problem_16": {
+      "init_phase_length": 15,
+      "goal_phase_length": 59,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 13,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 6,
+        "on": 5,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 4,
+        "handempty": 1,
+        "holding": 0,
+        "on": 11,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 35.0,
+        "fdss_opt": 0.55
+      },
+      "diversity": 0.027272727340459824
+    },
+    "problem_17": {
+      "init_phase_length": 15,
+      "goal_phase_length": 49,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 13,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 3,
+        "handempty": 0,
+        "holding": 4,
+        "on": 8,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 3,
+        "handempty": 1,
+        "holding": 0,
+        "on": 12,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 489.0,
+        "fdss_opt": 0.54
+      },
+      "diversity": 0.02783389203250408
+    },
+    "problem_18": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 11,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 3,
+        "handempty": 0,
+        "holding": 4,
+        "on": 7,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 1,
+        "holding": 0,
+        "on": 12,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 173.0,
+        "fdss_opt": 0.39
+      },
+      "diversity": 0.022783387452363968
+    },
+    "problem_19": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 11,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 5,
+        "handempty": 0,
+        "holding": 4,
+        "on": 5,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 5,
+        "handempty": 1,
+        "holding": 0,
+        "on": 9,
+        "ontable": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 43.0,
+        "fdss_opt": 0.25
+      },
+      "diversity": 0.02603815868496895
+    },
+    "problem_20": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 11,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 4,
+        "on": 6,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 3,
+        "handempty": 1,
+        "holding": 0,
+        "on": 11,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 10756.0,
+        "lazy_greedy_ff": 6121.0,
+        "astar_lmcut": 26042.0,
+        "fdss_opt": 1.18
+      },
+      "diversity": 0.021773289889097214
+    },
+    "problem_21": {
+      "init_phase_length": 15,
+      "goal_phase_length": 41,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 12,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 5,
+        "handempty": 0,
+        "holding": 4,
+        "on": 6,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 4,
+        "handempty": 1,
+        "holding": 0,
+        "on": 10,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 1344.0,
+        "fdss_opt": 0.49
+      },
+      "diversity": 0.02626262605190277
+    },
+    "problem_22": {
+      "init_phase_length": 15,
+      "goal_phase_length": 55,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 12,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 2,
+        "handempty": 0,
+        "holding": 6,
+        "on": 7,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 1,
+        "holding": 0,
+        "on": 13,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 70.0,
+        "fdss_opt": 1.03
+      },
+      "diversity": 0.03019079379737377
+    },
+    "problem_23": {
+      "init_phase_length": 15,
+      "goal_phase_length": 25,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 9,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 6,
+        "on": 4,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 3,
+        "handempty": 1,
+        "holding": 0,
+        "on": 11,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 3940058.0,
+        "lazy_greedy_ff": 4314982.0,
+        "astar_lmcut": 20099.0,
+        "fdss_opt": 1.6
+      },
+      "diversity": 0.029180696234107018
+    },
+    "problem_24": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 13,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 3,
+        "handempty": 0,
+        "holding": 4,
+        "on": 7,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 3,
+        "handempty": 1,
+        "holding": 0,
+        "on": 11,
+        "ontable": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 22794.0,
+        "fdss_opt": 9.36
+      },
+      "diversity": 0.022783387452363968
+    },
+    "problem_25": {
+      "init_phase_length": 15,
+      "goal_phase_length": 42,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 13,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 3,
+        "handempty": 0,
+        "holding": 5,
+        "on": 7,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 3,
+        "handempty": 1,
+        "holding": 0,
+        "on": 12,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 505.0,
+        "fdss_opt": 2.3
+      },
+      "diversity": 0.02379349060356617
+    },
+    "problem_26": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 10,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 2,
+        "handempty": 0,
+        "holding": 5,
+        "on": 5,
+        "ontable": 3
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 0,
+        "holding": 1,
+        "on": 9,
+        "ontable": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 25.0,
+        "fdss_opt": 0.39
+      },
+      "diversity": 0.03389450162649155
+    },
+    "problem_27": {
+      "init_phase_length": 15,
+      "goal_phase_length": 39,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 13,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 3,
+        "handempty": 0,
+        "holding": 4,
+        "on": 8,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 3,
+        "handempty": 1,
+        "holding": 0,
+        "on": 12,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 476.0,
+        "fdss_opt": 1.6
+      },
+      "diversity": 0.02783389203250408
+    },
+    "problem_28": {
+      "init_phase_length": 15,
+      "goal_phase_length": 40,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 13,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 3,
+        "handempty": 0,
+        "holding": 5,
+        "on": 7,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 3,
+        "handempty": 1,
+        "holding": 0,
+        "on": 12,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 16497776.0,
+        "astar_lmcut": 5621.0,
+        "fdss_opt": 5.4
+      },
+      "diversity": 0.02379349060356617
+    },
+    "problem_29": {
+      "init_phase_length": 15,
+      "goal_phase_length": 51,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 9,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 4,
+        "on": 5,
+        "ontable": 2
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 1,
+        "holding": 0,
+        "on": 10,
+        "ontable": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 797.0,
+        "fdss_opt": 0.37
+      },
+      "diversity": 0.02626262791454792
+    },
+    "problem_30": {
+      "init_phase_length": 15,
+      "goal_phase_length": 34,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 13,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 2,
+        "handempty": 0,
+        "holding": 7,
+        "on": 6,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 1,
+        "holding": 0,
+        "on": 13,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 6581.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 1418.0,
+        "fdss_opt": 0.4
+      },
+      "diversity": 0.03423119708895683
+    },
+    "problem_31": {
+      "init_phase_length": 15,
+      "goal_phase_length": 39,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 8,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 5,
+        "handempty": 0,
+        "holding": 6,
+        "on": 2,
+        "ontable": 2
+      },
+      "num_atoms_goal_state": {
+        "clear": 3,
+        "handempty": 1,
+        "holding": 0,
+        "on": 10,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 68314536.0,
+        "astar_lmcut": 6830.0,
+        "fdss_opt": 0.92
+      },
+      "diversity": 0.045791249722242355
+    },
+    "problem_32": {
+      "init_phase_length": 15,
+      "goal_phase_length": 55,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 14,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 2,
+        "handempty": 0,
+        "holding": 4,
+        "on": 9,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 1,
+        "holding": 0,
+        "on": 13,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 709.0,
+        "fdss_opt": 1801.0
+      },
+      "diversity": 0.036026936024427414
+    },
+    "problem_33": {
+      "init_phase_length": 15,
+      "goal_phase_length": 41,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 12,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 4,
+        "on": 6,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 3,
+        "handempty": 1,
+        "holding": 0,
+        "on": 11,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 99057856.0,
+        "astar_lmcut": 117.0,
+        "fdss_opt": 0.79
+      },
+      "diversity": 0.021773289889097214
+    },
+    "problem_34": {
+      "init_phase_length": 15,
+      "goal_phase_length": 48,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 11,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 5,
+        "handempty": 0,
+        "holding": 5,
+        "on": 5,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 4,
+        "handempty": 1,
+        "holding": 0,
+        "on": 10,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 694.0,
+        "fdss_opt": 0.42
+      },
+      "diversity": 0.027048259973526
+    },
+    "problem_35": {
+      "init_phase_length": 15,
+      "goal_phase_length": 36,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 10,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 5,
+        "handempty": 0,
+        "holding": 5,
+        "on": 3,
+        "ontable": 2
+      },
+      "num_atoms_goal_state": {
+        "clear": 3,
+        "handempty": 1,
+        "holding": 0,
+        "on": 10,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 3441001.0,
+        "astar_lmcut": 13614.0,
+        "fdss_opt": 0.59
+      },
+      "diversity": 0.03714926913380623
+    },
+    "problem_36": {
+      "init_phase_length": 15,
+      "goal_phase_length": 56,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 9,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 7,
+        "on": 4,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 3,
+        "handempty": 1,
+        "holding": 0,
+        "on": 11,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 17761.0,
+        "fdss_opt": 1.2
+      },
+      "diversity": 0.03557800129055977
+    },
+    "problem_37": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 11,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 2,
+        "handempty": 0,
+        "holding": 5,
+        "on": 8,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 0,
+        "holding": 1,
+        "on": 11,
+        "ontable": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 15125.0,
+        "lazy_greedy_ff": 5538.0,
+        "astar_lmcut": 210.0,
+        "fdss_opt": 0.67
+      },
+      "diversity": 0.030527494847774506
+    },
+    "problem_38": {
+      "init_phase_length": 15,
+      "goal_phase_length": 47,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 12,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 4,
+        "on": 6,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 3,
+        "handempty": 1,
+        "holding": 0,
+        "on": 11,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 1874.0,
+        "fdss_opt": 1.22
+      },
+      "diversity": 0.021773289889097214
+    },
+    "problem_39": {
+      "init_phase_length": 15,
+      "goal_phase_length": 52,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 11,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 3,
+        "on": 7,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 3,
+        "handempty": 1,
+        "holding": 0,
+        "on": 11,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 166.0,
+        "fdss_opt": 0.61
+      },
+      "diversity": 0.027272725477814674
+    },
+    "problem_40": {
+      "init_phase_length": 15,
+      "goal_phase_length": 52,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 11,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 5,
+        "on": 6,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 4,
+        "handempty": 1,
+        "holding": 0,
+        "on": 11,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 1267.0,
+        "fdss_opt": 0.46
+      },
+      "diversity": 0.022783387452363968
+    },
+    "problem_41": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 10,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 2,
+        "handempty": 0,
+        "holding": 4,
+        "on": 7,
+        "ontable": 2
+      },
+      "num_atoms_goal_state": {
+        "clear": 1,
+        "handempty": 1,
+        "holding": 0,
+        "on": 12,
+        "ontable": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 20344.0,
+        "fdss_opt": 17.69
+      },
+      "diversity": 0.029180698096752167
+    },
+    "problem_42": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 9,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 5,
+        "handempty": 0,
+        "holding": 5,
+        "on": 4,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 0,
+        "holding": 1,
+        "on": 9,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 8543.0,
+        "lazy_greedy_ff": 5976915.0,
+        "astar_lmcut": 921.0,
+        "fdss_opt": 0.4
+      },
+      "diversity": 0.028956225141882896
+    },
+    "problem_43": {
+      "init_phase_length": 15,
+      "goal_phase_length": 47,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 13,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 4,
+        "on": 7,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 4,
+        "handempty": 1,
+        "holding": 0,
+        "on": 11,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 55.0,
+        "fdss_opt": 0.46
+      },
+      "diversity": 0.024130189791321754
+    },
+    "problem_44": {
+      "init_phase_length": 15,
+      "goal_phase_length": 58,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 12,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 3,
+        "on": 7,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 3,
+        "handempty": 1,
+        "holding": 0,
+        "on": 11,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 7675377.0,
+        "lazy_greedy_ff": 33114639.0,
+        "astar_lmcut": 523.0,
+        "fdss_opt": 6.09
+      },
+      "diversity": 0.027272725477814674
+    },
+    "problem_45": {
+      "init_phase_length": 15,
+      "goal_phase_length": 46,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 8,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 5,
+        "on": 3,
+        "ontable": 3
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 1,
+        "holding": 0,
+        "on": 10,
+        "ontable": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 9858.0,
+        "fdss_opt": 0.32
+      },
+      "diversity": 0.03894500434398651
+    },
+    "problem_46": {
+      "init_phase_length": 15,
+      "goal_phase_length": 58,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 12,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 3,
+        "handempty": 0,
+        "holding": 3,
+        "on": 7,
+        "ontable": 2
+      },
+      "num_atoms_goal_state": {
+        "clear": 1,
+        "handempty": 1,
+        "holding": 0,
+        "on": 12,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 987.0,
+        "fdss_opt": 44.63
+      },
+      "diversity": 0.030639732256531715
+    },
+    "problem_47": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 13,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 4,
+        "on": 7,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 4,
+        "handempty": 1,
+        "holding": 0,
+        "on": 11,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 53.0,
+        "fdss_opt": 0.86
+      },
+      "diversity": 0.024130189791321754
+    },
+    "problem_48": {
+      "init_phase_length": 15,
+      "goal_phase_length": 54,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 14,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 5,
+        "on": 6,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 4,
+        "handempty": 1,
+        "holding": 0,
+        "on": 11,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 412.0,
+        "fdss_opt": 2.3
+      },
+      "diversity": 0.022783387452363968
+    },
+    "problem_49": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 11,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 3,
+        "handempty": 0,
+        "holding": 4,
+        "on": 7,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 3,
+        "handempty": 1,
+        "holding": 0,
+        "on": 11,
+        "ontable": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 148.0,
+        "fdss_opt": 0.38
+      },
+      "diversity": 0.022783387452363968
+    },
+    "problem_50": {
+      "init_phase_length": 15,
+      "goal_phase_length": 32,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 10,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 5,
+        "handempty": 0,
+        "holding": 5,
+        "on": 4,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 4,
+        "handempty": 1,
+        "holding": 0,
+        "on": 10,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 794.0,
+        "fdss_opt": 0.32
+      },
+      "diversity": 0.028956225141882896
+    },
+    "problem_51": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 11,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 3,
+        "handempty": 0,
+        "holding": 4,
+        "on": 7,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 1,
+        "holding": 0,
+        "on": 11,
+        "ontable": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 109.0,
+        "fdss_opt": 0.43
+      },
+      "diversity": 0.022783387452363968
+    },
+    "problem_52": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 9,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 5,
+        "handempty": 0,
+        "holding": 4,
+        "on": 4,
+        "ontable": 2
+      },
+      "num_atoms_goal_state": {
+        "clear": 3,
+        "handempty": 1,
+        "holding": 0,
+        "on": 9,
+        "ontable": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 70311211.0,
+        "astar_lmcut": 506.0,
+        "fdss_opt": 0.34
+      },
+      "diversity": 0.03265992924571037
+    },
+    "problem_53": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 9,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 5,
+        "handempty": 0,
+        "holding": 3,
+        "on": 4,
+        "ontable": 3
+      },
+      "num_atoms_goal_state": {
+        "clear": 1,
+        "handempty": 0,
+        "holding": 1,
+        "on": 9,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 21298132.0,
+        "lazy_greedy_ff": 7366470.0,
+        "astar_lmcut": 1694.0,
+        "fdss_opt": 0.33
+      },
+      "diversity": 0.04208754003047943
+    },
+    "problem_54": {
+      "init_phase_length": 15,
+      "goal_phase_length": 58,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 9,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 5,
+        "on": 4,
+        "ontable": 2
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 1,
+        "holding": 0,
+        "on": 10,
+        "ontable": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 6222.0,
+        "fdss_opt": 0.49
+      },
+      "diversity": 0.029180696234107018
+    },
+    "problem_55": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 14,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 1,
+        "handempty": 0,
+        "holding": 5,
+        "on": 9,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 0,
+        "holding": 1,
+        "on": 12,
+        "ontable": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 34.0,
+        "fdss_opt": 7.29
+      },
+      "diversity": 0.04107743874192238
+    },
+    "problem_56": {
+      "init_phase_length": 15,
+      "goal_phase_length": 39,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 12,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 6,
+        "handempty": 0,
+        "holding": 4,
+        "on": 4,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 5,
+        "handempty": 1,
+        "holding": 0,
+        "on": 9,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 79418916.0,
+        "astar_lmcut": 514.0,
+        "fdss_opt": 0.29
+      },
+      "diversity": 0.034455664455890656
+    },
+    "problem_57": {
+      "init_phase_length": 15,
+      "goal_phase_length": 46,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 14,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 2,
+        "handempty": 0,
+        "holding": 3,
+        "on": 10,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 1,
+        "holding": 0,
+        "on": 13,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 492.0,
+        "fdss_opt": 25.22
+      },
+      "diversity": 0.046015720814466476
+    },
+    "problem_58": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 11,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 3,
+        "handempty": 0,
+        "holding": 5,
+        "on": 7,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 3,
+        "handempty": 0,
+        "holding": 1,
+        "on": 11,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 412.0,
+        "fdss_opt": 0.78
+      },
+      "diversity": 0.02379349060356617
+    },
+    "problem_59": {
+      "init_phase_length": 15,
+      "goal_phase_length": 38,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 12,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 3,
+        "handempty": 0,
+        "holding": 5,
+        "on": 6,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 1,
+        "holding": 0,
+        "on": 12,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 4291.0,
+        "fdss_opt": 8.9
+      },
+      "diversity": 0.02143659070134163
+    },
+    "problem_60": {
+      "init_phase_length": 15,
+      "goal_phase_length": 51,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 13,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 4,
+        "on": 7,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 4,
+        "handempty": 1,
+        "holding": 0,
+        "on": 11,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 39.0,
+        "fdss_opt": 0.35
+      },
+      "diversity": 0.024130189791321754
+    },
+    "problem_61": {
+      "init_phase_length": 15,
+      "goal_phase_length": 56,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 12,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 3,
+        "handempty": 0,
+        "holding": 5,
+        "on": 6,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 1,
+        "holding": 0,
+        "on": 12,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 1813.0,
+        "fdss_opt": 40.02
+      },
+      "diversity": 0.02143659070134163
+    },
+    "problem_62": {
+      "init_phase_length": 15,
+      "goal_phase_length": 37,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 12,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 2,
+        "handempty": 0,
+        "holding": 6,
+        "on": 7,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 1,
+        "holding": 0,
+        "on": 13,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 24.0,
+        "fdss_opt": 3.5
+      },
+      "diversity": 0.03019079379737377
+    },
+    "problem_63": {
+      "init_phase_length": 15,
+      "goal_phase_length": 37,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 10,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 6,
+        "on": 3,
+        "ontable": 2
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 1,
+        "holding": 0,
+        "on": 11,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 16849.0,
+        "fdss_opt": 0.47
+      },
+      "diversity": 0.03737373650074005
+    },
+    "problem_64": {
+      "init_phase_length": 15,
+      "goal_phase_length": 56,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 11,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 5,
+        "handempty": 0,
+        "holding": 5,
+        "on": 5,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 5,
+        "handempty": 1,
+        "holding": 0,
+        "on": 10,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 71.0,
+        "fdss_opt": 0.36
+      },
+      "diversity": 0.027048259973526
+    },
+    "problem_65": {
+      "init_phase_length": 15,
+      "goal_phase_length": 35,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 8,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 5,
+        "handempty": 0,
+        "holding": 6,
+        "on": 2,
+        "ontable": 2
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 1,
+        "holding": 0,
+        "on": 10,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 10918085.0,
+        "lazy_greedy_ff": 4648100.0,
+        "astar_lmcut": 2855.0,
+        "fdss_opt": 0.62
+      },
+      "diversity": 0.045791249722242355
+    },
+    "problem_66": {
+      "init_phase_length": 15,
+      "goal_phase_length": 48,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 12,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 5,
+        "on": 6,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 4,
+        "handempty": 1,
+        "holding": 0,
+        "on": 11,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 588.0,
+        "fdss_opt": 0.44
+      },
+      "diversity": 0.022783387452363968
+    },
+    "problem_67": {
+      "init_phase_length": 15,
+      "goal_phase_length": 43,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 11,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 3,
+        "handempty": 0,
+        "holding": 6,
+        "on": 5,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 1,
+        "holding": 0,
+        "on": 12,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 1236.0,
+        "fdss_opt": 0.77
+      },
+      "diversity": 0.025925926864147186
+    },
+    "problem_68": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 12,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 2,
+        "handempty": 0,
+        "holding": 4,
+        "on": 7,
+        "ontable": 2
+      },
+      "num_atoms_goal_state": {
+        "clear": 1,
+        "handempty": 1,
+        "holding": 0,
+        "on": 12,
+        "ontable": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 12929507.0,
+        "astar_lmcut": 293.0,
+        "fdss_opt": 3.72
+      },
+      "diversity": 0.029180698096752167
+    },
+    "problem_69": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 13,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 3,
+        "handempty": 0,
+        "holding": 4,
+        "on": 7,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 1,
+        "holding": 0,
+        "on": 12,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 1018.0,
+        "fdss_opt": 5.44
+      },
+      "diversity": 0.022783387452363968
+    },
+    "problem_70": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 12,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 2,
+        "handempty": 0,
+        "holding": 4,
+        "on": 9,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 3,
+        "handempty": 1,
+        "holding": 0,
+        "on": 12,
+        "ontable": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 186.0,
+        "fdss_opt": 0.78
+      },
+      "diversity": 0.036026936024427414
+    },
+    "problem_71": {
+      "init_phase_length": 15,
+      "goal_phase_length": 59,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 9,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 2,
+        "handempty": 0,
+        "holding": 4,
+        "on": 6,
+        "ontable": 3
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 1,
+        "holding": 0,
+        "on": 10,
+        "ontable": 3
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 4996.0,
+        "fdss_opt": 0.61
+      },
+      "diversity": 0.03310886397957802
+    },
+    "problem_72": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 14,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 3,
+        "handempty": 0,
+        "holding": 4,
+        "on": 8,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 3,
+        "handempty": 1,
+        "holding": 0,
+        "on": 12,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 418.0,
+        "fdss_opt": 38.85
+      },
+      "diversity": 0.02783389203250408
+    },
+    "problem_73": {
+      "init_phase_length": 15,
+      "goal_phase_length": 39,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 13,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 6,
+        "on": 5,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 4,
+        "handempty": 1,
+        "holding": 0,
+        "on": 11,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 4642.0,
+        "astar_lmcut": 968.0,
+        "fdss_opt": 0.57
+      },
+      "diversity": 0.027272727340459824
+    },
+    "problem_74": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 10,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 3,
+        "handempty": 0,
+        "holding": 5,
+        "on": 6,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 0,
+        "holding": 1,
+        "on": 11,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 4467.0,
+        "fdss_opt": 0.42
+      },
+      "diversity": 0.02143659070134163
+    },
+    "problem_75": {
+      "init_phase_length": 15,
+      "goal_phase_length": 58,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 13,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 3,
+        "handempty": 0,
+        "holding": 3,
+        "on": 8,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 1,
+        "holding": 0,
+        "on": 12,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 9816.0,
+        "fdss_opt": 9.28
+      },
+      "diversity": 0.03097642958164215
+    },
+    "problem_76": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 12,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 2,
+        "handempty": 0,
+        "holding": 5,
+        "on": 8,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 0,
+        "holding": 1,
+        "on": 12,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 112.0,
+        "fdss_opt": 0.84
+      },
+      "diversity": 0.030527494847774506
+    },
+    "problem_77": {
+      "init_phase_length": 15,
+      "goal_phase_length": 52,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 13,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 3,
+        "on": 8,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 4,
+        "handempty": 1,
+        "holding": 0,
+        "on": 11,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 216.0,
+        "fdss_opt": 0.34
+      },
+      "diversity": 0.03232323005795479
+    },
+    "problem_78": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 12,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 3,
+        "handempty": 0,
+        "holding": 5,
+        "on": 6,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 0,
+        "holding": 1,
+        "on": 11,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 1270.0,
+        "fdss_opt": 15.29
+      },
+      "diversity": 0.02143659070134163
+    },
+    "problem_79": {
+      "init_phase_length": 15,
+      "goal_phase_length": 45,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 13,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 3,
+        "handempty": 0,
+        "holding": 4,
+        "on": 8,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 3,
+        "handempty": 1,
+        "holding": 0,
+        "on": 12,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 30301156.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 335.0,
+        "fdss_opt": 0.96
+      },
+      "diversity": 0.02783389203250408
+    },
+    "problem_80": {
+      "init_phase_length": 15,
+      "goal_phase_length": 46,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 13,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 3,
+        "handempty": 0,
+        "holding": 3,
+        "on": 8,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 1,
+        "holding": 0,
+        "on": 12,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 186.0,
+        "fdss_opt": 0.42
+      },
+      "diversity": 0.03097642958164215
+    },
+    "problem_81": {
+      "init_phase_length": 15,
+      "goal_phase_length": 39,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 11,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 3,
+        "handempty": 0,
+        "holding": 8,
+        "on": 2,
+        "ontable": 2
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 1,
+        "holding": 0,
+        "on": 11,
+        "ontable": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 11721.0,
+        "fdss_opt": 2.41
+      },
+      "diversity": 0.05319866165518761
+    },
+    "problem_82": {
+      "init_phase_length": 15,
+      "goal_phase_length": 42,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 12,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 5,
+        "on": 5,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 3,
+        "handempty": 1,
+        "holding": 0,
+        "on": 11,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 826.0,
+        "fdss_opt": 11.76
+      },
+      "diversity": 0.022558925673365593
+    },
+    "problem_83": {
+      "init_phase_length": 15,
+      "goal_phase_length": 32,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 10,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 6,
+        "handempty": 0,
+        "holding": 5,
+        "on": 4,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 5,
+        "handempty": 1,
+        "holding": 0,
+        "on": 9,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 62398648.0,
+        "astar_lmcut": 518.0,
+        "fdss_opt": 0.3
+      },
+      "diversity": 0.03546576574444771
+    },
+    "problem_84": {
+      "init_phase_length": 15,
+      "goal_phase_length": 53,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 10,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 6,
+        "handempty": 0,
+        "holding": 4,
+        "on": 3,
+        "ontable": 2
+      },
+      "num_atoms_goal_state": {
+        "clear": 4,
+        "handempty": 1,
+        "holding": 0,
+        "on": 8,
+        "ontable": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 5085756.0,
+        "lazy_greedy_ff": 3024654.0,
+        "astar_lmcut": 286.0,
+        "fdss_opt": 0.2
+      },
+      "diversity": 0.04264871031045914
+    },
+    "problem_85": {
+      "init_phase_length": 15,
+      "goal_phase_length": 44,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 10,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 3,
+        "on": 7,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 1,
+        "holding": 0,
+        "on": 11,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 4200.0,
+        "lazy_greedy_ff": 2601.0,
+        "astar_lmcut": 38.0,
+        "fdss_opt": 0.6
+      },
+      "diversity": 0.027272725477814674
+    },
+    "problem_86": {
+      "init_phase_length": 15,
+      "goal_phase_length": 54,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 10,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 5,
+        "handempty": 0,
+        "holding": 5,
+        "on": 4,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 4,
+        "handempty": 1,
+        "holding": 0,
+        "on": 10,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 1721.0,
+        "fdss_opt": 0.43
+      },
+      "diversity": 0.028956225141882896
+    },
+    "problem_87": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 12,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 6,
+        "handempty": 0,
+        "holding": 3,
+        "on": 4,
+        "ontable": 2
+      },
+      "num_atoms_goal_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 1,
+        "on": 8,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 8352.0,
+        "lazy_greedy_ff": 3314969.0,
+        "astar_lmcut": 4679.0,
+        "fdss_opt": 0.23
+      },
+      "diversity": 0.04231201112270355
+    },
+    "problem_88": {
+      "init_phase_length": 15,
+      "goal_phase_length": 42,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 12,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 2,
+        "handempty": 0,
+        "holding": 5,
+        "on": 7,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 1,
+        "handempty": 1,
+        "holding": 0,
+        "on": 13,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 113559.0,
+        "fdss_opt": 3.96
+      },
+      "diversity": 0.025476990267634392
+    },
+    "problem_89": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 13,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 2,
+        "handempty": 0,
+        "holding": 5,
+        "on": 8,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 3,
+        "handempty": 0,
+        "holding": 1,
+        "on": 11,
+        "ontable": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 1527.0,
+        "fdss_opt": 1.25
+      },
+      "diversity": 0.030527494847774506
+    },
+    "problem_90": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 12,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 2,
+        "handempty": 0,
+        "holding": 5,
+        "on": 7,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 0,
+        "holding": 1,
+        "on": 11,
+        "ontable": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 19.0,
+        "fdss_opt": 0.56
+      },
+      "diversity": 0.025476990267634392
+    },
+    "problem_91": {
+      "init_phase_length": 15,
+      "goal_phase_length": 29,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 11,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 5,
+        "handempty": 0,
+        "holding": 4,
+        "on": 5,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 4,
+        "handempty": 1,
+        "holding": 0,
+        "on": 10,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 991.0,
+        "fdss_opt": 0.38
+      },
+      "diversity": 0.02603815868496895
+    },
+    "problem_92": {
+      "init_phase_length": 15,
+      "goal_phase_length": 58,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 12,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 2,
+        "handempty": 0,
+        "holding": 5,
+        "on": 8,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 1,
+        "holding": 0,
+        "on": 13,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 30946.0,
+        "fdss_opt": 4.94
+      },
+      "diversity": 0.030527494847774506
+    },
+    "problem_93": {
+      "init_phase_length": 15,
+      "goal_phase_length": 47,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 11,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 5,
+        "handempty": 0,
+        "holding": 4,
+        "on": 5,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 4,
+        "handempty": 1,
+        "holding": 0,
+        "on": 9,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 12869.0,
+        "fdss_opt": 1.52
+      },
+      "diversity": 0.02603815868496895
+    },
+    "problem_94": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 13,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 3,
+        "handempty": 0,
+        "holding": 6,
+        "on": 6,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 3,
+        "handempty": 1,
+        "holding": 0,
+        "on": 12,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 610.0,
+        "fdss_opt": 0.93
+      },
+      "diversity": 0.02615039236843586
+    },
+    "problem_95": {
+      "init_phase_length": 15,
+      "goal_phase_length": 37,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 12,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 2,
+        "handempty": 0,
+        "holding": 6,
+        "on": 6,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 1,
+        "handempty": 1,
+        "holding": 0,
+        "on": 13,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 1683.0,
+        "fdss_opt": 48.0
+      },
+      "diversity": 0.02783389203250408
+    },
+    "problem_96": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 13,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 1,
+        "handempty": 0,
+        "holding": 6,
+        "on": 8,
+        "ontable": 0
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 1,
+        "holding": 0,
+        "on": 13,
+        "ontable": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 279922.0,
+        "fdss_opt": 1801.0
+      },
+      "diversity": 0.039281707257032394
+    },
+    "problem_97": {
+      "init_phase_length": 15,
+      "goal_phase_length": 40,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 10,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 3,
+        "handempty": 0,
+        "holding": 7,
+        "on": 4,
+        "ontable": 1
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 1,
+        "holding": 0,
+        "on": 12,
+        "ontable": 0
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 6514.0,
+        "astar_lmcut": 600.0,
+        "fdss_opt": 0.72
+      },
+      "diversity": 0.03423120081424713
+    },
+    "problem_98": {
+      "init_phase_length": 15,
+      "goal_phase_length": 58,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 11,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 2,
+        "handempty": 0,
+        "holding": 5,
+        "on": 6,
+        "ontable": 2
+      },
+      "num_atoms_goal_state": {
+        "clear": 1,
+        "handempty": 1,
+        "holding": 0,
+        "on": 12,
+        "ontable": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 100000000.0,
+        "lazy_greedy_ff": 100000000.0,
+        "astar_lmcut": 6158.0,
+        "fdss_opt": 2.6
+      },
+      "diversity": 0.02783389575779438
+    },
+    "problem_99": {
+      "init_phase_length": 15,
+      "goal_phase_length": 60,
+      "max_init_state_actions": 15,
+      "max_goal_actions": 60,
+      "num_objects": {
+        "block": 9,
+        "object": 0
+      },
+      "num_atoms_init_state": {
+        "clear": 4,
+        "handempty": 0,
+        "holding": 4,
+        "on": 4,
+        "ontable": 3
+      },
+      "num_atoms_goal_state": {
+        "clear": 2,
+        "handempty": 1,
+        "holding": 0,
+        "on": 10,
+        "ontable": 1
+      },
+      "consistency": true,
+      "difficulty": {
+        "lama_first": 25450765.0,
+        "lazy_greedy_ff": 16718928.0,
+        "astar_lmcut": 1443.0,
+        "fdss_opt": 0.43
+      },
+      "diversity": 0.034455664455890656
+    }
+  }
+}
