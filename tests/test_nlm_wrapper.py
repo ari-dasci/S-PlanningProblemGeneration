@@ -14,6 +14,9 @@ from src.nesig.symbolic.pddl_problem import PDDLProblem
 from src.nesig.learning.data_utils import pad_nlm_state
 from src.nesig.constants import TERM_ACTION
 
+import warnings
+warnings.filterwarnings("ignore", message="Lazy modules are a new feature under heavy development") # Hide warning when using nn.LazyLinear
+
 class TestNLMWrapper(unittest.TestCase):
     def setUp(self):
         self.parser = Parser()
@@ -34,10 +37,10 @@ class TestNLMWrapper(unittest.TestCase):
         args = parser.parse_args(['--device','cpu','--input-max-size'])
 
         # Create 4 NLMWrappers for actor and critic for both init and goal generation phases
-        self.nlm_actor_init = NLMWrapperActor(args, {'dummy_pddl_state':self.dummy_init_state})
-        self.nlm_actor_goal = NLMWrapperActor(args, {'dummy_pddl_state':self.dummy_goal_state})
-        self.nlm_critic_init = NLMWrapperCritic(args, {'dummy_pddl_state':self.dummy_init_state})
-        self.nlm_critic_goal = NLMWrapperCritic(args, {'dummy_pddl_state':self.dummy_goal_state})
+        self.nlm_actor_init = NLMWrapperActor(args, {'dummy_pddl_state':self.dummy_init_state}, device=torch.device("cpu"))
+        self.nlm_actor_goal = NLMWrapperActor(args, {'dummy_pddl_state':self.dummy_goal_state}, device=torch.device("cpu"))
+        self.nlm_critic_init = NLMWrapperCritic(args, {'dummy_pddl_state':self.dummy_init_state}, device=torch.device("cpu"))
+        self.nlm_critic_goal = NLMWrapperCritic(args, {'dummy_pddl_state':self.dummy_goal_state}, device=torch.device("cpu"))
 
         # Create problems in the init generation phase
         self.problem1_state = PDDLState(self.parser.types, self.parser.type_hierarchy, self.parser.predicates,

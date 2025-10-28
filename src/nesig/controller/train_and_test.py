@@ -103,6 +103,9 @@ from src.nesig.metrics.difficulty import PlannerEvaluator
 from src.nesig.metrics.diversity import InitGoalDiversityEvaluator
 from src.nesig.controller.trainer import PolicyTrainer
 
+import warnings
+warnings.filterwarnings("ignore", message="Lazy modules are a new feature under heavy development") # Hide warning when using nn.LazyLinear
+
 def parse_max_actions_train(value):
     """
     Parse either a single integer or a tuple of two integers.

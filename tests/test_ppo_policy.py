@@ -25,6 +25,9 @@ from src.nesig.symbolic.problem_generator import ProblemGenerator
 from src.nesig.metrics.consistency_evaluators.logistics_consistency import ConsistencyEvaluatorLogistics
 from src.nesig.learning.data_utils import CommonDataset, common_collate_fn
 
+import warnings
+warnings.filterwarnings("ignore", message="Lazy modules are a new feature under heavy development") # Hide warning when using nn.LazyLinear
+
 """
 TODO
 
