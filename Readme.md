@@ -3,11 +3,11 @@
 In this repo we provide the code and data for **NeSIG**, a neuro-symbolic method that learns to automatically **generate PDDL problems for any domain** so that they are **valid**, **diverse** and **difficult** to solve.
 
 ### Publications
- - [arXiv](https://arxiv.org/pdf/2301.10280)
- - **ECAI24**: just accepted
+ - [Artif. Intell.](https://www.sciencedirect.com/science/article/pii/S0004370225001900) (journal extension)
+ - [**ECAI24**](https://ebooks.iospress.nl/DOI/10.3233/FAIA240978)
 
 ## Acknowledgements
-This work has been partially funded by the Grant PID2022-142976OB-I00, funded by MICIU/AEI/ 10.13039/501100011033 and by “ERDF/EU”, as well as the Andalusian Regional predoctoral grant no. 21-111- PREDOC-0039 and by “ESF Investing in your future”.
+This work has been partially funded by the Grant PID2022-142976OB-I00, funded by MICIU/AEI/ 10.13039/501100011033 and by “ERDF/EU”, as well as the Andalusian Regional predoctoral grant no. 21-111- PREDOC-0039 and by “ESF Investing in your future”. Additionally, the research has been partially supported by the Alexander von Humboldt Foundation with funds from the Federal Ministry for Education and Research, by the European Research Council (ERC), Grant agreement No. 885107, and by the Excellence Strategy of the Federal Government and the NRW state, Germany.
 
 We want to express our deep gratitude to Masataro Asai, for his suggestion to use Neural Logic Machines (NLMs) in our work; Simon Stahlberg, for providing the implementation of ACR-GNNs used in a previous version of this work; Mauro Vallati and the rest of authors of [Fawcett et al., 2014], in addition to Sergio Jimenez Celorrio, for their advice on how to measure problem difficulty; Jiayuan Mao and the rest of authors of [Dong et al., 2019], for their helpful advice on NLMs; and, finally, Christian Muise and the FastDownward (FD) community, for their invaluable help on the use of the FD planning system.
 
