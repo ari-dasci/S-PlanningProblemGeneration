@@ -3,7 +3,8 @@
 In this repo we provide the code and data for **NeSIG**, a neuro-symbolic method that learns to automatically **generate PDDL problems for any domain** so that they are **valid**, **diverse** and **difficult** to solve.
 
 ### Publications
- - [Artif. Intell.](https://www.sciencedirect.com/science/article/pii/S0004370225001900) (journal extension)
+ - **ICAPS26** (Previously Published Research Track) 
+ - [**Artif. Intell.**](https://www.sciencedirect.com/science/article/pii/S0004370225001900) (journal extension)
  - [**ECAI24**](https://ebooks.iospress.nl/DOI/10.3233/FAIA240978)
 
 ## Acknowledgements
